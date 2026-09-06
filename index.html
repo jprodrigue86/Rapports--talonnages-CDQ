@@ -4,43 +4,95 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071b33">
+
+  <meta name="interface-scale" content="1.30">
+
   <link rel="manifest" href="manifest.webmanifest">
+
   <title>Rapports D’étalonnages</title>
+
   <style>
-    html,body{margin:0;width:100%;height:100%;background:#071b33;overflow:hidden}
-    body{font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-    #app{
+    :root{
+      --interface-scale: 1.30;
+    }
+
+    html,body{
+      margin:0;
       width:100%;
       height:100%;
+      background:#071b33;
+      overflow:hidden;
+    }
+
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,sans-serif;
+    }
+
+    #app{
+      width:calc(100% / var(--interface-scale));
+      height:calc(100% / var(--interface-scale));
       border:0;
       display:block;
-      transform:scale(1.15);
+
+      transform:scale(var(--interface-scale));
       transform-origin:top left;
-      width:86.9565%;
-      height:86.9565%;
     }
-    #loading{position:fixed;inset:0;display:grid;place-items:center;background:#071b33;color:white;z-index:2}
-    .box{text-align:center}
-    .box img{width:96px;height:96px;border-radius:22px;display:block;margin:0 auto 18px}
-    .box div{font-size:18px;font-weight:600}
+
+    #loading{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background:#071b33;
+      color:white;
+      z-index:2;
+    }
+
+    .box{
+      text-align:center;
+    }
+
+    .box img{
+      width:96px;
+      height:96px;
+      border-radius:22px;
+      display:block;
+      margin:0 auto 18px;
+    }
+
+    .box div{
+      font-size:18px;
+      font-weight:600;
+    }
   </style>
 </head>
+
 <body>
+
   <div id="loading">
     <div class="box">
       <img src="icons/icon-192.png" alt="CDQ">
       <div>Rapports D’étalonnages</div>
     </div>
   </div>
-  <iframe id="app" title="Rapports D’étalonnages"
-          src="https://script.google.com/macros/s/AKfycbxjLBFDo6RGDymMSdCUmfCdf7MITl13n05_Y4psNjQmoqHQQaXlMW9QLuxuVFeIg9uh/exec"
-          allow="clipboard-read; clipboard-write"
-          referrerpolicy="strict-origin-when-cross-origin"></iframe>
+
+  <iframe
+    id="app"
+    title="Rapports D’étalonnages"
+    src="https://script.google.com/macros/s/AKfycbz2dPE6G6YxDzPJCoBVhvd1PEXzZaLscC4XviNMX75UepI_KU5cXOkllayFrdkL1IYz/exec?v=40"
+    allow="clipboard-read; clipboard-write"
+    referrerpolicy="strict-origin-when-cross-origin">
+  </iframe>
+
   <script>
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    }
+
     document.getElementById('app').addEventListener('load', () => {
       document.getElementById('loading').style.display = 'none';
     });
   </script>
+
 </body>
 </html>
