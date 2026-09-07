@@ -4,18 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071b33">
-
   <meta name="interface-scale" content="1.30">
-
   <link rel="manifest" href="manifest.webmanifest">
-
   <title>Rapports D’étalonnages</title>
-
   <style>
     :root{
-      --interface-scale: 1.20;
+      --interface-scale:1.20;
     }
-
     html,body{
       margin:0;
       width:100%;
@@ -23,21 +18,17 @@
       background:#071b33;
       overflow:hidden;
     }
-
     body{
       font-family:system-ui,-apple-system,Segoe UI,sans-serif;
     }
-
     #app{
       width:calc(100% / var(--interface-scale));
       height:calc(100% / var(--interface-scale));
       border:0;
       display:block;
-
       transform:scale(var(--interface-scale));
       transform-origin:top left;
     }
-
     #loading{
       position:fixed;
       inset:0;
@@ -47,11 +38,9 @@
       color:white;
       z-index:2;
     }
-
     .box{
       text-align:center;
     }
-
     .box img{
       width:96px;
       height:96px;
@@ -59,10 +48,65 @@
       display:block;
       margin:0 auto 18px;
     }
-
     .box div{
       font-size:18px;
       font-weight:600;
+    }
+
+    /* Seulement pour les nouveaux utilisateurs qui doivent autoriser Google.
+       Ne modifie pas l'installation ni l'affichage normal de l'application. */
+    #auth-help{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(7,27,51,.96);
+      color:#fff;
+      z-index:10;
+      padding:24px;
+      box-sizing:border-box;
+    }
+    #auth-help .auth-card{
+      width:min(430px,92vw);
+      background:#0d2948;
+      border-radius:22px;
+      padding:28px 24px;
+      box-sizing:border-box;
+      text-align:center;
+      box-shadow:0 12px 40px rgba(0,0,0,.35);
+    }
+    #auth-help h2{
+      margin:0 0 12px;
+      font-size:22px;
+    }
+    #auth-help p{
+      margin:0 0 22px;
+      line-height:1.45;
+      font-size:16px;
+    }
+    #auth-help button{
+      width:100%;
+      min-height:50px;
+      border:0;
+      border-radius:14px;
+      font-size:17px;
+      font-weight:700;
+      cursor:pointer;
+      margin-top:10px;
+    }
+    #auth-open{
+      background:#43c98b;
+      color:#071b33;
+    }
+    #auth-retry{
+      background:#173a5f;
+      color:#fff;
+    }
+    #auth-help .small{
+      margin-top:14px;
+      font-size:13px;
+      opacity:.78;
     }
   </style>
 </head>
@@ -76,15 +120,76 @@
     </div>
   </div>
 
-  <div id="app" aria-label="Ouverture de l’application"></div>
+  <iframe
+    id="app"
+    title="Rapports D’étalonnages"
+    src="https://script.google.com/macros/s/AKfycbwpMBmpS9DJ-BfZ09oTi_pV9n707hc6FyhA1EgMUjxHHIXM-cmlcYhoGWn8bsVYp4Sz/exec"
+    allow="clipboard-read; clipboard-write"
+    referrerpolicy="strict-origin-when-cross-origin">
+  </iframe>
+
+  <div id="auth-help" aria-live="polite">
+    <div class="auth-card">
+      <h2>🔐 Autorisation Google</h2>
+      <p>
+        Pour un nouvel utilisateur, Google doit d’abord autoriser
+        l’application. Ouvre l’application Google ci-dessous, termine
+        l’autorisation, puis reviens ici.
+      </p>
+      <button id="auth-open">Ouvrir l’autorisation Google</button>
+      <button id="auth-retry">J’ai autorisé — réessayer</button>
+      <div class="small">
+        L’application installée, son icône et son fonctionnement normal ne changent pas.
+      </div>
+    </div>
+  </div>
 
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }
 
-    const APP_URL = 'https://script.google.com/macros/s/AKfycbwpMBmpS9DJ-BfZ09oTi_pV9n707hc6FyhA1EgMUjxHHIXM-cmlcYhoGWn8bsVYp4Sz/exec';
-    window.location.replace(APP_URL);
+    const app = document.getElementById('app');
+    const loading = document.getElementById('loading');
+    const authHelp = document.getElementById('auth-help');
+
+    const APP_URL =
+      'https://script.google.com/macros/s/AKfycbwpMBmpS9DJ-BfZ09oTi_pV9n707hc6FyhA1EgMUjxHHIXM-cmlcYhoGWn8bsVYp4Sz/exec';
+
+    let appLoadCount = 0;
+
+    app.addEventListener('load', () => {
+      appLoadCount++;
+      loading.style.display = 'none';
+    });
+
+    function ouvrirAutorisation() {
+      window.open(APP_URL, '_blank', 'noopener');
+    }
+
+    function reessayer() {
+      authHelp.style.display = 'none';
+      loading.style.display = 'grid';
+
+      const separator = APP_URL.indexOf('?') === -1 ? '?' : '&';
+      app.src = APP_URL + separator + 'cdq_retry=' + Date.now();
+    }
+
+    document.getElementById('auth-open').addEventListener('click', ouvrirAutorisation);
+    document.getElementById('auth-retry').addEventListener('click', reessayer);
+
+    /*
+      Google peut empêcher l'écran d'autorisation OAuth de s'afficher
+      correctement dans une iframe. On laisse d'abord l'application se
+      charger normalement. Si elle reste bloquée assez longtemps, on
+      affiche seulement l'aide d'autorisation.
+    */
+    setTimeout(() => {
+      if (appLoadCount === 0) {
+        loading.style.display = 'none';
+        authHelp.style.display = 'flex';
+      }
+    }, 10000);
   </script>
 
 </body>
