@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071b33">
-
   <meta name="interface-scale" content="1.30">
 
   <link rel="manifest" href="manifest.webmanifest">
@@ -13,7 +12,7 @@
 
   <style>
     :root{
-      --interface-scale: 1.20;
+      --interface-scale:1.20;
     }
 
     html,body{
@@ -33,7 +32,6 @@
       height:calc(100% / var(--interface-scale));
       border:0;
       display:block;
-
       transform:scale(var(--interface-scale));
       transform-origin:top left;
     }
@@ -76,19 +74,23 @@
     </div>
   </div>
 
-  <div id="app" aria-label="Ouverture de l’application"></div>
+  <iframe
+    id="app"
+    title="Rapports D’étalonnages"
+    src="https://script.google.com/macros/s/AKfycbwpMBmpS9DJ-BfZ09oTi_pV9n707hc6FyhA1EgMUjxHHIXM-cmlcYhoGWn8bsVYp4Sz/exec"
+    allow="clipboard-read; clipboard-write"
+    referrerpolicy="strict-origin-when-cross-origin">
+  </iframe>
 
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }
 
-    const APP_URL = 'https://script.google.com/macros/s/AKfycbwpMBmpS9DJ-BfZ09oTi_pV9n707hc6FyhA1EgMUjxHHIXM-cmlcYhoGWn8bsVYp4Sz/exec';
-    window.location.replace(APP_URL);
+    document.getElementById('app').addEventListener('load', () => {
+      document.getElementById('loading').style.display = 'none';
+    });
   </script>
-
-</body>
-</html>
 
 </body>
 </html>
