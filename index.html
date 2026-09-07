@@ -76,23 +76,19 @@
     </div>
   </div>
 
-  <iframe
-    id="app"
-    title="Rapports D’étalonnages"
-    src="https://script.google.com/macros/s/AKfycbwpMBmpS9DJ-BfZ09oTi_pV9n707hc6FyhA1EgMUjxHHIXM-cmlcYhoGWn8bsVYp4Sz/exec"
-    allow="clipboard-read; clipboard-write"
-    referrerpolicy="strict-origin-when-cross-origin">
-  </iframe>
+  <div id="app" aria-label="Ouverture de l’application"></div>
 
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }
 
-    document.getElementById('app').addEventListener('load', () => {
-      document.getElementById('loading').style.display = 'none';
-    });
+    const APP_URL = 'https://script.google.com/macros/s/AKfycbwpMBmpS9DJ-BfZ09oTi_pV9n707hc6FyhA1EgMUjxHHIXM-cmlcYhoGWn8bsVYp4Sz/exec';
+    window.location.replace(APP_URL);
   </script>
+
+</body>
+</html>
 
 </body>
 </html>
