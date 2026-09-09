@@ -1,6 +1,6 @@
-const CACHE = 'cdq-installable-heavy-v3';
+const CACHE = 'cdq-installable-heavy-v4';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './sw.js',
-  './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png', './icons/logo-heavy-app-v3.png'];
+  './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)));
