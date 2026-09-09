@@ -34,11 +34,62 @@
       inset:0;
       display:grid;
       place-items:center;
-      background:#071b33;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 50% 45%,rgba(171,24,24,.24),transparent 42%),
+        linear-gradient(145deg,#050608 0%,#111317 48%,#050608 100%);
       color:white;
       z-index:2;
+      isolation:isolate;
+    }
+    #loading::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:-1;
+      background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.62));
+      pointer-events:none;
+    }
+    .metal-wall{
+      position:absolute;
+      inset:-5%;
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      align-content:space-around;
+      gap:18px 12px;
+      padding:18px;
+      transform:rotate(-7deg) scale(1.08);
+      opacity:.22;
+      color:#d7d9dd;
+      font-weight:900;
+      text-transform:uppercase;
+      text-align:center;
+      letter-spacing:.06em;
+      user-select:none;
+      pointer-events:none;
+    }
+    .metal-wall span{
+      white-space:nowrap;
+      font-size:clamp(13px,4vw,24px);
+      text-shadow:0 0 10px rgba(255,255,255,.12);
+    }
+    .metal-wall span:nth-child(4n+1){
+      color:#ff3b3b;
+      font-size:clamp(16px,5vw,30px);
+    }
+    .metal-wall span:nth-child(3n){
+      transform:translateY(10px);
     }
     .box{
+      position:relative;
+      z-index:1;
+      width:min(310px,78vw);
+      padding:28px 22px 24px;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:28px;
+      background:rgba(8,10,13,.78);
+      box-shadow:0 18px 60px rgba(0,0,0,.58),inset 0 1px rgba(255,255,255,.07);
+      backdrop-filter:blur(7px);
       text-align:center;
     }
     .box img{
@@ -47,10 +98,43 @@
       border-radius:22px;
       display:block;
       margin:0 auto 18px;
+      box-shadow:0 8px 26px rgba(0,0,0,.5);
     }
-    .box div{
-      font-size:18px;
+    .loading-title{
+      font-size:19px;
+      font-weight:750;
+      letter-spacing:.01em;
+    }
+    .loading-label{
+      margin-top:8px;
+      color:#bdc3cc;
+      font-size:13px;
       font-weight:600;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .loading-bar{
+      height:4px;
+      margin:18px auto 0;
+      overflow:hidden;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+    }
+    .loading-bar::after{
+      content:"";
+      display:block;
+      width:42%;
+      height:100%;
+      border-radius:inherit;
+      background:linear-gradient(90deg,#8f1111,#ff4747,#8f1111);
+      animation:metal-loading 1.15s ease-in-out infinite;
+    }
+    @keyframes metal-loading{
+      0%{transform:translateX(-110%);}
+      100%{transform:translateX(340%);}
+    }
+    @media (prefers-reduced-motion:reduce){
+      .loading-bar::after{animation:none;width:100%;opacity:.7;}
     }
 
     /* Seulement pour les nouveaux utilisateurs qui doivent autoriser Google.
@@ -114,9 +198,20 @@
 <body>
 
   <div id="loading">
+    <div class="metal-wall" aria-hidden="true">
+      <span>Slipknot</span><span>Pantera</span><span>Metallica</span>
+      <span>Slayer</span><span>Megadeth</span><span>Iron Maiden</span>
+      <span>Black Sabbath</span><span>Judas Priest</span><span>Korn</span>
+      <span>Lamb of God</span><span>System of a Down</span><span>Avenged Sevenfold</span>
+      <span>Anthrax</span><span>Sepultura</span><span>Tool</span>
+      <span>Rammstein</span><span>Motörhead</span><span>Slipknot</span>
+      <span>Pantera</span><span>Metallica</span><span>Slayer</span>
+    </div>
     <div class="box">
       <img src="icons/icon-192.png" alt="CDQ">
-      <div>Rapports D’étalonnages</div>
+      <div class="loading-title">Rapports D’étalonnages</div>
+      <div class="loading-label">Chargement</div>
+      <div class="loading-bar" aria-hidden="true"></div>
     </div>
   </div>
 
