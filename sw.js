@@ -1,4 +1,4 @@
-const CACHE = 'cdq-installable-v1';
+const CACHE = 'cdq-installable-v2';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './sw.js',
   './icons/icon-192.png', './icons/icon-512.png'];
 
