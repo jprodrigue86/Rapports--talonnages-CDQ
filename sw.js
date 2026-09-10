@@ -1,4 +1,4 @@
-const CACHE = 'cdq-installable-heavy-v4';
+const CACHE = 'cdq-installable-heavy-v6-ui';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './sw.js',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png'];
 
