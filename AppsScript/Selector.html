@@ -1,0 +1,6235 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<base target="_top">
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+html{
+  zoom:0.95;
+}
+
+html.android{
+  zoom:1;
+}
+
+body{
+  margin:0;
+  padding:20px;
+  background:#111315;
+  color:#f1f1f1;
+  font-family:Arial,sans-serif;
+}
+
+body.light{
+  background:#f3f4f6;
+  color:#202124;
+}
+
+.container{
+  width:100%;
+  max-width:1100px;
+  margin:auto;
+}
+
+h1{
+  text-align:center;
+  font-size:30px;
+  margin:8px 0 24px;
+}
+
+
+/* =====================================================
+   SECURITE / UTILISATEURS
+===================================================== */
+
+.access-overlay{
+  position:fixed;
+  inset:0;
+  z-index:50000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:#111315;
+}
+
+.access-card{
+  width:100%;
+  max-width:520px;
+  padding:30px 24px;
+  border-radius:18px;
+  background:#24272b;
+  border:1px solid #555b63;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  text-align:center;
+}
+
+.access-card h2{
+  margin:0 0 12px;
+  font-size:27px;
+}
+
+.access-card p{
+  margin:8px 0;
+  font-size:18px;
+  line-height:1.45;
+}
+
+.access-error{
+  margin-top:18px;
+  color:#ff7777;
+  font-weight:700;
+}
+
+.admin-button{
+  display:none;
+  position:fixed;
+  top:14px;
+  right:67px;
+  z-index:600;
+  width:45px;
+  height:45px;
+  min-height:45px;
+  margin:0;
+  padding:0;
+  border:1px solid #b88900;
+  border-radius:50%;
+  background:#24272b;
+  color:#f5b400;
+  font-size:21px;
+  line-height:1;
+  font-weight:700;
+  cursor:pointer;
+  align-items:center;
+  justify-content:center;
+}
+
+.admin-button:hover{
+  background:#34383e;
+  filter:brightness(1.08);
+}
+
+body.light .admin-button{
+  background:white;
+  color:#d99a00;
+  border-color:#d3a62a;
+}
+
+.admin-user-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 0;
+  border-bottom:1px solid #3b3f45;
+}
+
+.admin-user-email{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-align:left;
+  font-size:16px;
+}
+
+.admin-role{
+  min-width:105px;
+  padding:8px;
+  border-radius:8px;
+  background:#191b1e;
+  color:white;
+  border:1px solid #4b5057;
+}
+
+.admin-remove{
+  width:42px;
+  height:40px;
+  border:0;
+  border-radius:8px;
+  background:#9b2424;
+  color:white;
+  font-size:18px;
+  cursor:pointer;
+}
+
+.admin-add-row{
+  display:flex;
+  gap:8px;
+  margin-top:16px;
+}
+
+.admin-add-row input{
+  flex:1;
+  min-width:0;
+  padding:11px 12px;
+  border-radius:9px;
+  border:1px solid #555b63;
+  background:#191b1e;
+  color:white;
+  font-size:16px;
+}
+
+.admin-add-row select{
+  width:125px;
+}
+
+.admin-add-row button{
+  min-width:78px;
+  border:0;
+  border-radius:9px;
+  background:#0759a8;
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+
+body.light .access-overlay{background:#f3f4f6;}
+body.light .access-card{background:white; color:#202124; border-color:#d0d4da;}
+body.light .admin-button{background:#e5e7eb; color:#202124; border-color:#c8ccd2;}
+body.light .admin-user-row{border-color:#ddd;}
+body.light .admin-role,
+body.light .admin-add-row input{background:#f8f9fa; color:#202124; border-color:#c8ccd2;}
+
+
+
+/* =====================================================
+   CREER UN DOSSIER
+===================================================== */
+
+.create-folder-button{
+  position:fixed;
+  top:14px;
+  left:14px;
+  z-index:600;
+  width:45px;
+  height:45px;
+  min-height:45px;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#f5b400;
+  font-size:21px;
+  line-height:1;
+  font-weight:700;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.create-folder-button:hover{
+  background:#24272b;
+}
+
+body.light .create-folder-button{
+  color:#d99a00;
+}
+
+/* =====================================================
+   MODE
+===================================================== */
+
+.theme-button{
+  position:fixed;
+  top:14px;
+  right:14px;
+  z-index:600;
+
+  width:45px;
+  height:45px;
+
+  border:1px solid #555b63;
+  border-radius:50%;
+
+  background:#24272b;
+  color:white;
+
+  font-size:21px;
+  cursor:pointer;
+}
+
+
+/* =====================================================
+   COMPAGNIE
+===================================================== */
+
+.top-bar{
+  display:flex;
+  justify-content:center;
+  width:100%;
+  margin-bottom:10px;
+}
+
+.company-wrapper{
+  position:relative;
+  width:100%;
+  max-width:none;
+  display:flex;
+  gap:8px;
+}
+
+.company-button{
+  flex:1;
+  width:auto;
+  min-height:58px;
+
+  border:1px solid #555b63;
+  border-radius:14px;
+
+  background:#24272b;
+  color:white;
+
+  padding:12px 16px;
+
+  text-align:left;
+  font-size:20px;
+
+  cursor:pointer;
+}
+
+.company-reset-item{
+  display:none !important;
+}
+
+.company-button::after{
+  content:"▼";
+  float:right;
+  font-size:14px;
+  margin-top:5px;
+}
+
+
+/* =====================================================
+   MENU PC
+===================================================== */
+
+.company-menu{
+  display:none;
+
+  position:absolute;
+
+  left:0;
+  right:0;
+
+  top:calc(100% + 8px);
+
+  z-index:10000;
+
+  background:#24272b;
+
+  border:1px solid #555b63;
+  border-radius:14px;
+
+  overflow:hidden;
+
+  box-shadow:0 18px 45px rgba(0,0,0,.65);
+}
+
+.company-search{
+  display:block;
+
+  width:100%;
+  height:65px;
+
+  padding:14px 18px;
+
+  border:0;
+  border-bottom:1px solid #4b5057;
+
+  background:#191b1e;
+  color:white;
+
+  outline:none;
+
+  font-size:20px;
+}
+
+.company-search::placeholder{
+  color:#8f949a;
+}
+
+.company-list{
+  max-height:480px;
+
+  overflow-y:auto;
+  overflow-x:hidden;
+
+  -webkit-overflow-scrolling:touch;
+}
+
+.company-item{
+  min-height:62px;
+
+  padding:16px 18px;
+
+  display:flex;
+  align-items:center;
+
+  font-size:23px;
+  font-weight:600;
+
+  border-bottom:1px solid #363a40;
+
+  cursor:pointer;
+}
+
+.company-item:hover{
+  background:#34383e;
+}
+
+.company-reset-item{
+  font-weight:700;
+  color:#f5b400;
+  border-bottom:1px solid #555b63;
+}
+
+body.light .company-reset-item{
+  color:#b27a00;
+}
+
+
+/* =====================================================
+   BOUTONS RAPIDES
+===================================================== */
+
+.quick-buttons{
+  display:flex;
+
+  width:100%;
+
+  gap:8px;
+
+  margin-top:10px;
+  margin-bottom:12px;
+}
+
+.quick-button{
+  flex:1;
+  min-width:0;
+
+  min-height:54px;
+
+  border:0;
+  border-radius:11px;
+
+  padding:7px 5px;
+
+  color:white;
+
+  cursor:pointer;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  gap:6px;
+
+  font-size:13px;
+  font-weight:700;
+
+  text-align:center;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 3px 8px rgba(0,0,0,.25);
+
+  transition:
+    transform .08s ease,
+    filter .15s ease;
+}
+
+.quick-button:active{
+  transform:scale(.98);
+}
+
+.quick-button:hover{
+  filter:brightness(1.08);
+}
+
+.quick-icon{
+  width:27px;
+  min-width:27px;
+  height:27px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  font-size:21px;
+
+  line-height:1;
+}
+
+.quick-icon svg{
+  width:27px;
+  height:27px;
+}
+
+.quick-name{
+  line-height:1.1;
+}
+
+.quick-intermediaire{
+  background:#006b4f;
+}
+
+.quick-camion{
+  background:#0759a8;
+}
+
+.quick-precision{
+  background:#5b1685;
+}
+
+.quick-multitete{
+  background:#f06a00;
+}
+
+
+/* =====================================================
+   SELECTION
+===================================================== */
+
+.selection-bar{
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
+
+  width:100%;
+
+  background:#202328;
+
+  border-radius:12px;
+
+  padding:10px 12px;
+
+  margin-bottom:15px;
+
+  min-height:58px;
+}
+
+.select-all-label{
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
+
+  font-size:17px;
+
+  flex:1;
+  min-width:0;
+}
+
+.select-all-label input{
+  width:23px;
+  height:23px;
+
+  flex:0 0 auto;
+}
+
+.file-count{
+  font-size:15px;
+
+  opacity:.8;
+
+  white-space:nowrap;
+}
+
+
+/* =====================================================
+   CORBEILLE
+===================================================== */
+
+.delete-button{
+  display:none;
+
+  width:46px;
+  height:42px;
+
+  flex:0 0 auto;
+
+  border:0;
+  border-radius:9px;
+
+  background:#e53935;
+  color:white;
+
+  font-size:21px;
+
+  cursor:pointer;
+
+  align-items:center;
+  justify-content:center;
+}
+
+.delete-button:hover{
+  filter:brightness(1.08);
+}
+
+
+/* =====================================================
+   CORBEILLE GOOGLE DRIVE
+===================================================== */
+.drive-trash-button{
+  width:46px;
+  height:42px;
+  min-height:42px;
+  flex:0 0 auto;
+  padding:0;
+  border:1px solid #555b63;
+  border-radius:9px;
+  background:#24272b;
+  color:white;
+  font-size:21px;
+  line-height:1;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.drive-trash-button:hover{background:#30343a;}
+body.light .drive-trash-button{
+  background:#e5e7eb;
+  color:#202124;
+  border-color:#c8ccd2;
+}
+
+/* =====================================================
+   DOSSIERS
+===================================================== */
+
+.folder{
+  margin-bottom:10px;
+}
+
+.folder-header{
+  display:flex;
+
+  align-items:center;
+  justify-content:space-between;
+
+  background:#272b30;
+
+  border-radius:11px;
+
+  padding:13px 15px;
+
+  cursor:pointer;
+
+  font-size:18px;
+  font-weight:600;
+}
+
+.folder-arrow{
+  font-size:14px;
+}
+
+.folder-header-actions{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex:0 0 auto;
+}
+
+.folder-delete-button{
+  width:36px;
+  height:36px;
+  min-width:36px;
+  min-height:36px;
+  padding:0;
+  border:0;
+  border-radius:8px;
+  background:#e53935;
+  color:white;
+  font-size:18px;
+  line-height:1;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+}
+
+.folder-delete-button:hover{
+  filter:brightness(1.08);
+}
+
+html.android .folder-delete-button{
+  width:34px;
+  height:34px;
+  min-width:34px;
+  min-height:34px;
+  font-size:17px;
+  border-radius:8px;
+}
+
+.folder-content{
+  display:none;
+
+  padding-left:12px;
+  padding-top:8px;
+}
+
+.folder.open .folder-content{
+  display:block;
+}
+
+.folder.open .folder-arrow{
+  transform:rotate(90deg);
+}
+
+
+/* =====================================================
+   FICHIERS
+===================================================== */
+
+.file-row{
+  display:flex;
+
+  align-items:flex-start;
+
+  gap:10px;
+
+  background:#1d2024;
+
+  border-radius:12px;
+
+  padding:11px;
+
+  margin-bottom:8px;
+
+  cursor:pointer;
+
+  transition:
+    background .15s ease,
+    transform .05s ease;
+}
+
+.file-row:hover{
+  background:#282d33;
+}
+
+.file-row:active{
+  transform:scale(.995);
+}
+
+.file-check{
+  width:23px;
+  height:23px;
+
+  margin-top:17px;
+
+  flex:0 0 auto;
+
+  cursor:pointer;
+}
+
+.file-icon{
+  width:42px;
+  min-width:42px;
+  height:42px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  margin-top:5px;
+
+  pointer-events:none;
+}
+
+.file-icon svg{
+  width:42px;
+  height:42px;
+}
+
+.file-info{
+  flex:1;
+  min-width:0;
+
+  pointer-events:none;
+}
+
+.file-name{
+  font-size:17px;
+
+  font-weight:600;
+
+  word-break:break-word;
+}
+
+.file-date{
+  font-size:13px;
+
+  opacity:.65;
+
+  margin-top:5px;
+}
+
+
+/* =====================================================
+   BOUTONS FICHIERS
+===================================================== */
+
+.file-actions{
+  display:flex;
+
+  gap:7px;
+
+  flex:0 0 auto;
+}
+
+.action-button{
+  width:76px;
+  min-height:58px;
+
+  border:0;
+  border-radius:10px;
+
+  padding:6px 5px;
+
+  background:#30343a;
+  color:white;
+
+  cursor:pointer;
+
+  font-size:12px;
+  font-weight:600;
+
+  display:flex;
+
+  flex-direction:column;
+
+  align-items:center;
+  justify-content:center;
+
+  gap:3px;
+}
+
+.action-button.modifier::before{
+  content:"✎";
+  font-size:23px;
+}
+
+.action-button.renommer::before{
+  content:"▤";
+  font-size:22px;
+}
+
+
+/* =====================================================
+   ENVOI
+===================================================== */
+
+.send-area{
+  margin-top:22px;
+}
+
+.send-button{
+  width:100%;
+
+  min-height:62px;
+
+  border:0;
+  border-radius:13px;
+
+  background:#1976d2;
+  color:white;
+
+  font-size:19px;
+  font-weight:700;
+
+  cursor:pointer;
+}
+
+.send-button:disabled{
+  opacity:.45;
+}
+
+
+/* =====================================================
+   MESSAGE
+===================================================== */
+
+.message{
+  text-align:center;
+
+  margin-top:15px;
+
+  font-size:15px;
+}
+
+.error{
+  color:#ff7070;
+}
+
+.success{
+  color:#6ee78a;
+}
+
+
+/* =====================================================
+   MODALES
+===================================================== */
+
+.modal-overlay{
+  display:none;
+
+  position:fixed;
+
+  inset:0;
+
+  z-index:50000;
+
+  background:rgba(0,0,0,.72);
+
+  align-items:center;
+  justify-content:center;
+
+  padding:20px;
+}
+
+.modal{
+  width:100%;
+  max-width:520px;
+
+  background:#24272b;
+
+  border:1px solid #555b63;
+
+  border-radius:16px;
+
+  padding:22px;
+}
+
+.modal h2{
+  margin:0 0 18px;
+}
+
+.modal-section{
+  margin-bottom:15px;
+}
+
+.modal label{
+  display:block;
+
+  margin-bottom:7px;
+}
+
+.modal input,
+.modal textarea{
+  width:100%;
+
+  border:1px solid #555b63;
+
+  border-radius:10px;
+
+  background:#191b1e;
+
+  color:white;
+
+  padding:12px;
+
+  font-size:16px;
+}
+
+.modal textarea{
+  min-height:110px;
+}
+
+.modal-buttons{
+  display:flex;
+
+  gap:10px;
+
+  margin-top:20px;
+}
+
+.modal-button{
+  flex:1;
+
+  min-height:50px;
+
+  border:0;
+
+  border-radius:10px;
+
+  font-size:16px;
+
+  font-weight:600;
+
+  cursor:pointer;
+}
+
+.cancel-button{
+  background:#3b4047;
+  color:white;
+}
+
+.confirm-button{
+  background:#1976d2;
+  color:white;
+}
+
+
+/* =====================================================
+   RENOMMER
+===================================================== */
+
+.rename-modal{
+  width:100%;
+  max-width:520px;
+
+  background:#24272b;
+
+  border:1px solid #555b63;
+
+  border-radius:16px;
+
+  padding:24px;
+}
+
+.rename-modal h2{
+  margin:0 0 18px;
+
+  font-size:24px;
+  font-weight:600;
+}
+
+.rename-input{
+  width:100%;
+
+  min-height:52px;
+
+  border:1px solid #555b63;
+
+  border-radius:10px;
+
+  background:#191b1e;
+
+  color:white;
+
+  padding:12px 14px;
+
+  font-size:17px;
+
+  outline:none;
+}
+
+.rename-input:focus{
+  border-color:#1976d2;
+}
+
+.rename-buttons{
+  display:flex;
+
+  gap:10px;
+
+  margin-top:20px;
+}
+
+.rename-cancel,
+.rename-confirm{
+  flex:1;
+
+  min-height:50px;
+
+  border:0;
+  border-radius:10px;
+
+  font-size:16px;
+  font-weight:600;
+
+  cursor:pointer;
+}
+
+.rename-cancel{
+  background:#3b4047;
+  color:white;
+}
+
+.rename-confirm{
+  background:#1976d2;
+  color:white;
+}
+
+
+/* =====================================================
+   COPIE
+===================================================== */
+
+.copy-modal{
+  width:100%;
+  max-width:520px;
+
+  background:#24272b;
+
+  border:1px solid #555b63;
+
+  border-radius:16px;
+
+  padding:24px;
+
+  text-align:center;
+}
+
+.copy-modal-icon{
+  font-size:42px;
+
+  margin-bottom:8px;
+}
+
+.copy-modal h2{
+  margin:0 0 18px;
+
+  font-size:24px;
+}
+
+.copy-modal-text{
+  font-size:17px;
+
+  line-height:1.5;
+
+  margin-bottom:22px;
+}
+
+.copy-template-name{
+  font-weight:700;
+
+  font-size:19px;
+
+  margin:8px 0;
+}
+
+.copy-company-name{
+  font-weight:700;
+
+  font-size:17px;
+
+  word-break:break-word;
+
+  margin-top:5px;
+}
+
+.copy-modal-buttons{
+  display:flex;
+
+  gap:10px;
+}
+
+.copy-cancel,
+.copy-confirm{
+  flex:1;
+
+  min-height:52px;
+
+  border:0;
+
+  border-radius:10px;
+
+  color:white;
+
+  font-size:16px;
+  font-weight:600;
+
+  cursor:pointer;
+}
+
+.copy-cancel{
+  background:#3b4047;
+}
+
+.copy-confirm{
+  background:#1976d2;
+}
+
+
+/* =====================================================
+   SUPPRESSION
+===================================================== */
+
+.delete-modal{
+  width:100%;
+  max-width:500px;
+
+  background:#24272b;
+
+  border:1px solid #555b63;
+
+  border-radius:16px;
+
+  padding:25px;
+
+  text-align:center;
+}
+
+.delete-modal-icon{
+  width:58px;
+  height:58px;
+
+  margin:0 auto 12px;
+
+  border-radius:50%;
+
+  background:#e53935;
+  color:white;
+
+  font-size:29px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+}
+
+.delete-modal h2{
+  margin:0 0 14px;
+
+  font-size:24px;
+}
+
+.delete-modal-text{
+  font-size:17px;
+
+  line-height:1.5;
+
+  margin-bottom:22px;
+}
+
+.delete-count{
+  font-weight:700;
+}
+
+.delete-modal-buttons{
+  display:flex;
+
+  gap:10px;
+}
+
+.delete-cancel,
+.delete-confirm{
+  flex:1;
+
+  min-height:52px;
+
+  border:0;
+  border-radius:10px;
+
+  color:white;
+
+  font-size:16px;
+  font-weight:700;
+
+  cursor:pointer;
+}
+
+.delete-cancel{
+  background:#3b4047;
+}
+
+.delete-confirm{
+  background:#e53935;
+}
+
+
+/* =====================================================
+   MODE CLAIR
+===================================================== */
+
+body.light .company-button{
+  background:white;
+  color:#202124;
+}
+
+body.light .company-menu{
+  background:white;
+  border-color:#c7cbd1;
+}
+
+body.light .company-search{
+  background:#f5f6f7;
+  color:#202124;
+}
+
+body.light .company-item{
+  color:#202124;
+  border-color:#e1e3e6;
+}
+
+body.light .company-item:hover{
+  background:#eef0f2;
+}
+
+body.light .selection-bar{
+  background:white;
+}
+
+body.light .folder-header{
+  background:white;
+  color:#202124;
+}
+
+body.light .file-row{
+  background:white;
+  color:#202124;
+}
+
+body.light .action-button{
+  background:#e1e4e8;
+  color:#202124;
+}
+
+body.light .modal,
+body.light .rename-modal,
+body.light .copy-modal,
+body.light .delete-modal{
+  background:white;
+  color:#202124;
+}
+
+body.light .rename-input,
+body.light .modal input,
+body.light .modal textarea{
+  background:#f5f6f7;
+  color:#202124;
+}
+
+
+/* =====================================================
+   PETITS ECRANS
+===================================================== */
+
+@media(max-width:600px){
+
+  h1{
+    font-size:24px;
+  }
+
+  .company-button{
+    font-size:18px;
+  }
+
+  .company-search{
+    height:65px;
+    font-size:20px;
+  }
+
+  .company-item{
+    min-height:60px;
+
+    padding:15px 18px;
+
+    font-size:23px;
+    font-weight:600;
+  }
+
+  .quick-buttons{
+    gap:6px;
+
+    margin-top:9px;
+    margin-bottom:11px;
+  }
+
+  .quick-button{
+    min-height:50px;
+
+    padding:6px 4px;
+
+    gap:5px;
+
+    font-size:12px;
+  }
+
+  .quick-icon{
+    width:25px;
+    min-width:25px;
+    height:25px;
+
+    font-size:19px;
+  }
+
+  .quick-icon svg{
+    width:25px;
+    height:25px;
+  }
+
+  .file-name{
+    font-size:14px;
+  }
+
+  .file-date{
+    font-size:13px;
+  }
+
+  .file-icon,
+  .file-icon svg{
+    width:40px;
+    height:40px;
+  }
+
+  .action-button{
+    width:72px;
+    min-height:56px;
+    font-size:11px;
+  }
+
+  .file-row{
+    gap:7px;
+    padding:9px;
+  }
+
+}
+
+
+/* =====================================================
+   ANDROID
+===================================================== */
+
+html.android .company-menu{
+
+  position:fixed;
+
+  left:14px;
+  right:14px;
+
+  top:0;
+
+  bottom:auto;
+
+  width:auto;
+
+  height:400px;
+
+  max-height:none;
+
+  z-index:99999;
+
+  overflow:hidden;
+
+  border-radius:14px;
+}
+
+html.android .company-list{
+
+  overflow-y:auto;
+
+  overflow-x:hidden;
+
+  -webkit-overflow-scrolling:touch;
+
+  overscroll-behavior:contain;
+
+  touch-action:pan-y;
+}
+
+html.android .company-item{
+
+  min-height:62px;
+
+  padding:15px 18px;
+
+  font-size:23px;
+  font-weight:600;
+
+  display:flex;
+
+  align-items:center;
+}
+
+html.android .quick-buttons{
+  gap:6px;
+
+  margin-top:9px;
+  margin-bottom:11px;
+}
+
+html.android .quick-button{
+  min-height:50px;
+
+  padding:6px 4px;
+
+  gap:5px;
+
+  font-size:12px;
+}
+
+html.android .quick-icon{
+  width:25px;
+  min-width:25px;
+  height:25px;
+
+  font-size:19px;
+}
+
+html.android .quick-icon svg{
+  width:25px;
+  height:25px;
+}
+
+
+/* =====================================================
+   ANDROID - BOUTONS COURONNE ET MODE SOMBRE
+===================================================== */
+
+.company-reset-button{
+  flex:0 0 58px;
+  width:58px;
+  min-height:58px;
+  border:1px solid #555b63;
+  border-radius:14px;
+  background:#24272b;
+  color:#f5b400;
+  font-size:23px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.company-reset-button:hover{
+  background:#34383e;
+}
+
+body.light .company-reset-button{
+  background:white;
+  color:#b27a00;
+  border-color:#c7cbd1;
+}
+
+html.android .company-reset-button{
+  flex:0 0 52px;
+  width:52px;
+  min-height:52px;
+  border-radius:13px;
+  font-size:21px;
+}
+
+html.android .create-folder-button{
+  width:40px;
+  height:40px;
+  min-height:40px;
+  top:23px;
+  left:10px;
+  font-size:18px;
+}
+
+html.android .admin-button{
+  width:40px;
+  height:40px;
+  min-height:40px;
+  top:23px;
+  right:65px;
+  font-size:18px;
+}
+
+html.android .theme-button{
+  width:40px;
+  height:40px;
+  top:23px;
+  right:10px;
+  font-size:18px;
+}
+
+/* =====================================================
+   GITHUB / PWA - AGRANDIR VISUELLEMENT LES 2 ICONES
+   Sans modifier leur position ni la version directe Apps Script
+===================================================== */
+html.github-embed.android .create-folder-button,
+html.github-embed.android .admin-button,
+html.github-embed.android .theme-button{
+  transform:scale(1.2);
+  transform-origin:center center;
+}
+
+
+/* =====================================================
+   INTERFACE SOMBRE PROFESSIONNELLE - ANDROID FIRST
+===================================================== */
+:root{--pro-bg:#071522;--pro-card:#10263a;--pro-line:#28465f;--pro-text:#f5f8fb;--pro-muted:#9fb2c6;--pro-blue:#1389ff;--pro-blue-2:#006be6;}
+body{background:linear-gradient(180deg,#071421 0%,#081a28 100%);color:var(--pro-text);}
+.container{width:min(100%,1080px);margin:0 auto;padding:12px 12px 92px;}
+.app-header{display:grid;grid-template-columns:86px 1fr auto;align-items:center;gap:12px;margin:2px 0 12px;padding:10px 12px;border:1px solid #1d3e58;border-radius:18px;background:linear-gradient(135deg,#0b2134,#071927);box-shadow:0 10px 30px rgba(0,0,0,.22);}
+.cdq-header-logo{width:76px;height:76px;object-fit:contain;border-radius:12px;display:block;}
+.app-header-copy h1{margin:0;font-size:clamp(21px,4.8vw,30px);line-height:1.05;color:#fff;text-align:left;}.app-subtitle{font-size:13px;color:#a9bfd3;margin-top:5px;}
+.header-actions{display:flex;gap:7px;}.header-icon-button{width:42px;height:42px;border-radius:12px;border:1px solid #31536d;background:#10283d;color:#fff;font-size:18px;display:grid;place-items:center;}.admin-header-button{display:none;}
+#createFolderButton,#adminButton{display:none!important;}.theme-button{top:10px;right:10px;width:38px;height:38px;min-height:38px;opacity:.92;z-index:700;}
+.top-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch;margin-bottom:9px;}.company-wrapper{min-width:0;}.company-button{min-height:50px!important;border-radius:13px!important;background:#10273b!important;border-color:#31516a!important;font-size:16px!important;}.company-reset-button{width:48px!important;min-width:48px!important;min-height:50px!important;border-radius:13px!important;}
+.open-client-folder-button{min-height:50px;padding:0 14px;border:0;border-radius:13px;background:linear-gradient(180deg,var(--pro-blue),var(--pro-blue-2));color:white;font-weight:800;font-size:14px;white-space:nowrap;box-shadow:0 4px 12px rgba(0,107,230,.28);}.open-client-folder-button:disabled{opacity:.4;box-shadow:none;}
+.quick-buttons{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:7px!important;margin:8px 0!important;}.quick-button{min-height:64px!important;padding:7px 4px!important;border-radius:12px!important;box-shadow:none!important;}.quick-icon{font-size:23px!important;height:26px!important;line-height:26px!important;}.quick-icon svg{width:26px!important;height:26px!important;}.quick-name{font-size:11.5px!important;line-height:1.12!important;font-weight:800!important;}
+.client-info-bar{align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;margin:7px 0;border:1px solid #24445d;border-radius:11px;background:#0b1f30;}.client-info-name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.client-stats{font-size:12px;color:var(--pro-muted);white-space:nowrap;}
+.file-tools{display:flex;gap:7px;margin:8px 0;align-items:center;}.file-search-wrap{flex:1;min-width:0;position:relative;}.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:21px;color:#9fb6cc;pointer-events:none;}.file-search-input,.file-filter{width:100%;height:44px;border:1px solid #31516a;border-radius:12px;background:#10273b;color:#fff;font-size:14px;}.file-search-input{padding:0 12px 0 38px;}.file-filter{width:92px;padding:0 8px;}.recent-filter-button{height:44px;padding:0 10px;border:1px solid #31516a;border-radius:12px;background:#10273b;color:#d9e7f3;font-weight:700;}.recent-filter-button.active{background:#0b5fb4;border-color:#168cff;color:white;}
+.selection-bar{min-height:44px!important;padding:7px 9px!important;border-radius:11px!important;margin:7px 0!important;background:#0d2133!important;border:1px solid #28465f!important;}.select-all-label{font-size:13px!important;gap:7px!important;}.file-count{font-size:12px!important;color:#a9bfd3!important;}
+#filesContainer{border:1px solid #24445d;border-radius:13px;overflow:hidden;background:#081b2a;}.file-row{min-height:54px!important;padding:5px 7px!important;margin:0!important;border-radius:0!important;border:0!important;border-bottom:1px solid #1d3b52!important;background:#0a1e2e!important;gap:7px!important;}.file-row:last-child{border-bottom:0!important;}.file-icon{width:31px!important;min-width:31px!important;height:31px!important;}.file-info{min-width:0!important;}.file-name{font-size:13px!important;line-height:1.15!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.file-date{font-size:10.5px!important;margin-top:2px!important;color:#8fa7bb!important;}.file-actions{gap:3px!important;flex-shrink:0!important;}.action-button{width:36px!important;min-width:36px!important;height:36px!important;padding:0!important;border-radius:9px!important;display:grid!important;place-items:center!important;background:#10283b!important;border:1px solid #284b67!important;color:#dbe9f5!important;}.action-label{display:none!important;}.action-icon{font-size:17px!important;line-height:1!important;}.file-check{width:20px!important;height:20px!important;min-width:20px!important;}
+.folder{margin:0!important;border-top:1px solid #24445d!important;}.folder-header{min-height:46px!important;padding:8px 10px!important;background:#10283b!important;font-size:13px!important;}.folder-content{background:#071a29!important;}
+.send-area{position:sticky;bottom:74px;z-index:100;margin:10px 0 4px!important;}.send-button{min-height:52px!important;border-radius:13px!important;font-size:16px!important;font-weight:900!important;background:linear-gradient(180deg,#1593ff,#006be6)!important;box-shadow:0 8px 24px rgba(0,107,230,.32)!important;}.send-summary{padding:10px 12px;margin-bottom:10px;border:1px solid #31516a;border-radius:11px;background:#0e2538;color:#dce9f4;font-size:13px;}.send-summary strong{font-size:15px;color:white;}.send-summary ul{margin:6px 0 0 18px;padding:0;max-height:130px;overflow:auto;}
+.bottom-nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:500;width:min(100%,1080px);height:68px;padding:6px 8px max(6px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:rgba(5,18,29,.96);border-top:1px solid #2a465e;backdrop-filter:blur(14px);}.bottom-nav-item{border:0;border-radius:10px;background:transparent;color:#b9cad8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:20px;}.bottom-nav-item small{font-size:10px;}.bottom-nav-item.active{background:#0d4f8f;color:#fff;}.brand-footer{display:flex;align-items:center;gap:8px;justify-content:center;color:#f6f6f6;margin:12px 0 4px;font-size:12px;}.brand-footer span{height:2px;flex:1;max-width:100px;background:#ed1b2f;}.brand-footer em{font-family:cursive;font-style:italic;white-space:nowrap;}.message{margin-bottom:8px!important;}
+@media(max-width:600px){.container{padding:8px 8px 88px!important;}.app-header{grid-template-columns:66px 1fr auto;gap:8px;padding:8px;border-radius:15px;}.cdq-header-logo{width:60px;height:60px;}.app-header-copy h1{font-size:20px;}.app-subtitle{font-size:11px;}.header-actions{display:none;}.top-bar{grid-template-columns:minmax(0,1fr) 112px;gap:6px;}.open-client-folder-button{padding:0 7px;font-size:11.5px;}.company-reset-button{width:42px!important;min-width:42px!important;}.quick-buttons{gap:5px!important;}.quick-button{min-height:56px!important;padding:5px 2px!important;}.quick-icon{font-size:19px!important;height:21px!important;line-height:21px!important;}.quick-icon svg{width:21px!important;height:21px!important;}.quick-name{font-size:10px!important;}.file-tools{gap:5px;}.file-filter{width:76px;font-size:12px;}.recent-filter-button{padding:0 7px;font-size:11px;}.action-button{width:32px!important;min-width:32px!important;height:32px!important;}.action-icon{font-size:15px!important;}.file-row{min-height:50px!important;}.file-name{font-size:12.5px!important;}.client-info-bar{padding:7px 8px;}.client-stats{font-size:10.5px;}}
+body.light{background:#eef3f7;color:#162536;}body.light .app-header,body.light .client-info-bar,body.light #filesContainer,body.light .file-row,body.light .folder-content{background:#fff!important;color:#162536!important;}body.light .app-header-copy h1,body.light .client-info-name,body.light .file-name{color:#132437!important;}body.light .app-subtitle,body.light .client-stats,body.light .file-date{color:#60758b!important;}body.light .file-search-input,body.light .file-filter,body.light .recent-filter-button,body.light .company-button,body.light .action-button{background:#f7fafc!important;color:#1b2b3b!important;}
+
+
+/* =====================================================
+   DEUX INTERFACES DISTINCTES
+   - Android : interface tactile sombre professionnelle choisie
+   - Windows : interface bureau sombre professionnelle
+===================================================== */
+
+/* Les conteneurs bureau n'altèrent pas l'ordre Android. */
+.desktop-workspace-layout,
+.desktop-sidebar,
+.desktop-main{
+  display:contents;
+}
+
+.desktop-sidebar-heading,
+.desktop-sidebar-tools,
+.desktop-only{
+  display:none;
+}
+
+/* -----------------------------------------------------
+   WINDOWS / APPLICATION INSTALLÉE SUR PC
+----------------------------------------------------- */
+html.windows{
+  zoom:1;
+  background:#06111b;
+}
+
+html.windows body{
+  min-height:100vh;
+  padding:0;
+  background:
+    radial-gradient(circle at 82% -10%,rgba(20,137,255,.14),transparent 34%),
+    linear-gradient(180deg,#06111b 0%,#081722 100%);
+  color:#f5f8fb;
+}
+
+html.windows .container{
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:16px 20px 26px;
+}
+
+html.windows .app-header{
+  min-height:88px;
+  grid-template-columns:76px minmax(0,1fr) auto;
+  gap:14px;
+  margin:0 0 14px;
+  padding:9px 15px;
+  border-radius:15px;
+  border:1px solid #1d3e58;
+  background:linear-gradient(120deg,#0a2134 0%,#071725 65%,#0a1d2d 100%);
+  box-shadow:0 12px 34px rgba(0,0,0,.24);
+}
+
+html.windows .cdq-header-logo{
+  width:66px;
+  height:66px;
+  border-radius:10px;
+}
+
+html.windows .app-header-copy h1{
+  font-size:27px;
+  letter-spacing:.1px;
+}
+
+html.windows .app-subtitle{
+  margin-top:5px;
+  font-size:13px;
+  color:#9eb5c9;
+}
+
+html.windows .header-actions{
+  display:flex;
+  gap:8px;
+}
+
+html.windows .desktop-only{
+  display:grid;
+}
+
+html.windows #themeButton{
+  display:none!important;
+}
+
+html.windows .top-bar{
+  display:grid;
+  grid-template-columns:minmax(340px,1fr) auto;
+  gap:10px;
+  margin:0 0 12px;
+  align-items:stretch;
+}
+
+html.windows .company-wrapper{
+  position:relative;
+  min-width:0;
+}
+
+html.windows .company-button{
+  min-height:50px!important;
+  padding:0 18px!important;
+  text-align:left!important;
+  font-size:15px!important;
+  border-radius:11px!important;
+}
+
+html.windows .company-reset-button{
+  width:46px!important;
+  min-width:46px!important;
+  min-height:50px!important;
+  border-radius:11px!important;
+}
+
+html.windows .company-menu{
+  max-height:520px;
+  border-radius:13px;
+  box-shadow:0 18px 50px rgba(0,0,0,.45);
+}
+
+html.windows .open-client-folder-button{
+  min-width:180px;
+  min-height:50px;
+  border-radius:11px;
+  font-size:13px;
+}
+
+html.windows .desktop-workspace-layout{
+  display:grid;
+  grid-template-columns:238px minmax(0,1fr);
+  gap:14px;
+  align-items:start;
+}
+
+html.windows .desktop-sidebar{
+  display:block;
+  position:sticky;
+  top:14px;
+  min-width:0;
+  padding:13px;
+  border:1px solid #203f57;
+  border-radius:15px;
+  background:linear-gradient(180deg,#0b2031 0%,#081a28 100%);
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+}
+
+html.windows .desktop-sidebar-heading{
+  display:block;
+  margin:1px 2px 10px;
+  color:#9fb6c9;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+html.windows .desktop-main{
+  display:block;
+  min-width:0;
+}
+
+html.windows .quick-buttons{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:7px!important;
+  margin:0!important;
+}
+
+html.windows .quick-button{
+  min-height:61px!important;
+  width:100%!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:11px!important;
+  padding:8px 12px!important;
+  border-radius:11px!important;
+  text-align:left!important;
+}
+
+html.windows .quick-icon{
+  width:31px!important;
+  min-width:31px!important;
+  height:31px!important;
+  display:grid!important;
+  place-items:center!important;
+  margin:0!important;
+  font-size:23px!important;
+  line-height:31px!important;
+}
+
+html.windows .quick-icon svg{
+  width:27px!important;
+  height:27px!important;
+}
+
+html.windows .quick-name{
+  font-size:13px!important;
+  line-height:1.15!important;
+  font-weight:850!important;
+  text-align:left!important;
+}
+
+html.windows .desktop-sidebar-tools{
+  display:grid;
+  gap:6px;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #24445c;
+}
+
+html.windows .desktop-sidebar-action{
+  width:100%;
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 11px;
+  border:1px solid #284a64;
+  border-radius:10px;
+  background:#10283b;
+  color:#dceaf5;
+  font-size:12.5px;
+  font-weight:750;
+  text-align:left;
+  cursor:pointer;
+}
+
+html.windows .desktop-sidebar-action:hover{
+  background:#15344d;
+  border-color:#3b6b8d;
+}
+
+html.windows .desktop-sidebar-action .side-icon{
+  width:22px;
+  text-align:center;
+  font-size:16px;
+}
+
+html.windows .client-info-bar{
+  min-height:48px;
+  margin:0 0 9px;
+  padding:8px 12px;
+  border-radius:11px;
+}
+
+html.windows .client-info-name{
+  font-size:14px;
+}
+
+html.windows .client-stats{
+  font-size:12px;
+}
+
+html.windows .file-tools{
+  display:grid;
+  grid-template-columns:minmax(280px,1fr) 108px 116px;
+  gap:8px;
+  margin:0 0 9px;
+}
+
+html.windows .file-search-input,
+html.windows .file-filter,
+html.windows .recent-filter-button{
+  height:42px;
+  border-radius:10px;
+}
+
+html.windows .selection-bar{
+  min-height:44px!important;
+  margin:0 0 8px!important;
+  padding:6px 10px!important;
+  border-radius:10px!important;
+}
+
+html.windows #filesContainer{
+  border-radius:12px;
+  background:#071824;
+}
+
+html.windows .file-row{
+  min-height:56px!important;
+  padding:6px 9px!important;
+  display:grid!important;
+  grid-template-columns:22px 34px minmax(240px,1fr) auto!important;
+  align-items:center!important;
+  column-gap:9px!important;
+  background:#0a1d2c!important;
+}
+
+html.windows .file-row:hover{
+  background:#0d2639!important;
+}
+
+html.windows .file-check{
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+}
+
+html.windows .file-icon{
+  width:30px!important;
+  min-width:30px!important;
+  height:30px!important;
+}
+
+html.windows .file-name{
+  font-size:13.5px!important;
+  font-weight:750;
+}
+
+html.windows .file-date{
+  margin-top:3px!important;
+  font-size:10.5px!important;
+}
+
+html.windows .file-actions{
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+}
+
+html.windows .action-button{
+  width:auto!important;
+  min-width:86px!important;
+  height:34px!important;
+  padding:0 9px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+  border-radius:8px!important;
+  font-size:11.5px!important;
+}
+
+html.windows .action-label{
+  display:inline!important;
+}
+
+html.windows .action-icon{
+  font-size:14px!important;
+}
+
+html.windows .folder-header{
+  min-height:43px!important;
+  padding:7px 11px!important;
+}
+
+html.windows .send-area{
+  position:sticky;
+  bottom:10px;
+  z-index:120;
+  margin:10px 0 2px!important;
+}
+
+html.windows .send-button{
+  min-height:48px!important;
+  font-size:15px!important;
+  border-radius:11px!important;
+}
+
+html.windows .bottom-nav{
+  display:none!important;
+}
+
+html.windows .brand-footer{
+  margin:14px 0 0;
+  opacity:.88;
+}
+
+html.windows .message{
+  margin-top:8px!important;
+}
+
+/* Grand écran : plus d'espace à la liste. */
+@media(min-width:1450px){
+  html.windows .desktop-workspace-layout{
+    grid-template-columns:250px minmax(0,1fr);
+  }
+  html.windows .container{
+    padding-left:28px;
+    padding-right:28px;
+  }
+  html.windows .action-button{
+    min-width:94px!important;
+  }
+}
+
+/* Fenêtre Windows étroite : la barre latérale reste utilisable. */
+@media(max-width:900px){
+  html.windows .desktop-workspace-layout{
+    grid-template-columns:205px minmax(0,1fr);
+    gap:10px;
+  }
+  html.windows .quick-name{
+    font-size:11.5px!important;
+  }
+  html.windows .action-label{
+    display:none!important;
+  }
+  html.windows .action-button{
+    min-width:38px!important;
+    width:38px!important;
+    padding:0!important;
+  }
+}
+
+/* Mode clair Windows, si l'utilisateur le demande. */
+html.windows body.light{
+  background:#eef3f7;
+  color:#172536;
+}
+
+html.windows body.light .desktop-sidebar,
+html.windows body.light .desktop-main #filesContainer,
+html.windows body.light .file-row,
+html.windows body.light .client-info-bar{
+  background:#ffffff!important;
+  color:#172536!important;
+}
+
+html.windows body.light .desktop-sidebar-action{
+  background:#f7fafc;
+  color:#213548;
+  border-color:#ccd7e0;
+}
+
+
+/* =====================================================
+   FIN CSS
+===================================================== */
+
+
+/* Optimisation des longues listes sur Android/Chrome. */
+.file-row{content-visibility:auto;contain-intrinsic-size:50px;}
+
+/* =====================================================
+   NOTE DE FICHIER — ICÔNE SEULEMENT
+===================================================== */
+.action-button.note{
+  position:relative;
+}
+
+.action-button.note .action-icon{
+  font-size:17px;
+}
+
+.note-file-name{
+  margin:-4px 0 12px;
+  color:#9fb6cc;
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#noteInput{
+  width:100%;
+  min-height:150px;
+  resize:vertical;
+  line-height:1.4;
+}
+
+.note-help{
+  margin-top:7px;
+  font-size:12px;
+  color:#91a8bc;
+}
+
+body.light .note-file-name,
+body.light .note-help{
+  color:#60758b;
+}
+
+html.windows .action-button.note{
+  width:38px!important;
+  min-width:38px!important;
+  padding:0!important;
+}
+
+html.windows .action-button.note .action-icon{
+  font-size:16px!important;
+}
+
+@media(max-width:600px){
+  #noteInput{
+    min-height:135px;
+  }
+}
+
+
+/* =====================================================
+   ANDROID — TEXTE LÉGÈREMENT PLUS GRAND
+   Garde la même hauteur des lignes pour afficher
+   pratiquement autant de fichiers à l’écran.
+===================================================== */
+html.android .file-name{
+  font-size:14px!important;
+}
+
+html.android .file-date{
+  font-size:11.5px!important;
+}
+
+html.android .client-info-name{
+  font-size:14px!important;
+}
+
+html.android .client-stats{
+  font-size:11.5px!important;
+}
+
+html.android .file-search-input{
+  font-size:14px!important;
+}
+
+html.android .file-filter,
+html.android .recent-filter-button{
+  font-size:12.5px!important;
+}
+
+html.android .select-all-label{
+  font-size:14px!important;
+}
+
+html.android .file-count{
+  font-size:12.5px!important;
+}
+
+html.android .folder-header{
+  font-size:14px!important;
+}
+
+html.android .quick-name{
+  font-size:10.5px!important;
+}
+
+html.android .bottom-nav-item small{
+  font-size:11px!important;
+}
+
+
+/* =====================================================
+   ANDROID — LISTE PLUS GRANDE, PROCHE DE GOOGLE SHEETS
+   Objectif : lignes plus faciles à lire et à toucher.
+===================================================== */
+html.android .file-row{
+  min-height:88px!important;
+  padding:10px 12px!important;
+  gap:10px!important;
+  align-items:center!important;
+  contain-intrinsic-size:88px!important;
+}
+
+html.android .file-check,
+html.android .file-checkbox{
+  width:28px!important;
+  height:28px!important;
+  min-width:28px!important;
+  flex:0 0 28px!important;
+}
+
+html.android .file-icon{
+  width:44px!important;
+  min-width:44px!important;
+  height:44px!important;
+  flex:0 0 44px!important;
+}
+
+html.android .file-icon svg{
+  width:44px!important;
+  height:44px!important;
+}
+
+html.android .file-info{
+  min-width:0!important;
+}
+
+html.android .file-name{
+  font-size:20px!important;
+  line-height:1.18!important;
+  font-weight:700!important;
+}
+
+html.android .file-date{
+  font-size:15px!important;
+  line-height:1.2!important;
+  margin-top:4px!important;
+}
+
+html.android .file-actions{
+  gap:7px!important;
+  align-items:center!important;
+}
+
+html.android .action-button{
+  width:52px!important;
+  min-width:52px!important;
+  height:52px!important;
+  min-height:52px!important;
+  border-radius:13px!important;
+}
+
+html.android .action-icon,
+html.android .action-button.note .action-icon{
+  font-size:21px!important;
+}
+
+html.android .folder{
+  margin-bottom:8px!important;
+}
+
+html.android .folder-header{
+  min-height:76px!important;
+  padding:12px 14px!important;
+  font-size:18px!important;
+  line-height:1.2!important;
+  border-radius:13px!important;
+}
+
+html.android .folder-arrow{
+  font-size:18px!important;
+}
+
+html.android .folder-delete-button{
+  width:48px!important;
+  min-width:48px!important;
+  height:48px!important;
+  min-height:48px!important;
+  font-size:20px!important;
+  border-radius:12px!important;
+}
+
+html.android .folder-content{
+  padding-left:8px!important;
+  padding-top:8px!important;
+}
+
+html.android .selection-bar{
+  min-height:64px!important;
+  padding:9px 12px!important;
+}
+
+html.android .select-all-label{
+  font-size:16px!important;
+  gap:10px!important;
+}
+
+html.android .select-all-label input{
+  width:28px!important;
+  height:28px!important;
+  min-width:28px!important;
+}
+
+html.android .file-count{
+  font-size:14px!important;
+}
+
+html.android .drive-trash-button,
+html.android .delete-button{
+  width:50px!important;
+  min-width:50px!important;
+  height:50px!important;
+  min-height:50px!important;
+  border-radius:12px!important;
+  font-size:22px!important;
+}
+
+/* =====================================================
+   SUPPRESSION DEFINITIVE DE L’ANCIEN BOUTON DE THEME
+   Le changement de theme se fait uniquement par Affichage.
+===================================================== */
+#themeButton,
+.theme-button{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+
+/* =====================================================
+   COMPAGNIE — SANS BOUTON « OUVRIR LE DOSSIER »
+   La sélection de compagnie reprend toute la largeur.
+===================================================== */
+.top-bar,
+html.windows .top-bar{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+
+@media(max-width:600px){
+  .top-bar{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+}
+
+
+/* =====================================================
+   MISE À JOUR ERGONOMIE — ANDROID / SÉLECTION / ICÔNES
+===================================================== */
+.metal-header-icon{
+  width:62px;
+  height:62px;
+  object-fit:cover;
+  border-radius:15px;
+  justify-self:end;
+  box-shadow:0 5px 18px rgba(0,0,0,.42);
+}
+.app-header{grid-template-columns:76px minmax(0,1fr) 66px!important;}
+.header-actions{display:none!important;}
+.app-subtitle{display:none!important;}
+.hidden-selection-state,.file-check,.file-checkbox{display:none!important;}
+.file-row{user-select:none;-webkit-user-select:none;touch-action:manipulation;align-items:center!important;}
+.file-row.selected{
+  background:#123b59!important;
+  box-shadow:inset 4px 0 0 #ffd23f, inset 0 0 0 1px rgba(255,210,63,.65)!important;
+}
+body.light .file-row.selected{
+  background:#e8f2ff!important;
+  box-shadow:inset 4px 0 0 #e7a900, inset 0 0 0 1px rgba(193,143,0,.45)!important;
+}
+.file-name{display:flex;align-items:center;gap:8px;}
+.file-favorite-mark{color:#ffd23f;font-size:.9em;line-height:1;}
+.file-actions{gap:8px!important;}
+.selection-active .file-actions{display:none!important;}
+.client-info-name{flex:1;min-width:0;}
+.client-stats{margin-left:auto;}
+.action-button.note,.action-button.renommer{
+  width:54px!important;
+  min-width:54px!important;
+  height:54px!important;
+  min-height:54px!important;
+  border-radius:14px!important;
+}
+.action-button.note .action-icon,.action-button.renommer .action-icon{font-size:24px!important;}
+.folder-note-button,.client-note-button,.finish-selection-button{
+  width:48px;height:48px;min-width:48px;min-height:48px;
+  border:1px solid #31536d;border-radius:12px;background:#10283d;color:#fff;
+  display:grid;place-items:center;font-size:21px;cursor:pointer;
+}
+.client-note-button{margin-left:8px;}
+body.light .folder-note-button,body.light .client-note-button,body.light .finish-selection-button{
+  background:#f5f7fa;color:#1d2c3b;border-color:#ccd6df;
+}
+.selection-mode-bar{gap:12px!important;align-items:center!important;}
+.selection-mode-copy{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+.selection-mode-copy strong{font-size:16px;}
+.selection-mode-copy span{font-size:12px;opacity:.72;}
+.home-nav-icon{color:#ffd23f!important;font-weight:900;}
+.home-nav-button small{color:#ffd23f!important;font-weight:800;}
+.bottom-nav-item.favorite-filter-active{color:#ffd23f!important;background:#42380e!important;}
+
+@media(max-width:600px){
+  body{font-size:17px!important;}
+  .container{padding:9px 9px 98px!important;}
+  .app-header{grid-template-columns:62px minmax(0,1fr) 60px!important;gap:10px!important;padding:10px!important;}
+  .cdq-header-logo{width:58px!important;height:58px!important;}
+  .metal-header-icon{width:56px;height:56px;border-radius:14px;}
+  .app-header-copy h1{font-size:23px!important;line-height:1.08!important;}
+  .company-button{font-size:18px!important;min-height:58px!important;}
+  .company-reset-button{width:50px!important;min-width:50px!important;height:50px!important;font-size:20px!important;}
+  .quick-button{min-height:64px!important;}
+  .quick-name{font-size:12.5px!important;line-height:1.15!important;}
+  .quick-icon{font-size:22px!important;width:26px!important;height:26px!important;}
+  .client-info-bar{min-height:54px!important;padding:9px 10px!important;gap:8px!important;}
+  .client-info-name{font-size:17px!important;font-weight:800!important;}
+  .client-stats{font-size:13px!important;}
+  .client-note-button{width:46px!important;min-width:46px!important;height:46px!important;min-height:46px!important;}
+  .file-search-input{font-size:16px!important;min-height:54px!important;}
+  .file-filter{font-size:15px!important;min-height:54px!important;width:90px!important;}
+  .recent-filter-button{font-size:13.5px!important;min-height:54px!important;padding:0 11px!important;}
+  .file-row{min-height:92px!important;padding:12px 12px!important;gap:12px!important;}
+  .file-icon{width:46px!important;min-width:46px!important;height:46px!important;}
+  .file-icon svg{width:46px!important;height:46px!important;}
+  .file-name{font-size:21px!important;line-height:1.18!important;}
+  .file-date{font-size:15px!important;line-height:1.25!important;margin-top:5px!important;}
+  .action-button.note,.action-button.renommer{width:54px!important;min-width:54px!important;height:54px!important;min-height:54px!important;}
+  .folder-header{min-height:82px!important;padding:12px 13px!important;font-size:19px!important;}
+  .folder-header-actions{gap:8px!important;}
+  .folder-note-button,.folder-delete-button{width:48px!important;min-width:48px!important;height:48px!important;min-height:48px!important;}
+  .selection-mode-bar{min-height:70px!important;padding:10px 11px!important;}
+  .selection-mode-copy strong{font-size:16px!important;}
+  .selection-mode-copy span{font-size:12px!important;}
+  .file-count{font-size:14px!important;}
+  .bottom-nav{height:78px!important;grid-template-columns:repeat(5,1fr)!important;padding-top:7px!important;}
+  .bottom-nav-item{font-size:24px!important;gap:3px!important;}
+  .bottom-nav-item small{font-size:12.5px!important;font-weight:700!important;}
+  .send-button{font-size:18px!important;min-height:60px!important;}
+  .modal{font-size:17px!important;}
+  .modal h2{font-size:22px!important;}
+  #noteInput{font-size:17px!important;min-height:180px!important;}
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div id="accessOverlay" class="access-overlay">
+  <div class="access-card">
+    <h2>🔐 Rapports D’étalonnages</h2>
+    <p id="accessStatus">Vérification de votre accès...</p>
+    <p id="accessError" class="access-error" style="display:none;"></p>
+  </div>
+</div>
+
+<div id="adminModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:720px;">
+    <h2>👑 Gestion des utilisateurs</h2>
+    <div id="adminCurrentUser" class="modal-section"></div>
+    <div id="adminUserList"></div>
+    <div class="admin-add-row">
+      <input id="adminEmailInput" type="email" placeholder="Adresse courriel Google">
+      <select id="adminRoleInput" class="admin-role">
+        <option value="user">Utilisateur</option>
+        <option value="admin">Administrateur</option>
+      </select>
+      <button type="button" onclick="ajouterUtilisateurDepuisInterface()">Ajouter</button>
+    </div>
+    <div class="modal-buttons">
+      <button type="button" class="modal-button cancel-button" onclick="fermerGestionUtilisateurs()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+
+<header class="app-header" id="appHeader">
+  <img class="cdq-header-logo" src="data:image/jpeg;base64,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" alt="Balance Maintenance CDQ Centre-du-Québec">
+  <div class="app-header-copy">
+    <h1>Rapports d’étalonnages</h1>
+  </div>
+  <img class="metal-header-icon" src="https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/icons/icon-heavy-v3-512.png" alt="Icône Balance CDQ heavy metal">
+  <div class="header-actions">
+    <button class="header-icon-button desktop-only" type="button" title="Corbeille Google Drive" onclick="ouvrirCorbeilleDrive()">🗑</button>
+    <button id="headerAdminButton" class="header-icon-button admin-header-button" type="button" title="Gestion des utilisateurs" onclick="ouvrirGestionUtilisateurs()">👑</button>
+  </div>
+</header>
+
+
+<!-- =====================================================
+     COMPAGNIE
+===================================================== -->
+
+<div class="top-bar">
+
+  <div class="company-wrapper">
+
+
+    <button
+      id="companyButton"
+      class="company-button"
+      onclick="toggleCompanyMenu()">
+
+      Choisir une compagnie
+
+    </button>
+
+
+    <button
+      id="resetCompanyButton"
+      class="company-reset-button"
+      type="button"
+      title="Réinitialiser la compagnie"
+      aria-label="Réinitialiser la compagnie"
+      onclick="deselectionnerCompagnie()">
+
+      ↩️
+
+    </button>
+
+
+    <div
+      id="companyMenu"
+      class="company-menu">
+
+
+      <input
+        id="companySearch"
+        class="company-search"
+        type="text"
+        placeholder="Rechercher une compagnie..."
+        oninput="filtrerCompagnies()">
+
+
+      <div
+        id="companyList"
+        class="company-list">
+      </div>
+
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<button id="adminButton" class="admin-button" type="button" title="Gestion des utilisateurs" aria-label="Gestion des utilisateurs" onclick="ouvrirGestionUtilisateurs()">
+   👑
+ </button>
+<div class="desktop-workspace-layout">
+
+  <aside class="desktop-sidebar" aria-label="Actions rapides Windows">
+    <div class="desktop-sidebar-heading">Actions rapides</div>
+
+<!-- =====================================================
+     BOUTONS RAPIDES
+===================================================== -->
+
+<div
+  id="quickButtons"
+  class="quick-buttons">
+
+
+  <button
+    type="button"
+    class="quick-button quick-intermediaire"
+    onclick="demanderCopie('intermediaire')">
+
+    <span class="quick-icon">
+      ⚖
+    </span>
+
+    <span class="quick-name">
+      Balance intermédiaire
+    </span>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="quick-button quick-camion"
+    onclick="demanderCopie('camion')">
+
+    <span class="quick-icon">
+      🚛
+    </span>
+
+    <span class="quick-name">
+      Balance<br>à camion
+    </span>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="quick-button quick-precision"
+    onclick="demanderCopie('precision')">
+
+    <span class="quick-icon">
+
+      <svg viewBox="0 0 48 48">
+
+        <path
+          d="M10 25h28"
+          stroke="white"
+          stroke-width="3"
+          stroke-linecap="round"/>
+
+        <path
+          d="M14 25l-5 8h30l-5-8"
+          fill="none"
+          stroke="white"
+          stroke-width="3"
+          stroke-linejoin="round"/>
+
+        <path
+          d="M24 10v15"
+          stroke="white"
+          stroke-width="3"/>
+
+        <path
+          d="M20 8h8v5h-8z"
+          fill="white"/>
+
+        <path
+          d="M21 6h6"
+          stroke="white"
+          stroke-width="3"
+          stroke-linecap="round"/>
+
+        <path
+          d="M15 38h18"
+          stroke="white"
+          stroke-width="3"
+          stroke-linecap="round"/>
+
+      </svg>
+
+    </span>
+
+    <span class="quick-name">
+      Balance<br>de précision
+    </span>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="quick-button quick-multitete"
+    onclick="demanderCopie('multitete')">
+
+    <span class="quick-icon">
+
+      <svg viewBox="0 0 48 48">
+
+        <path
+          d="M9 16h30"
+          stroke="white"
+          stroke-width="3"
+          stroke-linecap="round"/>
+
+        <path
+          d="M14 16v8"
+          stroke="white"
+          stroke-width="3"/>
+
+        <path
+          d="M24 16v8"
+          stroke="white"
+          stroke-width="3"/>
+
+        <path
+          d="M34 16v8"
+          stroke="white"
+          stroke-width="3"/>
+
+        <path
+          d="M8 24h12l-6 8z"
+          fill="white"/>
+
+        <path
+          d="M18 24h12l-6 8z"
+          fill="white"/>
+
+        <path
+          d="M28 24h12l-6 8z"
+          fill="white"/>
+
+      </svg>
+
+    </span>
+
+    <span class="quick-name">
+      Balance<br>multi-tete
+    </span>
+
+  </button>
+
+
+</div>
+
+    <div class="desktop-sidebar-tools">
+      <button class="desktop-sidebar-action" type="button" onclick="actionFavoris()"><span class="side-icon">★</span><span>Favoris</span></button>
+      <button class="desktop-sidebar-action" type="button" onclick="actionDossierOuDupliquer()"><span class="side-icon">📁+</span><span>Dossier / Dupliquer</span></button>
+      <button class="desktop-sidebar-action" type="button" onclick="ouvrirCorbeilleDrive()"><span class="side-icon">🗑</span><span>Corbeille Google Drive</span></button>
+      <button class="desktop-sidebar-action" type="button" onclick="changerMode()"><span class="side-icon theme-mode-icon">☀️</span><span>Affichage</span></button>
+    </div>
+  </aside>
+
+  <main class="desktop-main">
+
+<select
+  id="client"
+  style="display:none;">
+</select>
+
+
+<!-- =====================================================
+     OUTILS CLIENT / RECHERCHE
+===================================================== -->
+<div id="clientInfoBar" class="client-info-bar" style="display:none;">
+  <span id="clientInfoName" class="client-info-name"></span>
+  <span id="clientStats" class="client-stats"></span>
+  <button id="clientNoteButton" class="client-note-button" type="button" title="Note du dossier client" aria-label="Note du dossier client" onclick="ouvrirNoteDossierClient()">🗒️</button>
+</div>
+
+<div id="fileTools" class="file-tools" style="display:none;">
+  <div class="file-search-wrap">
+    <span class="search-icon">⌕</span>
+    <input id="fileSearchInput" class="file-search-input" type="search" placeholder="Rechercher un fichier..." oninput="appliquerFiltresFichiers()">
+  </div>
+  <select id="fileTypeFilter" class="file-filter" onchange="appliquerFiltresFichiers()">
+    <option value="ALL">Tous</option>
+    <option value="PDF">PDF</option>
+    <option value="GOOGLE_SHEETS">Sheets</option>
+    <option value="EXCEL">Excel</option>
+  </select>
+  <button id="recentFilterButton" class="recent-filter-button" type="button" onclick="basculerFichiersRecents()">🕘 Récents</button>
+</div>
+
+<!-- =====================================================
+     SELECTION
+===================================================== -->
+
+<div id="selectionBar" class="selection-bar selection-mode-bar" style="display:none;">
+  <div class="selection-mode-copy">
+    <strong>Mode sélection</strong>
+    <span>Maintiens un nom 2 secondes pour commencer</span>
+  </div>
+  <span id="fileCount" class="file-count">0 sélectionné</span>
+  <button id="deleteButton" class="delete-button" type="button" title="Supprimer les fichiers sélectionnés" onclick="ouvrirConfirmationSuppression()">🗑</button>
+  <button id="finishSelectionButton" class="finish-selection-button" type="button" title="Quitter le mode sélection" aria-label="Quitter le mode sélection" onclick="quitterModeSelection()">✓</button>
+</div>
+
+<div
+  id="filesContainer">
+</div>
+
+
+<div
+  id="sendArea"
+  class="send-area"
+  style="display:none;">
+
+
+  <button
+    id="sendButton"
+    class="send-button"
+    onclick="ouvrirConfirmation()">
+
+    ✈ Convertir et envoyer
+
+  </button>
+
+
+</div>
+
+
+<div
+  id="message"
+  class="message">
+</div>
+
+  </main>
+</div>
+
+<nav class="bottom-nav" aria-label="Navigation principale">
+  <button type="button" class="bottom-nav-item active home-nav-button" onclick="window.scrollTo({top:0,behavior:'smooth'})"><span class="home-nav-icon">⌂</span><small>Accueil</small></button>
+  <button id="favoriteNavButton" type="button" class="bottom-nav-item" onclick="actionFavoris()" title="Ajouter aux favoris ou afficher les favoris"><span>★</span><small>Favoris</small></button>
+  <button id="folderActionButton" type="button" class="bottom-nav-item" onclick="actionDossierOuDupliquer()" title="Ajouter un dossier"><span id="folderActionIcon">📁+</span><small id="folderActionLabel">Dossier</small></button>
+  <button id="displayModeButton" type="button" class="bottom-nav-item" onclick="changerMode()" title="Basculer le mode clair/sombre" aria-label="Basculer le mode clair/sombre"><span class="theme-mode-icon">☀️</span><small>Affichage</small></button>
+  <button type="button" class="bottom-nav-item" onclick="ouvrirCorbeilleDrive()" title="Corbeille Google Drive" aria-label="Corbeille Google Drive"><span>🗑</span><small>Corbeille</small></button>
+</nav>
+<div class="brand-footer"><span></span><em>La cible de vos solution</em><span></span></div>
+
+</div>
+
+
+<!-- =====================================================
+     MODALE ENVOI
+===================================================== -->
+
+<div
+  id="modalOverlay"
+  class="modal-overlay">
+
+
+  <div class="modal">
+
+
+    <h2>
+      Confirmer l’envoi
+    </h2>
+
+    <div id="sendSummary" class="send-summary"></div>
+
+    <div class="modal-section">
+
+      <label>
+        Adresse courriel
+      </label>
+
+      <input
+        id="emailDestinataire"
+        type="email">
+
+    </div>
+
+
+    <div class="modal-section">
+
+      <label>
+        Message
+      </label>
+
+      <textarea
+        id="messageEmail"
+        placeholder="Message à ajouter au courriel..."></textarea>
+
+    </div>
+
+
+    <div class="modal-buttons">
+
+      <button
+        class="modal-button cancel-button"
+        onclick="fermerConfirmation()">
+
+        Annuler
+
+      </button>
+
+
+      <button
+        class="modal-button confirm-button"
+        onclick="confirmerEnvoi()">
+
+        Envoyer
+
+      </button>
+
+    </div>
+
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     MODALE CREER DOSSIER
+===================================================== -->
+
+<div
+  id="createFolderModalOverlay"
+  class="modal-overlay">
+
+  <div class="rename-modal">
+
+    <h2 id="createFolderTitle">
+      Nouveau nom du dossier :
+    </h2>
+
+    <input
+      id="createFolderInput"
+      class="rename-input"
+      type="text"
+      autocomplete="off"
+      maxlength="200">
+
+    <div class="rename-buttons">
+
+      <button
+        type="button"
+        class="rename-cancel"
+        onclick="fermerCreationDossier()">
+        Annuler
+      </button>
+
+      <button
+        type="button"
+        class="rename-confirm"
+        onclick="confirmerCreationDossier()">
+        Créer
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     MODALE RENOMMER
+===================================================== -->
+
+<div
+  id="renameModalOverlay"
+  class="modal-overlay">
+
+
+  <div class="rename-modal">
+
+
+    <h2>
+      Nouveau nom du fichier :
+    </h2>
+
+
+    <input
+      id="renameInput"
+      class="rename-input"
+      type="text">
+
+
+    <div class="rename-buttons">
+
+      <button
+        type="button"
+        class="rename-cancel"
+        onclick="fermerRenommage()">
+
+        Annuler
+
+      </button>
+
+
+      <button
+        type="button"
+        class="rename-confirm"
+        onclick="confirmerRenommage()">
+
+        OK
+
+      </button>
+
+    </div>
+
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     MODALE COPIE
+===================================================== -->
+
+<div
+  id="copyModalOverlay"
+  class="modal-overlay">
+
+
+  <div class="copy-modal">
+
+
+    <div
+      id="copyModalIcon"
+      class="copy-modal-icon">
+
+      ⚖
+
+    </div>
+
+
+    <h2>
+      Confirmer la copie
+    </h2>
+
+
+    <div class="copy-modal-text">
+
+      Créer une copie du fichier vierge
+
+      <div
+        id="copyTemplateName"
+        class="copy-template-name">
+      </div>
+
+      dans le dossier de :
+
+      <div
+        id="copyCompanyName"
+        class="copy-company-name">
+      </div>
+
+      ?
+
+    </div>
+
+
+    <div class="copy-modal-buttons">
+
+      <button
+        type="button"
+        class="copy-cancel"
+        onclick="fermerCopie()">
+
+        Annuler
+
+      </button>
+
+
+      <button
+        type="button"
+        class="copy-confirm"
+        onclick="confirmerCopie()">
+
+        Confirmer
+
+      </button>
+
+    </div>
+
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     MODALE SUPPRESSION
+===================================================== -->
+
+<div
+  id="deleteModalOverlay"
+  class="modal-overlay">
+
+
+  <div class="delete-modal">
+
+
+    <div class="delete-modal-icon">
+      🗑
+    </div>
+
+
+    <h2>
+      Confirmer la suppression
+    </h2>
+
+
+    <div
+      id="deleteModalText"
+      class="delete-modal-text">
+
+      Voulez-vous vraiment supprimer
+      les fichiers sélectionnés ?
+
+    </div>
+
+
+    <div class="delete-modal-buttons">
+
+      <button
+        type="button"
+        class="delete-cancel"
+        onclick="fermerConfirmationSuppression()">
+
+        Annuler
+
+      </button>
+
+
+      <button
+        type="button"
+        class="delete-confirm"
+        onclick="confirmerSuppression()">
+
+        Supprimer
+
+      </button>
+
+    </div>
+
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     MODALE SUPPRESSION DOSSIER
+===================================================== -->
+
+<div
+  id="deleteFolderModalOverlay"
+  class="modal-overlay">
+
+  <div class="delete-modal">
+
+    <div class="delete-modal-icon">
+      🗑
+    </div>
+
+    <h2>
+      Supprimer le dossier ?
+    </h2>
+
+    <div
+      id="deleteFolderModalText"
+      class="delete-modal-text">
+      Voulez-vous vraiment envoyer ce dossier à la corbeille ?
+    </div>
+
+    <div class="delete-modal-buttons">
+
+      <button
+        type="button"
+        class="delete-cancel"
+        onclick="fermerConfirmationSuppressionDossier()">
+        Annuler
+      </button>
+
+      <button
+        type="button"
+        class="delete-confirm"
+        onclick="confirmerSuppressionDossier()">
+        Supprimer
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     MODALE NOTE DE FICHIER
+===================================================== -->
+<div
+  id="noteModalOverlay"
+  class="modal-overlay">
+
+  <div class="modal">
+
+    <h2 id="noteModalTitle">
+      🗒️ Note
+    </h2>
+
+    <div
+      id="noteFileName"
+      class="note-file-name">
+    </div>
+
+    <div class="modal-section">
+      <textarea
+        id="noteInput"
+        maxlength="2000"
+        placeholder="Entrer une note utile..."></textarea>
+
+      <div class="note-help">
+        Pour supprimer la note, vide le texte puis appuie sur Enregistrer.
+      </div>
+    </div>
+
+    <div class="modal-buttons">
+      <button
+        type="button"
+        class="modal-button cancel-button"
+        onclick="fermerNoteFichier()">
+        Annuler
+      </button>
+
+      <button
+        id="noteSaveButton"
+        type="button"
+        class="modal-button confirm-button"
+        onclick="confirmerNoteFichier()">
+        Enregistrer
+      </button>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+
+
+/* =====================================================
+   VARIABLES
+===================================================== */
+
+let toutesLesCompagnies = [];
+
+let compagnieSelectionnee = null;
+
+let nomCompagnieSelectionnee = "";
+
+let actualisationEnCours = false;
+
+let fichierOuvertPourModification = null;
+
+// Cache en mémoire : réaffiche instantanément une compagnie déjà chargée.
+let cacheContenuCompagnies = Object.create(null);
+
+let typeCopieEnAttente = null;
+
+let fichierEnCoursDeRenommage = null;
+
+let fichierEnCoursDeNote = null;
+let cacheNotesFichiers = Object.create(null);
+let modeSelectionFichiers = false;
+let filtreFavorisActif = false;
+const DUREE_APPUI_LONG_SELECTION = 2000;
+
+
+/* =====================================================
+   CACHE PERSISTANT ANDROID / INDEXEDDB
+
+   IMPORTANT :
+   - On mémorise les LISTES de fichiers pour accélérer l'affichage.
+   - On ne mémorise JAMAIS la dernière compagnie sélectionnée.
+===================================================== */
+const CACHE_DB_NAME = "RapportsEtalonnagesCDQ";
+const CACHE_DB_VERSION = 1;
+const CACHE_STORE_NAME = "cache";
+const CACHE_APP_VERSION = "sombre-pro-android-v4-ergonomie-metal";
+const CACHE_REFRESH_MIN_MS = 60 * 1000;
+const CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+let utilisateurCourantEmail = "";
+let rafraichissementsEnCours = Object.create(null);
+let cacheDerniereVerificationCompagnies = Object.create(null);
+
+function ouvrirBaseCache(){
+  return new Promise(function(resolve,reject){
+    if(!("indexedDB" in window)){
+      reject(new Error("IndexedDB indisponible"));
+      return;
+    }
+
+    const requete = indexedDB.open(CACHE_DB_NAME, CACHE_DB_VERSION);
+
+    requete.onupgradeneeded = function(event){
+      const db = event.target.result;
+      if(!db.objectStoreNames.contains(CACHE_STORE_NAME)){
+        db.createObjectStore(CACHE_STORE_NAME,{keyPath:"key"});
+      }
+    };
+
+    requete.onsuccess = function(){ resolve(requete.result); };
+    requete.onerror = function(){ reject(requete.error || new Error("Erreur IndexedDB")); };
+  });
+}
+
+function cleCacheLocale(type,id){
+  return [
+    CACHE_APP_VERSION,
+    utilisateurCourantEmail || "utilisateur",
+    type,
+    id || ""
+  ].join("|");
+}
+
+function lireCacheLocal(cle){
+  return ouvrirBaseCache().then(function(db){
+    return new Promise(function(resolve,reject){
+      const tx = db.transaction(CACHE_STORE_NAME,"readonly");
+      const store = tx.objectStore(CACHE_STORE_NAME);
+      const req = store.get(cle);
+      req.onsuccess = function(){ resolve(req.result || null); };
+      req.onerror = function(){ reject(req.error); };
+      tx.oncomplete = function(){ db.close(); };
+    });
+  });
+}
+
+function ecrireCacheLocal(enregistrement){
+  enregistrement = Object.assign({},enregistrement,{
+    appVersion:CACHE_APP_VERSION,
+    savedAt:Date.now()
+  });
+
+  return ouvrirBaseCache().then(function(db){
+    return new Promise(function(resolve,reject){
+      const tx = db.transaction(CACHE_STORE_NAME,"readwrite");
+      tx.objectStore(CACHE_STORE_NAME).put(enregistrement);
+      tx.oncomplete = function(){ db.close(); resolve(true); };
+      tx.onerror = function(){ db.close(); reject(tx.error); };
+    });
+  });
+}
+
+function supprimerCacheLocal(cle){
+  return ouvrirBaseCache().then(function(db){
+    return new Promise(function(resolve,reject){
+      const tx = db.transaction(CACHE_STORE_NAME,"readwrite");
+      tx.objectStore(CACHE_STORE_NAME).delete(cle);
+      tx.oncomplete = function(){ db.close(); resolve(true); };
+      tx.onerror = function(){ db.close(); reject(tx.error); };
+    });
+  });
+}
+
+function lireCachePersistantClient(idCompagnie){
+  return lireCacheLocal(cleCacheLocale("client",idCompagnie));
+}
+
+function sauvegarderCachePersistantClient(idCompagnie,contenu,verifiedAt){
+  if(!idCompagnie || !contenu) return Promise.resolve(false);
+  return ecrireCacheLocal({
+    key:cleCacheLocale("client",idCompagnie),
+    contenu:contenu,
+    verifiedAt:Number(verifiedAt) || Date.now()
+  }).catch(function(erreur){
+    console.log("Cache persistant client :",erreur);
+    return false;
+  });
+}
+
+function lireCachePersistantCompagnies(){
+  return lireCacheLocal(cleCacheLocale("compagnies","liste"));
+}
+
+function sauvegarderCachePersistantCompagnies(compagnies){
+  return ecrireCacheLocal({
+    key:cleCacheLocale("compagnies","liste"),
+    compagnies:compagnies || [],
+    verifiedAt:Date.now()
+  }).catch(function(erreur){
+    console.log("Cache persistant compagnies :",erreur);
+    return false;
+  });
+}
+
+function nettoyerAncienCache(){
+  return ouvrirBaseCache().then(function(db){
+    return new Promise(function(resolve){
+      const tx = db.transaction(CACHE_STORE_NAME,"readwrite");
+      const store = tx.objectStore(CACHE_STORE_NAME);
+      const req = store.openCursor();
+      const limite = Date.now() - CACHE_MAX_AGE_MS;
+
+      req.onsuccess = function(event){
+        const curseur = event.target.result;
+        if(!curseur) return;
+        const valeur = curseur.value || {};
+        if(valeur.appVersion !== CACHE_APP_VERSION || (valeur.savedAt || 0) < limite){
+          curseur.delete();
+        }
+        curseur.continue();
+      };
+
+      tx.oncomplete = function(){ db.close(); resolve(true); };
+      tx.onerror = function(){ db.close(); resolve(false); };
+    });
+  }).catch(function(){ return false; });
+}
+
+function planifierTravailSilencieux(fn){
+  if("requestIdleCallback" in window){
+    requestIdleCallback(function(){ fn(); },{timeout:1200});
+  }else{
+    setTimeout(fn,150);
+  }
+}
+
+function signatureContenuCache(noeud){
+  if(!noeud) return "";
+  const morceaux = [];
+  (function parcourir(n){
+    morceaux.push("D:",String(n.id||""),":",String(n.nom||""),";");
+    (n.fichiers||[]).forEach(function(f){
+      morceaux.push("F:",String(f.id||""),":",String(f.nom||""),":",String(f.dateModification||""),";");
+    });
+    (n.dossiers||[]).forEach(parcourir);
+  })(noeud);
+  return morceaux.join("");
+}
+
+function trouverFichierDansArbre(noeud,id){
+  if(!noeud) return null;
+  const fichiers = noeud.fichiers || [];
+  for(let i=0;i<fichiers.length;i++){
+    if(String(fichiers[i].id) === String(id)){
+      return {noeud:noeud,index:i,fichier:fichiers[i]};
+    }
+  }
+  const dossiers = noeud.dossiers || [];
+  for(let j=0;j<dossiers.length;j++){
+    const trouve = trouverFichierDansArbre(dossiers[j],id);
+    if(trouve) return trouve;
+  }
+  return null;
+}
+
+function supprimerFichiersDansArbre(noeud,idsSet){
+  if(!noeud) return;
+  noeud.fichiers = (noeud.fichiers || []).filter(function(f){
+    return !idsSet.has(String(f.id));
+  });
+  (noeud.dossiers || []).forEach(function(d){
+    supprimerFichiersDansArbre(d,idsSet);
+  });
+}
+
+function supprimerDossierDansArbre(noeud,idDossier){
+  if(!noeud) return false;
+  const dossiers = noeud.dossiers || [];
+  const avant = dossiers.length;
+  noeud.dossiers = dossiers.filter(function(d){
+    return String(d.id) !== String(idDossier);
+  });
+  if(noeud.dossiers.length !== avant) return true;
+  for(let i=0;i<noeud.dossiers.length;i++){
+    if(supprimerDossierDansArbre(noeud.dossiers[i],idDossier)) return true;
+  }
+  return false;
+}
+
+function sauvegarderEtAfficherCacheClient(idCompagnie,contenu,verifiedAt){
+  if(!idCompagnie || !contenu) return;
+
+  cacheContenuCompagnies[idCompagnie] = contenu;
+  cacheDerniereVerificationCompagnies[idCompagnie] = Number(verifiedAt) || Date.now();
+  sauvegarderCachePersistantClient(
+    idCompagnie,
+    contenu,
+    cacheDerniereVerificationCompagnies[idCompagnie]
+  );
+
+  if(String(compagnieSelectionnee) === String(idCompagnie)){
+    afficherContenu(contenu);
+  }
+}
+
+function mettreAJourFichierDansCache(idCompagnie,meta){
+  const contenu = cacheContenuCompagnies[idCompagnie];
+  if(!contenu || !meta) return false;
+  const trouve = trouverFichierDansArbre(contenu,meta.id);
+  if(!trouve) return false;
+  trouve.noeud.fichiers[trouve.index] = Object.assign({},trouve.fichier,meta);
+  sauvegarderEtAfficherCacheClient(idCompagnie,contenu,Date.now());
+  return true;
+}
+
+function ajouterCopieDansCache(idCompagnie,originalId,meta){
+  const contenu = cacheContenuCompagnies[idCompagnie];
+  if(!contenu || !meta) return false;
+  const trouve = trouverFichierDansArbre(contenu,originalId);
+  if(!trouve) return false;
+  trouve.noeud.fichiers = trouve.noeud.fichiers || [];
+  trouve.noeud.fichiers.push({
+    id:meta.id,
+    nom:meta.nom,
+    type:meta.type,
+    dateModification:meta.dateModification
+  });
+  sauvegarderEtAfficherCacheClient(idCompagnie,contenu,Date.now());
+  return true;
+}
+
+function supprimerFichiersDuCache(idCompagnie,ids){
+  const contenu = cacheContenuCompagnies[idCompagnie];
+  if(!contenu) return false;
+  const set = new Set((ids||[]).map(String));
+  supprimerFichiersDansArbre(contenu,set);
+  sauvegarderEtAfficherCacheClient(idCompagnie,contenu,Date.now());
+  return true;
+}
+
+function ajouterDossierRacineAuCache(idCompagnie,dossier){
+  const contenu = cacheContenuCompagnies[idCompagnie];
+  if(!contenu || !dossier) return false;
+  contenu.dossiers = contenu.dossiers || [];
+  contenu.dossiers.push({
+    id:dossier.id,
+    nom:dossier.nom,
+    fichiers:[],
+    dossiers:[]
+  });
+  sauvegarderEtAfficherCacheClient(idCompagnie,contenu,Date.now());
+  return true;
+}
+
+function supprimerDossierDuCache(idCompagnie,idDossier){
+  const contenu = cacheContenuCompagnies[idCompagnie];
+  if(!contenu) return false;
+  supprimerDossierDansArbre(contenu,idDossier);
+  sauvegarderEtAfficherCacheClient(idCompagnie,contenu,Date.now());
+  return true;
+}
+
+
+// Raccourcis clavier de la fenêtre « Créer un dossier ».
+document.addEventListener("keydown", function(event){
+  const modal = document.getElementById("createFolderModalOverlay");
+  if(modal && modal.style.display === "flex"){
+    if(event.key === "Enter"){
+      event.preventDefault();
+      confirmerCreationDossier();
+    } else if(event.key === "Escape"){
+      event.preventDefault();
+      fermerCreationDossier();
+    }
+  }
+});
+
+
+/* =====================================================
+   DETECTION DE L'INTERFACE
+   Android = interface tactile choisie
+   Windows = interface bureau professionnelle
+===================================================== */
+
+(function(){
+
+  const ua = String(navigator.userAgent || "");
+  const html = document.documentElement;
+
+  if(/Android/i.test(ua)){
+    html.classList.add("android");
+
+    if(window.self !== window.top){
+      html.classList.add("github-embed");
+    }
+
+    return;
+  }
+
+  if(/Windows NT/i.test(ua)){
+    html.classList.add("windows", "desktop");
+    return;
+  }
+
+  // Les autres ordinateurs utilisent la disposition bureau par défaut.
+  // Cela ne change jamais le comportement Android.
+  html.classList.add("desktop");
+
+})();
+
+
+/* =====================================================
+   MENU ANDROID
+===================================================== */
+
+function ajusterMenuAndroid(){
+
+  if(
+    !document.documentElement
+      .classList
+      .contains("android")
+  ){
+
+    return;
+
+  }
+
+
+  const menu =
+    document.getElementById(
+      "companyMenu"
+    );
+
+  const bouton =
+    document.getElementById(
+      "companyButton"
+    );
+
+  const recherche =
+    document.getElementById(
+      "companySearch"
+    );
+
+  const liste =
+    document.getElementById(
+      "companyList"
+    );
+
+
+  if(
+    !menu ||
+    !bouton ||
+    !recherche ||
+    !liste
+  ){
+
+    return;
+
+  }
+
+
+  if(
+    menu.style.display !==
+    "block"
+  ){
+
+    return;
+
+  }
+
+
+  const viewport =
+    window.visualViewport;
+
+
+  if(!viewport){
+
+    return;
+
+  }
+
+
+  const boutonRect =
+    bouton.getBoundingClientRect();
+
+
+  const espaceDisponible =
+    viewport.height -
+    boutonRect.bottom -
+    16;
+
+
+  const hauteurVoulue =
+    viewport.height * 0.50;
+
+
+  const hauteurMenu =
+    Math.max(
+      220,
+      Math.min(
+        hauteurVoulue,
+        espaceDisponible
+      )
+    );
+
+
+  menu.style.top =
+    (
+      boutonRect.bottom +
+      8
+    ) + "px";
+
+
+  menu.style.left =
+    "14px";
+
+
+  menu.style.right =
+    "14px";
+
+
+  menu.style.height =
+    hauteurMenu + "px";
+
+
+  menu.style.maxHeight =
+    hauteurMenu + "px";
+
+
+  const hauteurListe =
+    Math.max(
+      150,
+      hauteurMenu - 65
+    );
+
+
+  liste.style.height =
+    hauteurListe + "px";
+
+
+  liste.style.maxHeight =
+    hauteurListe + "px";
+
+}
+
+
+if(window.visualViewport){
+
+  window.visualViewport.addEventListener(
+    "resize",
+    function(){
+
+      setTimeout(
+        ajusterMenuAndroid,
+        50
+      );
+
+    }
+  );
+
+
+  window.visualViewport.addEventListener(
+    "scroll",
+    function(){
+
+      ajusterMenuAndroid();
+
+    }
+  );
+
+}
+
+
+
+
+/* =====================================================
+   DEMARRAGE
+===================================================== */
+
+window.addEventListener(
+  "load",
+  function(){
+
+    /*
+     * IMPORTANT :
+     * récupération du fichier ouvert
+     * avec Modifier.
+     */
+
+    const fichierMemorise =
+      sessionStorage.getItem(
+        "fichierEnModification"
+      );
+
+
+    if(fichierMemorise){
+
+      fichierOuvertPourModification =
+        fichierMemorise;
+
+    }
+
+
+    initialiserMode();
+    verifierAccesApplication();
+
+  }
+);
+
+
+/* =====================================================
+   COMPAGNIES
+===================================================== */
+
+function verifierAccesApplication(){
+
+  google.script.run
+    .withSuccessHandler(function(etat){
+      const overlay = document.getElementById("accessOverlay");
+      const status = document.getElementById("accessStatus");
+      const error = document.getElementById("accessError");
+
+      if(etat && etat.autorise){
+        overlay.style.display = "none";
+        status.textContent = "";
+
+        const adminButton = document.getElementById("adminButton");
+        if(adminButton && etat.role === "admin") adminButton.style.display = "block";
+        const headerAdminButton = document.getElementById("headerAdminButton");
+        if(headerAdminButton && etat.role === "admin") headerAdminButton.style.display = "grid";
+
+        utilisateurCourantEmail = String(etat.email || "").trim().toLowerCase();
+        nettoyerAncienCache();
+        chargerClients();
+        return;
+      }
+
+      status.textContent = "Accès non autorisé";
+      error.textContent = (etat && etat.message) || "Votre compte Google n’est pas autorisé à utiliser cette application.";
+      error.style.display = "block";
+    })
+    .withFailureHandler(function(erreur){
+      document.getElementById("accessStatus").textContent = "Impossible de vérifier l’accès";
+      const error = document.getElementById("accessError");
+      error.textContent = erreur && erreur.message ? erreur.message : String(erreur);
+      error.style.display = "block";
+    })
+    .obtenirEtatAcces();
+}
+
+function ouvrirGestionUtilisateurs(){
+  document.getElementById("adminModalOverlay").style.display = "flex";
+  chargerUtilisateursAdmin();
+}
+
+function fermerGestionUtilisateurs(){
+  document.getElementById("adminModalOverlay").style.display = "none";
+}
+
+function chargerUtilisateursAdmin(){
+  google.script.run
+    .withSuccessHandler(function(utilisateurs){
+      const liste = document.getElementById("adminUserList");
+      liste.innerHTML = "";
+      (utilisateurs || []).forEach(function(u){
+        const row = document.createElement("div");
+        row.className = "admin-user-row";
+
+        const email = document.createElement("div");
+        email.className = "admin-user-email";
+        email.textContent = u.email;
+
+        const role = document.createElement("select");
+        role.className = "admin-role";
+        role.innerHTML = '<option value="user">Utilisateur</option><option value="admin">Administrateur</option>';
+        role.value = u.role === "admin" ? "admin" : "user";
+        role.disabled = u.email === String(u.email).trim().toLowerCase() && false;
+        role.onchange = function(){ modifierRoleUtilisateurDepuisInterface(u.email, role.value); };
+
+        const remove = document.createElement("button");
+        remove.className = "admin-remove";
+        remove.type = "button";
+        remove.textContent = "🗑";
+        remove.onclick = function(){ supprimerUtilisateurDepuisInterface(u.email); };
+
+        row.appendChild(email);
+        row.appendChild(role);
+        row.appendChild(remove);
+        liste.appendChild(row);
+      });
+    })
+    .withFailureHandler(afficherErreur)
+    .obtenirListeUtilisateurs();
+}
+
+function ajouterUtilisateurDepuisInterface(){
+  const input = document.getElementById("adminEmailInput");
+  const role = document.getElementById("adminRoleInput").value;
+  const email = input.value.trim();
+  if(!email){ alert("Entrez une adresse courriel."); return; }
+
+  google.script.run
+    .withSuccessHandler(function(){
+      input.value = "";
+      chargerUtilisateursAdmin();
+    })
+    .withFailureHandler(afficherErreur)
+    .ajouterUtilisateur(email, role);
+}
+
+function supprimerUtilisateurDepuisInterface(email){
+  if(!confirm("Retirer l’accès à " + email + " ?")) return;
+  google.script.run
+    .withSuccessHandler(function(){ chargerUtilisateursAdmin(); })
+    .withFailureHandler(afficherErreur)
+    .supprimerUtilisateur(email);
+}
+
+function modifierRoleUtilisateurDepuisInterface(email, role){
+  google.script.run
+    .withSuccessHandler(function(){ chargerUtilisateursAdmin(); })
+    .withFailureHandler(function(erreur){
+      afficherErreur(erreur);
+      chargerUtilisateursAdmin();
+    })
+    .modifierRoleUtilisateur(email, role);
+}
+
+function chargerClients(forceRefresh){
+  const forcer = !!forceRefresh;
+  let cacheAffiche = false;
+
+  function appliquerListe(compagnies){
+    toutesLesCompagnies = (compagnies || []).slice();
+    toutesLesCompagnies.sort(function(a,b){
+      return String(a.nom||"").localeCompare(String(b.nom||""),"fr",{sensitivity:"base"});
+    });
+    remplirListeCompagnies();
+  }
+
+  function chargerDepuisServeur(forcerServeur){
+    google.script.run
+      .withSuccessHandler(function(compagnies){
+        appliquerListe(compagnies || []);
+        sauvegarderCachePersistantCompagnies(toutesLesCompagnies);
+      })
+      .withFailureHandler(function(erreur){
+        // Si le cache local est déjà affiché, on ne bloque pas l'application.
+        if(cacheAffiche){
+          console.log("Actualisation compagnies :",erreur);
+        }else{
+          afficherErreur(erreur);
+        }
+      })
+      .obtenirDossiersClients(!!forcerServeur);
+  }
+
+  lireCachePersistantCompagnies()
+    .then(function(enregistrement){
+      if(enregistrement && Array.isArray(enregistrement.compagnies) && !forcer){
+        cacheAffiche = true;
+        appliquerListe(enregistrement.compagnies);
+        // La liste locale apparaît tout de suite, puis Drive est vérifié silencieusement.
+        planifierTravailSilencieux(function(){ chargerDepuisServeur(true); });
+      }else{
+        chargerDepuisServeur(forcer);
+      }
+    })
+    .catch(function(){
+      chargerDepuisServeur(forcer);
+    });
+}
+
+
+function remplirListeCompagnies(){
+
+  const liste =
+    document.getElementById(
+      "companyList"
+    );
+
+
+  liste.innerHTML =
+    "";
+
+
+  const retour = document.createElement("div");
+  retour.className = "company-item company-reset-item";
+  retour.textContent = "↩️ Aucune compagnie sélectionnée";
+  retour.onclick = function(){ deselectionnerCompagnie(); };
+  liste.appendChild(retour);
+
+
+  toutesLesCompagnies.forEach(
+    function(compagnie){
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+
+      item.className =
+        "company-item";
+
+
+      item.textContent =
+        compagnie.nom;
+
+
+      item.onclick =
+        function(){
+
+          choisirCompagnie(
+            compagnie
+          );
+
+        };
+
+
+      liste.appendChild(
+        item
+      );
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   MENU
+===================================================== */
+
+function toggleCompanyMenu(){
+
+  const menu =
+    document.getElementById(
+      "companyMenu"
+    );
+
+
+  if(
+    menu.style.display ===
+    "block"
+  ){
+
+    menu.style.display =
+      "none";
+
+    return;
+
+  }
+
+
+  const recherche =
+    document.getElementById(
+      "companySearch"
+    );
+
+
+  recherche.value =
+    "";
+
+
+  remplirListeCompagnies();
+
+
+  menu.style.display =
+    "block";
+
+
+  ajusterMenuAndroid();
+
+
+  setTimeout(
+    function(){
+
+      ajusterMenuAndroid();
+
+      recherche.focus();
+
+    },
+    150
+  );
+
+}
+
+
+document.addEventListener(
+  "click",
+  function(event){
+
+    const wrapper =
+      document.querySelector(
+        ".company-wrapper"
+      );
+
+
+    const menu =
+      document.getElementById(
+        "companyMenu"
+      );
+
+
+    if(
+      wrapper &&
+      !wrapper.contains(
+        event.target
+      )
+    ){
+
+      menu.style.display =
+        "none";
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   RECHERCHE
+===================================================== */
+
+function filtrerCompagnies(){
+
+  const texte =
+    document.getElementById(
+      "companySearch"
+    )
+    .value
+    .toLowerCase()
+    .trim();
+
+
+  const liste =
+    document.getElementById(
+      "companyList"
+    );
+
+
+  liste.innerHTML =
+    "";
+
+
+  const retour = document.createElement("div");
+  retour.className = "company-item company-reset-item";
+  retour.textContent = "↩️ Aucune compagnie sélectionnée";
+  retour.onclick = function(){ deselectionnerCompagnie(); };
+  liste.appendChild(retour);
+
+
+  toutesLesCompagnies
+
+    .filter(
+      function(compagnie){
+
+        return compagnie.nom
+          .toLowerCase()
+          .includes(texte);
+
+      }
+    )
+
+    .forEach(
+      function(compagnie){
+
+        const item =
+          document.createElement(
+            "div"
+          );
+
+
+        item.className =
+          "company-item";
+
+
+        item.textContent =
+          compagnie.nom;
+
+
+        item.onclick =
+          function(){
+
+            choisirCompagnie(
+              compagnie
+            );
+
+          };
+
+
+        liste.appendChild(
+          item
+        );
+
+      }
+    );
+
+
+  ajusterMenuAndroid();
+
+}
+
+
+/* =====================================================
+   CHOISIR COMPAGNIE
+===================================================== */
+
+function choisirCompagnie(
+  compagnie
+){
+
+  compagnieSelectionnee =
+    compagnie.id;
+
+
+  nomCompagnieSelectionnee =
+    compagnie.nom;
+
+
+  document.getElementById(
+    "companyButton"
+  ).textContent =
+    compagnie.nom;
+
+
+  document.getElementById(
+    "companyMenu"
+  ).style.display =
+    "none";
+
+
+  chargerFichiers();
+
+}
+
+
+
+
+/* =====================================================
+   DESELECTIONNER COMPAGNIE
+===================================================== */
+
+function deselectionnerCompagnie(){
+
+  compagnieSelectionnee = null;
+  nomCompagnieSelectionnee = "";
+
+  sessionStorage.removeItem("compagnieSelectionnee");
+
+  const bouton = document.getElementById("companyButton");
+  if(bouton){
+    bouton.textContent = "Choisir une compagnie";
+  }
+
+  const menu = document.getElementById("companyMenu");
+  if(menu){
+    menu.style.display = "none";
+  }
+
+  const recherche = document.getElementById("companySearch");
+  if(recherche){
+    recherche.value = "";
+  }
+
+  const container = document.getElementById("filesContainer");
+  if(container){
+    container.innerHTML = "";
+  }
+
+  const sendArea = document.getElementById("sendArea");
+  if(sendArea){
+    sendArea.style.display = "none";
+  }
+
+  const infoBar = document.getElementById("clientInfoBar");
+  const fileTools = document.getElementById("fileTools");
+  if(infoBar) infoBar.style.display = "none";
+  if(fileTools) fileTools.style.display = "none";
+  const fileSearch = document.getElementById("fileSearchInput");
+  if(fileSearch) fileSearch.value = "";
+  filtreRecentsActif = false;
+  mettreAJourInterface();
+}
+
+/* =====================================================
+   BOUTONS RAPIDES
+===================================================== */
+
+function demanderCopie(
+  type
+){
+
+  if(!compagnieSelectionnee){
+
+    alert(
+      "Veuillez d'abord choisir une compagnie."
+    );
+
+    return;
+
+  }
+
+
+  typeCopieEnAttente =
+    type;
+
+
+  let nomFichier =
+    "";
+
+
+  let icone =
+    "⚖";
+
+
+  if(
+    type === "intermediaire"
+  ){
+
+    nomFichier =
+      "Balance intermédiaire";
+
+  }
+
+  else if(
+    type === "camion"
+  ){
+
+    nomFichier =
+      "Balance à camion";
+
+    icone =
+      "🚛";
+
+  }
+
+  else if(
+    type === "precision"
+  ){
+
+    nomFichier =
+      "Balance de précision";
+
+  }
+
+  else if(
+    type === "multitete"
+  ){
+
+    nomFichier =
+      "Balance multi-tete";
+
+  }
+
+
+  document.getElementById(
+    "copyModalIcon"
+  ).textContent =
+    icone;
+
+
+  document.getElementById(
+    "copyTemplateName"
+  ).textContent =
+    "« " +
+    nomFichier +
+    " »";
+
+
+  document.getElementById(
+    "copyCompanyName"
+  ).textContent =
+    nomCompagnieSelectionnee;
+
+
+  document.getElementById(
+    "copyModalOverlay"
+  ).style.display =
+    "flex";
+
+}
+
+
+function fermerCopie(){
+
+  document.getElementById(
+    "copyModalOverlay"
+  ).style.display =
+    "none";
+
+
+  typeCopieEnAttente =
+    null;
+
+}
+
+
+function confirmerCopie(){
+
+  /*
+   * Les 4 emplacements des fichiers vierges
+   * seront ajoutés lorsque tu me donneras
+   * leurs emplacements.
+   */
+
+  fermerCopie();
+
+
+  afficherMessage(
+    "Le fichier vierge doit encore être configuré.",
+    false
+  );
+
+}
+
+
+/* =====================================================
+   CHARGER FICHIERS - ULTRA RAPIDE
+
+   Ordre d'affichage :
+   1) mémoire de la session
+   2) cache persistant Android (IndexedDB)
+   3) cache serveur Apps Script
+   4) lecture Drive seulement en arrière-plan
+===================================================== */
+function chargerFichiers(){
+  if(!compagnieSelectionnee) return;
+
+  const idCompagnie = String(compagnieSelectionnee);
+
+  if(cacheContenuCompagnies[idCompagnie]){
+    afficherContenu(cacheContenuCompagnies[idCompagnie]);
+    document.getElementById("message").textContent = "";
+    planifierActualisationCompagnie(
+      idCompagnie,
+      cacheDerniereVerificationCompagnies[idCompagnie] || 0
+    );
+    return;
+  }
+
+  afficherMessage("Chargement des fichiers...",false);
+
+  lireCachePersistantClient(idCompagnie)
+    .then(function(enregistrement){
+      if(String(compagnieSelectionnee) !== idCompagnie) return;
+
+      if(enregistrement && enregistrement.contenu){
+        cacheContenuCompagnies[idCompagnie] = enregistrement.contenu;
+        cacheDerniereVerificationCompagnies[idCompagnie] = Number(enregistrement.verifiedAt) || 0;
+
+        afficherContenu(enregistrement.contenu);
+        document.getElementById("message").textContent = "";
+
+        planifierActualisationCompagnie(
+          idCompagnie,
+          cacheDerniereVerificationCompagnies[idCompagnie]
+        );
+      }else{
+        chargerContenuServeurRapide(idCompagnie);
+      }
+    })
+    .catch(function(){
+      chargerContenuServeurRapide(idCompagnie);
+    });
+}
+
+function chargerContenuServeurRapide(idCompagnie){
+  google.script.run
+    .withSuccessHandler(function(resultat){
+      const contenu = resultat && resultat.contenu ? resultat.contenu : resultat;
+      const verifiedAt = resultat && resultat.genereLe ? Number(resultat.genereLe) : Date.now();
+      const source = resultat && resultat.source ? resultat.source : "drive";
+
+      if(!contenu) return;
+
+      cacheContenuCompagnies[idCompagnie] = contenu;
+      cacheDerniereVerificationCompagnies[idCompagnie] = verifiedAt;
+      sauvegarderCachePersistantClient(idCompagnie,contenu,verifiedAt);
+
+      if(String(compagnieSelectionnee) === String(idCompagnie)){
+        afficherContenu(contenu);
+        document.getElementById("message").textContent = "";
+      }
+
+      // Si le serveur nous a servi un cache ancien, une vérification Drive
+      // part en arrière-plan sans ralentir l'utilisateur.
+      if(source === "cache"){
+        planifierActualisationCompagnie(idCompagnie,verifiedAt);
+      }
+    })
+    .withFailureHandler(afficherErreur)
+    .obtenirContenuClientOptimise(idCompagnie,false);
+}
+
+function planifierActualisationCompagnie(idCompagnie,verifiedAt){
+  const age = Date.now() - (Number(verifiedAt) || 0);
+  if(age >= 0 && age < CACHE_REFRESH_MIN_MS) return;
+
+  planifierTravailSilencieux(function(){
+    actualiserCompagnieEnArrierePlan(idCompagnie);
+  });
+}
+
+function actualiserCompagnieEnArrierePlan(idCompagnie){
+  idCompagnie = String(idCompagnie || "");
+  if(!idCompagnie || rafraichissementsEnCours[idCompagnie]) return;
+
+  rafraichissementsEnCours[idCompagnie] = true;
+
+  google.script.run
+    .withSuccessHandler(function(resultat){
+      delete rafraichissementsEnCours[idCompagnie];
+
+      const contenu = resultat && resultat.contenu ? resultat.contenu : resultat;
+      const verifiedAt = resultat && resultat.genereLe ? Number(resultat.genereLe) : Date.now();
+      if(!contenu) return;
+
+      const ancien = cacheContenuCompagnies[idCompagnie];
+      const change = signatureContenuCache(ancien) !== signatureContenuCache(contenu);
+
+      cacheContenuCompagnies[idCompagnie] = contenu;
+      cacheDerniereVerificationCompagnies[idCompagnie] = verifiedAt;
+      sauvegarderCachePersistantClient(idCompagnie,contenu,verifiedAt);
+
+      if(change && String(compagnieSelectionnee) === idCompagnie){
+        afficherContenu(contenu);
+      }
+    })
+    .withFailureHandler(function(erreur){
+      delete rafraichissementsEnCours[idCompagnie];
+      console.log("Actualisation arrière-plan :",erreur);
+    })
+    .actualiserContenuClient(idCompagnie);
+}
+
+/* =====================================================
+   RECUPERER FICHIER MODIFICATION
+===================================================== */
+
+function recupererFichierModification(){
+
+  if(
+    !fichierOuvertPourModification
+  ){
+
+    const fichier =
+      sessionStorage.getItem(
+        "fichierEnModification"
+      );
+
+
+    if(fichier){
+
+      fichierOuvertPourModification =
+        fichier;
+
+    }
+
+  }
+
+
+  return fichierOuvertPourModification;
+
+}
+
+
+/* =====================================================
+   ACTUALISATION AUTOMATIQUE APRES MODIFIER
+   On vérifie uniquement le fichier concerné : aucun scan complet.
+===================================================== */
+function actualiserApresModification(){
+  const fichierModification = recupererFichierModification();
+
+  if(actualisationEnCours) return;
+  if(!compagnieSelectionnee || !fichierModification) return;
+
+  const idCompagnie = String(compagnieSelectionnee);
+  actualisationEnCours = true;
+
+  const ancienneDate = sessionStorage.getItem("ancienneDateModification") || "";
+  const ancienneDateMs = new Date(ancienneDate).getTime() || 0;
+  let tentative = 0;
+  const maximumTentatives = 8;
+
+  function terminer(meta){
+    if(meta){
+      mettreAJourFichierDansCache(idCompagnie,meta);
+    }
+
+    actualisationEnCours = false;
+    fichierOuvertPourModification = null;
+    sessionStorage.removeItem("fichierEnModification");
+    sessionStorage.removeItem("ancienneDateModification");
+    sessionStorage.removeItem("momentModification");
+
+    const message = document.getElementById("message");
+    if(message) message.textContent = "";
+  }
+
+  function verifier(){
+    tentative++;
+
+    google.script.run
+      .withSuccessHandler(function(meta){
+        const nouvelleDateMs = new Date(meta && meta.dateModification || 0).getTime() || 0;
+
+        if(
+          nouvelleDateMs > 0 &&
+          (!ancienneDateMs || nouvelleDateMs > ancienneDateMs)
+        ){
+          terminer(meta);
+          return;
+        }
+
+        if(tentative < maximumTentatives){
+          setTimeout(verifier,tentative === 1 ? 500 : 850);
+        }else{
+          // Même si la date n'a pas encore bougé, on prend la métadonnée
+          // actuelle sans relire toute l'arborescence.
+          terminer(meta || null);
+        }
+      })
+      .withFailureHandler(function(erreur){
+        console.log("Vérification modification :",erreur);
+        if(tentative < maximumTentatives){
+          setTimeout(verifier,900);
+        }else{
+          terminer(null);
+        }
+      })
+      .obtenirMetaFichier(fichierModification);
+  }
+
+  setTimeout(verifier,350);
+}
+
+/* =====================================================
+   RETOUR APPLICATION
+===================================================== */
+
+document.addEventListener(
+  "visibilitychange",
+  function(){
+
+    if(
+      document.visibilityState ===
+      "visible"
+    ){
+
+      setTimeout(
+        actualiserApresModification,
+        500
+      );
+
+    }
+
+  }
+);
+
+
+window.addEventListener(
+  "pageshow",
+  function(){
+
+    setTimeout(
+      actualiserApresModification,
+      700
+    );
+
+  }
+);
+
+
+window.addEventListener(
+  "focus",
+  function(){
+
+    setTimeout(
+      actualiserApresModification,
+      700
+    );
+
+  }
+);
+
+
+/* =====================================================
+   TRI
+===================================================== */
+
+function trierContenuRecursif(
+  dossier
+){
+
+  if(
+    dossier.fichiers &&
+    dossier.fichiers.length
+  ){
+
+    dossier.fichiers.sort(
+      function(a,b){
+
+        return new Date(
+          b.dateModification
+        ) -
+        new Date(
+          a.dateModification
+        );
+
+      }
+    );
+
+  }
+
+
+  if(
+    dossier.dossiers &&
+    dossier.dossiers.length
+  ){
+
+    dossier.dossiers.sort(
+      function(a,b){
+
+        return a.nom.localeCompare(
+          b.nom,
+          "fr",
+          {
+            sensitivity:"base"
+          }
+        );
+
+      }
+    );
+
+
+    dossier.dossiers.forEach(
+      function(sousDossier){
+
+        trierContenuRecursif(
+          sousDossier
+        );
+
+      }
+    );
+
+  }
+
+
+  return dossier;
+
+}
+
+
+/* =====================================================
+   AFFICHER CONTENU
+===================================================== */
+
+function afficherContenu(
+  contenu
+){
+
+  const container =
+    document.getElementById(
+      "filesContainer"
+    );
+
+  const selectionsAvant = new Set(
+    Array.from(document.querySelectorAll(".file-checkbox:checked"))
+      .map(function(c){ return String(c.dataset.fileId || ""); })
+  );
+  const dossiersOuvertsAvant = new Set(
+    Array.from(document.querySelectorAll(".folder.open"))
+      .map(function(f){ return String(f.dataset.folderId || ""); })
+  );
+
+  container.innerHTML =
+    "";
+
+
+  if(!contenu){
+
+    mettreAJourInterface();
+
+    return;
+
+  }
+
+
+  trierContenuRecursif(
+    contenu
+  );
+
+
+  const fragment = document.createDocumentFragment();
+  afficherDossierRecursif(
+    contenu,
+    fragment
+  );
+  container.appendChild(fragment);
+
+  document.querySelectorAll(".file-checkbox").forEach(function(c){
+    if(selectionsAvant.has(String(c.dataset.fileId || ""))){
+      c.checked = true;
+      const row = c.closest(".file-row");
+      if(row) row.classList.add("selected");
+    }
+  });
+  modeSelectionFichiers = selectionsAvant.size > 0;
+  document.querySelectorAll(".folder").forEach(function(f){
+    if(dossiersOuvertsAvant.has(String(f.dataset.folderId || ""))) f.classList.add("open");
+  });
+
+  mettreAJourInfosClient(contenu);
+  appliquerFiltresFichiers();
+  mettreAJourInterface();
+
+}
+
+
+/* =====================================================
+   AFFICHER DOSSIERS
+===================================================== */
+
+function afficherDossierRecursif(dossier, parent){
+  if(dossier.fichiers && dossier.fichiers.length){
+    dossier.fichiers.forEach(function(fichier){
+      parent.appendChild(creerLigneFichier(fichier));
+    });
+  }
+
+  if(dossier.dossiers && dossier.dossiers.length){
+    dossier.dossiers.forEach(function(sousDossier){
+      const folder = document.createElement("div");
+      folder.className = "folder";
+      folder.dataset.folderId = String(sousDossier.id || "");
+
+      const header = document.createElement("div");
+      header.className = "folder-header";
+
+      const nom = document.createElement("span");
+      nom.className = "folder-name";
+      nom.textContent = "📁 " + sousDossier.nom;
+      header.appendChild(nom);
+
+      const actionsDossier = document.createElement("div");
+      actionsDossier.className = "folder-header-actions";
+
+      const note = document.createElement("button");
+      note.type = "button";
+      note.className = "folder-note-button";
+      note.textContent = "🗒️";
+      note.title = "Note du dossier";
+      note.setAttribute("aria-label", "Note du dossier " + sousDossier.nom);
+      note.onclick = function(event){
+        event.stopPropagation();
+        ouvrirNoteDossier(sousDossier);
+      };
+      actionsDossier.appendChild(note);
+
+      const supprimer = document.createElement("button");
+      supprimer.type = "button";
+      supprimer.className = "folder-delete-button";
+      supprimer.textContent = "🗑";
+      supprimer.title = "Supprimer le dossier";
+      supprimer.setAttribute("aria-label", "Supprimer le dossier " + sousDossier.nom);
+      supprimer.onclick = function(event){
+        event.stopPropagation();
+        ouvrirConfirmationSuppressionDossier(sousDossier.id, sousDossier.nom);
+      };
+      actionsDossier.appendChild(supprimer);
+
+      const arrow = document.createElement("span");
+      arrow.className = "folder-arrow";
+      arrow.textContent = "▶";
+      actionsDossier.appendChild(arrow);
+      header.appendChild(actionsDossier);
+
+      const contenu = document.createElement("div");
+      contenu.className = "folder-content";
+
+      header.onclick = function(){
+        folder.classList.toggle("open");
+        mettreAJourInterface();
+      };
+
+      folder.appendChild(header);
+      folder.appendChild(contenu);
+      parent.appendChild(folder);
+      afficherDossierRecursif(sousDossier, contenu);
+    });
+  }
+}
+
+
+/* =====================================================
+   CREER FICHIER
+===================================================== */
+
+function creerLigneFichier(fichier){
+  const ligne = document.createElement("div");
+  ligne.className = "file-row";
+  ligne.dataset.modification = fichier.dateModification || "";
+  ligne.dataset.fileName = fichier.nom || "";
+  ligne.dataset.fileType = fichier.type || "";
+  ligne.dataset.fileDate = fichier.dateModification || "";
+  ligne.dataset.favorite = fichier.favori ? "1" : "0";
+
+  // Contrôle caché conservé pour l'envoi/suppression existants.
+  // Aucune case à cocher n'est affichée à l'utilisateur.
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "file-check file-checkbox hidden-selection-state";
+  checkbox.dataset.fileId = fichier.id;
+  checkbox.tabIndex = -1;
+  checkbox.setAttribute("aria-hidden", "true");
+  checkbox.onchange = mettreAJourInterface;
+  ligne.appendChild(checkbox);
+
+  const icon = document.createElement("div");
+  icon.className = "file-icon";
+
+  if(fichier.type === "EXCEL"){
+    icon.innerHTML = '<svg viewBox="0 0 48 48"><path d="M9 3h21l9 9v33H9z" fill="#107C41"/><path d="M30 3v9h9" fill="#185C37"/><rect x="4" y="14" width="25" height="25" rx="2" fill="#107C41"/><path d="M10 20L15 26L10 32H14L17 28L20 32H24L19 26L24 20H20L17 24L14 20Z" fill="white"/></svg>';
+  }else if(fichier.type === "PDF"){
+    icon.innerHTML = '<svg viewBox="0 0 48 48"><path d="M9 3h21l9 9v33H9z" fill="#E53935"/><path d="M30 3v9h9" fill="#B71C1C"/><text x="12" y="32" font-size="10" font-weight="bold" fill="white">PDF</text></svg>';
+  }else{
+    icon.innerHTML = '<svg viewBox="0 0 48 48"><path d="M9 3h21l9 9v33H9z" fill="#0F9D58"/><path d="M30 3v9h9" fill="#0B8043"/><rect x="14" y="17" width="21" height="19" fill="none" stroke="white" stroke-width="2"/><path d="M14 23h21M14 29h21M21 17v19M28 17v19" stroke="white" stroke-width="2"/></svg>';
+  }
+  ligne.appendChild(icon);
+
+  const info = document.createElement("div");
+  info.className = "file-info";
+
+  const nom = document.createElement("div");
+  nom.className = "file-name";
+  const nomTexte = document.createElement("span");
+  nomTexte.className = "file-name-text";
+  nomTexte.textContent = fichier.nom;
+  const favori = document.createElement("span");
+  favori.className = "file-favorite-mark";
+  favori.textContent = "★";
+  favori.style.display = fichier.favori ? "inline" : "none";
+  nom.appendChild(nomTexte);
+  nom.appendChild(favori);
+
+  const date = document.createElement("div");
+  date.className = "file-date";
+  if(fichier.dateModification){
+    date.textContent = "Modifié le " + formaterDate(fichier.dateModification);
+  }
+  info.appendChild(nom);
+  info.appendChild(date);
+  ligne.appendChild(info);
+
+  const actions = document.createElement("div");
+  actions.className = "file-actions";
+
+  const noteBouton = document.createElement("button");
+  noteBouton.type = "button";
+  noteBouton.className = "action-button note";
+  noteBouton.innerHTML = '<span class="action-icon">🗒️</span>';
+  noteBouton.title = "Note";
+  noteBouton.setAttribute("aria-label", "Note");
+  noteBouton.onclick = function(event){
+    event.stopPropagation();
+    ouvrirNoteFichier(fichier);
+  };
+  actions.appendChild(noteBouton);
+
+  const renommer = document.createElement("button");
+  renommer.type = "button";
+  renommer.className = "action-button renommer";
+  renommer.innerHTML = '<span class="action-icon">✎</span>';
+  renommer.title = "Renommer";
+  renommer.setAttribute("aria-label", "Renommer");
+  renommer.onclick = function(event){
+    event.stopPropagation();
+    renommerFichier(fichier);
+  };
+  actions.appendChild(renommer);
+
+  ligne.appendChild(actions);
+
+  let minuterieAppuiLong = null;
+  let appuiLongDeclenche = false;
+  let departX = 0;
+  let departY = 0;
+
+  function annulerAppuiLong(){
+    if(minuterieAppuiLong){
+      clearTimeout(minuterieAppuiLong);
+      minuterieAppuiLong = null;
+    }
+  }
+
+  info.addEventListener("pointerdown", function(event){
+    if(modeSelectionFichiers) return;
+    if(event.pointerType === "mouse" && event.button !== 0) return;
+
+    appuiLongDeclenche = false;
+    departX = event.clientX;
+    departY = event.clientY;
+    annulerAppuiLong();
+
+    minuterieAppuiLong = setTimeout(function(){
+      minuterieAppuiLong = null;
+      appuiLongDeclenche = true;
+      modeSelectionFichiers = true;
+      checkbox.checked = true;
+      ligne.classList.add("selected");
+      if(navigator.vibrate) navigator.vibrate(45);
+      mettreAJourInterface();
+    }, DUREE_APPUI_LONG_SELECTION);
+  });
+
+  info.addEventListener("pointermove", function(event){
+    if(!minuterieAppuiLong) return;
+    if(Math.abs(event.clientX - departX) > 12 || Math.abs(event.clientY - departY) > 12){
+      annulerAppuiLong();
+    }
+  });
+  info.addEventListener("pointerup", annulerAppuiLong);
+  info.addEventListener("pointercancel", annulerAppuiLong);
+  info.addEventListener("pointerleave", annulerAppuiLong);
+  info.addEventListener("contextmenu", function(event){ event.preventDefault(); });
+
+  ligne.addEventListener("click", function(event){
+    if(event.target.closest("button")) return;
+
+    if(appuiLongDeclenche){
+      appuiLongDeclenche = false;
+      return;
+    }
+
+    if(modeSelectionFichiers){
+      checkbox.checked = !checkbox.checked;
+      ligne.classList.toggle("selected", checkbox.checked);
+      mettreAJourInterface();
+      return;
+    }
+
+    // Tap normal : ouvre le rapport directement.
+    modifierFichier(fichier.id);
+  });
+
+  return ligne;
+}
+
+
+/* =====================================================
+   DATE
+===================================================== */
+
+function formaterDate(
+  valeur
+){
+
+  const date =
+    new Date(
+      valeur
+    );
+
+
+  return date.toLocaleString(
+    "fr-CA",
+    {
+      year:"numeric",
+      month:"2-digit",
+      day:"2-digit",
+      hour:"2-digit",
+      minute:"2-digit"
+    }
+  );
+
+}
+
+
+/* =====================================================
+   MODIFIER
+===================================================== */
+
+function modifierFichier(
+  id
+){
+
+  fichierOuvertPourModification =
+    id;
+
+
+  // Date connue avant l'ouverture.
+  // Elle permet de ne pas considérer l'ancienne version comme une mise à jour.
+  let ancienneDate = "";
+
+  const checkbox =
+    document.querySelector(
+      '.file-checkbox[data-file-id="' + id + '"]'
+    );
+
+  if(checkbox){
+
+    const ligne =
+      checkbox.closest('.file-row');
+
+    if(ligne){
+
+      ancienneDate =
+        ligne.dataset.modification || "";
+
+    }
+
+  }
+
+
+  sessionStorage.setItem(
+    "fichierEnModification",
+    id
+  );
+
+  sessionStorage.setItem(
+    "ancienneDateModification",
+    ancienneDate
+  );
+
+  sessionStorage.setItem(
+    "momentModification",
+    String(Date.now())
+  );
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(url){
+
+        if(url){
+
+          window.open(
+            url,
+            "_blank"
+          );
+
+        }
+
+      }
+    )
+
+    .withFailureHandler(
+      function(erreur){
+
+        fichierOuvertPourModification =
+          null;
+
+        sessionStorage.removeItem(
+          "fichierEnModification"
+        );
+        sessionStorage.removeItem(
+          "ancienneDateModification"
+        );
+        sessionStorage.removeItem(
+          "momentModification"
+        );
+
+        afficherErreur(erreur);
+
+      }
+    )
+
+    .ouvrirFichierPourModification(
+      id
+    );
+
+}
+
+/* =====================================================
+   CREER UN DOSSIER
+===================================================== */
+
+function ouvrirCreationDossier(){
+
+  const input = document.getElementById("createFolderInput");
+  const titre = document.getElementById("createFolderTitle");
+
+  input.value = "";
+  input.disabled = false;
+
+  if(titre){
+    titre.textContent = compagnieSelectionnee
+      ? "Nouveau nom du dossier :"
+      : "Nouveau nom du dossier client :";
+  }
+
+  document.getElementById("createFolderModalOverlay").style.display = "flex";
+
+  setTimeout(function(){
+    input.focus();
+  },100);
+}
+
+function fermerCreationDossier(){
+  document.getElementById("createFolderModalOverlay").style.display = "none";
+}
+
+function confirmerCreationDossier(){
+  const input = document.getElementById("createFolderInput");
+  const nomDossier = input.value.trim();
+
+  if(!nomDossier){
+    alert("Le nom du dossier ne peut pas être vide.");
+    input.focus();
+    return;
+  }
+
+  input.disabled = true;
+  const idCompagnieAuDepart = compagnieSelectionnee ? String(compagnieSelectionnee) : "";
+
+  const appel = google.script.run
+    .withSuccessHandler(function(resultat){
+      input.disabled = false;
+      fermerCreationDossier();
+
+      if(idCompagnieAuDepart){
+        if(!ajouterDossierRacineAuCache(idCompagnieAuDepart,resultat)){
+          actualiserCompagnieEnArrierePlan(idCompagnieAuDepart);
+        }
+        afficherMessage("Dossier créé avec succès.",false);
+      }else{
+        if(resultat && resultat.id){
+          toutesLesCompagnies.push({id:resultat.id,nom:resultat.nom});
+          toutesLesCompagnies.sort(function(a,b){
+            return String(a.nom||"").localeCompare(String(b.nom||""),"fr",{sensitivity:"base"});
+          });
+          remplirListeCompagnies();
+          sauvegarderCachePersistantCompagnies(toutesLesCompagnies);
+        }
+        afficherMessage("Dossier client créé avec succès.",false);
+        planifierTravailSilencieux(function(){ chargerClients(true); });
+      }
+    })
+    .withFailureHandler(function(erreur){
+      input.disabled = false;
+      afficherErreur(erreur);
+    });
+
+  if(idCompagnieAuDepart){
+    appel.creerDossierDansCompagnie(idCompagnieAuDepart,nomDossier);
+  }else{
+    appel.creerDossierClient(nomDossier);
+  }
+}
+
+
+/* =====================================================
+   SUPPRIMER UN DOSSIER
+===================================================== */
+
+let dossierEnCoursDeSuppression = null;
+
+function ouvrirConfirmationSuppressionDossier(id, nom){
+
+  dossierEnCoursDeSuppression = {
+    id: id,
+    nom: nom
+  };
+
+  document.getElementById(
+    "deleteFolderModalText"
+  ).innerHTML =
+    "Voulez-vous vraiment envoyer le dossier " +
+    "<span class='delete-count'>« " +
+    escapeHtmlDossier(nom) +
+    " »</span> à la corbeille ?" +
+    "<br><br>Les fichiers qu'il contient seront également déplacés vers la corbeille.";
+
+  document.getElementById(
+    "deleteFolderModalOverlay"
+  ).style.display = "flex";
+}
+
+function fermerConfirmationSuppressionDossier(){
+  document.getElementById(
+    "deleteFolderModalOverlay"
+  ).style.display = "none";
+
+  dossierEnCoursDeSuppression = null;
+}
+
+function confirmerSuppressionDossier(){
+  if(!dossierEnCoursDeSuppression){
+    fermerConfirmationSuppressionDossier();
+    return;
+  }
+
+  const dossier = dossierEnCoursDeSuppression;
+  const idCompagnie = compagnieSelectionnee ? String(compagnieSelectionnee) : "";
+  fermerConfirmationSuppressionDossier();
+  afficherMessage("Suppression du dossier...",false);
+
+  google.script.run
+    .withSuccessHandler(function(resultat){
+      if(idCompagnie){
+        if(!supprimerDossierDuCache(idCompagnie,dossier.id)){
+          actualiserCompagnieEnArrierePlan(idCompagnie);
+        }
+      }
+      afficherMessage((resultat && resultat.message) || "Dossier supprimé.",true);
+    })
+    .withFailureHandler(afficherErreur)
+    .supprimerDossier(dossier.id,idCompagnie);
+}
+
+function escapeHtmlDossier(texte){
+  return String(texte || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+/* =====================================================
+   NOTES — RAPPORTS ET DOSSIERS CLIENT
+===================================================== */
+function ouvrirNoteFichier(fichier){
+  if(!fichier || !fichier.id) return;
+  ouvrirNoteElement({id:fichier.id, nom:fichier.nom || "Rapport", typeNote:"fichier"});
+}
+
+function ouvrirNoteDossier(dossier){
+  if(!dossier || !dossier.id) return;
+  ouvrirNoteElement({id:dossier.id, nom:dossier.nom || "Dossier", typeNote:"dossier"});
+}
+
+function ouvrirNoteDossierClient(){
+  if(!compagnieSelectionnee){
+    alert("Choisissez d’abord une compagnie.");
+    return;
+  }
+  ouvrirNoteDossier({id:compagnieSelectionnee, nom:nomCompagnieSelectionnee || "Dossier client"});
+}
+
+function ouvrirNoteElement(cible){
+  fichierEnCoursDeNote = cible;
+
+  const overlay = document.getElementById("noteModalOverlay");
+  const input = document.getElementById("noteInput");
+  const nom = document.getElementById("noteFileName");
+  const save = document.getElementById("noteSaveButton");
+  const titre = document.getElementById("noteModalTitle");
+
+  const id = String(cible.id);
+  const type = cible.typeNote === "dossier" ? "dossier" : "fichier";
+  const cle = type + ":" + id;
+
+  if(titre) titre.textContent = type === "dossier" ? "🗒️ Note du dossier" : "🗒️ Note du rapport";
+  if(nom) nom.textContent = cible.nom || "";
+
+  overlay.style.display = "flex";
+  save.disabled = true;
+
+  if(Object.prototype.hasOwnProperty.call(cacheNotesFichiers,cle)){
+    input.disabled = false;
+    input.value = cacheNotesFichiers[cle] || "";
+    save.disabled = false;
+    setTimeout(function(){ input.focus(); input.setSelectionRange(input.value.length,input.value.length); },80);
+    return;
+  }
+
+  input.disabled = true;
+  input.value = "Chargement de la note...";
+
+  const success = function(resultat){
+    if(!fichierEnCoursDeNote || String(fichierEnCoursDeNote.id) !== id || fichierEnCoursDeNote.typeNote !== type) return;
+    const note = resultat && typeof resultat.note === "string" ? resultat.note : "";
+    cacheNotesFichiers[cle] = note;
+    input.value = note;
+    input.disabled = false;
+    save.disabled = false;
+    setTimeout(function(){ input.focus(); input.setSelectionRange(input.value.length,input.value.length); },50);
+  };
+
+  const failure = function(erreur){
+    fermerNoteFichier();
+    afficherErreur(erreur);
+  };
+
+  if(type === "dossier"){
+    google.script.run.withSuccessHandler(success).withFailureHandler(failure).obtenirNoteDossier(id);
+  }else{
+    google.script.run.withSuccessHandler(success).withFailureHandler(failure).obtenirNoteFichier(id);
+  }
+}
+
+function fermerNoteFichier(){
+  const overlay = document.getElementById("noteModalOverlay");
+  const input = document.getElementById("noteInput");
+  const save = document.getElementById("noteSaveButton");
+  if(overlay) overlay.style.display = "none";
+  if(input){ input.value = ""; input.disabled = false; }
+  if(save){ save.disabled = false; save.textContent = "Enregistrer"; }
+  fichierEnCoursDeNote = null;
+}
+
+function confirmerNoteFichier(){
+  if(!fichierEnCoursDeNote){ fermerNoteFichier(); return; }
+
+  const cible = fichierEnCoursDeNote;
+  const id = String(cible.id);
+  const type = cible.typeNote === "dossier" ? "dossier" : "fichier";
+  const cle = type + ":" + id;
+  const input = document.getElementById("noteInput");
+  const save = document.getElementById("noteSaveButton");
+  const note = String(input.value || "").trim();
+  const idCompagnie = compagnieSelectionnee ? String(compagnieSelectionnee) : "";
+
+  if(note.length > 2000){ alert("La note ne peut pas dépasser 2000 caractères."); return; }
+
+  input.disabled = true;
+  save.disabled = true;
+  save.textContent = "Enregistrement...";
+
+  const success = function(resultat){
+    cacheNotesFichiers[cle] = resultat && typeof resultat.note === "string" ? resultat.note : note;
+    if(type === "fichier" && resultat && resultat.meta && idCompagnie){
+      mettreAJourFichierDansCache(idCompagnie,resultat.meta);
+    }
+    save.textContent = "Enregistrer";
+    fermerNoteFichier();
+    afficherMessage(resultat && resultat.message ? resultat.message : "Note enregistrée.",true);
+  };
+
+  const failure = function(erreur){
+    input.disabled = false;
+    save.disabled = false;
+    save.textContent = "Enregistrer";
+    afficherErreur(erreur);
+  };
+
+  if(type === "dossier"){
+    google.script.run.withSuccessHandler(success).withFailureHandler(failure).enregistrerNoteDossier(id,note,idCompagnie);
+  }else{
+    google.script.run.withSuccessHandler(success).withFailureHandler(failure).enregistrerNoteFichier(id,note,idCompagnie);
+  }
+}
+
+document.addEventListener("keydown",function(event){
+  const modal = document.getElementById("noteModalOverlay");
+  if(!modal || modal.style.display !== "flex") return;
+  if(event.key === "Escape"){
+    event.preventDefault();
+    fermerNoteFichier();
+    return;
+  }
+  if(event.key === "Enter" && (event.ctrlKey || event.metaKey)){
+    event.preventDefault();
+    confirmerNoteFichier();
+  }
+});
+
+
+/* =====================================================
+   RENOMMER
+===================================================== */
+
+function renommerFichier(
+  fichier
+){
+
+  fichierEnCoursDeRenommage =
+    fichier;
+
+
+  const input =
+    document.getElementById(
+      "renameInput"
+    );
+
+
+  input.value =
+    fichier.nom;
+
+
+  document.getElementById(
+    "renameModalOverlay"
+  ).style.display =
+    "flex";
+
+
+  setTimeout(
+    function(){
+
+      input.focus();
+
+      input.select();
+
+    },
+    100
+  );
+
+}
+
+
+function fermerRenommage(){
+
+  document.getElementById(
+    "renameModalOverlay"
+  ).style.display =
+    "none";
+
+
+  fichierEnCoursDeRenommage =
+    null;
+
+}
+
+
+function confirmerRenommage(){
+  if(!fichierEnCoursDeRenommage){
+    fermerRenommage();
+    return;
+  }
+
+  const nouveauNom = document.getElementById("renameInput").value.trim();
+  if(!nouveauNom){
+    alert("Le nom ne peut pas être vide.");
+    return;
+  }
+
+  const fichier = fichierEnCoursDeRenommage;
+  const idCompagnie = compagnieSelectionnee ? String(compagnieSelectionnee) : "";
+  fermerRenommage();
+
+  google.script.run
+    .withSuccessHandler(function(meta){
+      if(!mettreAJourFichierDansCache(idCompagnie,meta)){
+        actualiserCompagnieEnArrierePlan(idCompagnie);
+      }
+      afficherMessage("Fichier renommé.",true);
+    })
+    .withFailureHandler(afficherErreur)
+    .renommerFichier(fichier.id,nouveauNom,idCompagnie);
+}
+
+
+/* =====================================================
+   CLAVIER RENOMMAGE
+===================================================== */
+
+document.addEventListener(
+  "keydown",
+  function(event){
+
+    const modal =
+      document.getElementById(
+        "renameModalOverlay"
+      );
+
+
+    if(
+      modal &&
+      modal.style.display ===
+      "flex"
+    ){
+
+      if(
+        event.key ===
+        "Enter"
+      ){
+
+        event.preventDefault();
+
+        confirmerRenommage();
+
+      }
+
+
+      if(
+        event.key ===
+        "Escape"
+      ){
+
+        event.preventDefault();
+
+        fermerRenommage();
+
+      }
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   SUPPRESSION
+===================================================== */
+
+function ouvrirConfirmationSuppression(){
+
+  const fichiers =
+    obtenirFichiersSelectionnes();
+
+
+  if(
+    !fichiers.length
+  ){
+
+    return;
+
+  }
+
+
+  document.getElementById(
+    "deleteModalText"
+  ).innerHTML =
+    "Voulez-vous vraiment supprimer " +
+    "<span class='delete-count'>" +
+    fichiers.length +
+    (
+      fichiers.length === 1
+        ? " fichier sélectionné"
+        : " fichiers sélectionnés"
+    ) +
+    "</span> ?";
+
+
+  document.getElementById(
+    "deleteModalOverlay"
+  ).style.display =
+    "flex";
+
+}
+
+
+function fermerConfirmationSuppression(){
+
+  document.getElementById(
+    "deleteModalOverlay"
+  ).style.display =
+    "none";
+
+}
+
+
+function confirmerSuppression(){
+  const fichiers = obtenirFichiersSelectionnes();
+  if(!fichiers.length){
+    fermerConfirmationSuppression();
+    return;
+  }
+
+  const idCompagnie = compagnieSelectionnee ? String(compagnieSelectionnee) : "";
+  fermerConfirmationSuppression();
+  afficherMessage("Suppression des fichiers...",false);
+
+  google.script.run
+    .withSuccessHandler(function(resultat){
+      const ids = resultat && Array.isArray(resultat.ids) ? resultat.ids : fichiers;
+      if(!supprimerFichiersDuCache(idCompagnie,ids)){
+        actualiserCompagnieEnArrierePlan(idCompagnie);
+      }
+      afficherMessage((resultat && resultat.message) || "Fichier(s) supprimé(s).",true);
+    })
+    .withFailureHandler(afficherErreur)
+    .supprimerFichiers(fichiers,idCompagnie);
+}
+
+
+/* =====================================================
+   ENVOI
+===================================================== */
+
+function ouvrirConfirmation(){
+
+  const fichiers =
+    obtenirFichiersSelectionnes();
+
+
+  if(
+    !fichiers.length
+  ){
+
+    alert(
+      "Veuillez sélectionner au moins un fichier."
+    );
+
+    return;
+
+  }
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(email){
+
+        document.getElementById(
+          "emailDestinataire"
+        ).value =
+          email || "";
+
+
+        document.getElementById(
+          "messageEmail"
+        ).value =
+          "";
+
+        const noms = obtenirNomsFichiersSelectionnes();
+        const resume = document.getElementById("sendSummary");
+        if(resume){
+          resume.innerHTML =
+            '<strong>' + escapeHtmlDossier(nomCompagnieSelectionnee || "Client") + '</strong>' +
+            '<div>' + noms.length + (noms.length === 1 ? ' fichier sélectionné' : ' fichiers sélectionnés') + '</div>' +
+            '<ul>' + noms.slice(0,8).map(function(n){ return '<li>' + escapeHtmlDossier(n) + '</li>'; }).join('') +
+            (noms.length > 8 ? '<li>… +' + (noms.length - 8) + ' autre(s)</li>' : '') + '</ul>';
+        }
+
+        document.getElementById(
+          "modalOverlay"
+        ).style.display =
+          "flex";
+
+      }
+    )
+
+    .withFailureHandler(
+      afficherErreur
+    )
+
+    .obtenirDestinataireParDefaut();
+
+}
+
+
+function fermerConfirmation(){
+
+  document.getElementById(
+    "modalOverlay"
+  ).style.display =
+    "none";
+
+}
+
+
+function confirmerEnvoi(){
+
+  const email =
+    document.getElementById(
+      "emailDestinataire"
+    )
+    .value
+    .trim();
+
+
+  const message =
+    document.getElementById(
+      "messageEmail"
+    ).value;
+
+
+  const fichiers =
+    obtenirFichiersSelectionnes();
+
+
+  if(!email){
+
+    alert(
+      "Veuillez entrer une adresse courriel."
+    );
+
+    return;
+
+  }
+
+
+  if(!fichiers.length){
+
+    alert(
+      "Aucun fichier sélectionné."
+    );
+
+    return;
+
+  }
+
+
+  fermerConfirmation();
+
+
+  document.getElementById(
+    "sendButton"
+  ).disabled =
+    true;
+
+
+  afficherMessage(
+    "Préparation des rapports...",
+    false
+  );
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(resultat){
+
+        document.getElementById(
+          "sendButton"
+        ).disabled =
+          false;
+
+
+        afficherMessage(
+          resultat.message ||
+          "Courriel envoyé avec succès.",
+          true
+        );
+
+
+        document
+          .querySelectorAll(
+            ".file-checkbox"
+          )
+          .forEach(
+            function(checkbox){
+
+              checkbox.checked =
+                false;
+
+            }
+          );
+
+
+        modeSelectionFichiers = false;
+        mettreAJourInterface();
+
+      }
+    )
+
+    .withFailureHandler(
+      function(erreur){
+
+        document.getElementById(
+          "sendButton"
+        ).disabled =
+          false;
+
+
+        afficherErreur(
+          erreur
+        );
+
+      }
+    )
+
+    .convertirEtEnvoyer(
+      fichiers,
+      email,
+      message,
+      nomCompagnieSelectionnee
+    );
+
+}
+
+
+/* =====================================================
+   FICHIERS SELECTIONNES
+===================================================== */
+
+function obtenirFichiersSelectionnes(){
+
+  const resultat =
+    [];
+
+
+  document
+    .querySelectorAll(
+      ".file-checkbox:checked"
+    )
+    .forEach(
+      function(checkbox){
+
+        resultat.push(
+          checkbox.dataset.fileId
+        );
+
+      }
+    );
+
+
+  return resultat;
+
+}
+
+
+/* =====================================================
+   SELECTION TOUT
+===================================================== */
+
+function selectionnerToutVisible(
+  valeur
+){
+
+  document
+    .querySelectorAll(
+      ".file-checkbox"
+    )
+    .forEach(
+      function(checkbox){
+
+        const ligne =
+          checkbox.closest(
+            ".file-row"
+          );
+
+
+        if(
+          ligne &&
+          estVisible(
+            ligne
+          )
+        ){
+
+          checkbox.checked =
+            valeur;
+
+        }
+
+      }
+    );
+
+
+  mettreAJourInterface();
+
+}
+
+
+/* =====================================================
+   VISIBILITE
+===================================================== */
+
+function estVisible(
+  element
+){
+
+  let parent =
+    element.parentElement;
+
+
+  while(
+    parent &&
+    parent !== document.body
+  ){
+
+    if(
+      window.getComputedStyle(
+        parent
+      ).display ===
+      "none"
+    ){
+
+      return false;
+
+    }
+
+
+    parent =
+      parent.parentElement;
+
+  }
+
+
+  return true;
+
+}
+
+
+/* =====================================================
+   INTERFACE
+===================================================== */
+
+function mettreAJourInterface(){
+  const cases = document.querySelectorAll(".file-checkbox");
+  let selectionnes = 0;
+
+  cases.forEach(function(checkbox){
+    const ligne = checkbox.closest(".file-row");
+    if(checkbox.checked){
+      selectionnes++;
+      if(ligne) ligne.classList.add("selected");
+    }else if(ligne){
+      ligne.classList.remove("selected");
+    }
+  });
+
+  if(selectionnes === 0 && modeSelectionFichiers){
+    modeSelectionFichiers = false;
+  }
+
+  document.body.classList.toggle("selection-active", modeSelectionFichiers || selectionnes > 0);
+
+  const selectionBar = document.getElementById("selectionBar");
+  if(selectionBar){
+    selectionBar.style.display = modeSelectionFichiers || selectionnes > 0 ? "flex" : "none";
+  }
+
+  const sendArea = document.getElementById("sendArea");
+  if(sendArea){
+    sendArea.style.display = selectionnes > 0 ? "block" : "none";
+  }
+
+  const count = document.getElementById("fileCount");
+  if(count){
+    count.textContent = selectionnes + (selectionnes === 1 ? " sélectionné" : " sélectionnés");
+  }
+
+  const sendButton = document.getElementById("sendButton");
+  if(sendButton){
+    sendButton.textContent = selectionnes > 0
+      ? "✈ Convertir et envoyer " + selectionnes + (selectionnes === 1 ? " fichier" : " fichiers")
+      : "✈ Convertir et envoyer";
+  }
+
+  const deleteButton = document.getElementById("deleteButton");
+  if(deleteButton){
+    deleteButton.style.display = selectionnes > 0 ? "flex" : "none";
+  }
+
+  const folderIcon = document.getElementById("folderActionIcon");
+  const folderLabel = document.getElementById("folderActionLabel");
+  const folderButton = document.getElementById("folderActionButton");
+  if(folderIcon) folderIcon.textContent = selectionnes > 0 ? "⧉" : "📁+";
+  if(folderLabel) folderLabel.textContent = selectionnes > 0 ? "Dupliquer" : "Dossier";
+  if(folderButton) folderButton.title = selectionnes > 0 ? "Dupliquer les fichiers sélectionnés" : "Ajouter un dossier";
+}
+
+function quitterModeSelection(){
+  document.querySelectorAll(".file-checkbox").forEach(function(c){ c.checked = false; });
+  modeSelectionFichiers = false;
+  mettreAJourInterface();
+}
+
+
+
+/* =====================================================
+   MESSAGE
+===================================================== */
+
+function afficherMessage(
+  texte,
+  succes
+){
+
+  const message =
+    document.getElementById(
+      "message"
+    );
+
+
+  message.textContent =
+    texte;
+
+
+  message.className =
+    succes
+      ? "message success"
+      : "message";
+
+}
+
+
+/* =====================================================
+   ERREUR
+===================================================== */
+
+function afficherErreur(
+  erreur
+){
+
+  console.error(
+    erreur
+  );
+
+
+  const texte =
+    erreur &&
+    erreur.message
+      ? erreur.message
+      : String(erreur);
+
+
+  const message =
+    document.getElementById(
+      "message"
+    );
+
+
+  message.textContent =
+    texte;
+
+
+  message.className =
+    "message error";
+
+
+  const bouton =
+    document.getElementById(
+      "sendButton"
+    );
+
+
+  if(bouton){
+
+    bouton.disabled =
+      false;
+
+  }
+
+}
+
+
+/* =====================================================
+   AMELIORATIONS INTERFACE SOMBRE PROFESSIONNELLE
+===================================================== */
+let filtreRecentsActif = false;
+
+function actionDossierOuDupliquer(){
+  const ids = obtenirFichiersSelectionnes();
+
+  if(!ids.length){
+    ouvrirCreationDossier();
+    return;
+  }
+
+  const noms = obtenirNomsFichiersSelectionnes();
+  const apercu = noms.slice(0,5).join("\n• ");
+  const suite = noms.length > 5 ? "\n• …" : "";
+  const question = "Dupliquer " + ids.length + (ids.length === 1 ? " rapport sélectionné" : " rapports sélectionnés") + " ?\n\n• " + apercu + suite;
+  if(!confirm(question)) return;
+
+  const idCompagnie = compagnieSelectionnee ? String(compagnieSelectionnee) : "";
+  afficherMessage("Duplication des rapports...",false);
+
+  google.script.run
+    .withSuccessHandler(function(resultat){
+      quitterModeSelection();
+      if(idCompagnie) actualiserCompagnieEnArrierePlan(idCompagnie);
+      afficherMessage((resultat && resultat.message) || "Rapports dupliqués.",true);
+    })
+    .withFailureHandler(afficherErreur)
+    .dupliquerFichiers(ids,idCompagnie);
+}
+
+function actionFavoris(){
+  const ids = obtenirFichiersSelectionnes();
+
+  if(!ids.length){
+    filtreFavorisActif = !filtreFavorisActif;
+    appliquerFiltresFichiers();
+    afficherMessage(filtreFavorisActif ? "Affichage des favoris." : "Tous les rapports sont affichés.",true);
+    return;
+  }
+
+  const lignes = ids.map(function(id){
+    const c = document.querySelector('.file-checkbox[data-file-id="' + id + '"]');
+    return c ? c.closest('.file-row') : null;
+  }).filter(Boolean);
+
+  const tousDejaFavoris = lignes.length > 0 && lignes.every(function(row){ return row.dataset.favorite === "1"; });
+  const nouvelEtat = !tousDejaFavoris;
+  const idCompagnie = compagnieSelectionnee ? String(compagnieSelectionnee) : "";
+
+  afficherMessage(nouvelEtat ? "Ajout aux favoris..." : "Retrait des favoris...",false);
+
+  google.script.run
+    .withSuccessHandler(function(resultat){
+      lignes.forEach(function(row){
+        row.dataset.favorite = nouvelEtat ? "1" : "0";
+        const marque = row.querySelector('.file-favorite-mark');
+        if(marque) marque.style.display = nouvelEtat ? "inline" : "none";
+      });
+      if(idCompagnie) actualiserCompagnieEnArrierePlan(idCompagnie);
+      afficherMessage((resultat && resultat.message) || (nouvelEtat ? "Ajouté aux favoris." : "Retiré des favoris."),true);
+      appliquerFiltresFichiers();
+    })
+    .withFailureHandler(afficherErreur)
+    .definirFavorisFichiers(ids,nouvelEtat,idCompagnie);
+}
+
+function ouvrirDossierClientSelectionne(){
+  if(!compagnieSelectionnee){ alert("Choisissez d’abord une compagnie."); return; }
+  window.open("https://drive.google.com/drive/folders/" + encodeURIComponent(compagnieSelectionnee), "_blank");
+}
+function obtenirNomsFichiersSelectionnes(){
+  return Array.from(document.querySelectorAll(".file-checkbox:checked")).map(function(cb){
+    const row = cb.closest(".file-row");
+    return row ? (row.dataset.fileName || "Fichier") : "Fichier";
+  });
+}
+function compterContenuClient(noeud){
+  let fichiers=0,dossiers=0;
+  (function parcourir(n){ if(!n)return; fichiers+=(n.fichiers||[]).length; (n.dossiers||[]).forEach(function(d){dossiers++;parcourir(d);}); })(noeud);
+  return {fichiers:fichiers,dossiers:dossiers};
+}
+function mettreAJourInfosClient(contenu){
+  const barre=document.getElementById("clientInfoBar"),outils=document.getElementById("fileTools");
+  if(!compagnieSelectionnee){ if(barre)barre.style.display="none"; if(outils)outils.style.display="none"; return; }
+  const stats=compterContenuClient(contenu);
+  if(barre)barre.style.display="flex"; if(outils)outils.style.display="flex";
+  const nom=document.getElementById("clientInfoName"),stat=document.getElementById("clientStats");
+  if(nom)nom.textContent=nomCompagnieSelectionnee||"Client";
+  if(stat)stat.textContent=stats.fichiers+" fichier"+(stats.fichiers===1?"":"s")+" • "+stats.dossiers+" dossier"+(stats.dossiers===1?"":"s");
+}
+function appliquerFiltresFichiers(){
+  const q=((document.getElementById("fileSearchInput")||{}).value||"").trim().toLowerCase();
+  const type=((document.getElementById("fileTypeFilter")||{}).value||"ALL");
+  const rows=Array.from(document.querySelectorAll(".file-row"));
+  const dates=rows.map(function(row){return{row:row,date:new Date(row.dataset.fileDate||0).getTime()||0};}).sort(function(a,b){return b.date-a.date;});
+  const recentSet=new Set(dates.slice(0,10).map(function(x){return x.row;}));
+
+  rows.forEach(function(row){
+    const nom=(row.dataset.fileName||"").toLowerCase();
+    const rowType=row.dataset.fileType||"";
+    const estFavori=row.dataset.favorite === "1";
+    const visible=(!q||nom.indexOf(q)!==-1)
+      &&(type==="ALL"||rowType===type)
+      &&(!filtreRecentsActif||recentSet.has(row))
+      &&(!filtreFavorisActif||estFavori);
+    row.style.display=visible?"flex":"none";
+  });
+
+  document.querySelectorAll(".folder").forEach(function(folder){
+    const visible=Array.from(folder.querySelectorAll(".file-row")).some(function(r){return r.style.display!=="none";});
+    folder.style.display=visible?"block":"none";
+    if((q||type!=="ALL"||filtreRecentsActif||filtreFavorisActif)&&visible) folder.classList.add("open");
+  });
+
+  const favBtn=document.getElementById("favoriteNavButton");
+  if(favBtn) favBtn.classList.toggle("favorite-filter-active",filtreFavorisActif);
+  mettreAJourInterface();
+}
+
+function basculerFichiersRecents(){
+  filtreRecentsActif=!filtreRecentsActif;
+  const btn=document.getElementById("recentFilterButton"); if(btn)btn.classList.toggle("active",filtreRecentsActif);
+  appliquerFiltresFichiers();
+}
+/* =====================================================
+   MODE
+===================================================== */
+
+function initialiserMode(){
+
+  const mode =
+    localStorage.getItem(
+      "modeRapports"
+    );
+
+
+  if(
+    mode === "light"
+  ){
+
+    document.body.classList.add(
+      "light"
+    );
+
+
+  }
+
+  actualiserIconesMode();
+
+}
+
+
+function actualiserIconesMode(){
+
+  const clair =
+    document.body.classList.contains(
+      "light"
+    );
+
+
+  document.querySelectorAll(
+    ".theme-mode-icon"
+  ).forEach(function(icone){
+
+    icone.textContent =
+      clair
+        ? "🌙"
+        : "☀️";
+
+  });
+
+  const boutonAffichage = document.getElementById("displayModeButton");
+  if (boutonAffichage) {
+    const action = clair
+      ? "Passer au mode sombre"
+      : "Passer au mode clair";
+    boutonAffichage.title = action;
+    boutonAffichage.setAttribute("aria-label", action);
+  }
+
+}
+
+
+function ouvrirCorbeilleDrive(){
+  window.open("https://drive.google.com/drive/trash", "_blank");
+}
+
+
+function changerMode(){
+
+  document.body.classList.toggle(
+    "light"
+  );
+
+
+  const clair =
+    document.body.classList.contains(
+      "light"
+    );
+
+
+  localStorage.setItem(
+    "modeRapports",
+    clair
+      ? "light"
+      : "dark"
+  );
+
+
+  actualiserIconesMode();
+
+}
+
+
+</script>
+
+</body>
+</html>
