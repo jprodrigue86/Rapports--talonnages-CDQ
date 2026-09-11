@@ -1,6 +1,9 @@
-const CACHE = 'cdq-installable-heavy-v9-deploy224';
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './sw.js', './version.json',
-  './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png'];
+const CACHE = 'cdq-installable-heavy-v10-musicwall-choice1';
+const APP_SHELL = [
+  './', './index.html', './manifest.webmanifest', './sw.js', './version.json',
+  './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
+  './assets/music-wall-choice1.webp'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)));
