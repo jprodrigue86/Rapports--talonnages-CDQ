@@ -1,4 +1,4 @@
-const CACHE = 'cdq-installable-heavy-v8-202609102017';
+const CACHE = 'cdq-installable-heavy-v9-deploy224';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './sw.js', './version.json',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png'];
 
@@ -21,6 +21,7 @@ self.addEventListener('message', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request, { cache: 'no-store' })
+      .catch(() => caches.match(event.request))
   );
 });
