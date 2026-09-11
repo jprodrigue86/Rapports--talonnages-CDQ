@@ -249,8 +249,23 @@
   </div>
 
   <script>
+    const CDQ_PWA_BUILD = '2026.09.10.2017';
+    let swRegistration = null;
+    let reloadingForUpdate = false;
+
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+      navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'})
+        .then(reg => {
+          swRegistration = reg;
+          reg.update().catch(()=>{});
+        })
+        .catch(()=>{});
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloadingForUpdate) return;
+        reloadingForUpdate = true;
+        window.location.reload();
+      });
     }
 
     const app = document.getElementById('app');
@@ -275,6 +290,59 @@
       const separator = APP_URL.indexOf('?') === -1 ? '?' : '&';
       app.src = APP_URL + separator + 'cdq_retry=' + Date.now();
     }
+
+    async function lireVersionDistante() {
+      try {
+        const response = await fetch('./version.json?ts=' + Date.now(), {cache:'no-store'});
+        if (!response.ok) throw new Error('version unavailable');
+        const data = await response.json();
+        return String(data.version || CDQ_PWA_BUILD);
+      } catch (e) {
+        return CDQ_PWA_BUILD;
+      }
+    }
+
+    async function repondreEtatMiseAJour(source, buildSelector) {
+      const latest = await lireVersionDistante();
+      const current = String(buildSelector || CDQ_PWA_BUILD);
+      const available = latest.localeCompare(current, undefined, {numeric:true}) > 0;
+      try {
+        source.postMessage({type:'CDQ_UPDATE_STATUS',available,latest,current}, '*');
+      } catch (e) {}
+    }
+
+    async function forcerMiseAJour(source) {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter(k => k.indexOf('cdq-installable-') === 0).map(k => caches.delete(k)));
+      } catch (e) {}
+
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = swRegistration || await navigator.serviceWorker.getRegistration();
+          if (reg) {
+            await reg.update();
+            if (reg.waiting) {
+              reg.waiting.postMessage({type:'SKIP_WAITING'});
+              return;
+            }
+          }
+        } catch (e) {}
+      }
+
+      try { source.postMessage({type:'CDQ_UPDATE_RELOAD'}, '*'); } catch (e) {}
+      window.location.reload();
+    }
+
+    window.addEventListener('message', event => {
+      const data = event.data || {};
+      if (data.type === 'CDQ_CHECK_UPDATE') {
+        repondreEtatMiseAJour(event.source, data.build);
+      }
+      if (data.type === 'CDQ_FORCE_UPDATE') {
+        forcerMiseAJour(event.source);
+      }
+    });
 
     document.getElementById('auth-open').addEventListener('click', ouvrirAutorisation);
     document.getElementById('auth-retry').addEventListener('click', reessayer);
