@@ -1,9 +1,9 @@
-const CACHE = 'cdq-installable-heavy-v12-musicwall-1p3s';
-const FORCE_BUILD = '2026.09.11.1300';
+const CACHE = 'cdq-installable-heavy-v13-only-musicwall';
+const FORCE_BUILD = '2026.09.11.1315';
 const APP_SHELL = [
   './', './index.html', './manifest.webmanifest', './sw.js', './version.json',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
-  './assets/music-wall-choice1.webp'
+  './assets/music-wall-choice1.webp?v=20260911-clean'
 ];
 
 self.addEventListener('install', event => {
@@ -16,7 +16,8 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await Promise.all(keys.map(k => caches.delete(k)));
+    await caches.open(CACHE).then(cache => cache.addAll(APP_SHELL));
     await self.clients.claim();
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of clients) {
