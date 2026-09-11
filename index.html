@@ -65,46 +65,6 @@
       box-shadow:inset 0 0 160px rgba(0,0,0,.9);
       pointer-events:none;
     }
-    .metal-wall{
-      position:absolute;
-      inset:-8%;
-      display:grid;
-      grid-template-columns:repeat(6,minmax(0,1fr));
-      align-content:space-evenly;
-      gap:0;
-      padding:12px;
-      transform:rotate(-5deg) scale(1.12);
-      opacity:.38;
-      color:#d8d8da;
-      font-weight:950;
-      text-transform:uppercase;
-      text-align:center;
-      letter-spacing:.035em;
-      user-select:none;
-      pointer-events:none;
-      text-shadow:0 0 10px rgba(255,255,255,.08),0 0 20px rgba(255,30,30,.08);
-    }
-    .metal-wall span{
-      white-space:nowrap;
-      font-size:clamp(6px,1.55vw,12px);
-      line-height:.78;
-      margin:-3px -8px;
-      transform:rotate(-2deg);
-      filter:drop-shadow(0 0 7px rgba(0,0,0,.95));
-    }
-    .metal-wall span:nth-child(2n){transform:translateY(-3px) rotate(2deg);}
-    .metal-wall span:nth-child(3n){transform:translateX(-6px) translateY(2px) rotate(-4deg);}
-    .metal-wall span:nth-child(5n){transform:translateX(7px) translateY(-4px) rotate(4deg);}
-    .metal-wall span:nth-child(7n+1),.metal-wall span:nth-child(11n+3){
-      color:#ff3c3c;
-      font-size:clamp(7px,1.85vw,14px);
-      z-index:1;
-    }
-    @media(max-width:600px){
-      .metal-wall{grid-template-columns:repeat(6,minmax(0,1fr));padding:6px;opacity:.36;}
-      .metal-wall span{font-size:clamp(5px,1.75vw,9.5px);margin:-3px -7px;line-height:.72;}
-      .metal-wall span:nth-child(7n+1),.metal-wall span:nth-child(11n+3){font-size:clamp(6px,2vw,11px);}
-    }
     .box{
       position:relative;
       z-index:1;
@@ -216,10 +176,9 @@
       opacity:.78;
     }
 
-
     /* =====================================================
        MUR MUSICAL — CHOIX 1 SOMBRE / GRUNGE
-       Image intégrée dans index.html : aucun fichier image externe requis.
+       Une seule image de chargement : le mur musical choisi.
     ===================================================== */
     #loading{
       background:#000!important;
@@ -229,7 +188,7 @@
       position:absolute;
       inset:-1px;
       z-index:-3;
-      background-image:url("assets/music-wall-choice1.webp");
+      background-image:url("assets/music-wall-choice1.webp?v=20260911-clean");
       background-size:cover;
       background-position:center center;
       background-repeat:no-repeat;
@@ -258,12 +217,6 @@
       box-shadow:0 18px 55px rgba(0,0,0,.72),inset 0 1px rgba(255,255,255,.05);
       backdrop-filter:blur(6px);
     }
-    #loading .box img{
-      width:88px;
-      height:88px;
-      margin:0 auto 12px;
-      border-radius:18px;
-    }
     #loading .loading-title{font-size:17px;}
     #loading .loading-label{margin-top:6px;font-size:11px;}
     #loading .loading-bar{margin-top:13px;}
@@ -278,7 +231,6 @@
   <div id="loading">
     <div class="music-wall-image" aria-hidden="true"></div>
     <div class="box">
-      <img src="icons/icon-heavy-v3-512.png" alt="Balance CDQ">
       <div class="loading-title">Rapports D’étalonnages</div>
       <div class="loading-label">Chargement</div>
       <div class="loading-bar" aria-hidden="true"></div>
@@ -304,7 +256,7 @@
   </div>
 
   <script>
-    const CDQ_PWA_BUILD = '2026.09.11.1300';
+    const CDQ_PWA_BUILD = '2026.09.11.1315';
     let swRegistration = null;
     let reloadingForUpdate = false;
 
