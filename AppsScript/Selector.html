@@ -2378,6 +2378,13 @@ body.light .folder-note-button,body.light .client-note-button,body.light .finish
   #noteInput{font-size:17px!important;min-height:180px!important;}
 }
 
+
+#noteSaveButton{
+  touch-action:none!important;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+}
 </style>
 
 </head>
@@ -3135,7 +3142,7 @@ body.light .folder-note-button,body.light .client-note-button,body.light .finish
         id="noteSaveButton"
         type="button"
         class="modal-button confirm-button"
-        onclick="confirmerNoteFichier()">
+        onclick="gererClicEnregistrerNote(event)">
         Enregistrer
       </button>
     </div>
@@ -3185,7 +3192,7 @@ const DUREE_APPUI_LONG_SELECTION = 2000;
 const CACHE_DB_NAME = "RapportsEtalonnagesCDQ";
 const CACHE_DB_VERSION = 1;
 const CACHE_STORE_NAME = "cache";
-const CACHE_APP_VERSION = "sombre-pro-android-v4-ergonomie-metal";
+const CACHE_APP_VERSION = "sombre-pro-v17-note-save-touch-capture-20260912";
 const CACHE_REFRESH_MIN_MS = 60 * 1000;
 const CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -5294,6 +5301,79 @@ function fermerNoteFichier(){
   if(save){ save.disabled = false; save.textContent = "Enregistrer"; }
   fichierEnCoursDeNote = null;
 }
+
+let noteEnregistrementDeclencheParTouch = false;
+
+function cdqTrouverBoutonEnregistrerNoteDepuisEvenement(event){
+  const cible = event && event.target;
+  if(!cible) return null;
+  if(cible.id === "noteSaveButton") return cible;
+  if(typeof cible.closest === "function") return cible.closest("#noteSaveButton");
+  return null;
+}
+
+function cdqEnregistrerNoteDepuisPremierToucher(event){
+  const bouton = cdqTrouverBoutonEnregistrerNoteDepuisEvenement(event);
+  if(!bouton || bouton.disabled) return;
+
+  try{ event.preventDefault(); }catch(e){}
+  try{ event.stopPropagation(); }catch(e){}
+
+  noteEnregistrementDeclencheParTouch = true;
+  confirmerNoteFichier();
+
+  setTimeout(function(){
+    const input = document.getElementById("noteInput");
+    if(input){ try{ input.blur(); }catch(e){} }
+  },0);
+
+  setTimeout(function(){
+    noteEnregistrementDeclencheParTouch = false;
+  },900);
+}
+
+function gererClicEnregistrerNote(event){
+  if(noteEnregistrementDeclencheParTouch){
+    if(event){
+      try{ event.preventDefault(); }catch(e){}
+      try{ event.stopPropagation(); }catch(e){}
+    }
+    return;
+  }
+  confirmerNoteFichier();
+}
+
+document.addEventListener(
+  "touchstart",
+  cdqEnregistrerNoteDepuisPremierToucher,
+  {capture:true, passive:false}
+);
+
+document.addEventListener(
+  "pointerdown",
+  function(event){
+    if(!event || event.pointerType === "mouse") return;
+    if(noteEnregistrementDeclencheParTouch) return;
+    const bouton = cdqTrouverBoutonEnregistrerNoteDepuisEvenement(event);
+    if(!bouton || bouton.disabled) return;
+
+    try{ event.preventDefault(); }catch(e){}
+    try{ event.stopPropagation(); }catch(e){}
+
+    noteEnregistrementDeclencheParTouch = true;
+    confirmerNoteFichier();
+
+    setTimeout(function(){
+      const input = document.getElementById("noteInput");
+      if(input){ try{ input.blur(); }catch(e){} }
+    },0);
+
+    setTimeout(function(){
+      noteEnregistrementDeclencheParTouch = false;
+    },900);
+  },
+  {capture:true, passive:false}
+);
 
 function confirmerNoteFichier(){
   if(!fichierEnCoursDeNote){ fermerNoteFichier(); return; }
