@@ -1,0 +1,156 @@
+name: CDQ fix note first touch
+
+on:
+  push:
+    paths:
+      - '.github/workflows/cdq-fix-note-first-touch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-selector:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch Selector note button
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('AppsScript/Selector.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_button = '''      <button
+                id="noteSaveButton"
+                type="button"
+                class="modal-button confirm-button"
+                onclick="confirmerNoteFichier()">
+                Enregistrer
+              </button>'''
+          new_button = '''      <button
+                id="noteSaveButton"
+                type="button"
+                class="modal-button confirm-button"
+                onclick="gererClicEnregistrerNote(event)">
+                Enregistrer
+              </button>'''
+
+          # Handle either the exact indented block or the essential onclick only.
+          if old_button in s:
+              s = s.replace(old_button, new_button, 1)
+          elif 'id="noteSaveButton"' in s and 'onclick="confirmerNoteFichier()"' in s:
+              s = s.replace('onclick="confirmerNoteFichier()"', 'onclick="gererClicEnregistrerNote(event)"', 1)
+          else:
+              raise SystemExit('noteSaveButton/onclick attendu introuvable')
+
+          marker = 'function confirmerNoteFichier(){'
+          if marker not in s:
+              raise SystemExit('fonction confirmerNoteFichier introuvable')
+
+          patch = r'''let noteEnregistrementDeclencheParTouch = false;
+
+function cdqTrouverBoutonEnregistrerNoteDepuisEvenement(event){
+  const cible = event && event.target;
+  if(!cible) return null;
+  if(cible.id === "noteSaveButton") return cible;
+  if(typeof cible.closest === "function") return cible.closest("#noteSaveButton");
+  return null;
+}
+
+function cdqEnregistrerNoteDepuisPremierToucher(event){
+  const bouton = cdqTrouverBoutonEnregistrerNoteDepuisEvenement(event);
+  if(!bouton || bouton.disabled) return;
+
+  try{ event.preventDefault(); }catch(e){}
+  try{ event.stopPropagation(); }catch(e){}
+
+  noteEnregistrementDeclencheParTouch = true;
+  confirmerNoteFichier();
+
+  setTimeout(function(){
+    const input = document.getElementById("noteInput");
+    if(input){ try{ input.blur(); }catch(e){} }
+  },0);
+
+  setTimeout(function(){
+    noteEnregistrementDeclencheParTouch = false;
+  },900);
+}
+
+function gererClicEnregistrerNote(event){
+  if(noteEnregistrementDeclencheParTouch){
+    if(event){
+      try{ event.preventDefault(); }catch(e){}
+      try{ event.stopPropagation(); }catch(e){}
+    }
+    return;
+  }
+  confirmerNoteFichier();
+}
+
+document.addEventListener(
+  "touchstart",
+  cdqEnregistrerNoteDepuisPremierToucher,
+  {capture:true, passive:false}
+);
+
+document.addEventListener(
+  "pointerdown",
+  function(event){
+    if(!event || event.pointerType === "mouse") return;
+    if(noteEnregistrementDeclencheParTouch) return;
+    const bouton = cdqTrouverBoutonEnregistrerNoteDepuisEvenement(event);
+    if(!bouton || bouton.disabled) return;
+    try{ event.preventDefault(); }catch(e){}
+    try{ event.stopPropagation(); }catch(e){}
+    noteEnregistrementDeclencheParTouch = true;
+    confirmerNoteFichier();
+    setTimeout(function(){
+      const input = document.getElementById("noteInput");
+      if(input){ try{ input.blur(); }catch(e){} }
+    },0);
+    setTimeout(function(){ noteEnregistrementDeclencheParTouch = false; },900);
+  },
+  {capture:true, passive:false}
+);
+
+'''
+
+          s = s.replace(marker, patch + marker, 1)
+
+          old_version = 'const CACHE_APP_VERSION = "sombre-pro-android-v4-ergonomie-metal";'
+          if old_version in s:
+              s = s.replace(old_version, 'const CACHE_APP_VERSION = "sombre-pro-v17-note-save-touch-capture-20260912";', 1)
+
+          css_marker = '</style>'
+          css = '''\n#noteSaveButton{\n  touch-action:none!important;\n  user-select:none;\n  -webkit-user-select:none;\n  -webkit-touch-callout:none;\n}\n'''
+          if css_marker in s:
+              s = s.replace(css_marker, css + css_marker, 1)
+          else:
+              raise SystemExit('</style> introuvable')
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Validate patch markers
+        shell: bash
+        run: |
+          grep -q 'sombre-pro-v17-note-save-touch-capture-20260912' AppsScript/Selector.html
+          grep -q 'cdqEnregistrerNoteDepuisPremierToucher' AppsScript/Selector.html
+          grep -q '"touchstart"' AppsScript/Selector.html
+          grep -q 'gererClicEnregistrerNote(event)' AppsScript/Selector.html
+
+      - name: Remove temporary workflow and commit
+        shell: bash
+        run: |
+          rm -f .github/workflows/cdq-fix-note-first-touch.yml
+          git config user.name "CDQ Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add AppsScript/Selector.html .github/workflows/cdq-fix-note-first-touch.yml
+          git commit -m "Update Selector: save note on first touch"
+          git push origin HEAD:main
