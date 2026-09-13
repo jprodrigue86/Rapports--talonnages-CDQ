@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#071b33">
   <meta name="interface-scale" content="1.30">
   <link rel="manifest" href="manifest.webmanifest">
+  <script src="./firebase-config.js"></script>
   <title>Rapports D’étalonnages</title>
   <style>
     :root{
@@ -217,6 +218,12 @@
       box-shadow:0 18px 55px rgba(0,0,0,.72),inset 0 1px rgba(255,255,255,.05);
       backdrop-filter:blur(6px);
     }
+    #loading .box img{
+      width:88px;
+      height:88px;
+      margin:0 auto 12px;
+      border-radius:18px;
+    }
     #loading .loading-title{font-size:17px;}
     #loading .loading-label{margin-top:6px;font-size:11px;}
     #loading .loading-bar{margin-top:13px;}
@@ -224,6 +231,20 @@
       .music-wall-image{background-size:cover;background-position:center 44%;}
       #loading .box{width:280px;}
     }
+
+    #push-setup{
+      position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;
+      padding:22px;box-sizing:border-box;background:rgba(0,10,20,.92);color:#fff;
+    }
+    #push-setup .push-card{
+      width:min(430px,94vw);padding:24px;border-radius:20px;background:#0d2948;
+      border:1px solid #315777;box-shadow:0 18px 55px rgba(0,0,0,.45);text-align:center;
+    }
+    #push-setup h2{margin:0 0 10px;font-size:22px}
+    #push-setup p{margin:0 0 18px;line-height:1.42;color:#d8e8f4}
+    #push-setup button{width:100%;min-height:52px;border:0;border-radius:13px;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px}
+    #push-accept{background:#43c98b;color:#071b33}
+    #push-cancel{background:#173a5f;color:#fff}
 
   </style>
 </head>
@@ -255,8 +276,17 @@
     </div>
   </div>
 
+  <div id="push-setup" aria-live="polite">
+    <div class="push-card">
+      <h2>🔔 Notifications d’inventaire</h2>
+      <p>Autorise les notifications pour recevoir les alertes de stock bas même lorsque Rapports D’étalonnages est complètement fermé.</p>
+      <button id="push-accept" type="button">Activer les notifications Push</button>
+      <button id="push-cancel" type="button">Plus tard</button>
+    </div>
+  </div>
+
   <script>
-    const CDQ_PWA_BUILD = '2026.09.11.1315';
+    const CDQ_PWA_BUILD = '2026.09.13.1305';
     let swRegistration = null;
     let reloadingForUpdate = false;
 
@@ -358,12 +388,129 @@
 
     window.addEventListener('message', event => {
       const data = event.data || {};
+      if (event.source !== app.contentWindow) return;
+
       if (data.type === 'CDQ_CHECK_UPDATE') {
         repondreEtatMiseAJour(event.source, data.build);
       }
       if (data.type === 'CDQ_FORCE_UPDATE') {
         forcerMiseAJour(event.source);
       }
+      if (data.type === 'CDQ_PUSH_REQUEST') {
+        pushReplyTarget = event.source;
+        pushSetup.style.display = 'flex';
+      }
+      if (data.type === 'CDQ_PUSH_REFRESH') {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          enregistrerPushPourSource(event.source,false);
+        } else {
+          repondrePush(event.source,'CDQ_PUSH_STATE',{
+            permission:('Notification' in window ? Notification.permission : 'unsupported')
+          });
+        }
+      }
+    });
+
+    /* =====================================================
+       CDQ V21 — PONT PUSH FCM
+       Le Selector Apps Script est dans l'iframe.
+       Le Push doit être enregistré sur l'origine GitHub PWA.
+    ===================================================== */
+    const pushSetup = document.getElementById('push-setup');
+    const pushAccept = document.getElementById('push-accept');
+    const pushCancel = document.getElementById('push-cancel');
+    let pushReplyTarget = null;
+    let firebaseScriptsLoaded = false;
+
+    function firebaseConfigReady(){
+      const c = globalThis.CDQ_FIREBASE_CONFIG || {};
+      const vapid = String(globalThis.CDQ_FIREBASE_VAPID_KEY || '');
+      return c.apiKey && !String(c.apiKey).startsWith('REMPLACER_') &&
+             c.projectId && !String(c.projectId).startsWith('REMPLACER_') &&
+             c.messagingSenderId && !String(c.messagingSenderId).startsWith('REMPLACER_') &&
+             c.appId && !String(c.appId).startsWith('REMPLACER_') &&
+             vapid && !vapid.startsWith('REMPLACER_');
+    }
+
+    function chargerScriptExterne(src){
+      return new Promise((resolve,reject)=>{
+        const existant = Array.from(document.scripts).find(s=>s.src===src);
+        if(existant){resolve();return;}
+        const s=document.createElement('script');
+        s.src=src;s.async=true;s.onload=resolve;s.onerror=reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function chargerFirebaseMessaging(){
+      if(firebaseScriptsLoaded && window.firebase) return;
+      await chargerScriptExterne('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
+      await chargerScriptExterne('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
+      firebaseScriptsLoaded=true;
+      if(!firebase.apps || !firebase.apps.length){
+        firebase.initializeApp(globalThis.CDQ_FIREBASE_CONFIG);
+      }
+    }
+
+    function infosAppareilPush(){
+      return {
+        plateforme: navigator.userAgentData && navigator.userAgentData.platform
+          ? navigator.userAgentData.platform
+          : (navigator.platform || ''),
+        appareil: navigator.userAgent || ''
+      };
+    }
+
+    async function obtenirJetonPush(requestPermission){
+      if(!firebaseConfigReady()){
+        throw new Error('Firebase Push n’est pas encore configuré pour cette application.');
+      }
+      if(!('Notification' in window) || !('serviceWorker' in navigator)){
+        throw new Error('Ce téléphone ou navigateur ne prend pas en charge les notifications Push.');
+      }
+
+      let permission = Notification.permission;
+      if(requestPermission && permission !== 'granted'){
+        permission = await Notification.requestPermission();
+      }
+      if(permission !== 'granted'){
+        throw new Error('Permission de notification refusée ou non accordée.');
+      }
+
+      await chargerFirebaseMessaging();
+      const reg = swRegistration || await navigator.serviceWorker.ready;
+      const messaging = firebase.messaging();
+      const token = await messaging.getToken({
+        vapidKey: globalThis.CDQ_FIREBASE_VAPID_KEY,
+        serviceWorkerRegistration: reg
+      });
+      if(!token) throw new Error('Aucun jeton Push n’a été généré.');
+      return token;
+    }
+
+    function repondrePush(source,type,payload){
+      try{ source.postMessage(Object.assign({type},payload||{}),'*'); }catch(e){}
+    }
+
+    async function enregistrerPushPourSource(source,askPermission){
+      try{
+        const token = await obtenirJetonPush(askPermission);
+        repondrePush(source,'CDQ_PUSH_TOKEN',Object.assign({token},infosAppareilPush()));
+      }catch(e){
+        repondrePush(source,'CDQ_PUSH_ERROR',{message:e && e.message ? e.message : String(e)});
+      }
+    }
+
+    pushAccept.addEventListener('click',async()=>{
+      const cible=pushReplyTarget || app.contentWindow;
+      pushSetup.style.display='none';
+      await enregistrerPushPourSource(cible,true);
+      pushReplyTarget=null;
+    });
+
+    pushCancel.addEventListener('click',()=>{
+      pushSetup.style.display='none';
+      pushReplyTarget=null;
     });
 
     document.getElementById('auth-open').addEventListener('click', ouvrirAutorisation);
