@@ -1,0 +1,11 @@
+CDQ — Rapports d’étalonnages
+
+PROPRIETARY SOFTWARE — ALL RIGHTS RESERVED
+
+This public repository contains only the installable PWA shell and public assets required to launch the application.
+
+The private Google Apps Script source code, business logic, authorization logic, Drive integration, and application internals are proprietary and are not licensed for copying, modification, redistribution, resale, or derivative use without prior written permission from the rights holder.
+
+No license is granted by the public availability of this repository except the limited right to load and use the published application as intended by an authorized user.
+
+Copyright 2026. All rights reserved.

@@ -1,14 +1,21 @@
 CDQ — Rapports D’étalonnages — version installable
 
-Cette structure est prête pour être hébergée sur un domaine HTTPS afin d'être installée comme application (PWA).
-Elle utilise le logo CDQ approuvé et ouvre votre application Apps Script actuelle.
+Ce dépôt public contient uniquement la coquille PWA nécessaire à l’installation et au lancement de l’application.
 
-Fichiers :
+Fichiers publics :
 - index.html : écran/app installable
 - manifest.webmanifest : nom, icône, affichage standalone
 - sw.js : service worker
-- icons/ : icônes 192, 512 et 1024
+- icons/ : icônes de l’application
+- assets/ : éléments visuels publics
 
-Important :
-Une PWA doit être servie depuis HTTPS. Le fichier index.html ne doit pas être ouvert directement depuis le téléphone comme un fichier local.
-La prochaine étape consiste donc à héberger ce petit dossier sur un service HTTPS (par exemple GitHub Pages, Cloudflare Pages ou Firebase Hosting), puis à installer l'application depuis Chrome.
+SOURCE PRIVÉE :
+Le code Google Apps Script, la logique métier, les fonctions Drive, la sécurité et l’interface interne de l’application ne doivent pas être publiés dans ce dépôt. Ils sont conservés séparément dans Google Apps Script / stockage privé.
+
+IMPORTANT :
+- Ne jamais ajouter de dossier AppsScript/ dans ce dépôt public.
+- Ne jamais publier Code.gs, Selector.html, des clés, jetons, identifiants privés ou fichiers de sauvegarde.
+- Ce dépôt reste public seulement parce que GitHub Pages sert la PWA.
+
+PROPRIÉTÉ :
+Logiciel propriétaire. Tous droits réservés. Aucune autorisation de copie, modification, redistribution ou revente du code privé n’est accordée.

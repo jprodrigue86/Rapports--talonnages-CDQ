@@ -1,0 +1,16 @@
+# Private application source — never publish in this public PWA repository
+AppsScript/
+*.gs
+
+# Local/private configuration
+.env
+.env.*
+*.secret
+*.secrets
+secrets.*
+credentials.*
+
+# Backups that may contain private source
+*.bak
+*.backup
+*.zip
