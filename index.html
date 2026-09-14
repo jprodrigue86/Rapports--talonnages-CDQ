@@ -177,6 +177,7 @@
       opacity:.78;
     }
 
+
     /* =====================================================
        MUR MUSICAL — CHOIX 1 SOMBRE / GRUNGE
        Une seule image de chargement : le mur musical choisi.
@@ -232,6 +233,7 @@
       #loading .box{width:280px;}
     }
 
+  
     #push-setup{
       position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;
       padding:22px;box-sizing:border-box;background:rgba(0,10,20,.92);color:#fff;
@@ -245,6 +247,22 @@
     #push-setup button{width:100%;min-height:52px;border:0;border-radius:13px;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px}
     #push-accept{background:#43c98b;color:#071b33}
     #push-cancel{background:#173a5f;color:#fff}
+
+
+    #bio-setup{
+      position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;
+      padding:22px;box-sizing:border-box;background:rgba(0,8,16,.94);color:#fff;
+    }
+    #bio-setup .bio-card{
+      width:min(420px,92vw);padding:26px 22px;border-radius:22px;background:#0d2948;
+      border:1px solid #315777;box-shadow:0 18px 55px rgba(0,0,0,.5);text-align:center;
+    }
+    #bio-setup .bio-icon{font-size:44px;margin-bottom:8px}
+    #bio-setup h2{margin:0 0 8px;font-size:22px}
+    #bio-setup p{margin:0 0 18px;color:#d6e5f1;line-height:1.45}
+    #bio-setup button{width:100%;min-height:54px;border:0;border-radius:13px;font-size:16px;font-weight:850;cursor:pointer;margin-top:8px}
+    #bio-action{background:#43c98b;color:#071b33}
+    #bio-cancel{background:#173a5f;color:#fff}
 
   </style>
 </head>
@@ -262,7 +280,7 @@
     id="app"
     title="Rapports D’étalonnages"
     src="https://script.google.com/macros/s/AKfycbzZt5zgKLJA3FlRXgJOqR8OLopFBkCg8vapy4fLMNM37rlrYv0U__p8V22O_QAq5gk/exec?cdq_deploy=224"
-    allow="clipboard-read; clipboard-write"
+    allow="clipboard-read; clipboard-write; publickey-credentials-get; publickey-credentials-create"
     referrerpolicy="strict-origin-when-cross-origin">
   </iframe>
 
@@ -276,6 +294,7 @@
     </div>
   </div>
 
+
   <div id="push-setup" aria-live="polite">
     <div class="push-card">
       <h2>🔔 Notifications d’inventaire</h2>
@@ -285,8 +304,18 @@
     </div>
   </div>
 
+  <div id="bio-setup" aria-live="polite">
+    <div class="bio-card">
+      <div class="bio-icon">🔐</div>
+      <h2 id="bio-title">Biométrie CDQ</h2>
+      <p id="bio-text">Utilisez la biométrie de votre téléphone.</p>
+      <button id="bio-action" type="button">Continuer</button>
+      <button id="bio-cancel" type="button">Annuler</button>
+    </div>
+  </div>
+
   <script>
-    const CDQ_PWA_BUILD = '2026.09.13.1305';
+    const CDQ_PWA_BUILD = '2026.09.14.1805-v21.21';
     let swRegistration = null;
     let reloadingForUpdate = false;
 
@@ -409,6 +438,191 @@
           });
         }
       }
+      if (data.type === 'CDQ_BIOMETRIC_REGISTER') {
+        ouvrirPontBiometrique('register',event.source,String(data.email||''));
+      }
+      if (data.type === 'CDQ_BIOMETRIC_REQUEST') {
+        ouvrirPontBiometrique('unlock',event.source,String(data.email||''));
+      }
+      if (data.type === 'CDQ_BIOMETRIC_CANCEL') {
+        annulerPontBiometrique();
+      }
+    });
+
+
+
+    /* =====================================================
+       CDQ V21.19 — PONT BIOMÉTRIQUE ANDROID (WebAuthn)
+       Le secret d'application reste côté serveur. Le PWA
+       fournit seulement la preuve locale de présence utilisateur.
+    ===================================================== */
+    const bioSetup = document.getElementById('bio-setup');
+    const bioTitle = document.getElementById('bio-title');
+    const bioText = document.getElementById('bio-text');
+    const bioAction = document.getElementById('bio-action');
+    const bioCancel = document.getElementById('bio-cancel');
+    let bioContext = null;
+    let bioAbortController = null;
+
+    function bioRandomBytes(n){
+      const a=new Uint8Array(n);crypto.getRandomValues(a);return a;
+    }
+    function bioB64Url(buf){
+      const bytes=new Uint8Array(buf);
+      let s='';bytes.forEach(b=>s+=String.fromCharCode(b));
+      return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }
+    function bioFromB64Url(s){
+      s=String(s||'').replace(/-/g,'+').replace(/_/g,'/');
+      while(s.length%4)s+='=';
+      const bin=atob(s),a=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+      return a;
+    }
+    function bioLoadMap(){
+      try{return JSON.parse(localStorage.getItem('cdq_biometric_credentials_v1')||'{}')||{};}catch(e){return {};}
+    }
+    function bioSaveMap(m){
+      try{localStorage.setItem('cdq_biometric_credentials_v1',JSON.stringify(m||{}));}catch(e){}
+    }
+    function bioReply(source,type,payload){
+      try{source.postMessage(Object.assign({type},payload||{}),'*');}catch(e){}
+    }
+    async function bioSupported(){
+      if(!window.PublicKeyCredential || !navigator.credentials)return false;
+      if(typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable==='function'){
+        try{return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();}catch(e){return false;}
+      }
+      return true;
+    }
+    async function bioRegister(email){
+      if(!(await bioSupported()))throw new Error('Biométrie non disponible sur cet appareil.');
+      const map=bioLoadMap();
+      if(map[email]&&map[email].id)return map[email];
+
+      bioAbortController=new AbortController();
+      const userId=bioRandomBytes(24);
+      const cred=await navigator.credentials.create({
+        publicKey:{
+          challenge:bioRandomBytes(32),
+          rp:{name:'Balance CDQ'},
+          user:{id:userId,name:email||'technicien@cdq',displayName:email||'Technicien CDQ'},
+          pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+          authenticatorSelection:{
+            authenticatorAttachment:'platform',
+            residentKey:'discouraged',
+            userVerification:'required'
+          },
+          timeout:60000,
+          attestation:'none'
+        },
+        signal:bioAbortController.signal
+      });
+      bioAbortController=null;
+
+      if(!cred)throw new Error('Enregistrement biométrique annulé.');
+      map[email]={id:bioB64Url(cred.rawId),createdAt:Date.now()};
+      bioSaveMap(map);
+      return map[email];
+    }
+
+    async function bioUnlock(email){
+      if(!(await bioSupported()))throw new Error('Biométrie non disponible sur cet appareil.');
+      const map=bioLoadMap();
+      let saved=map[email];
+
+      // Migration V21.21 : les utilisateurs ayant créé leur NIP avant que
+      // le pont biométrique GitHub soit publié peuvent s'enregistrer ici,
+      // sans demander un nouveau code à 6 chiffres.
+      if(!saved||!saved.id){
+        saved=await bioRegister(email);
+      }
+
+      bioAbortController=new AbortController();
+      const assertion=await navigator.credentials.get({
+        publicKey:{
+          challenge:bioRandomBytes(32),
+          allowCredentials:[{type:'public-key',id:bioFromB64Url(saved.id)}],
+          userVerification:'required',
+          timeout:60000
+        },
+        signal:bioAbortController.signal
+      });
+      bioAbortController=null;
+
+      if(!assertion)throw new Error('Biométrie non reconnue.');
+      return true;
+    }
+    function annulerPontBiometrique(){
+      try{
+        if(bioAbortController)bioAbortController.abort();
+      }catch(e){}
+      bioAbortController=null;
+      bioSetup.style.display='none';
+      bioContext=null;
+      bioAction.disabled=false;
+    }
+
+    function ouvrirPontBiometrique(mode,source,email){
+      bioContext={mode,source,email:String(email||'').trim().toLowerCase()};
+
+      if(!bioContext.email){
+        bioReply(source,'CDQ_BIOMETRIC_UNAVAILABLE',{message:'Compte biométrique inconnu.'});
+        return;
+      }
+
+      // Confirme immédiatement au Selector que la couche Android a bien reçu la demande.
+      bioReply(source,'CDQ_BIOMETRIC_READY',{
+        message: mode==='register'
+          ? 'Préparation de la biométrie…'
+          : 'Préparation du déverrouillage biométrique…'
+      });
+
+      bioTitle.textContent=mode==='register'?'Activer la biométrie':'Déverrouiller CDQ';
+      bioText.textContent=mode==='register'
+        ? 'Enregistrez l’empreinte ou le déverrouillage biométrique de ce téléphone.'
+        : 'Confirmez avec l’empreinte, le visage ou le déverrouillage sécurisé de votre téléphone.';
+      bioAction.textContent=mode==='register'?'Activer la biométrie':'Continuer avec la biométrie';
+      bioSetup.style.display='flex';
+    }
+
+    bioAction.addEventListener('click',async()=>{
+      const ctx=bioContext;if(!ctx)return;
+      bioAction.disabled=true;
+      try{
+        if(ctx.mode==='register'){
+          await bioRegister(ctx.email);
+          bioReply(ctx.source,'CDQ_BIOMETRIC_REGISTERED',{success:true});
+        }else{
+          await bioUnlock(ctx.email);
+          bioReply(ctx.source,'CDQ_BIOMETRIC_RESULT',{success:true});
+        }
+        bioSetup.style.display='none';
+        bioContext=null;
+      }catch(e){
+        if(ctx.mode==='unlock'){
+          bioReply(ctx.source,'CDQ_BIOMETRIC_RESULT',{success:false,message:e&&e.message?e.message:String(e)});
+        }else{
+          bioReply(ctx.source,'CDQ_BIOMETRIC_UNAVAILABLE',{message:e&&e.message?e.message:String(e)});
+        }
+        bioSetup.style.display='none';
+        bioContext=null;
+      }finally{
+        bioAbortController=null;
+        bioAction.disabled=false;
+      }
+    });
+    bioCancel.addEventListener('click',()=>{
+      const ctx=bioContext;
+      try{if(bioAbortController)bioAbortController.abort();}catch(e){}
+      bioAbortController=null;
+      if(ctx){
+        if(ctx.mode==='unlock')bioReply(ctx.source,'CDQ_BIOMETRIC_RESULT',{success:false,message:'Biométrie annulée.'});
+        else bioReply(ctx.source,'CDQ_BIOMETRIC_UNAVAILABLE',{message:'Biométrie non activée.'});
+      }
+      bioSetup.style.display='none';
+      bioContext=null;
+      bioAction.disabled=false;
     });
 
     /* =====================================================
