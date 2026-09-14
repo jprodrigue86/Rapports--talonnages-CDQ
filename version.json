@@ -1,12 +1,12 @@
 {
-  "version": "2026.09.14.1805-v21.21",
+  "version": "2026.09.14.1818-v21.22",
   "date": "2026-09-14",
   "features": [
-    "biometrie-android-corrigee",
-    "nip-4-chiffres-secours-immediat",
-    "timeout-anti-blocage",
-    "migration-biometrie-utilisateurs-existants",
-    "cache-pwa-force-update",
-    "toutes-corrections-v21-20"
+    "suppression-ecran-autorisation-google",
+    "suppression-boucle-google",
+    "retry-chargement-simple",
+    "biometrie-v21-21-conservee",
+    "nip-secours-conserve",
+    "toutes-corrections-v21-20-conservees"
   ]
 }
