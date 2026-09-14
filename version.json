@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.15.1200-v21.24",
-  "selector_version": "2026.09.15.1200-v21.24",
-  "backend_version": "2026.09.15.1200-v21.24",
-  "date": "2026-09-15",
+  "version": "2026.09.14.2344-v21.24",
+  "selector_version": "2026.09.14.2344-v21.24",
+  "backend_version": "2026.09.14.2344-v21.24",
+  "date": "2026-09-14",
   "features": [
     "demarrage-verifie",
     "pont-iframe-apps-script",
