@@ -1,5 +1,5 @@
-const CACHE = 'cdq-installable-heavy-v13-only-musicwall';
-const FORCE_BUILD = '2026.09.11.1315';
+const CACHE = 'cdq-installable-heavy-v14-biometric-fallback';
+const FORCE_BUILD = '2026.09.14.1805-v21.21';
 const APP_SHELL = [
   './', './index.html', './manifest.webmanifest', './sw.js', './version.json',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
@@ -16,7 +16,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
     await caches.open(CACHE).then(cache => cache.addAll(APP_SHELL));
     await self.clients.claim();
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
@@ -32,15 +32,41 @@ self.addEventListener('message', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+
+  // index/version/sw : toujours privilégier la version réseau pour éviter
+  // qu'un ancien pont biométrique reste bloqué dans le cache Android.
+  const url = new URL(event.request.url);
+  const isCritical =
+    url.pathname.endsWith('/index.html') ||
+    url.pathname.endsWith('/version.json') ||
+    url.pathname.endsWith('/sw.js') ||
+    url.pathname.endsWith('/');
+
+  if (isCritical) {
+    event.respondWith(
+      fetch(event.request, {cache:'no-store'})
+        .then(response => {
+          if (response && response.ok) {
+            caches.open(CACHE).then(cache => cache.put(event.request, response.clone())).catch(()=>{});
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request, { cache: 'no-store' })
-      .then(response => {
-        if (response && response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE).then(cache => cache.put(event.request, copy)).catch(() => {});
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(event.request).then(cached => {
+      const network = fetch(event.request, {cache:'no-store'})
+        .then(response => {
+          if (response && response.ok) {
+            caches.open(CACHE).then(cache => cache.put(event.request, response.clone())).catch(()=>{});
+          }
+          return response;
+        })
+        .catch(() => cached);
+      return cached || network;
+    })
   );
 });
