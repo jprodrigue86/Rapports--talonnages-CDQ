@@ -1,7 +1,12 @@
 {
-  "version": "2026.09.11.1315",
-  "date": "2026-09-11",
+  "version": "2026.09.14.1805-v21.21",
+  "date": "2026-09-14",
   "features": [
-    2, 3, 6, 14, 16, 17, 18, 24, 25, 26, 36, 39, 40, 45, 46
+    "biometrie-android-corrigee",
+    "nip-4-chiffres-secours-immediat",
+    "timeout-anti-blocage",
+    "migration-biometrie-utilisateurs-existants",
+    "cache-pwa-force-update",
+    "toutes-corrections-v21-20"
   ]
 }
