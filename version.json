@@ -1,13 +1,15 @@
 {
-  "version": "2026.09.14.2300-v21.23",
-  "selector_version": "2026.09.14.2300-v21.23",
-  "backend_version": "2026.09.14.2300-v21.23",
-  "date": "2026-09-14",
+  "version": "2026.09.15.1200-v21.24",
+  "selector_version": "2026.09.15.1200-v21.24",
+  "backend_version": "2026.09.15.1200-v21.24",
+  "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
     "pont-iframe-apps-script",
     "mise-a-jour-sans-boucle",
     "reglages-push-accessibles",
-    "cache-limite-a-cdq"
+    "cache-limite-a-cdq",
+    "biometrie-directe",
+    "nip-de-secours-sans-flash"
   ]
 }
