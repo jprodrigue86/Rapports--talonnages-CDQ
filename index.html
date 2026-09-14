@@ -315,7 +315,7 @@
   </div>
 
   <script>
-    const CDQ_PWA_BUILD = '2026.09.14.2300-v21.23';
+    const CDQ_PWA_BUILD = '2026.09.14.2344-v21.24';
     let swRegistration = null;
     let reloadingForUpdate = false;
     let updateRequested = false;
@@ -343,6 +343,8 @@
     const MIN_LOADING_MS = 1300;
     let loadingShownAt = performance.now();
     let selectorReady = false;
+    let selectorAwaitingAccess = false;
+    let accessWaitTimer = null;
     let selectorWindow = null;
     let selectorOrigin = '';
     let backendBuild = '';
@@ -383,6 +385,27 @@
       }, 15000);
     }
 
+    function recevoirEtatAcces(state) {
+      if (!['pending','input','ready'].includes(state)) return;
+      const wasPending = selectorAwaitingAccess;
+      selectorAwaitingAccess = state === 'pending';
+      if (selectorAwaitingAccess) {
+        clearTimeout(hideLoadingTimer);
+        loading.style.display = 'grid';
+        // Dernier secours si le Selector cesse complètement de répondre.
+        if (!wasPending) accessWaitTimer = setTimeout(() => {
+          if (!selectorAwaitingAccess) return;
+          annulerPontBiometrique();
+          loading.style.display = 'none';
+          loadHelp.style.display = 'flex';
+        }, 90000);
+      } else {
+        clearTimeout(accessWaitTimer);
+        loadHelp.style.display = 'none';
+        masquerMurApresDelaiMinimum();
+      }
+    }
+
     function afficherMurChargement() {
       loadingShownAt = performance.now();
       loading.style.display = 'grid';
@@ -394,7 +417,7 @@
       clearTimeout(hideLoadingTimer);
       const generation = loadGeneration;
       hideLoadingTimer = setTimeout(() => {
-        if (selectorReady && generation === loadGeneration) loading.style.display = 'none';
+        if (selectorReady && !selectorAwaitingAccess && generation === loadGeneration) loading.style.display = 'none';
       }, remaining);
     }
 
@@ -407,6 +430,9 @@
     function reessayerChargement() {
       loadGeneration++;
       selectorReady = false;
+      selectorAwaitingAccess = false;
+      clearTimeout(accessWaitTimer);
+      annulerPontBiometrique();
       selectorWindow = null;
       selectorOrigin = '';
       clearTimeout(hideLoadingTimer);
@@ -471,9 +497,11 @@
         selectorReady = true;
         clearTimeout(loadingTimer);
         loadHelp.style.display = 'none';
-        masquerMurApresDelaiMinimum();
+        if (data.authProtocol >= 24) recevoirEtatAcces(data.accessState || 'pending');
+        else if (!selectorAwaitingAccess) masquerMurApresDelaiMinimum();
       }
       if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
+      if (data.type === 'CDQ_ACCESS_STATE') recevoirEtatAcces(data.state);
       if (data.type === 'CDQ_BACKEND_STATUS') backendBuild = String(data.build || 'inconnue');
 
       if (data.type === 'CDQ_CHECK_UPDATE') {
@@ -496,13 +524,13 @@
         }
       }
       if (data.type === 'CDQ_BIOMETRIC_REGISTER') {
-        ouvrirPontBiometrique('register',event.source,String(data.email||''));
+        ouvrirPontBiometrique('register',event.source,String(data.email||''),String(data.requestId||''));
       }
       if (data.type === 'CDQ_BIOMETRIC_REQUEST') {
-        ouvrirPontBiometrique('unlock',event.source,String(data.email||''));
+        ouvrirPontBiometrique('unlock',event.source,String(data.email||''),String(data.requestId||''));
       }
       if (data.type === 'CDQ_BIOMETRIC_CANCEL') {
-        annulerPontBiometrique();
+        if (!data.requestId || (bioContext && data.requestId === bioContext.requestId)) annulerPontBiometrique();
       }
     });
 
@@ -552,134 +580,110 @@
       }
       return true;
     }
-    async function bioRegister(email){
-      if(!(await bioSupported()))throw new Error('Biométrie non disponible sur cet appareil.');
+    function bioEnsureCurrent(ctx){
+      if(bioContext!==ctx || ctx.controller.signal.aborted)throw new Error('Demande annulée.');
+    }
+    async function bioRegister(email,ctx){
+      if(!(await bioSupported()))throw new Error('Biométrie indisponible.');
+      bioEnsureCurrent(ctx);
       const map=bioLoadMap();
       if(map[email]&&map[email].id)return map[email];
-
-      bioAbortController=new AbortController();
-      const userId=bioRandomBytes(24);
       const cred=await navigator.credentials.create({
         publicKey:{
-          challenge:bioRandomBytes(32),
-          rp:{name:'Balance CDQ'},
-          user:{id:userId,name:email||'technicien@cdq',displayName:email||'Technicien CDQ'},
+          challenge:bioRandomBytes(32),rp:{name:'Balance CDQ'},
+          user:{id:bioRandomBytes(24),name:email,displayName:email},
           pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
-          authenticatorSelection:{
-            authenticatorAttachment:'platform',
-            residentKey:'discouraged',
-            userVerification:'required'
-          },
-          timeout:60000,
-          attestation:'none'
-        },
-        signal:bioAbortController.signal
+          authenticatorSelection:{authenticatorAttachment:'platform',residentKey:'discouraged',userVerification:'required'},
+          timeout:60000,attestation:'none'
+        },signal:ctx.controller.signal
       });
-      bioAbortController=null;
-
-      if(!cred)throw new Error('Enregistrement biométrique annulé.');
+      bioEnsureCurrent(ctx);
+      if(!cred)throw new Error('Enregistrement annulé.');
       map[email]={id:bioB64Url(cred.rawId),createdAt:Date.now()};
       bioSaveMap(map);
       return map[email];
     }
-
-    async function bioUnlock(email){
-      if(!(await bioSupported()))throw new Error('Biométrie non disponible sur cet appareil.');
-      const map=bioLoadMap();
-      let saved=map[email];
-
-      // Migration V21.21 : les utilisateurs ayant créé leur NIP avant que
-      // le pont biométrique GitHub soit publié peuvent s'enregistrer ici,
-      // sans demander un nouveau code à 6 chiffres.
-      if(!saved||!saved.id){
-        saved=await bioRegister(email);
-      }
-
-      bioAbortController=new AbortController();
+    async function bioUnlock(email,ctx){
+      const saved=bioLoadMap()[email];
+      // L'absence d'inscription doit mener au NIP, jamais à une inscription
+      // biométrique pendant une tentative de déverrouillage.
+      if(!saved||!saved.id)throw new Error('Biométrie non activée pour ce compte.');
+      if(!(await bioSupported()))throw new Error('Biométrie indisponible.');
+      bioEnsureCurrent(ctx);
       const assertion=await navigator.credentials.get({
+        mediation:'required',
         publicKey:{
           challenge:bioRandomBytes(32),
-          allowCredentials:[{type:'public-key',id:bioFromB64Url(saved.id)}],
-          userVerification:'required',
-          timeout:60000
-        },
-        signal:bioAbortController.signal
+          allowCredentials:[{type:'public-key',id:bioFromB64Url(saved.id),transports:['internal']}],
+          hints:['client-device'],userVerification:'required',timeout:60000
+        },signal:ctx.controller.signal
       });
-      bioAbortController=null;
-
+      bioEnsureCurrent(ctx);
       if(!assertion)throw new Error('Biométrie non reconnue.');
       return true;
     }
     function annulerPontBiometrique(){
-      try{
-        if(bioAbortController)bioAbortController.abort();
-      }catch(e){}
+      const ctx=bioContext;
+      bioContext=null;
+      if(ctx&&ctx.controller)ctx.controller.abort();
       bioAbortController=null;
       bioSetup.style.display='none';
-      bioContext=null;
       bioAction.disabled=false;
     }
-
-    function ouvrirPontBiometrique(mode,source,email){
-      bioContext={mode,source,email:String(email||'').trim().toLowerCase()};
-
-      if(!bioContext.email){
-        bioReply(source,'CDQ_BIOMETRIC_UNAVAILABLE',{message:'Compte biométrique inconnu.'});
-        return;
-      }
-
-      // Confirme immédiatement au Selector que la couche Android a bien reçu la demande.
-      bioReply(source,'CDQ_BIOMETRIC_READY',{
-        message: mode==='register'
-          ? 'Préparation de la biométrie…'
-          : 'Préparation du déverrouillage biométrique…'
-      });
-
-      bioTitle.textContent=mode==='register'?'Activer la biométrie':'Déverrouiller CDQ';
-      bioText.textContent=mode==='register'
-        ? 'Enregistrez l’empreinte ou le déverrouillage biométrique de ce téléphone.'
-        : 'Confirmez avec l’empreinte, le visage ou le déverrouillage sécurisé de votre téléphone.';
-      bioAction.textContent=mode==='register'?'Activer la biométrie':'Continuer avec la biométrie';
-      bioSetup.style.display='flex';
-    }
-
-    bioAction.addEventListener('click',async()=>{
-      const ctx=bioContext;if(!ctx)return;
+    async function executerPontBiometrique(ctx){
+      if(bioContext!==ctx || ctx.running)return;
+      ctx.running=true;
+      ctx.controller=new AbortController();
+      bioAbortController=ctx.controller;
       bioAction.disabled=true;
       try{
-        if(ctx.mode==='register'){
-          await bioRegister(ctx.email);
-          bioReply(ctx.source,'CDQ_BIOMETRIC_REGISTERED',{success:true});
-        }else{
-          await bioUnlock(ctx.email);
-          bioReply(ctx.source,'CDQ_BIOMETRIC_RESULT',{success:true});
-        }
-        bioSetup.style.display='none';
-        bioContext=null;
+        if(ctx.mode==='register')await bioRegister(ctx.email,ctx);
+        else await bioUnlock(ctx.email,ctx);
+        bioEnsureCurrent(ctx);
+        bioReply(ctx.source,ctx.mode==='register'?'CDQ_BIOMETRIC_REGISTERED':'CDQ_BIOMETRIC_RESULT',{
+          success:true,requestId:ctx.requestId
+        });
       }catch(e){
-        if(ctx.mode==='unlock'){
-          bioReply(ctx.source,'CDQ_BIOMETRIC_RESULT',{success:false,message:e&&e.message?e.message:String(e)});
-        }else{
-          bioReply(ctx.source,'CDQ_BIOMETRIC_UNAVAILABLE',{message:e&&e.message?e.message:String(e)});
-        }
-        bioSetup.style.display='none';
-        bioContext=null;
+        if(bioContext!==ctx)return;
+        bioReply(ctx.source,ctx.mode==='register'?'CDQ_BIOMETRIC_UNAVAILABLE':'CDQ_BIOMETRIC_RESULT',{
+          success:false,requestId:ctx.requestId,message:'Entrez votre NIP à 4 chiffres.'
+        });
       }finally{
-        bioAbortController=null;
-        bioAction.disabled=false;
+        if(bioContext===ctx){
+          bioContext=null;bioAbortController=null;
+          bioSetup.style.display='none';bioAction.disabled=false;
+        }
       }
+    }
+    function ouvrirPontBiometrique(mode,source,email,requestId){
+      email=String(email||'').trim().toLowerCase();
+      if(bioContext && bioContext.mode===mode && bioContext.source===source &&
+          bioContext.email===email && bioContext.requestId===requestId)return;
+      annulerPontBiometrique();
+      if(!email){bioReply(source,'CDQ_BIOMETRIC_UNAVAILABLE',{requestId,message:'Compte inconnu.'});return;}
+      const ctx={mode,source,email,requestId,running:false,controller:null};
+      bioContext=ctx;
+      bioReply(source,'CDQ_BIOMETRIC_READY',{requestId});
+      if(mode==='unlock'){
+        // Appeler directement le téléphone, sans carte ni clic intermédiaire.
+        executerPontBiometrique(ctx);
+        return;
+      }
+      // La proposition initiale d'activation reste un choix explicite.
+      bioTitle.textContent='Activer la biométrie';
+      bioText.textContent='Activez le déverrouillage de CDQ avec la sécurité de ce téléphone.';
+      bioAction.textContent='Activer la biométrie';
+      bioSetup.style.display='flex';
+    }
+    bioAction.addEventListener('click',()=>{
+      if(bioContext)executerPontBiometrique(bioContext);
     });
     bioCancel.addEventListener('click',()=>{
       const ctx=bioContext;
-      try{if(bioAbortController)bioAbortController.abort();}catch(e){}
-      bioAbortController=null;
-      if(ctx){
-        if(ctx.mode==='unlock')bioReply(ctx.source,'CDQ_BIOMETRIC_RESULT',{success:false,message:'Biométrie annulée.'});
-        else bioReply(ctx.source,'CDQ_BIOMETRIC_UNAVAILABLE',{message:'Biométrie non activée.'});
-      }
-      bioSetup.style.display='none';
-      bioContext=null;
-      bioAction.disabled=false;
+      annulerPontBiometrique();
+      if(ctx)bioReply(ctx.source,ctx.mode==='unlock'?'CDQ_BIOMETRIC_RESULT':'CDQ_BIOMETRIC_UNAVAILABLE',{
+        success:false,requestId:ctx.requestId,message:'Biométrie annulée.'
+      });
     });
 
     /* =====================================================
