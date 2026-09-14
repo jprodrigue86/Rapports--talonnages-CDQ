@@ -289,7 +289,8 @@
       <h2>🔄 Chargement de l’application</h2>
       <p>L’application CDQ n’a pas répondu assez rapidement.</p>
       <button id="load-retry" type="button">Réessayer le chargement</button>
-      <div class="small">Aucune autorisation Google n’est nécessaire. Votre connexion CDQ, votre NIP et la biométrie restent inchangés.</div>
+      <a id="open-direct" target="_blank" rel="noopener" style="display:block;color:#a8dcff;margin-top:18px">Ouvrir le lien direct</a>
+      <div class="small">Si le problème persiste, ouvrez le lien direct pour voir le message de Google. Une erreur de déploiement doit être corrigée dans Apps Script.</div>
     </div>
   </div>
 
@@ -314,9 +315,10 @@
   </div>
 
   <script>
-    const CDQ_PWA_BUILD = '2026.09.14.1818-v21.22';
+    const CDQ_PWA_BUILD = '2026.09.14.2300-v21.23';
     let swRegistration = null;
     let reloadingForUpdate = false;
+    let updateRequested = false;
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'})
@@ -327,7 +329,7 @@
         .catch(()=>{});
 
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (reloadingForUpdate) return;
+        if (reloadingForUpdate || !updateRequested) return;
         reloadingForUpdate = true;
         window.location.reload();
       });
@@ -340,7 +342,46 @@
     const APP_URL = 'https://script.google.com/macros/s/AKfycbzZt5zgKLJA3FlRXgJOqR8OLopFBkCg8vapy4fLMNM37rlrYv0U__p8V22O_QAq5gk/exec?cdq_deploy=224';
     const MIN_LOADING_MS = 1300;
     let loadingShownAt = performance.now();
-    let appLoadCount = 0;
+    let selectorReady = false;
+    let selectorWindow = null;
+    let selectorOrigin = '';
+    let backendBuild = '';
+    let loadingTimer = null;
+    let hideLoadingTimer = null;
+    let loadGeneration = 0;
+    document.getElementById('open-direct').href = APP_URL;
+
+    function isSelectorMessage(event) {
+      if (!event.source || !event.data || typeof event.data !== 'object') return false;
+      let origin;
+      try { origin = new URL(event.origin); } catch(e) { return false; }
+      const host = origin.hostname;
+      if (origin.protocol !== 'https:' || origin.port || !(host === 'script.google.com' ||
+          host === 'script.googleusercontent.com' || host.endsWith('-script.googleusercontent.com'))) return false;
+      // Window.parent is cross-origin accessible. Restrict to our own iframe tree.
+      let source = event.source;
+      for (let depth = 0; source && depth < 8; depth++) {
+        if (source === app.contentWindow) return true;
+        try { const parent = source.parent; if (parent === source) break; source = parent; }
+        catch(e) { break; }
+      }
+      return false;
+    }
+
+    function replyToSelector(source, payload) {
+      if (source !== selectorWindow || !selectorOrigin) return;
+      try { source.postMessage(payload, selectorOrigin); } catch(e) {}
+    }
+
+    function armLoadingTimeout() {
+      clearTimeout(loadingTimer);
+      loadingTimer = setTimeout(() => {
+        if (selectorReady) return;
+        clearTimeout(hideLoadingTimer);
+        loading.style.display = 'none';
+        loadHelp.style.display = 'flex';
+      }, 15000);
+    }
 
     function afficherMurChargement() {
       loadingShownAt = performance.now();
@@ -350,18 +391,26 @@
     function masquerMurApresDelaiMinimum() {
       const elapsed = performance.now() - loadingShownAt;
       const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
-      setTimeout(() => {
-        loading.style.display = 'none';
+      clearTimeout(hideLoadingTimer);
+      const generation = loadGeneration;
+      hideLoadingTimer = setTimeout(() => {
+        if (selectorReady && generation === loadGeneration) loading.style.display = 'none';
       }, remaining);
     }
 
+    // iframe.load also fires for Google error pages. Only the Selector handshake
+    // proves that the application's own JavaScript has started.
     app.addEventListener('load', () => {
-      appLoadCount++;
-      if(loadHelp) loadHelp.style.display = 'none';
-      masquerMurApresDelaiMinimum();
+      if (!selectorReady) armLoadingTimeout();
     });
 
     function reessayerChargement() {
+      loadGeneration++;
+      selectorReady = false;
+      selectorWindow = null;
+      selectorOrigin = '';
+      clearTimeout(hideLoadingTimer);
+      armLoadingTimeout();
       if(loadHelp) loadHelp.style.display = 'none';
       afficherMurChargement();
       const separator = APP_URL.indexOf('?') === -1 ? '?' : '&';
@@ -381,14 +430,15 @@
 
     async function repondreEtatMiseAJour(source, buildSelector) {
       const latest = await lireVersionDistante();
-      const current = String(buildSelector || CDQ_PWA_BUILD);
+      const current = CDQ_PWA_BUILD;
       const available = latest.localeCompare(current, undefined, {numeric:true}) > 0;
       try {
-        source.postMessage({type:'CDQ_UPDATE_STATUS',available,latest,current}, '*');
+        replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available,latest,current,selectorCurrent:String(buildSelector||''),backendCurrent:backendBuild});
       } catch (e) {}
     }
 
     async function forcerMiseAJour(source) {
+      updateRequested = true;
       try {
         const keys = await caches.keys();
         await Promise.all(keys.filter(k => k.indexOf('cdq-installable-') === 0).map(k => caches.delete(k)));
@@ -407,13 +457,24 @@
         } catch (e) {}
       }
 
-      try { source.postMessage({type:'CDQ_UPDATE_RELOAD'}, '*'); } catch (e) {}
+      try { replyToSelector(source,{type:'CDQ_UPDATE_RELOAD'}); } catch (e) {}
       window.location.reload();
     }
 
     window.addEventListener('message', event => {
       const data = event.data || {};
-      if (event.source !== app.contentWindow) return;
+      if (!isSelectorMessage(event)) return;
+      if (data.type === 'CDQ_SELECTOR_READY' || data.type === 'CDQ_CHECK_UPDATE') {
+        if (selectorWindow && selectorWindow !== event.source) return;
+        selectorWindow = event.source;
+        selectorOrigin = event.origin;
+        selectorReady = true;
+        clearTimeout(loadingTimer);
+        loadHelp.style.display = 'none';
+        masquerMurApresDelaiMinimum();
+      }
+      if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
+      if (data.type === 'CDQ_BACKEND_STATUS') backendBuild = String(data.build || 'inconnue');
 
       if (data.type === 'CDQ_CHECK_UPDATE') {
         repondreEtatMiseAJour(event.source, data.build);
@@ -482,7 +543,7 @@
       try{localStorage.setItem('cdq_biometric_credentials_v1',JSON.stringify(m||{}));}catch(e){}
     }
     function bioReply(source,type,payload){
-      try{source.postMessage(Object.assign({type},payload||{}),'*');}catch(e){}
+      replyToSelector(source,Object.assign({type},payload||{}));
     }
     async function bioSupported(){
       if(!window.PublicKeyCredential || !navigator.credentials)return false;
@@ -631,6 +692,7 @@
     const pushCancel = document.getElementById('push-cancel');
     let pushReplyTarget = null;
     let firebaseScriptsLoaded = false;
+    const externalScriptLoads = new Map();
 
     function firebaseConfigReady(){
       const c = globalThis.CDQ_FIREBASE_CONFIG || {};
@@ -643,13 +705,16 @@
     }
 
     function chargerScriptExterne(src){
-      return new Promise((resolve,reject)=>{
-        const existant = Array.from(document.scripts).find(s=>s.src===src);
-        if(existant){resolve();return;}
-        const s=document.createElement('script');
-        s.src=src;s.async=true;s.onload=resolve;s.onerror=reject;
-        document.head.appendChild(s);
+      if(externalScriptLoads.has(src)) return externalScriptLoads.get(src);
+      const promise = new Promise((resolve,reject)=>{
+        const script=document.createElement('script');
+        script.src=src;script.async=true;
+        script.onload=resolve;
+        script.onerror=()=>{script.remove();externalScriptLoads.delete(src);reject(new Error('Chargement Firebase impossible.'));};
+        document.head.appendChild(script);
       });
+      externalScriptLoads.set(src,promise);
+      return promise;
     }
 
     async function chargerFirebaseMessaging(){
@@ -688,7 +753,8 @@
       }
 
       await chargerFirebaseMessaging();
-      const reg = swRegistration || await navigator.serviceWorker.ready;
+      const reg = swRegistration || await navigator.serviceWorker.getRegistration();
+      if(!reg || !reg.active) throw new Error('Le service de notifications n’est pas prêt. Réessayez après le chargement.');
       const messaging = firebase.messaging();
       const token = await messaging.getToken({
         vapidKey: globalThis.CDQ_FIREBASE_VAPID_KEY,
@@ -699,7 +765,7 @@
     }
 
     function repondrePush(source,type,payload){
-      try{ source.postMessage(Object.assign({type},payload||{}),'*'); }catch(e){}
+      replyToSelector(source,Object.assign({type},payload||{}));
     }
 
     async function enregistrerPushPourSource(source,askPermission){
@@ -712,25 +778,22 @@
     }
 
     pushAccept.addEventListener('click',async()=>{
-      const cible=pushReplyTarget || app.contentWindow;
+      const cible=pushReplyTarget || selectorWindow;
       pushSetup.style.display='none';
       await enregistrerPushPourSource(cible,true);
       pushReplyTarget=null;
     });
 
     pushCancel.addEventListener('click',()=>{
+      repondrePush(pushReplyTarget,'CDQ_PUSH_CANCELLED',{});
       pushSetup.style.display='none';
       pushReplyTarget=null;
     });
 
     document.getElementById('load-retry').addEventListener('click', reessayerChargement);
 
-    setTimeout(() => {
-      if (appLoadCount === 0) {
-        loading.style.display = 'none';
-        if(loadHelp) loadHelp.style.display = 'flex';
-      }
-    }, 12000);
+    armLoadingTimeout();
   </script>
 </body>
 </html>
+

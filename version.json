@@ -1,12 +1,13 @@
 {
-  "version": "2026.09.14.1818-v21.22",
+  "version": "2026.09.14.2300-v21.23",
+  "selector_version": "2026.09.14.2300-v21.23",
+  "backend_version": "2026.09.14.2300-v21.23",
   "date": "2026-09-14",
   "features": [
-    "suppression-ecran-autorisation-google",
-    "suppression-boucle-google",
-    "retry-chargement-simple",
-    "biometrie-v21-21-conservee",
-    "nip-secours-conserve",
-    "toutes-corrections-v21-20-conservees"
+    "demarrage-verifie",
+    "pont-iframe-apps-script",
+    "mise-a-jour-sans-boucle",
+    "reglages-push-accessibles",
+    "cache-limite-a-cdq"
   ]
 }
