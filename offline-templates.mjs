@@ -1,8 +1,11 @@
 // Private PDF bytes live only in this device's IndexedDB, never in the public shell cache.
 const DB_NAME = 'cdq-offline-templates-v1';
 const MODELS = Object.freeze({
+  plancher: Object.freeze({id:'plancher', name:'Balance de plancher'}),
   cuve4: Object.freeze({id:'cuve4', name:'Balance Quvre 4'}),
-  camion: Object.freeze({id:'camion', name:'Balance à camion'})
+  cuve3: Object.freeze({id:'cuve3', name:'Balance de cuve 3 points'}),
+  camion: Object.freeze({id:'camion', name:'Balance à camion'}),
+  precision: Object.freeze({id:'precision', name:'Balance de précision'})
 });
 const MODEL_IDS = Object.freeze(Object.keys(MODELS));
 
@@ -147,8 +150,7 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf}) {
       session={email:data.email,canWrite:!!data.canWrite};localEmail=data.email;requested.clear();
       await put('state',{id:'profile',...session});
       navigator.storage?.persist?.().catch(()=>{});
-      // The V21.37 generic prepare request still handles its original model.
-      // Request the truck-scale master explicitly so it gets its own private IndexedDB cache.
+      // V21.38 prepares every registered master in the background from one secure request.
       requestModel('camion');
       await refresh();await sync();return;
     }
