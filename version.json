@@ -23,6 +23,7 @@
     "createur-sans-code-activation",
     "jeton-appareil-pwa-stable",
     "createur-biometrie-obligatoire",
-    "createur-nip-secours"
+    "createur-nip-secours",
+    "pdf-copie-ouverture-immediate"
   ]
 }
