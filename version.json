@@ -1,7 +1,7 @@
 {
-  "version": "2026.09.15.2315-v21.29",
-  "selector_version": "2026.09.15.2315-v21.29",
-  "backend_version": "2026.09.15.2315-v21.29",
+  "version": "2026.09.15.0336-v21.30",
+  "selector_version": "2026.09.15.0336-v21.30",
+  "backend_version": "2026.09.15.0336-v21.30",
   "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
