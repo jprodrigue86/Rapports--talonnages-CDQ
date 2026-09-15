@@ -315,7 +315,7 @@
   </div>
 
   <script>
-    const CDQ_PWA_BUILD = '2026.09.15.1430-v21.36';
+    const CDQ_PWA_BUILD = '2026.09.15.1530-v21.37';
     const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
     const CDQ_GOOGLE_CONNECTED_KEY = 'cdq_google_connected_v1';
     let googleConnectionWindow = null;
@@ -342,7 +342,7 @@
     const loading = document.getElementById('loading');
     const loadHelp = document.getElementById('load-help');
 
-    const APP_URL = 'https://script.google.com/macros/s/AKfycbzZt5zgKLJA3FlRXgJOqR8OLopFBkCg8vapy4fLMNM37rlrYv0U__p8V22O_QAq5gk/exec?cdq_deploy=271';
+    const APP_URL = 'https://script.google.com/macros/s/AKfycbzZt5zgKLJA3FlRXgJOqR8OLopFBkCg8vapy4fLMNM37rlrYv0U__p8V22O_QAq5gk/exec?cdq_deploy=272';
     const MIN_LOADING_MS = 1300;
     let loadingShownAt = performance.now();
     let selectorReady = false;
@@ -351,6 +351,32 @@
     let selectorWindow = null;
     let selectorOrigin = '';
     let backendBuild = '';
+    const cdqOffline = import('./offline-templates.mjs?v=21.37').then(module=>module.createOfflineTemplates({
+      send:data=>replyToSelector(selectorWindow,data),
+      openPdf:data=>cdqAfficherPdf(data),
+      warmPdf:data=>{
+        if(document.getElementById('cdq-warm-reader'))return;
+        const frame=document.createElement('iframe');frame.id='cdq-warm-reader';frame.src='./reader.html';
+        frame.title='Préparation du lecteur hors ligne';frame.tabIndex=-1;frame.setAttribute('aria-hidden','true');
+        frame.style.cssText='position:fixed;left:-12000px;top:0;width:800px;height:1000px;pointer-events:none;opacity:0';
+        function warm(event){
+          if(event.source===frame.contentWindow && event.origin===location.origin && event.data?.type==='CDQ_READER_READY')
+            frame.contentWindow.postMessage({type:'CDQ_READER_OPEN',blob:data.blob,name:'Balance Quvre 4.pdf',fileId:'',readOnly:true},location.origin);
+        }
+        window.addEventListener('message',warm);document.body.append(frame);
+        setTimeout(()=>{window.removeEventListener('message',warm);frame.remove();},30000);
+      },
+      unlock:async email=>{
+        const saved=bioLoadMap()[email];
+        if(!saved?.id)throw new Error('Activez la biométrie dans CDQ avec Internet pour déverrouiller les copies au prochain démarrage hors ligne.');
+        const assertion=await navigator.credentials.get({mediation:'required',publicKey:{
+          challenge:bioRandomBytes(32),allowCredentials:[{type:'public-key',id:bioFromB64Url(saved.id),transports:['internal']}],
+          hints:['client-device'],userVerification:'required',timeout:60000
+        }});
+        if(!assertion || bioB64Url(assertion.rawId)!==saved.id || !(new Uint8Array(assertion.response.authenticatorData)[32]&4))
+          throw new Error('Le déverrouillage de l’appareil n’a pas été confirmé.');
+      }
+    })).catch(()=>({handle(){},lock(){}}));
     let loadingTimer = null;
     let hideLoadingTimer = null;
     let loadGeneration = 0;
@@ -552,6 +578,9 @@
         else if (!selectorAwaitingAccess) masquerMurApresDelaiMinimum();
       }
       if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
+      if(String(data.type||'').startsWith('CDQ_OFFLINE_'))cdqOffline.then(controller=>controller.handle(data));
+      if(data.type==='CDQ_ACCESS_STATE' && data.state!=='ready')cdqOffline.then(controller=>controller.lock());
+      if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready'))replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
       if (data.type === 'CDQ_OPEN_PDF') cdqAfficherPdf(data);
       if (data.type === 'CDQ_ACCESS_STATE') recevoirEtatAcces(data.state);
       if (data.type === 'CDQ_BACKEND_STATUS') backendBuild = String(data.build || 'inconnue');
@@ -564,7 +593,7 @@
         try {
           const token = String(data.token || '');
           if (token) localStorage.setItem(CDQ_STABLE_DEVICE_TOKEN_KEY,token);
-          else localStorage.removeItem(CDQ_STABLE_DEVICE_TOKEN_KEY);
+          else {localStorage.removeItem(CDQ_STABLE_DEVICE_TOKEN_KEY);cdqOffline.then(controller=>controller.lock());}
         } catch(e) {}
       }
 
@@ -885,7 +914,8 @@
     } catch(e) {
       try { dejaConnecte = !!localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY) || localStorage.getItem(CDQ_GOOGLE_CONNECTED_KEY) === '1'; } catch(ignore) {}
     }
-    if (dejaConnecte) reessayerChargement();
+    if (!navigator.onLine) afficherConnexionGoogle(false);
+    else if (dejaConnecte) reessayerChargement();
     else afficherConnexionGoogle(true);
   </script>
 </body>

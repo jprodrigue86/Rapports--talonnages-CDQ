@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.15.1430-v21.36",
+  "version": "2026.09.15.1530-v21.37",
   "reader_version": "21.33",
-  "selector_version": "2026.09.15.1430-v21.36",
-  "backend_version": "2026.09.15.1430-v21.36",
+  "selector_version": "2026.09.15.1530-v21.37",
+  "backend_version": "2026.09.15.1530-v21.37",
   "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
@@ -36,6 +36,9 @@
     "demarrage-fond-noir",
     "choix-modele-balance-intermediaire",
     "plancher-cuves-4-et-3-points",
-    "cache-pdf-par-modele"
+    "cache-pdf-par-modele",
+    "balance-quvre-4-finale",
+    "modeles-persistants-demarrage-hors-ligne",
+    "copies-locales-synchronisation-sans-doublon"
   ]
 }
