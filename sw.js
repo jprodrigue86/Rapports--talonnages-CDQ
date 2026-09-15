@@ -1,9 +1,9 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-31';
-const FORCE_BUILD = '2026.09.15.1112-v21.31';
+const CACHE = 'cdq-installable-v21-32';
+const FORCE_BUILD = '2026.09.15.1136-v21.32';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
-  './', './index.html', './reader.html', './reader.mjs?v=21.31', './manifest.webmanifest', './version.json', './firebase-config.js',
+  './', './index.html', './reader.html', './reader.mjs?v=21.32', './manifest.webmanifest', './version.json', './firebase-config.js',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
   './assets/music-wall-choice1.webp?v=20260911-clean'
 ];
