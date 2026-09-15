@@ -1,11 +1,8 @@
 // Private PDF bytes live only in this device's IndexedDB, never in the public shell cache.
 const DB_NAME = 'cdq-offline-templates-v1';
 const MODELS = Object.freeze({
-  plancher: Object.freeze({id:'plancher', name:'Balance de plancher'}),
   cuve4: Object.freeze({id:'cuve4', name:'Balance Quvre 4'}),
-  cuve3: Object.freeze({id:'cuve3', name:'Balance de cuve 3 points'}),
-  camion: Object.freeze({id:'camion', name:'Balance à camion'}),
-  precision: Object.freeze({id:'precision', name:'Balance de précision'})
+  camion: Object.freeze({id:'camion', name:'Balance à camion'})
 });
 const MODEL_IDS = Object.freeze(Object.keys(MODELS));
 
@@ -150,7 +147,8 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf}) {
       session={email:data.email,canWrite:!!data.canWrite};localEmail=data.email;requested.clear();
       await put('state',{id:'profile',...session});
       navigator.storage?.persist?.().catch(()=>{});
-      // V21.38 prepares every registered master in the background from one secure request.
+      // The V21.37 generic prepare request still handles its original model.
+      // Request the truck-scale master explicitly so it gets its own private IndexedDB cache.
       requestModel('camion');
       await refresh();await sync();return;
     }
@@ -163,6 +161,26 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf}) {
     }
     if(data.type==='CDQ_OFFLINE_DESTINATION' && validDestination(data)){
       await put('destinations',{id:session.email+':'+data.folderId,email:session.email,clientId:data.clientId,folderId:data.folderId,name:data.name,savedAt:Date.now()});await refresh();
+    }
+    if(data.type==='CDQ_OFFLINE_CREATE_LOCAL'){
+      const requestId=String(data.requestId||'');
+      try{
+        if(!requestId || !MODELS[data.modeleId])throw new Error('Demande de copie locale invalide.');
+        const destination={clientId:String(data.clientId||''),folderId:String(data.folderId||''),name:String(data.destinationName||data.name||'Dossier client')};
+        if(!validDestination(destination))throw new Error('Dossier client non préparé sur cet appareil.');
+        const template=await getTemplate(session.email,data.modeleId);
+        if(!template)throw new Error('Le modèle '+MODELS[data.modeleId].name+' n’est pas encore disponible hors ligne sur cet appareil.');
+        await put('destinations',{id:session.email+':'+destination.folderId,email:session.email,...destination,savedAt:Date.now()});
+        const existing=await get('copies',requestId);
+        const copy=existing || makeCopy(template,destination,session.email,requestId);
+        if(!existing)await put('copies',copy);
+        await refresh();
+        send({type:'CDQ_OFFLINE_CREATE_LOCAL_RESULT',requestId,ok:true,modeleId:copy.modeleId,name:copy.name});
+        await sync();
+      }catch(e){
+        send({type:'CDQ_OFFLINE_CREATE_LOCAL_RESULT',requestId,ok:false,message:e.message||String(e)});
+      }
+      return;
     }
     if(data.type==='CDQ_OFFLINE_COPY_RESULT'){
       inflight.delete(data.requestId);
