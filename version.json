@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.15.1828-v21.38",
+  "version": "2026.09.15.1900-v21.39",
   "reader_version": "21.33",
   "selector_version": "2026.09.15.1530-v21.37",
   "backend_version": "2026.09.15.1530-v21.37",
@@ -43,6 +43,16 @@
     "choix-explicite-compte-google",
     "retour-google-sans-fermeture-prematuree",
     "reprise-google-premier-plan",
-    "delai-chargement-sans-fausse-deconnexion"
-  ]
+    "delai-chargement-sans-fausse-deconnexion",
+    "choix-compte-google-explicite",
+    "copies-remplies-indexeddb",
+    "synchronisation-pdf-rempli-protocole-38",
+    "compatibilite-serveur-272",
+    "mise-a-jour-cache-non-destructive",
+    "consolidation-corrections-paralleles",
+    "copie-camion-directe-preservee"
+  ],
+  "prepared_backend_version": "2026.09.15.1900-v21.39",
+  "server_update_required_for_all_templates": true,
+  "firebase_configured": false
 }
