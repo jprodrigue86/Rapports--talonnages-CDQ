@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.15.1400-v21.35",
+  "version": "2026.09.15.1430-v21.36",
   "reader_version": "21.33",
-  "selector_version": "2026.09.15.1136-v21.32",
-  "backend_version": "2026.09.15.1400-v21.35",
+  "selector_version": "2026.09.15.1430-v21.36",
+  "backend_version": "2026.09.15.1430-v21.36",
   "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
@@ -33,6 +33,9 @@
     "excentricite-avant-puis-apres",
     "suppression-surbrillance-image-pdfjs",
     "premiere-connexion-google-hors-iframe",
-    "demarrage-fond-noir"
+    "demarrage-fond-noir",
+    "choix-modele-balance-intermediaire",
+    "plancher-cuves-4-et-3-points",
+    "cache-pdf-par-modele"
   ]
 }
