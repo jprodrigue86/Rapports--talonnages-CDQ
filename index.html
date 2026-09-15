@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#071b33">
+  <meta name="theme-color" content="#000000">
   <meta name="interface-scale" content="1.30">
   <link rel="manifest" href="manifest.webmanifest">
   <script src="./firebase-config.js"></script>
@@ -16,7 +16,7 @@
       margin:0;
       width:100%;
       height:100%;
-      background:#071b33;
+      background:#000000;
       overflow:hidden;
     }
     body{
@@ -29,6 +29,7 @@
       display:block;
       transform:scale(var(--interface-scale));
       transform-origin:top left;
+      visibility:hidden;
     }
     #loading{
       position:fixed;
@@ -129,7 +130,7 @@
       display:none;
       align-items:center;
       justify-content:center;
-      background:rgba(7,27,51,.96);
+      background:#000000;
       color:#fff;
       z-index:10;
       padding:24px;
@@ -137,7 +138,7 @@
     }
     #load-help .load-card{
       width:min(430px,92vw);
-      background:#0d2948;
+      background:#17191d;
       border-radius:22px;
       padding:28px 24px;
       box-sizing:border-box;
@@ -279,18 +280,17 @@
   <iframe
     id="app"
     title="Rapports D’étalonnages"
-    src="https://script.google.com/macros/s/AKfycbzZt5zgKLJA3FlRXgJOqR8OLopFBkCg8vapy4fLMNM37rlrYv0U__p8V22O_QAq5gk/exec?cdq_deploy=268"
     allow="clipboard-read; clipboard-write"
     referrerpolicy="strict-origin-when-cross-origin">
   </iframe>
 
   <div id="load-help" aria-live="polite">
     <div class="load-card">
-      <h2>🔄 Chargement de l’application</h2>
-      <p>L’application CDQ n’a pas répondu assez rapidement.</p>
+      <h2 id="load-title">Connexion à Balance CDQ</h2>
+      <p id="load-message">Connectez votre compte Google pour continuer.</p>
+      <button id="google-connect" type="button">Se connecter avec Google</button>
       <button id="load-retry" type="button">Réessayer le chargement</button>
-      <a id="open-direct" target="_blank" rel="noopener" style="display:block;color:#a8dcff;margin-top:18px">Ouvrir le lien direct</a>
-      <div class="small">Si le problème persiste, ouvrez le lien direct pour voir le message de Google. Une erreur de déploiement doit être corrigée dans Apps Script.</div>
+      <a id="open-direct" target="_blank" rel="noopener" style="color:#a8dcff;margin-top:18px">Ouvrir CDQ dans un onglet</a>
     </div>
   </div>
 
@@ -315,8 +315,10 @@
   </div>
 
   <script>
-    const CDQ_PWA_BUILD = '2026.09.15.1242-v21.33';
+    const CDQ_PWA_BUILD = '2026.09.15.1302-v21.34';
     const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
+    const CDQ_GOOGLE_CONNECTED_KEY = 'cdq_google_connected_v1';
+    let googleConnectionWindow = null;
     let swRegistration = null;
     let reloadingForUpdate = false;
     let updateRequested = false;
@@ -340,7 +342,7 @@
     const loading = document.getElementById('loading');
     const loadHelp = document.getElementById('load-help');
 
-    const APP_URL = 'https://script.google.com/macros/s/AKfycbzZt5zgKLJA3FlRXgJOqR8OLopFBkCg8vapy4fLMNM37rlrYv0U__p8V22O_QAq5gk/exec?cdq_deploy=268';
+    const APP_URL = 'https://script.google.com/macros/s/AKfycbzZt5zgKLJA3FlRXgJOqR8OLopFBkCg8vapy4fLMNM37rlrYv0U__p8V22O_QAq5gk/exec?cdq_deploy=269';
     const MIN_LOADING_MS = 1300;
     let loadingShownAt = performance.now();
     let selectorReady = false;
@@ -353,6 +355,49 @@
     let hideLoadingTimer = null;
     let loadGeneration = 0;
     document.getElementById('open-direct').href = APP_URL;
+
+    function afficherConnexionGoogle(premiere=false) {
+      clearTimeout(loadingTimer);
+      clearTimeout(hideLoadingTimer);
+      loading.style.display = 'none';
+      app.style.visibility = 'hidden';
+      loadHelp.style.display = 'flex';
+      const offline = navigator.onLine === false;
+      document.getElementById('load-title').textContent = offline ? 'Connexion Internet requise' : 'Connexion à Balance CDQ';
+      document.getElementById('load-message').textContent = offline ?
+        'Rétablissez Internet, puis réessayez.' : premiere ?
+        'Connectez votre compte Google, puis activez CDQ avec le code reçu.' :
+        'La connexion a été interrompue. Réessayez ou reconnectez votre compte Google.';
+      document.getElementById('google-connect').hidden = offline;
+      document.getElementById('load-retry').hidden = premiere && !offline;
+      document.getElementById('load-retry').textContent = 'Réessayer';
+      document.getElementById('open-direct').hidden = premiere || offline;
+    }
+
+    function memoriserConnexionGoogle() {
+      // Indice de démarrage uniquement : ne constitue jamais une session CDQ.
+      try { localStorage.setItem(CDQ_GOOGLE_CONNECTED_KEY, '1'); } catch(e) {}
+    }
+
+    function ouvrirConnexionGoogle() {
+      const url = APP_URL + '&cdq_connect=1';
+      try { googleConnectionWindow = window.open(url, 'cdq-google-connection'); } catch(e) {}
+      if (!googleConnectionWindow) { window.location.assign(url); return; }
+      document.getElementById('load-message').textContent = 'Terminez la connexion Google dans la fenêtre ouverte, puis revenez dans CDQ.';
+      document.getElementById('load-retry').hidden = false;
+      document.getElementById('load-retry').textContent = 'Continuer dans CDQ';
+    }
+
+    function recevoirConnexionGoogle(event) {
+      if (!googleConnectionWindow || !event.source) return false;
+      if (!/^https:\/\/(?:script\.google\.com|script\.googleusercontent\.com|[a-z0-9-]+-script\.googleusercontent\.com)$/.test(event.origin)) return false;
+      try { if (event.source !== googleConnectionWindow && event.source.top !== googleConnectionWindow) return false; } catch(e) { return false; }
+      memoriserConnexionGoogle();
+      try { googleConnectionWindow.close(); } catch(e) {}
+      googleConnectionWindow = null;
+      reessayerChargement();
+      return true;
+    }
 
     function isSelectorMessage(event) {
       if (!event.source || !event.data || typeof event.data !== 'object') return false;
@@ -381,8 +426,7 @@
       loadingTimer = setTimeout(() => {
         if (selectorReady) return;
         clearTimeout(hideLoadingTimer);
-        loading.style.display = 'none';
-        loadHelp.style.display = 'flex';
+        afficherConnexionGoogle();
       }, 15000);
     }
 
@@ -398,7 +442,7 @@
           if (!selectorAwaitingAccess) return;
           annulerPontBiometrique();
           loading.style.display = 'none';
-          loadHelp.style.display = 'flex';
+          afficherConnexionGoogle();
         }, 90000);
       } else {
         clearTimeout(accessWaitTimer);
@@ -418,14 +462,17 @@
       clearTimeout(hideLoadingTimer);
       const generation = loadGeneration;
       hideLoadingTimer = setTimeout(() => {
-        if (selectorReady && !selectorAwaitingAccess && generation === loadGeneration) loading.style.display = 'none';
+        if (selectorReady && !selectorAwaitingAccess && generation === loadGeneration) {
+          app.style.visibility = 'visible';
+          loading.style.display = 'none';
+        }
       }, remaining);
     }
 
     // iframe.load also fires for Google error pages. Only the Selector handshake
     // proves that the application's own JavaScript has started.
     app.addEventListener('load', () => {
-      if (!selectorReady) armLoadingTimeout();
+      if (!selectorReady && app.src) armLoadingTimeout();
     });
 
     function reessayerChargement() {
@@ -436,6 +483,7 @@
       annulerPontBiometrique();
       selectorWindow = null;
       selectorOrigin = '';
+      app.style.visibility = 'hidden';
       clearTimeout(hideLoadingTimer);
       armLoadingTimeout();
       if(loadHelp) loadHelp.style.display = 'none';
@@ -490,12 +538,14 @@
 
     window.addEventListener('message', event => {
       const data = event.data || {};
+      if (data.type === 'CDQ_GOOGLE_CONNECTED') { recevoirConnexionGoogle(event); return; }
       if (!isSelectorMessage(event)) return;
       if (data.type === 'CDQ_SELECTOR_READY' || data.type === 'CDQ_CHECK_UPDATE') {
         if (selectorWindow && selectorWindow !== event.source) return;
         selectorWindow = event.source;
         selectorOrigin = event.origin;
         selectorReady = true;
+        memoriserConnexionGoogle();
         clearTimeout(loadingTimer);
         loadHelp.style.display = 'none';
         if (data.authProtocol >= 24) recevoirEtatAcces(data.accessState || 'pending');
@@ -823,8 +873,20 @@
     });
 
     document.getElementById('load-retry').addEventListener('click', reessayerChargement);
-
-    armLoadingTimeout();
+    document.getElementById('google-connect').addEventListener('click', ouvrirConnexionGoogle);
+    // Ne jamais charger la page Google dans un iframe au premier lancement :
+    // sa connexion doit se faire dans un onglet normal, sinon Google renvoie 401.
+    let dejaConnecte = false;
+    try {
+      const retour = new URL(window.location.href).searchParams.get('cdq_connected') === '1';
+      if (retour) memoriserConnexionGoogle();
+      dejaConnecte = retour || !!localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY) ||
+        localStorage.getItem(CDQ_GOOGLE_CONNECTED_KEY) === '1';
+    } catch(e) {
+      try { dejaConnecte = !!localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY) || localStorage.getItem(CDQ_GOOGLE_CONNECTED_KEY) === '1'; } catch(ignore) {}
+    }
+    if (dejaConnecte) reessayerChargement();
+    else afficherConnexionGoogle(true);
   </script>
 </body>
 </html>
