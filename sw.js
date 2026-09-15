@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-38-models-1';
-const FORCE_BUILD = '2026.09.15.1600-v21.38';
+const CACHE = 'cdq-installable-v21-38';
+const FORCE_BUILD = '2026.09.15.1828-v21.38';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates.mjs?v=21.38', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js',

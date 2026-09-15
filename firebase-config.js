@@ -83,6 +83,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     }
 
     function cdqInstallReconnectButton(){
+      // V21.38 gère déjà la reprise dans l'index : ne pas masquer son bouton
+      // par un ancien intercepteur qui réintroduirait la boucle de connexion.
+      if (typeof reprendreConnexion === 'function') return;
       const bouton = document.getElementById('google-connect');
       if (!bouton || bouton.dataset.cdqAccountChooserFix === '1') return;
       bouton.dataset.cdqAccountChooserFix = '1';
