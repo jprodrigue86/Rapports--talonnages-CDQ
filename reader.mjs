@@ -1,9 +1,12 @@
 // Mozilla PDF.js 6.3.289 : rendu du PDF original et scripts dans QuickJS isolé.
 const CDN='https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/';
 const $=id=>document.getElementById(id),hosted=window.parent!==window;
+let parentOrigin='';
+try{const origin=new URL(document.referrer).origin;if(origin===location.origin||/^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/.test(origin))parentOrigin=origin;}catch(e){}
+
 let api,viewer,scripting,doc=null,name='Rapport.pdf',dirty=false,editVersion=0,hostId='',requestId='',saving=false,saveTimer=null;
 const status=t=>{$('status').textContent=t;};
-const tell=d=>{if(hosted)window.parent.postMessage(d,location.origin);};
+const tell=d=>{if(hosted&&parentOrigin)window.parent.postMessage(d,parentOrigin);};
 function error(e){status(e&&e.message?e.message:String(e));$('save').disabled=!doc;saving=false;}
 function menu(close){$('more').hidden=close===true?!0:!$('more').hidden;$('menu').setAttribute('aria-expanded',String(!$('more').hidden));}
 function download(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
@@ -48,14 +51,15 @@ try{
  eventBus.on('scalechanging',e=>{$('zoom').textContent=Math.round(e.scale*100)+' %';});
  eventBus.on('pagerendered',e=>{if(e.error)error(e.error);});
  window.addEventListener('message',async e=>{
-  if(!hosted||e.source!==window.parent||e.origin!==location.origin)return;
+  if(!hosted||!parentOrigin||e.source!==window.parent||e.origin!==parentOrigin)return;
   const d=e.data||{};
-  if(d.type==='CDQ_READER_OPEN'){try{await open(d.blob,d.name,d.fileId);}catch(err){error(err);}}
+  if(d.type==='CDQ_READER_OPEN'){try{await open(d.blob,d.name,d.fileId);$('save').hidden=!!d.readOnly;}catch(err){error(err);}}
   if(d.type==='CDQ_READER_SAVED'&&d.requestId===requestId){
    clearTimeout(saveTimer);saving=false;$('save').disabled=false;
    if(d.ok){dirty=editVersion!==Number($('save').dataset.editVersion);await scripting.dispatchDidSave();status(d.queued?'Conservé sur cet appareil — synchronisation en attente.':'Copie remplie enregistrée dans CDQ.');}
    else status(d.error||'Enregistrement impossible. Téléchargez vos réponses.');
   }
  });
- status('');tell({type:'CDQ_READER_READY'});
+ if(hosted){$('empty').style.display='none';status('Ouverture…');}else status('');
+ tell({type:'CDQ_READER_READY'});
 }catch(e){error(e);$('empty').textContent='Lecteur indisponible. Reconnectez Internet puis réessayez.';}

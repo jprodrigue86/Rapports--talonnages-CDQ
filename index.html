@@ -314,18 +314,8 @@
     </div>
   </div>
 
-  <div id="pdf-setup" role="dialog" aria-modal="true" aria-labelledby="pdf-name" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,10,20,.94);align-items:center;justify-content:center;padding:20px;overflow:auto">
-    <div style="width:min(100%,480px);background:#102b46;color:#fff;border:1px solid #376481;border-radius:18px;padding:24px;box-sizing:border-box">
-      <h2 id="pdf-name" style="overflow-wrap:anywhere">PDF</h2>
-      <p id="pdf-message" style="line-height:1.5"></p>
-      <button id="pdf-open" type="button" style="display:block;width:100%;padding:16px;margin:10px 0;background:#37c792;color:#052438;border:0;border-radius:10px;font-weight:bold">Choisir le lecteur PDF</button>
-      <button id="pdf-download" type="button" style="display:block;width:100%;padding:16px;margin:10px 0;background:#1864a0;color:#fff;border:0;border-radius:10px">Enregistrer le PDF</button>
-      <button id="pdf-close" type="button" style="display:block;width:100%;padding:16px;background:#193c5c;color:#fff;border:0;border-radius:10px">Retour dans CDQ</button>
-    </div>
-  </div>
-
   <script>
-    const CDQ_PWA_BUILD = '2026.09.15.0100-v21.26';
+    const CDQ_PWA_BUILD = '2026.09.15.0200-v21.27';
     let swRegistration = null;
     let reloadingForUpdate = false;
     let updateRequested = false;
@@ -547,30 +537,19 @@
 
 
 
-    // Le transfert vers une application doit partir d'un geste au niveau supérieur.
-    let cdqPdfFile = null;
+    // Compatibilité avec un ancien Selector pendant sa mise à jour : aucun partage système.
     function cdqAfficherPdf(data) {
       if (!(data.blob instanceof Blob) || data.blob.type !== 'application/pdf' || !data.blob.size || data.blob.size > 15*1024*1024) return;
-      const name=String(data.name||'Rapport.pdf').replace(/[\\/\x00-\x1f]/g,'_').slice(0,180);
-      cdqPdfFile=new File([data.blob],/\.pdf$/i.test(name)?name:name+'.pdf',{type:'application/pdf'});
-      document.getElementById('pdf-name').textContent=cdqPdfFile.name;
-      document.getElementById('pdf-message').textContent='Choisissez votre lecteur de formulaires PDF, puis enregistrez le fichier sur le téléphone. Après modification, revenez dans CDQ → Rapporter le PDF rempli.';
-      document.getElementById('pdf-setup').style.display='flex';
+      if(document.getElementById('legacy-pdf-reader'))return;
+      const frame=document.createElement('iframe');frame.id='legacy-pdf-reader';frame.title='PDF CDQ';frame.src='./reader.html';frame.referrerPolicy='origin';
+      frame.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:100000;background:#101820';
+      function receive(event){
+        if(event.source!==frame.contentWindow||event.origin!==location.origin)return;
+        if(event.data?.type==='CDQ_READER_READY')frame.contentWindow.postMessage({type:'CDQ_READER_OPEN',blob:data.blob,name:String(data.name||'Rapport.pdf'),fileId:''},location.origin);
+        if(event.data?.type==='CDQ_READER_CLOSE'){window.removeEventListener('message',receive);frame.remove();}
+      }
+      window.addEventListener('message',receive);document.body.appendChild(frame);
     }
-    function cdqTelechargerPdf() {
-      if(!cdqPdfFile)return;
-      const url=URL.createObjectURL(cdqPdfFile),a=document.createElement('a');a.href=url;a.download=cdqPdfFile.name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-      document.getElementById('pdf-message').textContent='Ouvrez le fichier téléchargé avec votre lecteur PDF. L’enregistrement dans le lecteur reste nécessaire pour conserver vos réponses.';
-    }
-    document.getElementById('pdf-open').addEventListener('click',async()=>{
-      if(!cdqPdfFile)return;
-      try{
-        if(navigator.canShare&&navigator.canShare({files:[cdqPdfFile]}))await navigator.share({files:[cdqPdfFile]});
-        else cdqTelechargerPdf();
-      }catch(e){if(e.name!=='AbortError')document.getElementById('pdf-message').textContent='Le téléphone n’a pas ouvert le lecteur. Enregistrez le PDF, puis ouvrez-le depuis Téléchargements.';}
-    });
-    document.getElementById('pdf-download').addEventListener('click',cdqTelechargerPdf);
-    document.getElementById('pdf-close').addEventListener('click',()=>{document.getElementById('pdf-setup').style.display='none';cdqPdfFile=null;});
 
     /* =====================================================
        CDQ V21.19 — PONT BIOMÉTRIQUE ANDROID (WebAuthn)

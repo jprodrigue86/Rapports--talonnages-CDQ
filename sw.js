@@ -1,9 +1,9 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-26';
-const FORCE_BUILD = '2026.09.15.0100-v21.26';
+const CACHE = 'cdq-installable-v21-27';
+const FORCE_BUILD = '2026.09.15.0200-v21.27';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
-  './', './index.html', './manifest.webmanifest', './version.json', './firebase-config.js',
+  './', './index.html', './reader.html', './reader.mjs?v=21.27', './manifest.webmanifest', './version.json', './firebase-config.js',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
   './assets/music-wall-choice1.webp?v=20260911-clean'
 ];
@@ -24,13 +24,24 @@ self.addEventListener('message', event => {
 function shellKey(url) {
   if (url.pathname === SCOPE.pathname || url.pathname === SCOPE.pathname + 'index.html')
     return new URL('index.html', SCOPE).href;
-  if (['version.json', 'firebase-config.js', 'manifest.webmanifest'].some(name => url.pathname === SCOPE.pathname + name))
+  if (['version.json', 'firebase-config.js', 'manifest.webmanifest', 'reader.html'].some(name => url.pathname === SCOPE.pathname + name))
     return url.origin + url.pathname;
   return url.href;
 }
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
+  // Uniquement les dépendances publiques de la version PDF.js épinglée.
+  // Les documents privés ne passent jamais par ce cache public.
+  if(url.origin==='https://cdn.jsdelivr.net' && url.pathname.startsWith('/npm/pdfjs-dist@6.3.289/')){
+    event.respondWith((async()=>{
+      const cache=await caches.open(CACHE),hit=await cache.match(event.request);
+      if(hit)return hit;
+      const response=await fetch(event.request);
+      if(response.ok)event.waitUntil(cache.put(event.request,response.clone()).catch(()=>{}));
+      return response;
+    })());return;
+  }
   if (url.origin !== SCOPE.origin || !url.pathname.startsWith(SCOPE.pathname)) return;
   const key = shellKey(url);
   const critical = event.request.mode === 'navigate' || ['index.html','version.json','firebase-config.js','manifest.webmanifest']
