@@ -1,7 +1,7 @@
 {
-  "version": "2026.09.15.0100-v21.26",
-  "selector_version": "2026.09.15.0100-v21.26",
-  "backend_version": "2026.09.15.0100-v21.26",
+  "version": "2026.09.15.0200-v21.27",
+  "selector_version": "2026.09.15.0200-v21.27",
+  "backend_version": "2026.09.15.0200-v21.27",
   "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
@@ -16,7 +16,9 @@
     "modele-pdf-navigation-zoom",
     "documents-originaux-hors-ligne",
     "ouverture-google-sheets-native",
-    "pdf-complets-lecteur-externe",
-    "retour-pdf-remplis"
+    "retour-pdf-remplis",
+    "lecteur-pdf-direct",
+    "calculs-pdf-isoles",
+    "sheets-sans-message-intermediaire"
   ]
 }
