@@ -315,7 +315,8 @@
   </div>
 
   <script>
-    const CDQ_PWA_BUILD = '2026.09.15.0200-v21.27';
+    const CDQ_PWA_BUILD = '2026.09.15.2030-v21.28';
+    const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
     let swRegistration = null;
     let reloadingForUpdate = false;
     let updateRequested = false;
@@ -504,6 +505,18 @@
       if (data.type === 'CDQ_OPEN_PDF') cdqAfficherPdf(data);
       if (data.type === 'CDQ_ACCESS_STATE') recevoirEtatAcces(data.state);
       if (data.type === 'CDQ_BACKEND_STATUS') backendBuild = String(data.build || 'inconnue');
+      if (data.type === 'CDQ_AUTH_TOKEN_REQUEST') {
+        let token = '';
+        try { token = localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY) || ''; } catch(e) {}
+        replyToSelector(event.source,{type:'CDQ_AUTH_TOKEN_VALUE',token});
+      }
+      if (data.type === 'CDQ_AUTH_TOKEN_STORE') {
+        try {
+          const token = String(data.token || '');
+          if (token) localStorage.setItem(CDQ_STABLE_DEVICE_TOKEN_KEY,token);
+          else localStorage.removeItem(CDQ_STABLE_DEVICE_TOKEN_KEY);
+        } catch(e) {}
+      }
 
       if (data.type === 'CDQ_CHECK_UPDATE') {
         repondreEtatMiseAJour(event.source, data.build);
@@ -815,4 +828,3 @@
   </script>
 </body>
 </html>
-
