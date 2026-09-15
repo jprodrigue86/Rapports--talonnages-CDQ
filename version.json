@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.15.1530-v21.37",
+  "version": "2026.09.15.1828-v21.38",
   "reader_version": "21.33",
   "selector_version": "2026.09.15.1530-v21.37",
   "backend_version": "2026.09.15.1530-v21.37",
@@ -39,6 +39,10 @@
     "cache-pdf-par-modele",
     "balance-quvre-4-finale",
     "modeles-persistants-demarrage-hors-ligne",
-    "copies-locales-synchronisation-sans-doublon"
+    "copies-locales-synchronisation-sans-doublon",
+    "choix-explicite-compte-google",
+    "retour-google-sans-fermeture-prematuree",
+    "reprise-google-premier-plan",
+    "delai-chargement-sans-fausse-deconnexion"
   ]
 }
