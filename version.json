@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.14.2344-v21.24",
-  "selector_version": "2026.09.14.2344-v21.24",
-  "backend_version": "2026.09.14.2344-v21.24",
-  "date": "2026-09-14",
+  "version": "2026.09.15.0020-v21.25",
+  "selector_version": "2026.09.15.0020-v21.25",
+  "backend_version": "2026.09.15.0020-v21.25",
+  "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
     "pont-iframe-apps-script",
@@ -10,6 +10,9 @@
     "reglages-push-accessibles",
     "cache-limite-a-cdq",
     "biometrie-directe",
-    "nip-de-secours-sans-flash"
+    "nip-de-secours-sans-flash",
+    "photos-systeme-client-date",
+    "copie-template-reparee",
+    "modele-pdf-navigation-zoom"
   ]
 }
