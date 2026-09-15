@@ -1,7 +1,7 @@
 {
-  "version": "2026.09.15.2030-v21.28",
-  "selector_version": "2026.09.15.2030-v21.28",
-  "backend_version": "2026.09.15.2030-v21.28",
+  "version": "2026.09.15.2315-v21.29",
+  "selector_version": "2026.09.15.2315-v21.29",
+  "backend_version": "2026.09.15.2315-v21.29",
   "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
@@ -21,6 +21,8 @@
     "calculs-pdf-isoles",
     "sheets-sans-message-intermediaire",
     "createur-sans-code-activation",
-    "jeton-appareil-pwa-stable"
+    "jeton-appareil-pwa-stable",
+    "createur-biometrie-obligatoire",
+    "createur-nip-secours"
   ]
 }
