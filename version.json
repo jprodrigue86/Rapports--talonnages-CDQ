@@ -1,7 +1,7 @@
 {
-  "version": "2026.09.15.0336-v21.30",
-  "selector_version": "2026.09.15.0336-v21.30",
-  "backend_version": "2026.09.15.0336-v21.30",
+  "version": "2026.09.15.1112-v21.31",
+  "selector_version": "2026.09.15.1112-v21.31",
+  "backend_version": "2026.09.15.1112-v21.31",
   "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
@@ -24,6 +24,8 @@
     "jeton-appareil-pwa-stable",
     "createur-biometrie-obligatoire",
     "createur-nip-secours",
-    "pdf-copie-ouverture-immediate"
+    "pdf-copie-ouverture-immediate",
+    "lecteur-pan-un-doigt",
+    "champs-pdf-couleurs-uniformes"
   ]
 }
