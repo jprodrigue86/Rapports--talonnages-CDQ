@@ -28,7 +28,7 @@ test('Seule la fenêtre Google ouverte peut annoncer son retour',()=>{
     h.fire('message',{...e,data:{type:'CDQ_GOOGLE_CONNECTED'}});
   assert(!h.el('app').src);assert(!h.stored.get('cdq_google_connected_v1'));
   h.fire('message',{source:{top:h.popup},origin:'https://test-script.googleusercontent.com',data:{type:'CDQ_GOOGLE_CONNECTED'}});
-  assert.match(h.el('app').src,/cdq_deploy=269/);assert(h.popup.closed);assert.equal(h.el('loading').style.display,'grid');
+  assert.match(h.el('app').src,/cdq_deploy=270/);assert(h.popup.closed);assert.equal(h.el('loading').style.display,'grid');
   assert.equal(h.stored.get('cdq_google_connected_v1'),'1');assert(!h.stored.get('cdq_auth_device_token_v2'));
 });
 test('Appareil déjà activé : biométrie/NIP conservés, aucune nouvelle page Google',()=>{

@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.15.1302-v21.34",
+  "version": "2026.09.15.1400-v21.35",
   "reader_version": "21.33",
   "selector_version": "2026.09.15.1136-v21.32",
-  "backend_version": "2026.09.15.1302-v21.34",
+  "backend_version": "2026.09.15.1400-v21.35",
   "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
