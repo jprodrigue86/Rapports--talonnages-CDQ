@@ -1,7 +1,7 @@
 {
-  "version": "2026.09.15.0200-v21.27",
-  "selector_version": "2026.09.15.0200-v21.27",
-  "backend_version": "2026.09.15.0200-v21.27",
+  "version": "2026.09.15.2030-v21.28",
+  "selector_version": "2026.09.15.2030-v21.28",
+  "backend_version": "2026.09.15.2030-v21.28",
   "date": "2026-09-15",
   "features": [
     "demarrage-verifie",
@@ -19,6 +19,8 @@
     "retour-pdf-remplis",
     "lecteur-pdf-direct",
     "calculs-pdf-isoles",
-    "sheets-sans-message-intermediaire"
+    "sheets-sans-message-intermediaire",
+    "createur-sans-code-activation",
+    "jeton-appareil-pwa-stable"
   ]
 }
