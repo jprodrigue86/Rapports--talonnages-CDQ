@@ -1,21 +1,27 @@
 // Private PDF bytes live only in this device's IndexedDB, never in the public shell cache.
 const DB_NAME = 'cdq-offline-templates-v1';
-const MODEL = 'cuve4';
-const NAME = 'Balance Quvre 4';
+const MODELS = Object.freeze({
+  cuve4: Object.freeze({id:'cuve4', name:'Balance Quvre 4'}),
+  camion: Object.freeze({id:'camion', name:'Balance à camion'})
+});
+const MODEL_IDS = Object.freeze(Object.keys(MODELS));
+
 export function validDestination(d) {
   return !!d && /^[\w-]+$/.test(d.clientId || '') && /^[\w-]+$/.test(d.folderId || '') && typeof d.name === 'string';
 }
 export function validTemplate(t) {
-  return !!t && t.modeleId === MODEL && t.blob instanceof Blob && t.blob.type === 'application/pdf' &&
+  return !!t && !!MODELS[t.modeleId] && t.blob instanceof Blob && t.blob.type === 'application/pdf' &&
     t.blob.size > 5 && t.blob.size <= 15 * 1024 * 1024 && /^[\w-]+$/.test(t.templateId || '');
 }
 export function makeCopy(template, destination, email, requestId) {
   if (!validTemplate(template) || !validDestination(destination) || !email) throw new Error('Préparez le modèle et le dossier avec Internet.');
-  return {id:requestId, email, modeleId:MODEL, blob:template.blob, templateId:template.templateId,
-    modifieLe:template.modifieLe, destination:{...destination}, name:NAME + ' — ' + new Date().toISOString().replace(/[:.]/g,'-') + '.pdf',
+  const model=MODELS[template.modeleId];
+  return {id:requestId, email, modeleId:model.id, blob:template.blob, templateId:template.templateId,
+    modifieLe:template.modifieLe, destination:{...destination}, name:model.name + ' — ' + new Date().toISOString().replace(/[:.]/g,'-') + '.pdf',
     createdAt:Date.now(), status:'pending'};
 }
 export function syncRequest(copy) {
+  if(!copy || !MODELS[copy.modeleId]) throw new Error('Modèle hors ligne inconnu.');
   return {requestId:copy.id, modeleId:copy.modeleId, clientId:copy.destination.clientId,
     folderId:copy.destination.folderId, templateId:copy.templateId, modifieLe:copy.modifieLe};
 }
@@ -42,9 +48,20 @@ function download(blob,name) {
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),30000);
 }
+function templateKey(email,modeleId){return 'template:'+email+':'+modeleId;}
+async function getTemplate(email,modeleId){
+  const current=await get('state',templateKey(email,modeleId));
+  if(validTemplate(current))return current;
+  // V21.37 stored Balance Quvre 4 without a model suffix. Keep it usable after upgrade.
+  if(modeleId==='cuve4'){
+    const legacy=await get('state','template:'+email);
+    if(validTemplate(legacy) && legacy.modeleId==='cuve4')return legacy;
+  }
+  return null;
+}
 export function createOfflineTemplates({send,unlock,openPdf,warmPdf}) {
   let session=null,localEmail='',profile=null,busy=false,chain=Promise.resolve();
-  const inflight=new Set();
+  const inflight=new Set(),requested=new Set();
   const launch=document.createElement('button');launch.type='button';launch.id='cdq-offline-launch';
   launch.textContent='Modèles hors ligne';launch.hidden=true;
   launch.style.cssText='position:fixed;right:14px;bottom:96px;z-index:10001;padding:12px 18px;border:1px solid #739aab;border-radius:12px;background:#132832;color:white;font:600 15px system-ui';
@@ -59,38 +76,54 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf}) {
     b.style.cssText='padding:12px 16px;margin:6px 8px 6px 0;border:1px solid #7896a5;border-radius:9px;background:#193545;color:white;font:inherit';
     b.onclick=()=>Promise.resolve().then(fn).catch(e=>{status.textContent=e.message||String(e);});parent.append(b);return b;
   }
-  function text(parent,value){const p=document.createElement('p');p.textContent=value;parent.append(p);}
+  function text(parent,value){const p=document.createElement('p');p.textContent=value;parent.append(p);return p;}
+  function requestModel(modeleId,force=false){
+    if(!session || !MODELS[modeleId] || (!force && requested.has(modeleId)))return;
+    requested.add(modeleId);
+    send({type:'CDQ_OFFLINE_PREPARE',modeleId});
+  }
   async function refresh() {
     profile=await get('state','profile');
     launch.hidden=!profile;
     if(panel.hidden)return;
     content.replaceChildren();
-    if(!profile){status.textContent='Ouvrez CDQ une fois avec Internet pour préparer le modèle.';return;}
+    if(!profile){status.textContent='Ouvrez CDQ une fois avec Internet pour préparer les modèles.';return;}
     if(localEmail!==profile.email && session?.email!==profile.email){
       status.textContent='Déverrouillez les fichiers préparés sur cet appareil.';
       button(content,'Déverrouiller avec la sécurité de l’appareil',async()=>{await unlock(profile.email);localEmail=profile.email;await refresh();});return;
     }
-    const email=profile.email,template=await get('state','template:'+email);
+    const email=profile.email;
     const destinations=(await all('destinations')).filter(d=>d.email===email).sort((a,b)=>b.savedAt-a.savedAt);
-    status.textContent=validTemplate(template)?NAME+' — disponible sur cet appareil.':'Le modèle est en cours de préparation. Gardez CDQ ouvert avec Internet.';
-    if(validTemplate(template)){
-      button(content,'Ouvrir '+NAME,()=>openPdf({blob:template.blob,name:NAME+'.pdf'}));
-      button(content,'Télécharger le modèle',()=>download(template.blob,NAME+'.pdf'));
-      if(profile.canWrite && destinations.length){
-        const label=document.createElement('label');label.textContent='Dossier du client';label.htmlFor='cdq-local-destination';content.append(label);
-        const select=document.createElement('select');select.id='cdq-local-destination';select.style.cssText='display:block;width:100%;max-width:650px;padding:12px;margin:10px 0;font:inherit';
-        for(const d of destinations){const o=document.createElement('option');o.value=d.folderId;o.textContent=d.name;select.append(o);}content.append(select);
-        button(content,'Créer une copie dans ce dossier',async()=>{
-          if(busy)return;busy=true;
-          try{
-            const d=destinations.find(d=>d.folderId===select.value);
-            const copy=makeCopy(template,d,email,'local_'+crypto.randomUUID());
-            await put('copies',copy);await refresh();await sync();
-          }finally{busy=false;}
-        });
-      }else if(profile.canWrite){text(content,'Avec Internet, ouvrez le dossier du client et le menu Balance Intermédiaire pour le préparer ici.');}
-      text(content,'Les copies restent sur cet appareil. Elles sont ajoutées au dossier du client dès que CDQ est reconnecté et déverrouillé.');
+    const templates={};let available=0;
+    for(const id of MODEL_IDS){templates[id]=await getTemplate(email,id);if(templates[id])available++;}
+    status.textContent=available+'/'+MODEL_IDS.length+' modèles disponibles sur cet appareil.';
+    for(const id of MODEL_IDS){
+      const model=MODELS[id],template=templates[id];
+      const section=document.createElement('div');section.style.cssText='border-top:1px solid #385360;margin-top:18px;padding-top:12px';content.append(section);
+      const title=document.createElement('h3');title.textContent=model.name;title.style.cssText='margin:0 0 8px';section.append(title);
+      if(template){
+        text(section,'Disponible hors ligne.');
+        button(section,'Ouvrir '+model.name,()=>openPdf({blob:template.blob,name:model.name+'.pdf'}));
+        button(section,'Télécharger le modèle',()=>download(template.blob,model.name+'.pdf'));
+        if(profile.canWrite && destinations.length){
+          const label=document.createElement('label');label.textContent='Dossier du client';label.htmlFor='cdq-local-destination-'+id;section.append(label);
+          const select=document.createElement('select');select.id='cdq-local-destination-'+id;select.style.cssText='display:block;width:100%;max-width:650px;padding:12px;margin:10px 0;font:inherit';
+          for(const d of destinations){const o=document.createElement('option');o.value=d.folderId;o.textContent=d.name;select.append(o);}section.append(select);
+          button(section,'Créer une copie dans ce dossier',async()=>{
+            if(busy)return;busy=true;
+            try{
+              const d=destinations.find(d=>d.folderId===select.value);
+              const copy=makeCopy(template,d,email,'local_'+crypto.randomUUID());
+              await put('copies',copy);await refresh();await sync();
+            }finally{busy=false;}
+          });
+        }else if(profile.canWrite){text(section,'Avec Internet, ouvrez le dossier du client pour le préparer ici.');}
+      }else{
+        text(section,navigator.onLine?'Préparation en cours depuis le modèle maître CDQ.':'Non préparé sur cet appareil. Reconnectez CDQ une fois pour le rendre disponible hors ligne.');
+        if(navigator.onLine && session)button(section,'Préparer maintenant',()=>{requestModel(id,true);status.textContent='Préparation de '+model.name+' demandée…';});
+      }
     }
+    text(content,'Les modèles maîtres restent dans CDQ Système. Les copies locales sont ajoutées au dossier du client dès que CDQ est reconnecté et déverrouillé.');
     const copies=(await all('copies')).filter(c=>c.email===email).sort((a,b)=>b.createdAt-a.createdAt);
     for(const c of copies){
       const row=document.createElement('div');row.style.cssText='border-top:1px solid #385360;margin-top:18px;padding-top:10px';content.append(row);
@@ -102,7 +135,7 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf}) {
   }
   async function sync() {
     if(!navigator.onLine || !session?.canWrite)return;
-    const pending=(await all('copies')).filter(c=>c.email===session.email&&c.status==='pending'&&!inflight.has(c.id));
+    const pending=(await all('copies')).filter(c=>c.email===session.email&&c.status==='pending'&&MODELS[c.modeleId]&&!inflight.has(c.id));
     for(const c of pending){
       inflight.add(c.id);send({type:'CDQ_OFFLINE_COPY',...syncRequest(c)});
       setTimeout(()=>inflight.delete(c.id),90000);
@@ -111,17 +144,20 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf}) {
   async function handleNow(data) {
     if(data.type==='CDQ_OFFLINE_SESSION'){
       if(!data.email || typeof data.email!=='string')return;
-      session={email:data.email,canWrite:!!data.canWrite};localEmail=data.email;
+      session={email:data.email,canWrite:!!data.canWrite};localEmail=data.email;requested.clear();
       await put('state',{id:'profile',...session});
       navigator.storage?.persist?.().catch(()=>{});
+      // The V21.37 generic prepare request still handles its original model.
+      // Request the truck-scale master explicitly so it gets its own private IndexedDB cache.
+      requestModel('camion');
       await refresh();await sync();return;
     }
     if(!session)return;
     if(data.email && data.email!==session.email)return;
     if(data.type==='CDQ_OFFLINE_TEMPLATE' && validTemplate(data)){
-      await put('state',{...data,id:'template:'+session.email});await refresh();
-      send({type:'CDQ_OFFLINE_STORED',modeleId:MODEL});
-      if(warmPdf)warmPdf(data);
+      await put('state',{...data,id:templateKey(session.email,data.modeleId)});await refresh();
+      send({type:'CDQ_OFFLINE_STORED',modeleId:data.modeleId});
+      if(warmPdf && data.modeleId==='cuve4')warmPdf(data);
     }
     if(data.type==='CDQ_OFFLINE_DESTINATION' && validDestination(data)){
       await put('destinations',{id:session.email+':'+data.folderId,email:session.email,clientId:data.clientId,folderId:data.folderId,name:data.name,savedAt:Date.now()});await refresh();
@@ -136,11 +172,14 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf}) {
     }
   }
   launch.onclick=()=>{panel.hidden=false;refresh().catch(e=>{status.textContent=e.message;});};
-  window.addEventListener('online',()=>sync().catch(()=>{}));
+  window.addEventListener('online',()=>{
+    if(session)requestModel('camion',true);
+    sync().catch(()=>{});
+  });
   refresh().catch(()=>{});
   return {
     handle(data){chain=chain.then(()=>handleNow(data)).catch(e=>{status.textContent=e.message||String(e);});return chain;},
-    lock(){session=null;localEmail='';inflight.clear();panel.hidden=true;},
+    lock(){session=null;localEmail='';inflight.clear();requested.clear();panel.hidden=true;},
     refresh
   };
 }
