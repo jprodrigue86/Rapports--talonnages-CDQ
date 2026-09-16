@@ -1,9 +1,9 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-41-login';
-const FORCE_BUILD = '2026.09.16.0100-v21.41';
+const CACHE = 'cdq-installable-v21-42-google-id';
+const FORCE_BUILD = '2026.09.16.0315-v21.42';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
-  './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js',
+  './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
   './assets/music-wall-choice1.webp?v=20260911-clean'
 ];
@@ -26,7 +26,7 @@ function shellKey(url) {
     return new URL('index.html', SCOPE).href;
   if (url.pathname === SCOPE.pathname + 'offline-templates.mjs')
     return new URL('offline-templates.mjs?v=21.39', SCOPE).href;
-  if (['version.json', 'firebase-config.js', 'manifest.webmanifest', 'reader.html'].some(name => url.pathname === SCOPE.pathname + name))
+  if (['version.json', 'firebase-config.js', 'google-auth-config.js', 'manifest.webmanifest', 'reader.html'].some(name => url.pathname === SCOPE.pathname + name))
     return url.origin + url.pathname;
   return url.href;
 }
