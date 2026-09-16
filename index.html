@@ -7,6 +7,8 @@
 <meta name="interface-scale" content="1.30">
 <link rel="manifest" href="manifest.webmanifest">
 <script src="./firebase-config.js"></script>
+<script src="./google-auth-config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <title>Rapports D’étalonnages</title>
 <style>
 :root{
@@ -288,7 +290,8 @@ referrerpolicy="strict-origin-when-cross-origin">
 <div class="load-card">
 <h2 id="load-title">Connexion à Balance CDQ</h2>
 <p id="load-message">Connectez votre compte Google pour continuer.</p>
-<button id="google-connect" type="button">Se connecter avec Google</button>
+<div id="google-button-container" style="display:flex;justify-content:center;min-height:44px"></div>
+<button id="google-connect" type="button" hidden>Réessayer la connexion Google</button>
 <button id="load-retry" type="button">Réessayer le chargement</button>
 <a id="open-direct" target="_blank" rel="noopener" style="color:#a8dcff;margin-top:18px">Ouvrir CDQ dans un onglet</a>
 </div>
@@ -315,17 +318,9 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.16.0100-v21.41';
+const CDQ_PWA_BUILD = '2026.09.16.0315-v21.42';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
-const CDQ_GOOGLE_CONNECTED_KEY = 'cdq_google_connected_v1';
-let googleConnectionWindow = null;
-let googleConnectionConfirmed = false;
-let googleConnectionPending = false;
-let preferDirectGoogle = false;
 let slowLoadingTimer = null;
-let googleAttempt = 0;
-let googleFlow = null;
-let googleProbeTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
 let swRegistration = null;
 let reloadingForUpdate = false;
@@ -390,189 +385,162 @@ let hideLoadingTimer = null;
 let loadGeneration = 0;
 document.getElementById('open-direct').href = APP_URL;
 
-function fenetreGoogleOuverte() {
-try { return !!googleConnectionWindow && !googleConnectionWindow.closed; }
-catch(e) { return false; }
-}
+let cdqGoogleChallengeV42 = null;
+let cdqGoogleRenderingV42 = false;
 
 function afficherConnexionGoogle(premiere=false, cause='chargement') {
-clearTimeout(loadingTimer);
-clearTimeout(slowLoadingTimer);
-clearTimeout(hideLoadingTimer);
-loading.style.display = 'none';
-app.style.visibility = 'hidden';
-loadHelp.style.display = 'flex';
-const offline = navigator.onLine === false;
-const title = document.getElementById('load-title');
-const message = document.getElementById('load-message');
-title.textContent = offline ? 'Connexion Internet requise' : 'Connexion à Balance CDQ';
-message.textContent = offline ? 'Rétablissez Internet. Vos rapports et votre activation sont conservés.' : premiere ?
-'Connectez votre compte Google. À la première activation seulement : clé reçue, puis NIP à quatre chiffres.' :
-'Ouvrez CDQ pour continuer avec votre compte Google, puis votre NIP ou votre biométrie.';
-if(cause==='annulation'&&!offline)message.textContent='La connexion Google a été fermée. Votre activation existante est conservée.';
-if(cause==='direct'&&!offline)message.textContent='CDQ est ouvert dans la fenêtre Google. L’activation ou le NIP se poursuit directement dans cette fenêtre.';
-const button=document.getElementById('google-connect');
-button.hidden=offline;
-button.textContent=cause==='direct' ? 'Ouvrir CDQ' : 'Se connecter avec Google';
-// Un seul bouton de parcours. Aucun choix entre trois chemins concurrents.
-document.getElementById('load-retry').hidden=!offline;
-document.getElementById('load-retry').textContent='Réessayer';
-document.getElementById('open-direct').hidden=true;
+  clearTimeout(loadingTimer);
+  clearTimeout(slowLoadingTimer);
+  clearTimeout(hideLoadingTimer);
+  loading.style.display = 'none';
+  app.style.visibility = 'hidden';
+  loadHelp.style.display = 'flex';
+  const offline = navigator.onLine === false;
+  const title = document.getElementById('load-title');
+  const message = document.getElementById('load-message');
+  const googleContainer = document.getElementById('google-button-container');
+  if(googleContainer)googleContainer.innerHTML='';
+  document.getElementById('google-connect').hidden=true;
+  document.getElementById('load-retry').hidden=false;
+  document.getElementById('open-direct').hidden=true;
+  title.textContent = offline ? 'Connexion Internet requise' : 'Connexion à Balance CDQ';
+  message.textContent = offline ?
+    'Rétablissez Internet. Votre activation, votre NIP et vos rapports locaux sont conservés.' :
+    (premiere ? 'Chargement de Balance CDQ…' : 'La connexion prend plus de temps que prévu.');
 }
 
-function memoriserConnexionGoogle() {
-// Indice de démarrage uniquement : ne constitue jamais une session CDQ.
-try { localStorage.setItem(CDQ_GOOGLE_CONNECTED_KEY, '1'); } catch(e) {}
+function attendreGoogleIdentityV42(timeoutMs=12000){
+  const debut=Date.now();
+  return new Promise((resolve,reject)=>{
+    (function verifier(){
+      if(window.google && google.accounts && google.accounts.id){resolve(google.accounts.id);return;}
+      if(Date.now()-debut>=timeoutMs){reject(new Error('Le service de connexion Google ne répond pas.'));return;}
+      setTimeout(verifier,120);
+    })();
+  });
 }
 
-function effacerIndiceGoogle() {
-// Ne jamais supprimer le jeton d’appareil, le NIP ou les rapports locaux.
-try { localStorage.removeItem(CDQ_GOOGLE_CONNECTED_KEY); } catch(e) {}
+function envoyerCredentialGoogleV42(reponse){
+  const defi=cdqGoogleChallengeV42;
+  if(!defi || !selectorWindow || !selectorOrigin || !reponse || !reponse.credential)return;
+  const credential=String(reponse.credential||'');
+  if(!credential || credential.length>6000)return;
+  document.getElementById('load-title').textContent='Vérification du compte Google';
+  document.getElementById('load-message').textContent='Un instant…';
+  document.getElementById('google-button-container').innerHTML='';
+  loading.style.display='grid';
+  loadHelp.style.display='none';
+  replyToSelector(selectorWindow,{
+    type:'CDQ_GOOGLE_CREDENTIAL',
+    authProtocol:42,
+    challengeId:String(defi.challengeId||''),
+    credential
+  });
 }
 
-function nouvelEtatConnexion() {
-const bytes=new Uint8Array(24);
-crypto.getRandomValues(bytes);
-return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
-}
-function ouvrirConnexionGoogle() {
-if(navigator.onLine===false){afficherConnexionGoogle(false);return;}
-// Un double clic ou le bouton de reprise conserve LA fenêtre déjà ouverte.
-// Ne jamais fermer une fenêtre dans laquelle un technicien remplit un rapport.
-if(fenetreGoogleOuverte()&&(googleConnectionPending||googleConnectionConfirmed||googleFlow?.phase==='direct')){
-try{googleConnectionWindow.focus();}catch(e){}return;
-}
-let state;
-try{state=nouvelEtatConnexion();}catch(e){
-afficherConnexionGoogle(true);document.getElementById('load-message').textContent='Le navigateur ne permet pas une connexion sécurisée. Ouvrez CDQ dans un navigateur à jour.';return;
-}
-googleConnectionWindow=null;
-googleConnectionConfirmed=false;
-googleConnectionPending=true;
-clearTimeout(googleProbeTimer);
-googleFlow={state,phase:'google',source:null,origin:'',protocol:0};
-clearTimeout(loadingTimer);clearTimeout(slowLoadingTimer);clearTimeout(hideLoadingTimer);clearTimeout(accessWaitTimer);
-cdqOffline.then(controller=>controller.lock());
-annulerPontBiometrique();
-selectorReady=false;selectorAwaitingAccess=false;selectorWindow=null;selectorOrigin='';
-loadGeneration++;app.style.visibility='hidden';app.src='about:blank';
-const destination=APP_URL+'&cdq_connect=1&cdq_flow=41&cdq_state='+state;
-const url='https://accounts.google.com/AccountChooser?continue='+encodeURIComponent(destination);
-const name='cdq-google-connection-'+Date.now()+'-'+(++googleAttempt);
-try{googleConnectionWindow=window.open(url,name);}catch(e){}
-if(!googleConnectionWindow){window.location.assign(url);return;}
-loading.style.display='none';loadHelp.style.display='flex';
-document.getElementById('load-title').textContent='Connexion Google';
-document.getElementById('load-message').textContent='Choisissez votre compte Google. CDQ poursuit ensuite automatiquement la connexion.';
-document.getElementById('google-connect').textContent='Ouvrir la connexion Google';
-document.getElementById('load-retry').hidden=true;
-document.getElementById('open-direct').hidden=true;
+async function afficherConnexionGoogleV42(data){
+  if(!data || !data.challengeId || !data.nonce)return;
+  cdqGoogleChallengeV42={
+    challengeId:String(data.challengeId),
+    nonce:String(data.nonce),
+    clientId:String(data.clientId || (globalThis.CDQ_GOOGLE_AUTH_CONFIG||{}).clientId || ''),
+    expiresAt:Number(data.expiresAt)||0
+  };
+  clearTimeout(loadingTimer);clearTimeout(slowLoadingTimer);clearTimeout(hideLoadingTimer);
+  loading.style.display='none';
+  app.style.visibility='hidden';
+  loadHelp.style.display='flex';
+  document.getElementById('load-title').textContent='Connexion à Balance CDQ';
+  document.getElementById('load-message').textContent=String(data.message||'Connectez votre compte Google pour continuer.');
+  document.getElementById('load-retry').hidden=true;
+  document.getElementById('open-direct').hidden=true;
+  const fallback=document.getElementById('google-connect');
+  fallback.hidden=true;
+  const container=document.getElementById('google-button-container');
+  container.innerHTML='';
+  if(!cdqGoogleChallengeV42.clientId){
+    document.getElementById('load-message').textContent='La configuration Google de Balance CDQ est incomplète.';
+    fallback.hidden=false;return;
+  }
+  if(cdqGoogleRenderingV42)return;
+  cdqGoogleRenderingV42=true;
+  try{
+    const gsi=await attendreGoogleIdentityV42();
+    if(cdqGoogleChallengeV42.expiresAt && cdqGoogleChallengeV42.expiresAt<=Date.now()){
+      throw new Error('La demande de connexion a expiré.');
+    }
+    gsi.initialize({
+      client_id:cdqGoogleChallengeV42.clientId,
+      callback:envoyerCredentialGoogleV42,
+      nonce:cdqGoogleChallengeV42.nonce,
+      auto_select:false,
+      cancel_on_tap_outside:false,
+      ux_mode:'popup',
+      context:'signin'
+    });
+    gsi.renderButton(container,{
+      type:'standard',
+      theme:'outline',
+      size:'large',
+      text:'signin_with',
+      shape:'rectangular',
+      logo_alignment:'left',
+      locale:'fr',
+      width:300
+    });
+  }catch(e){
+    document.getElementById('load-message').textContent=(e&&e.message?e.message:String(e))+' Touchez Réessayer.';
+    fallback.hidden=false;
+  }finally{
+    cdqGoogleRenderingV42=false;
+  }
 }
 
-function messageDeFenetreGoogle(event) {
-if(!fenetreGoogleOuverte()||!event.source||!event.data||typeof event.data!=='object')return false;
-if(!/^https:\/\/(?:script\.google\.com|script\.googleusercontent\.com|[a-z0-9-]+-script\.googleusercontent\.com)$/.test(event.origin))return false;
-try{return event.source===googleConnectionWindow||event.source.top===googleConnectionWindow;}catch(e){return false;}
-}
-function envoyerParcoursGoogle(type) {
-if(!googleFlow?.source||!googleFlow.origin)return;
-try{googleFlow.source.postMessage({type,state:googleFlow.state,protocol:41},googleFlow.origin);}catch(e){}
-}
-function passerEnConnexionDirecte() {
-if(!googleFlow||googleFlow.protocol!==41||googleFlow.phase==='finished')return false;
-clearTimeout(googleProbeTimer);clearTimeout(loadingTimer);clearTimeout(slowLoadingTimer);clearTimeout(hideLoadingTimer);clearTimeout(accessWaitTimer);
-googleFlow.phase='direct';googleConnectionPending=false;googleConnectionConfirmed=false;
-loadGeneration++;app.src='about:blank';app.style.visibility='hidden';
-selectorReady=false;selectorAwaitingAccess=false;selectorWindow=null;selectorOrigin='';
-annulerPontBiometrique();
-envoyerParcoursGoogle('CDQ_LOGIN_DIRECT');
-try{googleConnectionWindow.focus();}catch(e){}
-afficherConnexionGoogle(false,'direct');return true;
-}
-function recevoirConnexionGoogle(event) {
-if(!messageDeFenetreGoogle(event)||!googleFlow)return false;
-const modern=event.data.protocol===41;
-if(modern&&event.data.state!==googleFlow.state)return false;
-if(googleConnectionConfirmed||!googleConnectionPending){
-if(modern&&event.source===googleFlow.source&&event.origin===googleFlow.origin){
-if(googleFlow.phase==='probe')envoyerParcoursGoogle('CDQ_LOGIN_WAIT');
-if(googleFlow.phase==='direct')envoyerParcoursGoogle('CDQ_LOGIN_DIRECT');
-}return false;
-}
-googleFlow.source=event.source;googleFlow.origin=event.origin;googleFlow.protocol=modern?41:0;
-googleFlow.phase='probe';googleConnectionConfirmed=true;googleConnectionPending=false;
-// Une seule tentative intégrée. Le formulaire Google reste en attente : il ne
-// consomme pas une clé et n'ouvre pas de session en parallèle avec l'iframe.
-if(modern){
-envoyerParcoursGoogle('CDQ_LOGIN_WAIT');
-if(preferDirectGoogle)return passerEnConnexionDirecte();
-googleProbeTimer=setTimeout(passerEnConnexionDirecte,10000);
-}
-reessayerChargement();return true;
-}
-function terminerConnexionGoogle() {
-clearTimeout(googleProbeTimer);
-googleConnectionPending=false;
-if(googleConnectionConfirmed){
-if(googleFlow?.protocol===41){googleFlow.phase='finished';envoyerParcoursGoogle('CDQ_LOGIN_FINISH');}
-try{if(googleConnectionWindow)googleConnectionWindow.close();}catch(e){}
-}
-googleConnectionWindow=null;googleConnectionConfirmed=false;preferDirectGoogle=false;
-googleFlow=null;
-}
-function reprendreConnexion() {
-if(navigator.onLine===false){afficherConnexionGoogle(false);return;}
-if(fenetreGoogleOuverte()&&(googleConnectionPending||googleConnectionConfirmed||googleFlow?.phase==='direct')){
-try{googleConnectionWindow.focus();}catch(e){}return;
-}
-if(googleConnectionPending){googleConnectionPending=false;googleFlow=null;afficherConnexionGoogle(true,'annulation');return;}
-if(preferDirectGoogle){ouvrirConnexionGoogle();return;}
-reessayerChargement();
+function masquerConnexionGoogleV42(){
+  cdqGoogleChallengeV42=null;
+  const container=document.getElementById('google-button-container');
+  if(container)container.innerHTML='';
+  document.getElementById('google-connect').hidden=true;
+  if(selectorReady && !selectorAwaitingAccess){
+    loadHelp.style.display='none';
+  }
 }
 
 function lireActivationEnAttente() {
-try{
-const p=JSON.parse(sessionStorage.getItem(CDQ_ACTIVATION_SESSION_KEY)||'null');
-return p&&typeof p.token==='string'&&p.token.length<300&&Number(p.expiresAt)>Date.now()?p:null;
-}catch(e){return null;}
+  try{
+    const p=JSON.parse(sessionStorage.getItem(CDQ_ACTIVATION_SESSION_KEY)||'null');
+    return p&&typeof p.token==='string'&&p.token.length<300&&Number(p.expiresAt)>Date.now()?p:null;
+  }catch(e){return null;}
 }
 function memoireConnexion(data,send) {
-if(data.type==='CDQ_AUTH_TOKEN_REQUEST'){
-let token='';try{token=localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY)||'';}catch(e){}
-send({type:'CDQ_AUTH_TOKEN_VALUE',token,pendingActivation:lireActivationEnAttente()});return true;
-}
-if(data.type==='CDQ_AUTH_TOKEN_STORE'){
-const token=String(data.token||'');if(token.length>512)return true;
-try{if(token)localStorage.setItem(CDQ_STABLE_DEVICE_TOKEN_KEY,token);
-else{localStorage.removeItem(CDQ_STABLE_DEVICE_TOKEN_KEY);cdqOffline.then(controller=>controller.lock());}}catch(e){}
-return true;
-}
-if(data.type==='CDQ_ACTIVATION_STORE'){
-const p=data.pending;
-try{
-if(!p){sessionStorage.removeItem(CDQ_ACTIVATION_SESSION_KEY);return true;}
-if(typeof p.token!=='string'||!p.token||p.token.length>300||typeof p.email!=='string'||p.email.length>254)return true;
-const expiresAt=Math.min(Number(p.expiresAt),Date.now()+30*60*1000);
-if(!Number.isFinite(expiresAt)||expiresAt<=Date.now())return true;
-sessionStorage.setItem(CDQ_ACTIVATION_SESSION_KEY,JSON.stringify({token:p.token,email:p.email,expiresAt}));
-}catch(e){}return true;
-}
-return false;
-}
-function recevoirMemoireGoogle(event) {
-if(!googleFlow||googleFlow.protocol!==41||!messageDeFenetreGoogle(event))return false;
-if(event.data.state!==googleFlow.state||event.source!==googleFlow.source||event.origin!==googleFlow.origin)return false;
-if(event.data.type==='CDQ_LOGIN_DIRECT_REQUEST'||event.data.type==='CDQ_LOGIN_DIRECT_READY'){
-if(googleFlow.phase==='probe')passerEnConnexionDirecte();return true;
-}
-if(googleFlow.phase!=='direct')return false;
-return memoireConnexion(event.data,payload=>{
-try{event.source.postMessage(Object.assign({},payload,{state:googleFlow.state,protocol:41}),event.origin);}catch(e){}
-});
+  if(data.type==='CDQ_AUTH_TOKEN_REQUEST'){
+    let token='';try{token=localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY)||'';}catch(e){}
+    send({type:'CDQ_AUTH_TOKEN_VALUE',token,pendingActivation:lireActivationEnAttente()});return true;
+  }
+  if(data.type==='CDQ_AUTH_TOKEN_STORE'){
+    const token=String(data.token||'');if(token.length>512)return true;
+    try{
+      if(token)localStorage.setItem(CDQ_STABLE_DEVICE_TOKEN_KEY,token);
+      else{localStorage.removeItem(CDQ_STABLE_DEVICE_TOKEN_KEY);cdqOffline.then(controller=>controller.lock());}
+    }catch(e){}
+    return true;
+  }
+  if(data.type==='CDQ_ACTIVATION_STORE'){
+    const p=data.pending;
+    try{
+      if(!p){sessionStorage.removeItem(CDQ_ACTIVATION_SESSION_KEY);return true;}
+      if(typeof p.token!=='string'||!p.token||p.token.length>300||typeof p.email!=='string'||p.email.length>254)return true;
+      const expiresAt=Math.min(Number(p.expiresAt),Date.now()+30*60*1000);
+      if(!Number.isFinite(expiresAt)||expiresAt<=Date.now())return true;
+      sessionStorage.setItem(CDQ_ACTIVATION_SESSION_KEY,JSON.stringify({token:p.token,email:p.email,expiresAt}));
+    }catch(e){}
+    return true;
+  }
+  return false;
 }
 
 function isSelectorMessage(event) {
-if (googleConnectionPending || app.src === 'about:blank') return false;
+if (app.src === 'about:blank') return false;
 if (!event.source || !event.data || typeof event.data !== 'object') return false;
 let origin;
 try { origin = new URL(event.origin); } catch(e) { return false; }
@@ -595,44 +563,24 @@ try { source.postMessage(payload, selectorOrigin); } catch(e) {}
 }
 
 function armLoadingTimeout() {
-clearTimeout(loadingTimer);
-clearTimeout(slowLoadingTimer);
-const generation = loadGeneration;
-slowLoadingTimer = setTimeout(() => {
-if (selectorReady || generation !== loadGeneration) return;
-// Un délai n’est pas une preuve de déconnexion ni une erreur Google 401.
-document.getElementById('load-title').textContent = 'Chargement plus long que prévu';
-document.getElementById('load-message').textContent = 'Google répond plus lentement. Vous pouvez patienter ou continuer directement vers CDQ.';
-document.getElementById('google-connect').hidden = navigator.onLine === false;
-document.getElementById('google-connect').textContent = 'Ouvrir CDQ';
-document.getElementById('load-retry').hidden = true;
-document.getElementById('open-direct').hidden = true;
-loadHelp.style.display = 'flex';
-}, 15000);
-loadingTimer = setTimeout(() => {
-if (selectorReady || generation !== loadGeneration) return;
-if(googleFlow?.protocol===41&&googleFlow.phase==='probe'){passerEnConnexionDirecte();return;}
-preferDirectGoogle = true;
-effacerIndiceGoogle();
-let continued = false;
-if (navigator.onLine !== false && googleConnectionConfirmed && fenetreGoogleOuverte()) {
-// Même déploiement, mêmes droits : aucun accès public ni jeton en URL.
-try {
-// Arrêter le chargement concurrent : une réponse tardive ne doit
-// ni fermer ce nouvel onglet ni lancer une seconde activation.
-loadGeneration++;
-app.src = 'about:blank';
-selectorWindow = null;
-selectorOrigin = '';
-annulerPontBiometrique();
-googleConnectionWindow.location.href = APP_URL;
-googleConnectionWindow.focus();
-continued = true;
-googleConnectionConfirmed = false;
-} catch(e) {}
-}
-afficherConnexionGoogle(false, continued ? 'direct' : 'chargement');
-}, 45000);
+  clearTimeout(loadingTimer);
+  clearTimeout(slowLoadingTimer);
+  const generation = loadGeneration;
+  slowLoadingTimer=setTimeout(()=>{
+    if(selectorReady||generation!==loadGeneration)return;
+    loading.style.display='none';
+    loadHelp.style.display='flex';
+    document.getElementById('load-title').textContent='Chargement plus long que prévu';
+    document.getElementById('load-message').textContent='Balance CDQ attend la réponse du serveur. Vos données locales sont conservées.';
+    document.getElementById('google-button-container').innerHTML='';
+    document.getElementById('google-connect').hidden=true;
+    document.getElementById('load-retry').hidden=false;
+    document.getElementById('open-direct').hidden=true;
+  },15000);
+  loadingTimer=setTimeout(()=>{
+    if(selectorReady||generation!==loadGeneration)return;
+    afficherConnexionGoogle(false,'chargement');
+  },45000);
 }
 
 function recevoirEtatAcces(state) {
@@ -677,7 +625,7 @@ loading.style.display = 'none';
 // iframe.load also fires for Google error pages. Only the Selector handshake
 // proves that the application's own JavaScript has started.
 app.addEventListener('load', () => {
-if (!selectorReady && app.src && app.src !== 'about:blank' && !googleConnectionPending) armLoadingTimeout();
+if (!selectorReady && app.src && app.src !== 'about:blank') armLoadingTimeout();
 });
 
 function reessayerChargement() {
@@ -743,23 +691,30 @@ window.location.reload();
 
 window.addEventListener('message', event => {
 const data = event.data || {};
-if (data.type === 'CDQ_GOOGLE_CONNECTED') { recevoirConnexionGoogle(event); return; }
-if (recevoirMemoireGoogle(event)) return;
 if (!isSelectorMessage(event)) return;
 if (data.type === 'CDQ_SELECTOR_READY' || data.type === 'CDQ_CHECK_UPDATE') {
 if (selectorWindow && selectorWindow !== event.source) return;
 selectorWindow = event.source;
 selectorOrigin = event.origin;
 selectorReady = true;
-memoriserConnexionGoogle();
 clearTimeout(loadingTimer);
 clearTimeout(slowLoadingTimer);
-terminerConnexionGoogle();
 loadHelp.style.display = 'none';
 if (data.authProtocol >= 24) recevoirEtatAcces(data.accessState || 'pending');
 else if (!selectorAwaitingAccess) masquerMurApresDelaiMinimum();
 }
 if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
+if(data.type==='CDQ_GOOGLE_AUTH_REQUIRED'){afficherConnexionGoogleV42(data);return;}
+if(data.type==='CDQ_GOOGLE_AUTH_OK'){
+  loading.style.display='grid';loadHelp.style.display='none';
+  document.getElementById('google-button-container').innerHTML='';
+}
+if(data.type==='CDQ_GOOGLE_AUTH_ERROR'){
+  loading.style.display='none';loadHelp.style.display='flex';
+  document.getElementById('load-title').textContent='Connexion Google';
+  document.getElementById('load-message').textContent=String(data.message||'La connexion Google a échoué. Réessayez.');
+}
+if(data.type==='CDQ_GOOGLE_AUTH_HIDE')masquerConnexionGoogleV42();
 if(String(data.type||'').startsWith('CDQ_OFFLINE_'))cdqOffline.then(controller=>controller.handle(data));
 if(data.type==='CDQ_ACCESS_STATE' && data.state!=='ready')cdqOffline.then(controller=>controller.lock());
 if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready'))replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
@@ -1083,25 +1038,13 @@ pushSetup.style.display='none';
 pushReplyTarget=null;
 });
 
-document.getElementById('load-retry').addEventListener('click', reprendreConnexion);
-document.getElementById('google-connect').addEventListener('click', ouvrirConnexionGoogle);
-// Ne jamais charger la page Google dans un iframe au premier lancement :
-// sa connexion doit se faire dans un onglet normal, sinon Google renvoie 401.
-let dejaConnecte = false;
-try {
-const retour = new URL(window.location.href).searchParams.get('cdq_connected') === '1';
-// Le paramètre de retour autorise un essai de chargement, jamais une session.
-if (retour) {
-try { const url = new URL(window.location.href); url.searchParams.delete('cdq_connected'); window.history.replaceState(null, '', url.href); } catch(e) {}
-}
-dejaConnecte = retour || !!localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY) ||
-localStorage.getItem(CDQ_GOOGLE_CONNECTED_KEY) === '1';
-} catch(e) {
-try { dejaConnecte = !!localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY) || localStorage.getItem(CDQ_GOOGLE_CONNECTED_KEY) === '1'; } catch(ignore) {}
-}
+document.getElementById('load-retry').addEventListener('click', reessayerChargement);
+document.getElementById('google-connect').addEventListener('click',()=>{
+  if(selectorWindow)replyToSelector(selectorWindow,{type:'CDQ_GOOGLE_AUTH_RETRY',authProtocol:42});
+});
+
 if (!navigator.onLine) afficherConnexionGoogle(false);
-else if (dejaConnecte) reessayerChargement();
-else afficherConnexionGoogle(true);
+else reessayerChargement();
 </script>
 </body>
 </html>
