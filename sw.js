@@ -1,5 +1,5 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-42-google-id';
+const CACHE = 'cdq-installable-v21-48-nav-offline-ui';
 const FORCE_BUILD = '2026.09.16.0315-v21.42';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
