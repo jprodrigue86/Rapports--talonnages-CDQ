@@ -19,6 +19,21 @@ self.CDQ_FIREBASE_VAPID_KEY = self.CDQ_FIREBASE_VAPID_KEY || '';
 
   root.CDQ_GOOGLE_BRIDGE_HOTFIX = '2026.09.16.0832';
 
+  // iPhone / iPad : le Selector interne utilise une échelle visuelle plus petite
+  // qu'Android. On compense uniquement dans l'enveloppe GitHub/PWA afin que les
+  // icônes du bas, les boutons rapides et les zones tactiles aient une taille
+  // proche de l'interface Android, sans modifier le Selector Apps Script.
+  (function appliquerEchelleIOS() {
+    try {
+      const ua = navigator.userAgent || '';
+      const ios = /iPhone|iPad|iPod/i.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (!ios) return;
+      document.documentElement.style.setProperty('--interface-scale', '1.30');
+      document.documentElement.dataset.cdqIosScale = '1.30';
+    } catch (e) {}
+  })();
+
   let pendingGoogleRequest = null;
   let restoreTimer = 0;
 
