@@ -315,7 +315,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.15.1900-v21.39';
+const CDQ_PWA_BUILD = '2026.09.16.0100-v21.41';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 const CDQ_GOOGLE_CONNECTED_KEY = 'cdq_google_connected_v1';
 let googleConnectionWindow = null;
@@ -324,6 +324,9 @@ let googleConnectionPending = false;
 let preferDirectGoogle = false;
 let slowLoadingTimer = null;
 let googleAttempt = 0;
+let googleFlow = null;
+let googleProbeTimer = null;
+const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
 let swRegistration = null;
 let reloadingForUpdate = false;
 let updateRequested = false;
@@ -403,21 +406,18 @@ const offline = navigator.onLine === false;
 const title = document.getElementById('load-title');
 const message = document.getElementById('load-message');
 title.textContent = offline ? 'Connexion Internet requise' : 'Connexion à Balance CDQ';
-message.textContent = offline ? 'Rétablissez Internet, puis réessayez. Les données locales sont conservées.' : premiere ?
-'Choisissez votre compte Google, puis activez CDQ avec le code reçu et créez votre NIP.' :
-'Le chargement intégré de CDQ n’a pas répondu. Continuez dans l’onglet Google pour accéder à l’activation ou au NIP.';
-if (cause === 'annulation' && !offline) {
-message.textContent = 'La fenêtre Google a été fermée. Reprenez la connexion pour continuer.';
-}
-if (cause === 'direct' && !offline) {
-message.textContent = 'CDQ continue dans l’onglet Google. Terminez l’activation ou saisissez votre NIP dans cet onglet.';
-}
-document.getElementById('google-connect').hidden = offline;
-document.getElementById('google-connect').textContent = preferDirectGoogle ? 'Choisir mon compte et ouvrir CDQ' : 'Se connecter avec Google';
-document.getElementById('load-retry').hidden = premiere && !offline;
-document.getElementById('load-retry').textContent = cause === 'direct' ? 'Continuer dans l’onglet Google' : 'Réessayer dans l’application';
-document.getElementById('open-direct').hidden = premiere || offline;
-document.getElementById('open-direct').textContent = 'Continuer directement vers CDQ';
+message.textContent = offline ? 'Rétablissez Internet. Vos rapports et votre activation sont conservés.' : premiere ?
+'Connectez votre compte Google. À la première activation seulement : clé reçue, puis NIP à quatre chiffres.' :
+'Ouvrez CDQ pour continuer avec votre compte Google, puis votre NIP ou votre biométrie.';
+if(cause==='annulation'&&!offline)message.textContent='La connexion Google a été fermée. Votre activation existante est conservée.';
+if(cause==='direct'&&!offline)message.textContent='CDQ est ouvert dans la fenêtre Google. L’activation ou le NIP se poursuit directement dans cette fenêtre.';
+const button=document.getElementById('google-connect');
+button.hidden=offline;
+button.textContent=cause==='direct' ? 'Ouvrir CDQ' : 'Se connecter avec Google';
+// Un seul bouton de parcours. Aucun choix entre trois chemins concurrents.
+document.getElementById('load-retry').hidden=!offline;
+document.getElementById('load-retry').textContent='Réessayer';
+document.getElementById('open-direct').hidden=true;
 }
 
 function memoriserConnexionGoogle() {
@@ -430,78 +430,145 @@ function effacerIndiceGoogle() {
 try { localStorage.removeItem(CDQ_GOOGLE_CONNECTED_KEY); } catch(e) {}
 }
 
+function nouvelEtatConnexion() {
+const bytes=new Uint8Array(24);
+crypto.getRandomValues(bytes);
+return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+}
 function ouvrirConnexionGoogle() {
-if (navigator.onLine === false) { afficherConnexionGoogle(false); return; }
-const previous = googleConnectionWindow;
-const closePrevious = googleConnectionPending || googleConnectionConfirmed;
-googleConnectionWindow = null;
-googleConnectionConfirmed = false;
-googleConnectionPending = !preferDirectGoogle;
-clearTimeout(loadingTimer);
-clearTimeout(slowLoadingTimer);
-clearTimeout(hideLoadingTimer);
-clearTimeout(accessWaitTimer);
+if(navigator.onLine===false){afficherConnexionGoogle(false);return;}
+// Un double clic ou le bouton de reprise conserve LA fenêtre déjà ouverte.
+// Ne jamais fermer une fenêtre dans laquelle un technicien remplit un rapport.
+if(fenetreGoogleOuverte()&&(googleConnectionPending||googleConnectionConfirmed||googleFlow?.phase==='direct')){
+try{googleConnectionWindow.focus();}catch(e){}return;
+}
+let state;
+try{state=nouvelEtatConnexion();}catch(e){
+afficherConnexionGoogle(true);document.getElementById('load-message').textContent='Le navigateur ne permet pas une connexion sécurisée. Ouvrez CDQ dans un navigateur à jour.';return;
+}
+googleConnectionWindow=null;
+googleConnectionConfirmed=false;
+googleConnectionPending=true;
+clearTimeout(googleProbeTimer);
+googleFlow={state,phase:'google',source:null,origin:'',protocol:0};
+clearTimeout(loadingTimer);clearTimeout(slowLoadingTimer);clearTimeout(hideLoadingTimer);clearTimeout(accessWaitTimer);
 cdqOffline.then(controller=>controller.lock());
-// Une tentative abandonnée ne doit pas continuer à demander la biométrie.
 annulerPontBiometrique();
-selectorReady = false;
-selectorAwaitingAccess = false;
-selectorWindow = null;
-selectorOrigin = '';
-loadGeneration++;
-app.style.visibility = 'hidden';
-app.src = 'about:blank';
-try { if (closePrevious && previous && !previous.closed) previous.close(); } catch(e) {}
-const destination = APP_URL + (preferDirectGoogle ? '' : '&cdq_connect=1');
-const url = 'https://accounts.google.com/AccountChooser?continue=' + encodeURIComponent(destination);
-// Une fenêtre distincte empêche un ancien retour Google de relancer CDQ.
-const name = 'cdq-google-connection-' + Date.now() + '-' + (++googleAttempt);
-try { googleConnectionWindow = window.open(url, name); } catch(e) {}
-if (!googleConnectionWindow) { window.location.assign(url); return; }
-loading.style.display = 'none';
-loadHelp.style.display = 'flex';
-document.getElementById('load-message').textContent = preferDirectGoogle ?
-'Choisissez votre compte Google. CDQ affichera ensuite l’activation ou le NIP dans cet onglet.' :
-'Terminez la connexion Google dans la fenêtre ouverte, puis appuyez sur « Continuer dans CDQ ».';
-document.getElementById('load-retry').hidden = false;
-document.getElementById('load-retry').textContent = 'Revenir à la fenêtre Google';
+selectorReady=false;selectorAwaitingAccess=false;selectorWindow=null;selectorOrigin='';
+loadGeneration++;app.style.visibility='hidden';app.src='about:blank';
+const destination=APP_URL+'&cdq_connect=1&cdq_flow=41&cdq_state='+state;
+const url='https://accounts.google.com/AccountChooser?continue='+encodeURIComponent(destination);
+const name='cdq-google-connection-'+Date.now()+'-'+(++googleAttempt);
+try{googleConnectionWindow=window.open(url,name);}catch(e){}
+if(!googleConnectionWindow){window.location.assign(url);return;}
+loading.style.display='none';loadHelp.style.display='flex';
+document.getElementById('load-title').textContent='Connexion Google';
+document.getElementById('load-message').textContent='Choisissez votre compte Google. CDQ poursuit ensuite automatiquement la connexion.';
+document.getElementById('google-connect').textContent='Ouvrir la connexion Google';
+document.getElementById('load-retry').hidden=true;
+document.getElementById('open-direct').hidden=true;
 }
 
+function messageDeFenetreGoogle(event) {
+if(!fenetreGoogleOuverte()||!event.source||!event.data||typeof event.data!=='object')return false;
+if(!/^https:\/\/(?:script\.google\.com|script\.googleusercontent\.com|[a-z0-9-]+-script\.googleusercontent\.com)$/.test(event.origin))return false;
+try{return event.source===googleConnectionWindow||event.source.top===googleConnectionWindow;}catch(e){return false;}
+}
+function envoyerParcoursGoogle(type) {
+if(!googleFlow?.source||!googleFlow.origin)return;
+try{googleFlow.source.postMessage({type,state:googleFlow.state,protocol:41},googleFlow.origin);}catch(e){}
+}
+function passerEnConnexionDirecte() {
+if(!googleFlow||googleFlow.protocol!==41||googleFlow.phase==='finished')return false;
+clearTimeout(googleProbeTimer);clearTimeout(loadingTimer);clearTimeout(slowLoadingTimer);clearTimeout(hideLoadingTimer);clearTimeout(accessWaitTimer);
+googleFlow.phase='direct';googleConnectionPending=false;googleConnectionConfirmed=false;
+loadGeneration++;app.src='about:blank';app.style.visibility='hidden';
+selectorReady=false;selectorAwaitingAccess=false;selectorWindow=null;selectorOrigin='';
+annulerPontBiometrique();
+envoyerParcoursGoogle('CDQ_LOGIN_DIRECT');
+try{googleConnectionWindow.focus();}catch(e){}
+afficherConnexionGoogle(false,'direct');return true;
+}
 function recevoirConnexionGoogle(event) {
-if (!googleConnectionPending || googleConnectionConfirmed || !fenetreGoogleOuverte() || !event.source) return false;
-if (!/^https:\/\/(?:script\.google\.com|script\.googleusercontent\.com|[a-z0-9-]+-script\.googleusercontent\.com)$/.test(event.origin)) return false;
-try { if (event.source !== googleConnectionWindow && event.source.top !== googleConnectionWindow) return false; } catch(e) { return false; }
-googleConnectionConfirmed = true;
-googleConnectionPending = false;
-// Garder l’onglet authentifié jusqu’au vrai signal du Selector : si les
-// cookies tiers empêchent l’iframe, il servira à continuer au premier plan.
-try { window.focus(); } catch(e) {}
+if(!messageDeFenetreGoogle(event)||!googleFlow)return false;
+const modern=event.data.protocol===41;
+if(modern&&event.data.state!==googleFlow.state)return false;
+if(googleConnectionConfirmed||!googleConnectionPending){
+if(modern&&event.source===googleFlow.source&&event.origin===googleFlow.origin){
+if(googleFlow.phase==='probe')envoyerParcoursGoogle('CDQ_LOGIN_WAIT');
+if(googleFlow.phase==='direct')envoyerParcoursGoogle('CDQ_LOGIN_DIRECT');
+}return false;
+}
+googleFlow.source=event.source;googleFlow.origin=event.origin;googleFlow.protocol=modern?41:0;
+googleFlow.phase='probe';googleConnectionConfirmed=true;googleConnectionPending=false;
+// Une seule tentative intégrée. Le formulaire Google reste en attente : il ne
+// consomme pas une clé et n'ouvre pas de session en parallèle avec l'iframe.
+if(modern){
+envoyerParcoursGoogle('CDQ_LOGIN_WAIT');
+if(preferDirectGoogle)return passerEnConnexionDirecte();
+googleProbeTimer=setTimeout(passerEnConnexionDirecte,10000);
+}
+reessayerChargement();return true;
+}
+function terminerConnexionGoogle() {
+clearTimeout(googleProbeTimer);
+googleConnectionPending=false;
+if(googleConnectionConfirmed){
+if(googleFlow?.protocol===41){googleFlow.phase='finished';envoyerParcoursGoogle('CDQ_LOGIN_FINISH');}
+try{if(googleConnectionWindow)googleConnectionWindow.close();}catch(e){}
+}
+googleConnectionWindow=null;googleConnectionConfirmed=false;preferDirectGoogle=false;
+googleFlow=null;
+}
+function reprendreConnexion() {
+if(navigator.onLine===false){afficherConnexionGoogle(false);return;}
+if(fenetreGoogleOuverte()&&(googleConnectionPending||googleConnectionConfirmed||googleFlow?.phase==='direct')){
+try{googleConnectionWindow.focus();}catch(e){}return;
+}
+if(googleConnectionPending){googleConnectionPending=false;googleFlow=null;afficherConnexionGoogle(true,'annulation');return;}
+if(preferDirectGoogle){ouvrirConnexionGoogle();return;}
 reessayerChargement();
+}
+
+function lireActivationEnAttente() {
+try{
+const p=JSON.parse(sessionStorage.getItem(CDQ_ACTIVATION_SESSION_KEY)||'null');
+return p&&typeof p.token==='string'&&p.token.length<300&&Number(p.expiresAt)>Date.now()?p:null;
+}catch(e){return null;}
+}
+function memoireConnexion(data,send) {
+if(data.type==='CDQ_AUTH_TOKEN_REQUEST'){
+let token='';try{token=localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY)||'';}catch(e){}
+send({type:'CDQ_AUTH_TOKEN_VALUE',token,pendingActivation:lireActivationEnAttente()});return true;
+}
+if(data.type==='CDQ_AUTH_TOKEN_STORE'){
+const token=String(data.token||'');if(token.length>512)return true;
+try{if(token)localStorage.setItem(CDQ_STABLE_DEVICE_TOKEN_KEY,token);
+else{localStorage.removeItem(CDQ_STABLE_DEVICE_TOKEN_KEY);cdqOffline.then(controller=>controller.lock());}}catch(e){}
 return true;
 }
-
-function terminerConnexionGoogle() {
-googleConnectionPending = false;
-if (googleConnectionConfirmed) {
-try { if (googleConnectionWindow) googleConnectionWindow.close(); } catch(e) {}
+if(data.type==='CDQ_ACTIVATION_STORE'){
+const p=data.pending;
+try{
+if(!p){sessionStorage.removeItem(CDQ_ACTIVATION_SESSION_KEY);return true;}
+if(typeof p.token!=='string'||!p.token||p.token.length>300||typeof p.email!=='string'||p.email.length>254)return true;
+const expiresAt=Math.min(Number(p.expiresAt),Date.now()+30*60*1000);
+if(!Number.isFinite(expiresAt)||expiresAt<=Date.now())return true;
+sessionStorage.setItem(CDQ_ACTIVATION_SESSION_KEY,JSON.stringify({token:p.token,email:p.email,expiresAt}));
+}catch(e){}return true;
 }
-googleConnectionWindow = null;
-googleConnectionConfirmed = false;
-preferDirectGoogle = false;
+return false;
 }
-
-function reprendreConnexion() {
-if (googleConnectionPending || (preferDirectGoogle && fenetreGoogleOuverte())) {
-if (fenetreGoogleOuverte()) {
-try { googleConnectionWindow.focus(); } catch(e) {}
-return;
+function recevoirMemoireGoogle(event) {
+if(!googleFlow||googleFlow.protocol!==41||!messageDeFenetreGoogle(event))return false;
+if(event.data.state!==googleFlow.state||event.source!==googleFlow.source||event.origin!==googleFlow.origin)return false;
+if(event.data.type==='CDQ_LOGIN_DIRECT_REQUEST'||event.data.type==='CDQ_LOGIN_DIRECT_READY'){
+if(googleFlow.phase==='probe')passerEnConnexionDirecte();return true;
 }
-googleConnectionPending = false;
-googleConnectionWindow = null;
-afficherConnexionGoogle(true, 'annulation');
-return;
-}
-reessayerChargement();
+if(googleFlow.phase!=='direct')return false;
+return memoireConnexion(event.data,payload=>{
+try{event.source.postMessage(Object.assign({},payload,{state:googleFlow.state,protocol:41}),event.origin);}catch(e){}
+});
 }
 
 function isSelectorMessage(event) {
@@ -536,13 +603,15 @@ if (selectorReady || generation !== loadGeneration) return;
 // Un délai n’est pas une preuve de déconnexion ni une erreur Google 401.
 document.getElementById('load-title').textContent = 'Chargement plus long que prévu';
 document.getElementById('load-message').textContent = 'Google répond plus lentement. Vous pouvez patienter ou continuer directement vers CDQ.';
-document.getElementById('load-retry').hidden = false;
-document.getElementById('load-retry').textContent = 'Réessayer dans l’application';
-document.getElementById('open-direct').hidden = navigator.onLine === false;
+document.getElementById('google-connect').hidden = navigator.onLine === false;
+document.getElementById('google-connect').textContent = 'Ouvrir CDQ';
+document.getElementById('load-retry').hidden = true;
+document.getElementById('open-direct').hidden = true;
 loadHelp.style.display = 'flex';
 }, 15000);
 loadingTimer = setTimeout(() => {
 if (selectorReady || generation !== loadGeneration) return;
+if(googleFlow?.protocol===41&&googleFlow.phase==='probe'){passerEnConnexionDirecte();return;}
 preferDirectGoogle = true;
 effacerIndiceGoogle();
 let continued = false;
@@ -675,6 +744,7 @@ window.location.reload();
 window.addEventListener('message', event => {
 const data = event.data || {};
 if (data.type === 'CDQ_GOOGLE_CONNECTED') { recevoirConnexionGoogle(event); return; }
+if (recevoirMemoireGoogle(event)) return;
 if (!isSelectorMessage(event)) return;
 if (data.type === 'CDQ_SELECTOR_READY' || data.type === 'CDQ_CHECK_UPDATE') {
 if (selectorWindow && selectorWindow !== event.source) return;
@@ -696,18 +766,7 @@ if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ
 if (data.type === 'CDQ_OPEN_PDF') cdqAfficherPdf(data);
 if (data.type === 'CDQ_ACCESS_STATE') recevoirEtatAcces(data.state);
 if (data.type === 'CDQ_BACKEND_STATUS') backendBuild = String(data.build || 'inconnue');
-if (data.type === 'CDQ_AUTH_TOKEN_REQUEST') {
-let token = '';
-try { token = localStorage.getItem(CDQ_STABLE_DEVICE_TOKEN_KEY) || ''; } catch(e) {}
-replyToSelector(event.source,{type:'CDQ_AUTH_TOKEN_VALUE',token});
-}
-if (data.type === 'CDQ_AUTH_TOKEN_STORE') {
-try {
-const token = String(data.token || '');
-if (token) localStorage.setItem(CDQ_STABLE_DEVICE_TOKEN_KEY,token);
-else {localStorage.removeItem(CDQ_STABLE_DEVICE_TOKEN_KEY);cdqOffline.then(controller=>controller.lock());}
-} catch(e) {}
-}
+if(memoireConnexion(data,payload=>replyToSelector(event.source,payload)))return;
 
 if (data.type === 'CDQ_CHECK_UPDATE') {
 repondreEtatMiseAJour(event.source, data.build);

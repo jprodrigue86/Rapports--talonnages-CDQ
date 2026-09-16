@@ -1,9 +1,9 @@
 {
-  "version": "2026.09.15.1900-v21.39",
+  "version": "2026.09.16.0100-v21.41",
   "reader_version": "21.33",
   "selector_version": "2026.09.15.1530-v21.37",
   "backend_version": "2026.09.15.1530-v21.37",
-  "date": "2026-09-15",
+  "date": "2026-09-16",
   "features": [
     "demarrage-verifie",
     "pont-iframe-apps-script",
@@ -50,12 +50,21 @@
     "compatibilite-serveur-272",
     "mise-a-jour-cache-non-destructive",
     "consolidation-corrections-paralleles",
-    "copie-camion-directe-preservee"
+    "copie-camion-directe-preservee",
+    "plancher-sans-charge-de-contrainte",
+    "verification-cache-modeles-par-compte",
+    "diagnostic-installation-ressources",
+    "connexion-pilote-unique",
+    "retour-google-automatique",
+    "activation-reprise-30-minutes",
+    "repli-direct-sans-boucle"
   ],
-  "prepared_backend_version": "2026.09.15.2300-v21.40",
+  "prepared_backend_version": "2026.09.16.0100-v21.41",
   "server_update_required_for_all_templates": true,
   "firebase_configured": false,
-  "prepared_selector_version": "2026.09.15.2300-v21.40",
+  "prepared_selector_version": "2026.09.16.0100-v21.41",
   "backend_deployment_verified": false,
-  "private_template_resources_installation_verified": false
+  "private_template_resources_installation_verified": false,
+  "login_protocol": 41,
+  "login_backend_update_required": true
 }

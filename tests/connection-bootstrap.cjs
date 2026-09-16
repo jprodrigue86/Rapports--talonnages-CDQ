@@ -19,9 +19,9 @@ function start({token,returning=false}={}){
 }
 let count=0;
 function test(name,fn){fn();count++;console.log('OK',name);}
-test('Première ouverture complète : choix Google immédiat en navigation principale',()=>{
-  const h=start();assert.equal(new URL(h.redirect).origin,'https://accounts.google.com');
-  assert.equal(new URL(h.redirect).pathname,'/AccountChooser');assert(!h.el('app').src);
+test('Première ouverture complète : aucun routeur automatique dans Firebase',()=>{
+  const h=start();assert(!h.redirect);assert(!h.el('app').src);assert.equal(h.el('load-help').style.display,'flex');
+  h.el('google-connect').listeners.click();assert.equal(h.opened.length,1);
 });
 test('Appareil activé : bootstrap préserve le bouton de reprise du nouveau lanceur',()=>{
   const h=start({token:'test-token'});assert(!h.redirect);assert(!h.el('google-connect').dataset.cdqAccountChooserFix);
@@ -32,7 +32,7 @@ test('Retour Google complet : échec intégré puis accès direct, sans intercep
   const h=start({returning:true});assert(!h.redirect);assert(h.el('app').src);
   h.run(45000);h.el('google-connect').listeners.click();assert.equal(h.opened.length,1);
   const next=new URL(new URL(h.opened[0]).searchParams.get('continue'));
-  assert(!next.searchParams.has('cdq_connect'));assert(!h.stored.get('cdq_auth_device_token_v2'));
+  assert.equal(next.searchParams.get('cdq_connect'),'1');assert.equal(next.searchParams.get('cdq_flow'),'41');assert(!h.stored.get('cdq_auth_device_token_v2'));
 });
 test('Configuration Firebase importable dans le service worker sans DOM',()=>{
   const c=vm.createContext({self:{}});vm.runInContext(boot,c);
