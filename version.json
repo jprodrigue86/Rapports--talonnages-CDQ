@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.16.0100-v21.41",
+  "version": "2026.09.16.0315-v21.42",
   "reader_version": "21.33",
-  "selector_version": "2026.09.15.1530-v21.37",
-  "backend_version": "2026.09.15.1530-v21.37",
+  "selector_version": "2026.09.16.0315-v21.42",
+  "backend_version": "2026.09.16.0315-v21.42",
   "date": "2026-09-16",
   "features": [
     "demarrage-verifie",
@@ -57,14 +57,22 @@
     "connexion-pilote-unique",
     "retour-google-automatique",
     "activation-reprise-30-minutes",
-    "repli-direct-sans-boucle"
+    "repli-direct-sans-boucle",
+    "connexion-google-identity-services",
+    "suppression-boucle-script-google",
+    "google-id-token-verifie-serveur",
+    "premiere-connexion-google-puis-cle-nip",
+    "appareil-connu-nip-ou-biometrie",
+    "nouvel-appareil-google-plus-nip"
   ],
-  "prepared_backend_version": "2026.09.16.0100-v21.41",
+  "prepared_backend_version": "2026.09.16.0315-v21.42",
   "server_update_required_for_all_templates": true,
   "firebase_configured": false,
-  "prepared_selector_version": "2026.09.16.0100-v21.41",
+  "prepared_selector_version": "2026.09.16.0315-v21.42",
   "backend_deployment_verified": false,
   "private_template_resources_installation_verified": false,
-  "login_protocol": 41,
-  "login_backend_update_required": true
+  "login_protocol": 42,
+  "login_backend_update_required": true,
+  "google_identity_services_configured": true,
+  "apps_script_anonymous_access_required": true
 }
