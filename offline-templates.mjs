@@ -79,8 +79,10 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf,storage=nati
   const {get,put,all}=storage;
   let session=null,localEmail='',profile=null,chain=Promise.resolve(),epoch=0;
   const inflight=new Map(),requested=new Set();
+  // Le moteur hors ligne reste actif, mais aucun bouton séparé n'est montré.
+  // Les modèles locaux sont utilisés depuis les boutons principaux du Selector.
   const launch=document.createElement('button');launch.type='button';launch.id='cdq-offline-launch';launch.textContent='Modèles hors ligne';launch.hidden=true;
-  launch.style.cssText='position:fixed;right:14px;bottom:96px;z-index:10001;padding:12px 18px;border:1px solid #739aab;border-radius:12px;background:#132832;color:white;font:600 15px system-ui';
+  launch.style.cssText='display:none!important;position:fixed;right:14px;bottom:96px;z-index:10001;padding:12px 18px;border:1px solid #739aab;border-radius:12px;background:#132832;color:white;font:600 15px system-ui';
   const panel=document.createElement('section');panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Modèles hors ligne');
   panel.style.cssText='position:fixed;inset:0;z-index:10002;overflow:auto;background:#101820;color:#eef4f7;padding:24px;box-sizing:border-box;font:16px system-ui';
   const header=document.createElement('h2');header.textContent='Modèles hors ligne';panel.append(header);
@@ -107,7 +109,7 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf,storage=nati
   }
   async function refresh() {
     const stamp=epoch,p=await get('state','profile');if(stamp!==epoch)return;
-    profile=p;launch.hidden=!p;
+    profile=p;launch.hidden=true;launch.style.display='none';
     if(panel.hidden)return;
     content.replaceChildren();
     if(!p){status.textContent='Ouvrez CDQ avec Internet pour préparer vos modèles.';return;}
