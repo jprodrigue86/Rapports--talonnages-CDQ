@@ -52,7 +52,10 @@
     "consolidation-corrections-paralleles",
     "copie-camion-directe-preservee"
   ],
-  "prepared_backend_version": "2026.09.15.1900-v21.39",
+  "prepared_backend_version": "2026.09.15.2300-v21.40",
   "server_update_required_for_all_templates": true,
-  "firebase_configured": false
+  "firebase_configured": false,
+  "prepared_selector_version": "2026.09.15.2300-v21.40",
+  "backend_deployment_verified": false,
+  "private_template_resources_installation_verified": false
 }
