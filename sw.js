@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-53-android-auth-hotfix';
-const FORCE_BUILD = '2026.09.17.0835-v21.53-auth-hotfix';
+const CACHE = 'cdq-installable-v21-54-new-apps-script-deployment';
+const FORCE_BUILD = '2026.09.17.0935-v21.54-new-deployment';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
@@ -33,8 +33,6 @@ function shellKey(url) {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  // Uniquement les dépendances publiques de la version PDF.js épinglée.
-  // Les documents privés ne passent jamais par ce cache public.
   if(url.origin==='https://cdn.jsdelivr.net' && url.pathname.startsWith('/npm/pdfjs-dist@6.3.289/')){
     event.respondWith((async()=>{
       const cache=await caches.open(CACHE),hit=await cache.match(event.request);
@@ -65,10 +63,8 @@ self.addEventListener('fetch', event => {
     }
   })());
 });
-// Register before the Firebase SDK. Keep notification clicks within CDQ.
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  // Firebase processes its own notification clicks, including its fcm_options link.
   if (event.notification.data && event.notification.data.FCM_MSG) return;
   let target = new URL('./', SCOPE);
   try {
