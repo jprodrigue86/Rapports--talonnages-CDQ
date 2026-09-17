@@ -1,0 +1,1 @@
+Build in progress: validating Android installability and Google OAuth before delivery.
