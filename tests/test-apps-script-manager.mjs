@@ -38,47 +38,81 @@ try {
   assert(dims.i512[0]===512 && dims.i512[1]===512,'512 icon dimensions invalid');
 
   await page.evaluate(()=>{
-    window.google={accounts:{oauth2:{initTokenClient(opts){return{requestAccessToken(){setTimeout(()=>opts.callback({access_token:'TEST_TOKEN'}),10)}}}}}};
-  });
-  await page.click('#connect');
-  await page.waitForFunction(()=>document.querySelector('#authBadge')?.textContent.includes('connecté'),{timeout:5000});
-
-  await page.evaluate(()=>{
-    document.querySelector('#scriptId').value='TEST_SCRIPT_ID';
-    document.querySelector('#codeEditor').value='function test(){ return 1; }';
-    document.querySelector('#selectorEditor').value='<div>test</div>';
+    window.__mockServerFiles=[
+      {name:'Code',type:'SERVER_JS',source:'function oldCode(){ return 0; }'},
+      {name:'Selecteur',type:'HTML',source:'<div>ancien</div>'},
+      {name:'appsscript',type:'JSON',source:'{"timeZone":"America/Toronto"}'}
+    ];
+    window.google={accounts:{oauth2:{
+      initTokenClient(opts){
+        return {
+          requestAccessToken(){setTimeout(()=>opts.callback({access_token:'TEST_TOKEN',expires_in:3600}),10)}
+        };
+      },
+      revoke(token,cb){ if(cb) cb(); }
+    }}};
     const realFetch=window.fetch.bind(window);
     window.fetch=async (url,opts={})=>{
-      const s=String(url);
-      if(!s.startsWith('https://script.googleapis.com/v1')) return realFetch(url,opts);
+      const s=String(url),method=opts.method||'GET';
       const ok=data=>new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
-      if(s.endsWith('/content') && (!opts.method || opts.method==='GET')) return ok({files:[
-        {name:'Code',type:'SERVER_JS',source:'old'},
-        {name:'Selecteur',type:'HTML',source:'old'},
-        {name:'appsscript',type:'JSON',source:'{}'}
-      ]});
-      if(s.endsWith('/content') && opts.method==='PUT') return ok(JSON.parse(opts.body));
-      if(s.endsWith('/deployments') && (!opts.method || opts.method==='GET')) return ok({deployments:[{deploymentId:'dep1',deploymentConfig:{versionNumber:1,description:'Production'}}]});
-      if(s.endsWith('/versions') && opts.method==='POST') return ok({scriptId:'TEST_SCRIPT_ID',versionNumber:99,description:'test'});
-      if(s.includes('/deployments/dep1') && opts.method==='PUT') return ok({deploymentId:'dep1',deploymentConfig:{versionNumber:99,description:'test'}});
-      return new Response(JSON.stringify({error:{message:'Unexpected mocked request '+s+' '+(opts.method||'GET')}}),{status:500,headers:{'Content-Type':'application/json'}});
+      if(s.startsWith('https://www.googleapis.com/drive/v3/files')) return ok({files:[{id:'TEST_SCRIPT_ID',name:'Projet Test CDQ',modifiedTime:'2026-09-17T16:00:00Z',webViewLink:'https://script.google.com/'}]});
+      if(!s.startsWith('https://script.googleapis.com/v1')) return realFetch(url,opts);
+      if(s.endsWith('/projects/TEST_SCRIPT_ID') && method==='GET') return ok({scriptId:'TEST_SCRIPT_ID',title:'Projet Test CDQ'});
+      if(s.endsWith('/projects/TEST_SCRIPT_ID/content') && method==='GET') return ok({scriptId:'TEST_SCRIPT_ID',files:JSON.parse(JSON.stringify(window.__mockServerFiles))});
+      if(s.endsWith('/projects/TEST_SCRIPT_ID/content') && method==='PUT'){
+        const body=JSON.parse(opts.body||'{}');
+        window.__mockServerFiles=JSON.parse(JSON.stringify(body.files||[]));
+        return ok({scriptId:'TEST_SCRIPT_ID',files:window.__mockServerFiles});
+      }
+      if(s.endsWith('/projects/TEST_SCRIPT_ID/deployments') && method==='GET') return ok({deployments:[{deploymentId:'dep1',deploymentConfig:{versionNumber:1,description:'Production'}}]});
+      if(s.endsWith('/projects/TEST_SCRIPT_ID/versions') && method==='POST') return ok({scriptId:'TEST_SCRIPT_ID',versionNumber:99,description:'test'});
+      if(s.includes('/projects/TEST_SCRIPT_ID/deployments/dep1') && method==='PUT') return ok({deploymentId:'dep1',deploymentConfig:{versionNumber:99,description:'test'}});
+      return new Response(JSON.stringify({error:{message:'Unexpected mocked request '+s+' '+method}}),{status:500,headers:{'Content-Type':'application/json'}});
     };
   });
 
+  await page.waitForFunction(()=>!document.querySelector('#connect')?.disabled,{timeout:8000});
+  await page.click('#connect');
+  await page.waitForFunction(()=>document.querySelector('#authBadge')?.textContent.includes('connecté'),{timeout:5000});
+  await page.waitForFunction(()=>document.querySelector('#projectSelect')?.options.length>1,{timeout:5000});
+  await page.select('#projectSelect','TEST_SCRIPT_ID');
   await page.click('#loadProject');
+  await page.waitForFunction(()=>document.querySelector('#projectBadge')?.textContent.includes('Projet Test CDQ'),{timeout:5000});
   await page.waitForFunction(()=>document.querySelector('#deployment')?.options.length>1,{timeout:5000});
+
+  const packageText=`=== FILE: Code.gs ===\nfunction test(){ return 1; }\n\n=== FILE: Selecteur.html ===\n<div>nouveau sélecteur</div>`;
+  await page.$eval('#packageEditor',(el,text)=>{el.value=text;el.dispatchEvent(new Event('input',{bubbles:true}))},packageText);
+  await page.click('#parsePackage');
+  await page.waitForFunction(()=>document.querySelector('#changeBadge')?.textContent.includes('2'),{timeout:3000});
+  await page.click('#validateChanges');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('Vérification réussie'),{timeout:3000});
+
   await page.select('#deployment','dep1');
-  await page.click('#oneClick');
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('TERMINÉ'),{timeout:7000});
-  const status = await page.$eval('#status',el=>el.textContent);
-  assert(status.includes('Version 99'),'Deployment flow did not finish on version 99: '+status);
-  const backup = await page.evaluate(()=>localStorage.getItem('cdq_backup'));
-  assert(!!backup,'Automatic backup was not created');
+  await page.click('#writeAndDeploy');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('Version 99') && document.querySelector('#status')?.textContent.includes('déployée'),{timeout:7000});
+
+  const result = await page.evaluate(()=>({
+    status:document.querySelector('#status')?.textContent,
+    backup:localStorage.getItem('cdqsm_backups'),
+    files:window.__mockServerFiles
+  }));
+  assert(result.status.includes('Version 99'),'Deployment flow did not finish on version 99: '+result.status);
+  assert(!!result.backup,'Automatic backup was not created');
+  const backup=JSON.parse(result.backup);
+  assert(Array.isArray(backup) && backup.length>0,'Backup history is empty');
+  const code=result.files.find(f=>f.type==='SERVER_JS'&&f.name==='Code');
+  const selector=result.files.find(f=>f.type==='HTML'&&f.name==='Selecteur');
+  const manifestFile=result.files.find(f=>f.type==='JSON'&&f.name==='appsscript');
+  assert(code?.source==='function test(){ return 1; }','Code.gs was not replaced');
+  assert(selector?.source==='<div>nouveau sélecteur</div>','Selecteur.html was not replaced');
+  assert(!!manifestFile,'appsscript.json was not preserved');
 
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
-  console.log('PASS: read -> backup -> replace -> version -> deploy flow works');
+  console.log('PASS: Drive project listing works');
+  console.log('PASS: package -> backup -> write -> readback verification -> deploy works');
+  console.log('PASS: appsscript.json is preserved');
 } finally {
   if(browser) await browser.close();
   server.kill('SIGTERM');
