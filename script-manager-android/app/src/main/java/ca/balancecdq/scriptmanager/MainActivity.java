@@ -1,8 +1,6 @@
 package ca.balancecdq.scriptmanager;
 
 import android.app.Activity;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -19,7 +17,6 @@ public class MainActivity extends Activity {
     private static final Uri APP_URL = Uri.parse(
         "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/?v=9&source=android-apk"
     );
-    private boolean launched = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,24 +81,16 @@ public class MainActivity extends Activity {
             customTabsIntent.intent.setPackage("com.android.chrome");
         }
 
-        launched = true;
         customTabsIntent.launchUrl(this, APP_URL);
     }
 
+    @SuppressWarnings("deprecation")
     private boolean isPackageInstalled(String packageName) {
         try {
-            getPackageManager().getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0));
+            getPackageManager().getPackageInfo(packageName, 0);
             return true;
         } catch (Exception e) {
             return false;
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (launched) {
-            // Garde l'icône Android comme point d'entrée sans afficher un écran vide au retour.
         }
     }
 }
