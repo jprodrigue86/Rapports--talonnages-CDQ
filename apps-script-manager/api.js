@@ -37,7 +37,12 @@ function apiErrorPayload(text) {
 
 function friendlyGoogleError(status, data) {
   const message = data?.error?.message || data?.error_description || data?.raw || `Erreur Google ${status}`;
-  if (/Apps Script API has not been used|disabled/i.test(message)) {
+  const disabled = /has not been used|hasn't been used|disabled|SERVICE_DISABLED/i.test(message);
+
+  if (disabled && /(Google Drive API|drive\.googleapis\.com|drive\.googleapis)/i.test(message)) {
+    return 'L’API Google Drive n’est pas activée dans le projet Google Cloud de ce Client ID. Active « Google Drive API » dans Balance CDQ, puis reconnecte Google.';
+  }
+  if (disabled && /(Apps Script API|script\.googleapis\.com|script\.googleapis)/i.test(message)) {
     return 'L’API Google Apps Script n’est pas activée dans le projet Google Cloud de ce Client ID.';
   }
   if (/insufficient.*scope|insufficient authentication scopes/i.test(message)) {
