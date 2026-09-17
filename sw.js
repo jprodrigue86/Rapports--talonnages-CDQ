@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-54-new-apps-script-deployment';
-const FORCE_BUILD = '2026.09.17.0935-v21.54-new-deployment';
+const CACHE = 'cdq-installable-v21-55-recovery-working-deployment';
+const FORCE_BUILD = '2026.09.17.1025-v21.55-recovery';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
