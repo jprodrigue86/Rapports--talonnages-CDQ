@@ -13,4 +13,42 @@ function isStandalone(){return window.matchMedia('(display-mode: standalone)').m
 function updateInstallState(){if(isStandalone()){installState.textContent='✓ L’application est installée et ouverte en mode application.';installApp.textContent='Installée';installApp.classList.add('installed');installMain.textContent='APPLICATION INSTALLÉE';installMain.disabled=true}else{installState.textContent=installPrompt?'Prête à installer : touche INSTALLER L’APPLICATION.':'Si tu es déjà dans Chrome, touche INSTALLER L’APPLICATION. Si Chrome ne montre pas la fenêtre, utilise ⋮ > Installer l’application.'}}
 async function doInstall(){if(isStandalone())return updateInstallState();if(installPrompt){installPrompt.prompt();const choice=await installPrompt.userChoice;installPrompt=null;if(choice.outcome==='accepted')installState.textContent='Installation acceptée ✓';else installState.textContent='Installation annulée.';return updateInstallState()}installHelp.hidden=false}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;updateInstallState()});window.addEventListener('appinstalled',()=>{installPrompt=null;updateInstallState()});installApp.onclick=doInstall;installMain.onclick=doInstall;closeInstall.onclick=()=>installHelp.hidden=true;installHelp.onclick=e=>{if(e.target===installHelp)installHelp.hidden=true};
-loadSettings();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js?v=4').then(()=>top('Application chargée. Utilise Chrome pour l’installation et Google.')).catch(e=>top('Service d’installation : '+e.message,'err'));
+
+/* V21.56 — réparation automatique Balance CDQ depuis Android. */
+const CDQ_WORKING_DEPLOYMENT='AKfycbzZt5zgKLJA3FlRXgJOqR8OLopFBkCg8vapy4fLMNM37rlrYv0U__p8V22O_QAq5gk';
+async function cdqRepairBalance(){
+  if(!scriptId())throw Error('Colle d’abord l’URL de ton projet Apps Script ou son Script ID.');
+  await auth();authBadge.textContent='Google : connecté';authBadge.classList.add('ok');
+  msg('1/5 Lecture et sauvegarde du projet…');
+  const cur=await getContent();saveBackup(cur);
+  if(!cur.files?.some(f=>f.type==='JSON'&&f.name==='appsscript'))throw Error('appsscript.json introuvable : ce projet ne semble pas être Balance CDQ.');
+  const r=await fetch('./patch-v21-56.html?v=1',{cache:'no-store'});if(!r.ok)throw Error('Correctif V21.56 introuvable.');const patch=await r.text();
+  const files=JSON.parse(JSON.stringify(cur.files));
+  const html=files.filter(f=>f.type==='HTML');
+  let sel=html.find(f=>/selector|selecteur/i.test(f.name||''));
+  if(!sel)sel=html.find(f=>String(f.source||'').includes('adminModalOverlay')&&String(f.source||'').includes('displayModeButton'));
+  if(!sel)throw Error('Sélecteur Balance CDQ introuvable dans le projet.');
+  msg('2/5 Application du scroll et du partage…');
+  let source=String(sel.source||'');
+  source=source.replace(/<!-- CDQ V21\.56 SCROLL\+PARTAGE START -->[\s\S]*?<!-- CDQ V21\.56 SCROLL\+PARTAGE END -->/g,'');
+  const i=source.toLowerCase().lastIndexOf('</body>');source=i>=0?source.slice(0,i)+patch+'\n'+source.slice(i):source+'\n'+patch;sel.source=source;
+  CDQ.content=await gapi('/projects/'+encodeURIComponent(scriptId())+'/content',{method:'PUT',body:JSON.stringify({files})});
+  msg('3/5 Recherche du déploiement fonctionnel…');
+  const ds=await getDeployments();
+  deployment.innerHTML='<option value="">— Choisir le déploiement —</option>';for(const x of ds.deployments||[]){const o=document.createElement('option');o.value=x.deploymentId;o.textContent=(x.deploymentConfig?.description||'Déploiement')+(x.deploymentConfig?.versionNumber?' • v'+x.deploymentConfig.versionNumber:'');deployment.appendChild(o)}
+  let dep=(ds.deployments||[]).find(x=>x.deploymentId===CDQ_WORKING_DEPLOYMENT);
+  if(!dep&&deployment.value)dep=(ds.deployments||[]).find(x=>x.deploymentId===deployment.value);
+  if(!dep&&(ds.deployments||[]).length===1)dep=ds.deployments[0];
+  if(!dep)throw Error('Le déploiement fonctionnel n’a pas été trouvé automatiquement. Choisis-le dans la liste puis retouche le bouton de réparation.');
+  deployment.value=dep.deploymentId;LS.setItem('cdq_dep',dep.deploymentId);description.value='Balance CDQ V21.56 — scroll Android + partage installation';
+  msg('4/5 Création de la nouvelle version…');const v=await createVersion();
+  msg('5/5 Mise à jour du déploiement existant…');await deployVersion(v);
+  const after=await getDeployments();const confirmed=(after.deployments||[]).find(x=>x.deploymentId===dep.deploymentId);
+  if(!confirmed||Number(confirmed.deploymentConfig?.versionNumber)!==Number(v.versionNumber))throw Error('Google n’a pas confirmé la nouvelle version du déploiement.');
+  projectBadge.textContent='Projet : réparé';projectBadge.classList.add('ok');
+  msg('TERMINÉ ✓ Version '+v.versionNumber+' déployée sur le lien existant. Ferme puis rouvre Balance CDQ deux fois.','ok');
+  repairInfo.textContent='✓ Scroll Affichage + Utilisateurs et partage d’installation rétablis — version '+v.versionNumber;
+}
+repairCdq.onclick=()=>run(cdqRepairBalance,'Préparation de la réparation…').catch(()=>{});
+
+loadSettings();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js?v=5').then(()=>top('Application chargée. Utilise Chrome pour l’installation et Google.')).catch(e=>top('Service d’installation : '+e.message,'err'));
