@@ -38,6 +38,7 @@ try {
   assert(dims.i512[0]===512 && dims.i512[1]===512,'512 icon dimensions invalid');
 
   await page.evaluate(()=>{
+    window.__mockFetchLog=[];
     window.__mockServerFiles=[
       {name:'Code',type:'SERVER_JS',source:'function oldCode(){ return 0; }'},
       {name:'Selecteur',type:'HTML',source:'<div>ancien</div>'},
@@ -57,6 +58,7 @@ try {
     const realFetch=window.fetch.bind(window);
     window.fetch=async (url,opts={})=>{
       const s=String(url),method=opts.method||'GET';
+      window.__mockFetchLog.push(method+' '+s);
       const ok=data=>new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
       if(s.startsWith('https://www.googleapis.com/drive/v3/files')) return ok({files:[{id:'TEST_SCRIPT_ID',name:'Projet Test CDQ',modifiedTime:'2026-09-17T16:00:00Z',webViewLink:'https://script.google.com/'}]});
       if(!s.startsWith('https://script.googleapis.com/v1')) return realFetch(url,opts);
@@ -77,6 +79,15 @@ try {
   await page.waitForFunction(()=>!document.querySelector('#connect')?.disabled,{timeout:8000});
   await page.click('#connect');
   await page.waitForFunction(()=>document.querySelector('#authBadge')?.textContent.includes('connecté'),{timeout:5000});
+  await sleep(500);
+  const afterAuth = await page.evaluate(()=>({
+    topStatus:document.querySelector('#topStatus')?.textContent,
+    auth:document.querySelector('#authBadge')?.textContent,
+    options:document.querySelector('#projectSelect')?.options.length,
+    html:document.querySelector('#projectSelect')?.innerHTML,
+    fetchLog:window.__mockFetchLog
+  }));
+  console.log('STATE_AFTER_AUTH',JSON.stringify(afterAuth));
   await page.waitForFunction(()=>document.querySelector('#projectSelect')?.options.length>1,{timeout:5000});
   await page.select('#projectSelect','TEST_SCRIPT_ID');
   await page.click('#loadProject');
