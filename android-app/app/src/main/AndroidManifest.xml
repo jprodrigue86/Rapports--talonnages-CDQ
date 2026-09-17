@@ -3,6 +3,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:allowBackup="false"
+        android:icon="@drawable/ic_launcher"
         android:label="CDQ Apps Script Manager"
         android:theme="@style/Theme.CDQAppsScriptManager"
         android:usesCleartextTraffic="false">
