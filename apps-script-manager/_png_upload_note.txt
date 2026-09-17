@@ -1,0 +1,1 @@
+PNG icons are uploaded through Git objects; this note can be removed later.
