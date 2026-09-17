@@ -5,7 +5,6 @@ on:
     paths:
       - 'apps-script-manager/**'
       - 'tests/test-apps-script-manager.mjs'
-      - 'tests/debug-apps-script-click.mjs'
       - '.github/workflows/test-apps-script-manager.yml'
   workflow_dispatch:
 
@@ -30,10 +29,6 @@ jobs:
           else echo 'Chrome/Chromium not found'; exit 1; fi
       - name: Install browser test dependency
         run: npm install --no-save puppeteer-core@24
-      - name: Diagnose physical connect click
-        env:
-          CHROME_PATH: ${{ steps.chrome.outputs.path }}
-        run: node tests/debug-apps-script-click.mjs
       - name: Run Chrome validation
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
