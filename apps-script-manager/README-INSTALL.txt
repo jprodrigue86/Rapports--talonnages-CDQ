@@ -1,5 +1,7 @@
 CDQ Apps Script Manager — Android
 
+Version V8 — validation Android/PWA
+
 1) Ouvrir dans Google Chrome :
    https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/
 
