@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-48-nav-offline-ui';
-const FORCE_BUILD = '2026.09.16.0315-v21.42';
+const CACHE = 'cdq-installable-v21-53-android-auth-hotfix';
+const FORCE_BUILD = '2026.09.17.0835-v21.53-auth-hotfix';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
@@ -46,7 +46,7 @@ self.addEventListener('fetch', event => {
   }
   if (url.origin !== SCOPE.origin || !url.pathname.startsWith(SCOPE.pathname)) return;
   const key = shellKey(url);
-  const critical = event.request.mode === 'navigate' || ['index.html','version.json','firebase-config.js','manifest.webmanifest']
+  const critical = event.request.mode === 'navigate' || ['index.html','version.json','firebase-config.js','google-auth-config.js','manifest.webmanifest']
     .some(name => key === new URL(name, SCOPE).href);
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
