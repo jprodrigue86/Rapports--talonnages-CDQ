@@ -16,11 +16,6 @@ class MainActivity : Activity() {
         openManager()
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        openManager()
-    }
-
     private fun openManager() {
         val customTabs = CustomTabsIntent.Builder()
             .setShowTitle(false)
@@ -35,6 +30,8 @@ class MainActivity : Activity() {
             customTabs.launchUrl(this, appUrl)
         } catch (_: ActivityNotFoundException) {
             startActivity(Intent(Intent.ACTION_VIEW, appUrl))
+        } finally {
+            finish()
         }
     }
 }
