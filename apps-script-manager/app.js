@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id),LS=localStorage;let installPrompt=null;function msg(t,k=''){status.textContent=t;status.className=k}function top(t,k=''){topStatus.textContent=t;topStatus.className=k}function saveBackup(c){LS.setItem('cdq_backup',JSON.stringify({date:new Date().toISOString(),scriptId:scriptId(),content:c}));backupInfo.textContent='Sauvegarde : '+new Date().toLocaleString('fr-CA',{hour12:false})}function readBackup(){try{return JSON.parse(LS.getItem('cdq_backup')||'null')}catch{return null}}
 function saveSettings(){LS.setItem('cdq_client',clientId.value);LS.setItem('cdq_script',scriptId());LS.setItem('cdq_code_name',codeName.value);LS.setItem('cdq_selector_name',selectorName.value);LS.setItem('cdq_code',codeEditor.value);LS.setItem('cdq_selector',selectorEditor.value);LS.setItem('cdq_dep',deployment.value);top('Réglages enregistrés.','ok')}
 function loadSettings(){clientId.value=LS.getItem('cdq_client')||clientId.value;scriptId.value=LS.getItem('cdq_script')||'';codeName.value=LS.getItem('cdq_code_name')||'Code.gs';selectorName.value=LS.getItem('cdq_selector_name')||'Selecteur.html';codeEditor.value=LS.getItem('cdq_code')||'';selectorEditor.value=LS.getItem('cdq_selector')||'';description.value='Mise à jour CDQ - '+new Date().toLocaleString('fr-CA',{hour12:false});const b=readBackup();if(b)backupInfo.textContent='Sauvegarde : '+new Date(b.date).toLocaleString('fr-CA',{hour12:false});updateInstallState()}
-async function loadProject(){msg('Lecture du projet…');const c=await getContent();const d=await getDeployments();deployment.innerHTML='<option value="">— Choisir le déploiement —</option>';for(const x of d.deployments||[]){const o=document.createElement('option');o.value=x.deploymentId;o.textContent=(x.deploymentConfig?.description||'Déploiement')+(x.deploymentConfig?.versionNumber?' • v'+x.deploymentConfig.versionNumber:'');deployment.appendChild(o)}const old=LS.getItem('cdq_dep');if(old&&[...deployment.options].some(o=>o.value===old))deployment.value=old;else if((d.deployments||[]).length===1)deployment.value=d.deployments[0].deploymentId;projectBadge.textContent='Projet : chargé';projectBadge.classList.add('ok');msg((c.files?.length||0)+' fichiers détectés.','ok')}
+async function loadProject(){if(!scriptId()){msg('Recherche automatique du projet Balance CDQ…');const found=await autoFindBalanceProject();if(!found)throw Error('Projet Balance CDQ introuvable automatiquement. Colle l’URL du projet Apps Script ou son Script ID.');scriptId.value=found.id;LS.setItem('cdq_script',found.id);top('Projet trouvé : '+found.name,'ok')}msg('Lecture du projet…');const c=await getContent();const d=await getDeployments();deployment.innerHTML='<option value="">— Choisir le déploiement —</option>';for(const x of d.deployments||[]){const o=document.createElement('option');o.value=x.deploymentId;o.textContent=(x.deploymentConfig?.description||'Déploiement')+(x.deploymentConfig?.versionNumber?' • v'+x.deploymentConfig.versionNumber:'');deployment.appendChild(o)}const old=LS.getItem('cdq_dep');if(old&&[...deployment.options].some(o=>o.value===old))deployment.value=old;else if((d.deployments||[]).length===1)deployment.value=d.deployments[0].deploymentId;projectBadge.textContent='Projet : chargé';projectBadge.classList.add('ok');msg((c.files?.length||0)+' fichiers détectés.','ok')}
 async function run(fn,start){try{msg(start);await fn()}catch(e){msg('Échec : '+e.message,'err');throw e}}
 connect.onclick=()=>run(async()=>{await auth();authBadge.textContent='Google : connecté';authBadge.classList.add('ok');top('Connexion Google réussie.','ok')},'Connexion Google…').catch(e=>top(e.message,'err'));loadProject.onclick=()=>run(loadProject,'Lecture…').catch(()=>{});saveSettings.onclick=saveSettings;deployment.onchange=()=>LS.setItem('cdq_dep',deployment.value);
 codeEditor.oninput=()=>LS.setItem('cdq_code',codeEditor.value);selectorEditor.oninput=()=>LS.setItem('cdq_selector',selectorEditor.value);pasteCode.onclick=async()=>{try{codeEditor.value=await navigator.clipboard.readText();LS.setItem('cdq_code',codeEditor.value)}catch{codeEditor.focus()}};pasteSelector.onclick=async()=>{try{selectorEditor.value=await navigator.clipboard.readText();LS.setItem('cdq_selector',selectorEditor.value)}catch{selectorEditor.focus()}};
@@ -17,12 +17,17 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installProm
 /* V21.56 — réparation automatique Balance CDQ depuis Android. */
 const CDQ_WORKING_DEPLOYMENT='AKfycbzZt5zgKLJA3FlRXgJOqR8OLopFBkCg8vapy4fLMNM37rlrYv0U__p8V22O_QAq5gk';
 async function cdqRepairBalance(){
-  if(!scriptId())throw Error('Colle d’abord l’URL de ton projet Apps Script ou son Script ID.');
   await auth();authBadge.textContent='Google : connecté';authBadge.classList.add('ok');
+  if(!scriptId()){
+    msg('Recherche automatique du projet Balance CDQ…');
+    const found=await autoFindBalanceProject();
+    if(!found)throw Error('Je n’ai pas trouvé automatiquement le projet Balance CDQ. Colle l’URL du projet Apps Script ou son Script ID puis retouche le bouton.');
+    scriptId.value=found.id;LS.setItem('cdq_script',found.id);top('Projet trouvé automatiquement : '+found.name,'ok');
+  }
   msg('1/5 Lecture et sauvegarde du projet…');
   const cur=await getContent();saveBackup(cur);
   if(!cur.files?.some(f=>f.type==='JSON'&&f.name==='appsscript'))throw Error('appsscript.json introuvable : ce projet ne semble pas être Balance CDQ.');
-  const r=await fetch('./patch-v21-56.html?v=1',{cache:'no-store'});if(!r.ok)throw Error('Correctif V21.56 introuvable.');const patch=await r.text();
+  const r=await fetch('./patch-v21-56.html?v=2',{cache:'no-store'});if(!r.ok)throw Error('Correctif V21.56 introuvable.');const patch=await r.text();
   const files=JSON.parse(JSON.stringify(cur.files));
   const html=files.filter(f=>f.type==='HTML');
   let sel=html.find(f=>/selector|selecteur/i.test(f.name||''));
@@ -37,7 +42,7 @@ async function cdqRepairBalance(){
   const ds=await getDeployments();
   deployment.innerHTML='<option value="">— Choisir le déploiement —</option>';for(const x of ds.deployments||[]){const o=document.createElement('option');o.value=x.deploymentId;o.textContent=(x.deploymentConfig?.description||'Déploiement')+(x.deploymentConfig?.versionNumber?' • v'+x.deploymentConfig.versionNumber:'');deployment.appendChild(o)}
   let dep=(ds.deployments||[]).find(x=>x.deploymentId===CDQ_WORKING_DEPLOYMENT);
-  if(!dep&&deployment.value)dep=(ds.deployments||[]).find(x=>x.deploymentId===deployment.value);
+  const savedDep=LS.getItem('cdq_dep');if(!dep&&savedDep)dep=(ds.deployments||[]).find(x=>x.deploymentId===savedDep);
   if(!dep&&(ds.deployments||[]).length===1)dep=ds.deployments[0];
   if(!dep)throw Error('Le déploiement fonctionnel n’a pas été trouvé automatiquement. Choisis-le dans la liste puis retouche le bouton de réparation.');
   deployment.value=dep.deploymentId;LS.setItem('cdq_dep',dep.deploymentId);description.value='Balance CDQ V21.56 — scroll Android + partage installation';
@@ -51,4 +56,4 @@ async function cdqRepairBalance(){
 }
 repairCdq.onclick=()=>run(cdqRepairBalance,'Préparation de la réparation…').catch(()=>{});
 
-loadSettings();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js?v=5').then(()=>top('Application chargée. Utilise Chrome pour l’installation et Google.')).catch(e=>top('Service d’installation : '+e.message,'err'));
+loadSettings();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js?v=6').then(()=>top('Application chargée. Utilise Chrome pour l’installation et Google.')).catch(e=>top('Service d’installation : '+e.message,'err'));
