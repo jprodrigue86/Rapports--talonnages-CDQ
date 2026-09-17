@@ -7,12 +7,61 @@
 (function (root) {
   'use strict';
 
+  const NEW_APP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
+
   root.CDQ_GOOGLE_AUTH_CONFIG = Object.freeze({
     clientId: '764508884818-u4qnjmflg2bbht0e8ja22m8blrbm8nmk.apps.googleusercontent.com',
     expectedOrigin: 'https://jprodrigue86.github.io',
     uxMode: 'popup',
-    autoSelect: false
+    autoSelect: false,
+    appUrl: NEW_APP_URL
   });
+
+  /* =====================================================
+     DÉPLOIEMENT APPS SCRIPT ACTIF — 2026-09-17
+     index.html contient encore l'ancienne URL en dur. Ce pont, chargé AVANT
+     le script principal, remplace uniquement les navigations de l'iframe #app
+     vers le nouveau déploiement sans toucher aux données ni à l'authentification.
+     Les paramètres de relance sont conservés; l'ancien cdq_deploy est retiré.
+  ===================================================== */
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    try {
+      const descriptor = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src');
+      if (descriptor && descriptor.get && descriptor.set && descriptor.configurable) {
+        Object.defineProperty(HTMLIFrameElement.prototype, 'src', {
+          configurable: true,
+          enumerable: descriptor.enumerable,
+          get: descriptor.get,
+          set: function (value) {
+            let next = String(value == null ? '' : value);
+            try {
+              if (this && this.id === 'app' && /^https:\/\/script\.google\.com\/macros\/s\//i.test(next)) {
+                const incoming = new URL(next);
+                const target = new URL(NEW_APP_URL);
+                incoming.searchParams.forEach(function (v, k) {
+                  if (k !== 'cdq_deploy') target.searchParams.set(k, v);
+                });
+                next = target.href;
+              }
+            } catch (e) {}
+            return descriptor.set.call(this, next);
+          }
+        });
+      }
+    } catch (e) {}
+
+    const corrigerLienDirect = function () {
+      try {
+        const lien = document.getElementById('open-direct');
+        if (lien) lien.href = NEW_APP_URL;
+      } catch (e) {}
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', corrigerLienDirect, {once:true});
+    } else {
+      corrigerLienDirect();
+    }
+  }
 
   /* =====================================================
      HOTFIX ANDROID 2026-09-17
@@ -26,7 +75,7 @@
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
   const DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
-  const RECENT_GOOGLE_KEY = 'cdq_google_ok_recent_v53';
+  const RECENT_GOOGLE_KEY = 'cdq_google_ok_recent_v54';
   let pendingGoogleRequest = null;
   let restoreTimer = 0;
   let freshChallengeTimer = 0;
@@ -160,8 +209,6 @@
         restoreGooglePrompt();
         return;
       }
-      // Nouveau technicien : ne jamais accepter l'écran de clé comme première
-      // étape si aucune connexion Google récente et aucun appareil activé n'existe.
       if (data.state === 'input' && !hasStableDeviceToken() &&
           Date.now() - recentGoogleAt() >= 10 * 60 * 1000) {
         requestFreshChallenge('activation-input-without-google');
