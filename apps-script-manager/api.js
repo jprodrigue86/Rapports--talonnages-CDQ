@@ -1,15 +1,221 @@
-const CDQ={token:'',content:null,version:null};const SCOPES='https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.deployments https://www.googleapis.com/auth/drive.metadata.readonly';
-function scriptId(){const v=document.getElementById('scriptId').value.trim();const m=v.match(/\/projects\/([A-Za-z0-9_-]+)/);return m?m[1]:v.replace(/\s+/g,'')}
-async function googleReady(){for(let i=0;i<80;i++){if(window.google?.accounts?.oauth2)return;await new Promise(r=>setTimeout(r,100))}throw Error('Le module Google ne s’est pas chargé. Ouvre cette application dans Chrome et vérifie Internet.')}
-async function auth(){if(CDQ.token)return;await googleReady();const id=document.getElementById('clientId').value.trim();if(!id)throw Error('OAuth Client ID manquant.');await new Promise((ok,no)=>{let done=false;const fail=e=>{if(done)return;done=true;clearTimeout(timer);const t=e?.type||e?.error||'';if(t==='popup_failed_to_open')return no(Error('Chrome a bloqué la fenêtre Google. Autorise les fenêtres contextuelles puis réessaie.'));if(t==='popup_closed')return no(Error('La fenêtre Google a été fermée avant la connexion.'));no(Error(e?.message||e?.error_description||t||'Connexion Google impossible.'))};const c=google.accounts.oauth2.initTokenClient({client_id:id,scope:SCOPES,callback:r=>{if(done)return;if(r.error)return fail(r);done=true;clearTimeout(timer);CDQ.token=r.access_token;ok()},error_callback:fail});const timer=setTimeout(()=>{if(done)return;done=true;no(Error('Google n’a pas ouvert la connexion. Vérifie que tu es dans Chrome et que l’origine https://jprodrigue86.github.io est autorisée dans ce Client ID Google.'))},10000);try{c.requestAccessToken({prompt:'consent'})}catch(e){fail(e)}})}
-async function gapi(path,opt={}){await auth();const r=await fetch('https://script.googleapis.com/v1'+path,{...opt,headers:{Authorization:'Bearer '+CDQ.token,'Content-Type':'application/json',...(opt.headers||{})}});const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{d={raw:t}}if(!r.ok){if(r.status===401)CDQ.token='';throw Error(d?.error?.message||d.raw||('Erreur Google '+r.status))}return d}
-async function driveApi(url){await auth();const r=await fetch(url,{headers:{Authorization:'Bearer '+CDQ.token}});const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{d={raw:t}}if(!r.ok){if(r.status===401)CDQ.token='';throw Error(d?.error?.message||d.raw||('Erreur Google Drive '+r.status))}return d}
-async function getContent(){const id=scriptId();if(!id)throw Error('Script ID manquant.');CDQ.content=await gapi('/projects/'+encodeURIComponent(id)+'/content');return CDQ.content}
-async function getDeployments(){return gapi('/projects/'+encodeURIComponent(scriptId())+'/deployments')}
-async function listAppsScriptProjects(){const q=encodeURIComponent("mimeType='application/vnd.google-apps.script' and trashed=false");return driveApi('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name,modifiedTime,webViewLink)&orderBy=modifiedTime%20desc&pageSize=100')}
-async function autoFindBalanceProject(){const d=await listAppsScriptProjects();const items=(d.files||[]).slice();items.sort((a,b)=>{const score=x=>/rapport.*[ée]talonnage|balance\s*cdq|etalonnage/i.test(String(x.name||''))?1:0;return score(b)-score(a)||String(b.modifiedTime||'').localeCompare(String(a.modifiedTime||''))});let tested=0;for(const f of items){if(tested++>=40)break;try{const c=await gapi('/projects/'+encodeURIComponent(f.id)+'/content');const src=(c.files||[]).map(x=>String(x.source||'')).join('\n');if(src.includes('adminModalOverlay')&&src.includes('displayModeButton')&&(src.includes('Rapports D’étalonnages')||src.includes('Rapports D\'étalonnages')||src.includes('CDQ'))){CDQ.content=c;return{id:f.id,name:f.name||'Balance CDQ',content:c}}}catch(e){}}return null}
-function base(n,t){n=n.trim();return t==='SERVER_JS'?n.replace(/\.gs$/i,''):n.replace(/\.html?$/i,'')}
-function replaceFile(files,name,type,source){const n=base(name,type);let f=files.find(x=>x.type===type&&x.name.toLowerCase()===n.toLowerCase());if(f)f.source=source;else files.push({name:n,type,source})}
-async function updateFiles(code,selector){const cur=await getContent();saveBackup(cur);if(!cur.files?.some(f=>f.type==='JSON'&&f.name==='appsscript'))throw Error('appsscript.json introuvable.');const files=JSON.parse(JSON.stringify(cur.files));if(code)replaceFile(files,codeName.value,'SERVER_JS',codeEditor.value);if(selector)replaceFile(files,selectorName.value,'HTML',selectorEditor.value);CDQ.content=await gapi('/projects/'+encodeURIComponent(scriptId())+'/content',{method:'PUT',body:JSON.stringify({files})});return CDQ.content}
-async function createVersion(){CDQ.version=await gapi('/projects/'+encodeURIComponent(scriptId())+'/versions',{method:'POST',body:JSON.stringify({description:description.value.trim()||'Mise à jour CDQ'})});return CDQ.version}
-async function deployVersion(v){const dep=deployment.value;if(!dep)throw Error('Choisis le déploiement existant.');return gapi('/projects/'+encodeURIComponent(scriptId())+'/deployments/'+encodeURIComponent(dep),{method:'PUT',body:JSON.stringify({deploymentConfig:{scriptId:scriptId(),versionNumber:v.versionNumber,manifestFileName:'appsscript',description:description.value.trim()||'Mise à jour CDQ'}})})}
+'use strict';
+
+const CDQ = {
+  token: '',
+  expiresAt: 0,
+  tokenClient: null,
+  currentProject: null,
+  content: null,
+  deployments: [],
+  versions: [],
+};
+
+const SCOPES = [
+  'https://www.googleapis.com/auth/script.projects',
+  'https://www.googleapis.com/auth/script.deployments',
+  'https://www.googleapis.com/auth/drive.metadata.readonly',
+].join(' ');
+
+function normalizeScriptId(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const patterns = [
+    /\/projects\/([A-Za-z0-9_-]+)/,
+    /\/d\/([A-Za-z0-9_-]+)/,
+  ];
+  for (const p of patterns) {
+    const m = raw.match(p);
+    if (m) return m[1];
+  }
+  return raw.replace(/\s+/g, '');
+}
+
+function apiErrorPayload(text) {
+  try { return text ? JSON.parse(text) : {}; }
+  catch { return { raw: text }; }
+}
+
+function friendlyGoogleError(status, data) {
+  const message = data?.error?.message || data?.error_description || data?.raw || `Erreur Google ${status}`;
+  if (/Apps Script API has not been used|disabled/i.test(message)) {
+    return 'L’API Google Apps Script n’est pas activée dans le projet Google Cloud de ce Client ID.';
+  }
+  if (/insufficient.*scope|insufficient authentication scopes/i.test(message)) {
+    return 'Google n’a pas accordé toutes les autorisations nécessaires. Déconnecte puis reconnecte Google.';
+  }
+  if (/permission|forbidden|not have permission/i.test(message)) {
+    return 'Ton compte Google n’a pas la permission d’accéder à ce projet Apps Script.';
+  }
+  if (status === 401) return 'La session Google a expiré. Reconnecte-toi puis réessaie.';
+  return message;
+}
+
+async function waitForGoogleIdentity() {
+  for (let i = 0; i < 100; i++) {
+    if (window.google?.accounts?.oauth2) return true;
+    await new Promise(r => setTimeout(r, 60));
+  }
+  throw new Error('Le module de connexion Google ne s’est pas chargé. Ouvre l’application dans Google Chrome avec Internet.');
+}
+
+async function prepareGoogleClient(clientId) {
+  await waitForGoogleIdentity();
+  if (!clientId) throw new Error('OAuth Client ID manquant.');
+  if (CDQ.tokenClient && CDQ.tokenClient.__clientId === clientId) return CDQ.tokenClient;
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: SCOPES,
+    include_granted_scopes: true,
+    callback: () => {},
+    error_callback: () => {},
+  });
+  client.__clientId = clientId;
+  CDQ.tokenClient = client;
+  return client;
+}
+
+async function requestGoogleToken(clientId, forceConsent = false) {
+  let client = (CDQ.tokenClient && CDQ.tokenClient.__clientId === clientId) ? CDQ.tokenClient : null;
+  if (!client) client = await prepareGoogleClient(clientId);
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finishError = (err) => {
+      if (settled) return;
+      settled = true;
+      const code = err?.type || err?.error || '';
+      if (code === 'popup_failed_to_open') return reject(new Error('Chrome a bloqué la fenêtre Google. Vérifie que tu utilises bien Chrome et réessaie en touchant directement « Se connecter à Google ».'));
+      if (code === 'popup_closed') return reject(new Error('La fenêtre Google a été fermée avant la fin de la connexion.'));
+      reject(new Error(err?.message || err?.error_description || code || 'Connexion Google impossible.'));
+    };
+    client.callback = (response) => {
+      if (settled) return;
+      if (response?.error) return finishError(response);
+      settled = true;
+      CDQ.token = response.access_token || '';
+      const expiresIn = Number(response.expires_in || 3600);
+      CDQ.expiresAt = Date.now() + Math.max(60, expiresIn - 60) * 1000;
+      resolve(response);
+    };
+    client.error_callback = finishError;
+    try {
+      client.requestAccessToken({ prompt: forceConsent ? 'consent select_account' : 'select_account' });
+    } catch (err) {
+      finishError(err);
+    }
+  });
+}
+
+function hasLiveToken() {
+  return Boolean(CDQ.token && Date.now() < CDQ.expiresAt);
+}
+
+async function ensureAuth(clientId) {
+  if (hasLiveToken()) return CDQ.token;
+  await requestGoogleToken(clientId, false);
+  return CDQ.token;
+}
+
+function revokeGoogleToken() {
+  const token = CDQ.token;
+  CDQ.token = '';
+  CDQ.expiresAt = 0;
+  if (token && window.google?.accounts?.oauth2?.revoke) {
+    try { google.accounts.oauth2.revoke(token, () => {}); } catch {}
+  }
+}
+
+async function googleFetch(url, clientId, options = {}) {
+  await ensureAuth(clientId);
+  const headers = new Headers(options.headers || {});
+  headers.set('Authorization', `Bearer ${CDQ.token}`);
+  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  let response = await fetch(url, { ...options, headers });
+  if (response.status === 401) {
+    CDQ.token = '';
+    CDQ.expiresAt = 0;
+    await ensureAuth(clientId);
+    headers.set('Authorization', `Bearer ${CDQ.token}`);
+    response = await fetch(url, { ...options, headers });
+  }
+  const text = await response.text();
+  const data = apiErrorPayload(text);
+  if (!response.ok) throw new Error(friendlyGoogleError(response.status, data));
+  return data;
+}
+
+function scriptApiUrl(path) {
+  return `https://script.googleapis.com/v1${path}`;
+}
+
+async function listAppsScriptProjects(clientId) {
+  const q = encodeURIComponent("mimeType='application/vnd.google-apps.script' and trashed=false");
+  const fields = encodeURIComponent('files(id,name,modifiedTime,webViewLink,owners(displayName,emailAddress))');
+  const orderBy = encodeURIComponent('modifiedTime desc');
+  return googleFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=${orderBy}&pageSize=200`, clientId);
+}
+
+async function getProjectMetadata(scriptId, clientId) {
+  return googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}`), clientId);
+}
+
+async function getProjectContent(scriptId, clientId) {
+  const content = await googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/content`), clientId);
+  CDQ.content = content;
+  return content;
+}
+
+async function updateProjectContent(scriptId, files, clientId) {
+  const result = await googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/content`), clientId, {
+    method: 'PUT',
+    body: JSON.stringify({ files }),
+  });
+  CDQ.content = result;
+  return result;
+}
+
+async function listDeployments(scriptId, clientId) {
+  const data = await googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/deployments`), clientId);
+  CDQ.deployments = data.deployments || [];
+  return CDQ.deployments;
+}
+
+async function createProjectVersion(scriptId, description, clientId) {
+  return googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/versions`), clientId, {
+    method: 'POST',
+    body: JSON.stringify({ description: description || 'Mise à jour CDQ' }),
+  });
+}
+
+async function updateDeployment(scriptId, deploymentId, versionNumber, description, clientId) {
+  return googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/deployments/${encodeURIComponent(deploymentId)}`), clientId, {
+    method: 'PUT',
+    body: JSON.stringify({
+      deploymentConfig: {
+        scriptId,
+        versionNumber,
+        manifestFileName: 'appsscript',
+        description: description || 'Mise à jour CDQ',
+      },
+    }),
+  });
+}
+
+function apiNameFromDisplayName(displayName) {
+  const name = String(displayName || '').trim();
+  if (/^appsscript\.json$/i.test(name)) return { name: 'appsscript', type: 'JSON' };
+  if (/\.gs$/i.test(name)) return { name: name.replace(/\.gs$/i, ''), type: 'SERVER_JS' };
+  if (/\.html?$/i.test(name)) return { name: name.replace(/\.html?$/i, ''), type: 'HTML' };
+  return { name, type: 'SERVER_JS' };
+}
+
+function displayNameForFile(file) {
+  if (file.type === 'JSON' && file.name === 'appsscript') return 'appsscript.json';
+  if (file.type === 'SERVER_JS') return `${file.name}.gs`;
+  if (file.type === 'HTML') return `${file.name}.html`;
+  return file.name;
+}
+
+function findFile(files, displayName) {
+  const spec = apiNameFromDisplayName(displayName);
+  return files.find(f => f.type === spec.type && String(f.name).toLowerCase() === spec.name.toLowerCase());
+}
