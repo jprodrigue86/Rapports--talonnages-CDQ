@@ -45,9 +45,12 @@ try {
     ];
     window.google={accounts:{oauth2:{
       initTokenClient(opts){
-        return {
-          requestAccessToken(){setTimeout(()=>opts.callback({access_token:'TEST_TOKEN',expires_in:3600}),10)}
+        const tokenClient={
+          callback:opts.callback,
+          error_callback:opts.error_callback,
+          requestAccessToken(){setTimeout(()=>tokenClient.callback({access_token:'TEST_TOKEN',expires_in:3600}),10)}
         };
+        return tokenClient;
       },
       revoke(token,cb){ if(cb) cb(); }
     }}};
