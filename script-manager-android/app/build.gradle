@@ -1,0 +1,26 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'ca.balancecdq.scriptmanager'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'ca.balancecdq.scriptmanager'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.browser:browser:1.8.0'
+}
