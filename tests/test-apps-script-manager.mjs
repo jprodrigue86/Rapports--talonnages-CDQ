@@ -4,7 +4,6 @@ import {spawn} from 'node:child_process';
 const chrome = process.env.CHROME_PATH || '/usr/bin/google-chrome';
 const server = spawn('python3',['-m','http.server','8080','--bind','127.0.0.1'],{stdio:'inherit'});
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
-
 function assert(cond,msg){ if(!cond) throw new Error(msg); }
 
 let browser;
@@ -12,11 +11,22 @@ try {
   await sleep(800);
   browser = await puppeteer.launch({executablePath:chrome,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
   const page = await browser.newPage();
+  await page.setRequestInterception(true);
+  page.on('request',req=>{
+    if(req.url().startsWith('https://accounts.google.com/')) req.abort();
+    else req.continue();
+  });
   const client = await page.createCDPSession();
 
-  await page.goto('http://127.0.0.1:8080/apps-script-manager/',{waitUntil:'networkidle0',timeout:30000});
-  await page.evaluate(async()=>{ if('serviceWorker' in navigator) await navigator.serviceWorker.ready; });
-  await sleep(500);
+  await page.goto('http://127.0.0.1:8080/apps-script-manager/',{waitUntil:'domcontentloaded',timeout:15000});
+  await page.waitForSelector('#connect',{timeout:5000});
+  const swReady = await page.evaluate(async()=>{
+    if(!('serviceWorker' in navigator)) return false;
+    try { await Promise.race([navigator.serviceWorker.ready,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),7000))]); return true; }
+    catch { return false; }
+  });
+  assert(swReady,'Service worker did not become ready');
+  await sleep(800);
 
   const manifest = await client.send('Page.getAppManifest');
   assert(!manifest.errors?.length,'Manifest errors: '+JSON.stringify(manifest.errors));
@@ -75,6 +85,7 @@ try {
 
   console.log('PASS: manifest valid');
   console.log('PASS: Chrome reports zero installability errors');
+  console.log('PASS: service worker ready');
   console.log('PASS: PNG icons 192x192 and 512x512 decode correctly');
   console.log('PASS: Google OAuth button callback path works');
   console.log('PASS: read -> backup -> replace -> version -> deploy flow works');
