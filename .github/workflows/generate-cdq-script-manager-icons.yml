@@ -1,0 +1,31 @@
+name: Generate CDQ Script Manager Icons
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/generate_cdq_script_manager_icons.py'
+      - '.github/workflows/generate-cdq-script-manager-icons.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-icons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate valid PNG icons
+        run: python3 scripts/generate_cdq_script_manager_icons.py
+      - name: Commit generated icons
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps-script-manager/icon-192.png apps-script-manager/icon-512.png
+          if git diff --cached --quiet; then
+            echo "Icons already valid and current."
+          else
+            git commit -m "Generate valid CDQ Android PWA icons"
+            git push origin HEAD:main
+          fi
