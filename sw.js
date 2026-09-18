@@ -1,11 +1,11 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-59-google-touch-fix';
-const FORCE_BUILD = '2026.09.17.2033-v21.59-google-touch-fix';
+const CACHE = 'cdq-installable-v21-70-music-wall-fit';
+const FORCE_BUILD = '2026.09.17.2218-v21.70-music-wall-fit';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
-  './assets/music-wall-choice1.webp?v=20260911-clean'
+  './assets/music-wall-choice1.webp?v=20260917-fit70'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
