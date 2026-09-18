@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V17';
+const APP_VERSION = 'V18';
 
 const status = $('status');
 const topStatus = $('topStatus');
@@ -183,34 +183,148 @@ function bootSettings() {
   }
 }
 
-function backups() {
-  try { return JSON.parse(LS.getItem('cdqsm_backups') || '[]'); }
-  catch { return []; }
-}
+const BACKUP_DB_NAME = 'cdqsm-backups-v1';
+const BACKUP_STORE = 'backups';
+const BACKUP_LIMIT = 6;
 
-function saveBackup(id, content, label = 'Sauvegarde automatique') {
-  const all = backups();
-  all.unshift({ date: new Date().toISOString(), scriptId: id, label, content });
-  LS.setItem('cdqsm_backups', JSON.stringify(all.slice(0, 12)));
-  renderBackups();
-}
-
-function renderBackups() {
-  const all = backups();
-  backupList.innerHTML = all.length
-    ? all.map((b, i) => `<div class="backup-item"><div><b>${esc(b.label)}</b><span>${esc(new Date(b.date).toLocaleString('fr-CA', { hour12: false }))} • ${esc(b.scriptId)}</span></div><button data-r="${i}">Restaurer</button></div>`).join('')
-    : '<div class="empty">Aucune sauvegarde locale.</div>';
-  backupList.querySelectorAll('[data-r]').forEach(btn => {
-    btn.onclick = () => restoreBackup(Number(btn.dataset.r));
+function openBackupDb() {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) return reject(new Error('IndexedDB indisponible sur ce navigateur.'));
+    const request = indexedDB.open(BACKUP_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(BACKUP_STORE)) {
+        const store = db.createObjectStore(BACKUP_STORE, { keyPath: 'id' });
+        store.createIndex('date', 'date', { unique: false });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('Impossible d’ouvrir la base de sauvegarde.'));
   });
 }
 
-async function restoreBackup(index) {
-  const backup = backups()[index];
+async function backupPut(record) {
+  const db = await openBackupDb();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(BACKUP_STORE, 'readwrite');
+      tx.objectStore(BACKUP_STORE).put(record);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('Échec d’écriture de la sauvegarde.'));
+      tx.onabort = () => reject(tx.error || new Error('Sauvegarde interrompue.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function backupList() {
+  const db = await openBackupDb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(BACKUP_STORE, 'readonly');
+      const req = tx.objectStore(BACKUP_STORE).getAll();
+      req.onsuccess = () => resolve((req.result || []).sort((a,b) => String(b.date).localeCompare(String(a.date))));
+      req.onerror = () => reject(req.error || new Error('Lecture des sauvegardes impossible.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function backupGet(id) {
+  const db = await openBackupDb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(BACKUP_STORE, 'readonly');
+      const req = tx.objectStore(BACKUP_STORE).get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error || new Error('Sauvegarde introuvable.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function backupDelete(id) {
+  const db = await openBackupDb();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(BACKUP_STORE, 'readwrite');
+      tx.objectStore(BACKUP_STORE).delete(id);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('Suppression de sauvegarde impossible.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function pruneBackups() {
+  const all = await backupList();
+  for (const old of all.slice(BACKUP_LIMIT)) {
+    await backupDelete(old.id);
+  }
+}
+
+async function migrateLegacyBackups() {
+  const raw = LS.getItem('cdqsm_backups');
+  if (!raw) return;
+  try {
+    const legacy = JSON.parse(raw);
+    if (Array.isArray(legacy)) {
+      for (const b of legacy.slice(0, BACKUP_LIMIT)) {
+        if (!b?.content?.files) continue;
+        const date = b.date || new Date().toISOString();
+        await backupPut({
+          id: `legacy-${date}-${b.scriptId || 'project'}-${Math.random().toString(36).slice(2,8)}`,
+          date,
+          scriptId: b.scriptId || '',
+          label: b.label || 'Sauvegarde migrée',
+          content: b.content
+        });
+      }
+    }
+  } catch {}
+  try { LS.removeItem('cdqsm_backups'); } catch {}
+  await pruneBackups();
+}
+
+async function saveBackup(id, content, label = 'Sauvegarde automatique') {
+  const date = new Date().toISOString();
+  const record = {
+    id: `${date}-${id}-${Math.random().toString(36).slice(2,8)}`,
+    date,
+    scriptId: id,
+    label,
+    content
+  };
+  await backupPut(record);
+  await pruneBackups();
+  await renderBackups();
+  return record;
+}
+
+async function renderBackups() {
+  try {
+    const all = await backupList();
+    backupList.innerHTML = all.length
+      ? all.map(b => `<div class="backup-item"><div><b>${esc(b.label)}</b><span>${esc(new Date(b.date).toLocaleString('fr-CA', { hour12: false }))} • ${esc(b.scriptId)}</span></div><button data-r="${esc(b.id)}">Restaurer</button></div>`).join('')
+      : '<div class="empty">Aucune sauvegarde locale.</div>';
+    backupList.querySelectorAll('[data-r]').forEach(btn => {
+      btn.onclick = () => restoreBackup(btn.dataset.r);
+    });
+  } catch (e) {
+    backupList.innerHTML = `<div class="empty">Sauvegardes indisponibles : ${esc(e.message)}</div>`;
+  }
+}
+
+async function restoreBackup(backupId) {
+  const backup = await backupGet(backupId);
   if (!backup || !confirm('Restaurer cette sauvegarde ?')) return;
   try {
     const current = await getProjectContent(backup.scriptId, cid());
-    saveBackup(backup.scriptId, current, 'Avant restauration');
+    await saveBackup(backup.scriptId, current, 'Avant restauration');
     await updateProjectContent(backup.scriptId, backup.content.files, cid());
     scriptIdInput.value = backup.scriptId;
     await readProject(backup.scriptId, false);
@@ -707,7 +821,7 @@ async function writeProjectChanges() {
   stat('1/4 Relecture depuis Google…');
   const fresh = await getProjectContent(S.id, cid());
   stat('2/4 Sauvegarde complète…');
-  saveBackup(S.id, fresh, `Avant écriture (${count} fichier${count > 1 ? 's' : ''})`);
+  await saveBackup(S.id, fresh, `Avant écriture (${count} fichier${count > 1 ? 's' : ''})`);
   stat('3/4 Écriture…');
   await updateProjectContent(S.id, buildUpdatedFileSet(fresh.files), cid());
   stat('4/4 Vérification…');
@@ -978,17 +1092,19 @@ $('deployVersion').addEventListener('click', () => runAction(writePendingAndDepl
 $('backupNow').addEventListener('click', () => runAction(async () => {
   const id = sid();
   if (!id) throw Error('Aucun projet.');
-  saveBackup(id, await getProjectContent(id, cid()), 'Sauvegarde manuelle');
+  await saveBackup(id, await getProjectContent(id, cid()), 'Sauvegarde manuelle');
   stat('Sauvegarde créée.', 'ok');
 }, 'Sauvegarde…'));
-$('downloadBackup').addEventListener('click', () => {
-  const backup = backups()[0];
+$('downloadBackup').addEventListener('click', () => runAction(async () => {
+  const all = await backupList();
+  const backup = all[0];
   if (!backup) return stat('Aucune sauvegarde.', 'warn');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
   a.download = 'CDQ_AppsScript_Backup.json';
   a.click();
-});
+  stat('Dernière sauvegarde téléchargée.', 'ok');
+}));
 
 deployment.addEventListener('change', () => {
   updateDeploymentUi();
@@ -1026,10 +1142,15 @@ window.addEventListener('appinstalled', updateInstallState);
   if ($('versionChip')) $('versionChip').textContent = APP_VERSION;
   if ($('versionBadge')) $('versionBadge').textContent = 'Version : ' + APP_VERSION;
   bootSettings();
-  renderBackups();
+  try {
+    await migrateLegacyBackups();
+  } catch (migrationError) {
+    try { LS.removeItem('cdqsm_backups'); } catch {}
+  }
+  await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=17').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=18').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
