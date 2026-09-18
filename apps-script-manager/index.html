@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>CDQ Apps Script Manager</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -20,6 +20,7 @@
         <strong>Apps Script Manager</strong>
         <span>Android • lire • comparer • écrire • déployer</span>
       </div>
+      <div class="version-chip" id="versionChip" title="Version de CDQ Script Manager">V13</div>
       <button id="installApp" class="install-btn" type="button">Installer</button>
     </div>
   </header>
@@ -38,6 +39,7 @@
         <p>Connecte ton compte Google, choisis le projet, colle le nouveau code et écris-le sans ouvrir l’éditeur Apps Script.</p>
       </div>
       <div class="status-row">
+        <span id="versionBadge" class="badge version-badge">Version : V13</span>
         <span id="authBadge" class="badge">Google : non connecté</span>
         <span id="projectBadge" class="badge">Projet : aucun</span>
         <span id="changeBadge" class="badge">Modifications : 0</span>
@@ -105,6 +107,14 @@
         <button id="parsePackage" class="primary" type="button">Préparer les modifications</button>
         <button id="clearPackage" class="secondary" type="button">Vider</button>
       </div>
+      <div id="zipStatus" class="zip-status" hidden aria-live="polite">
+        <div id="zipStatusIcon" class="zip-status-icon">📦</div>
+        <div class="zip-status-copy">
+          <strong id="zipStatusTitle">ZIP reçu</strong>
+          <span id="zipStatusDetail">En attente de décodage…</span>
+          <div class="zip-progress"><span id="zipProgressBar"></span></div>
+        </div>
+      </div>
       <div id="packageResult" class="meta"></div>
     </section>
 
@@ -163,8 +173,8 @@
     </div>
   </div>
 
-  <script src="api.js?v=12"></script>
-  <script src="jszip.min.js?v=12"></script>
-  <script src="app.js?v=12"></script>
+  <script src="api.js?v=13"></script>
+  <script src="jszip.min.js?v=13"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
