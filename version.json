@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.17.2008-v21.57-tech-login-fix",
+  "version": "2026.09.17.2033-v21.59-google-touch-fix",
   "reader_version": "21.33",
   "selector_version": "2026.09.17-v21.57-tech-login-fix",
   "backend_version": "2026.09.17-v21.57-tech-login-fix",
@@ -67,7 +67,10 @@
     "connexion-techniciens-v21-57",
     "nip-preserve-generer-codes-manquants",
     "anti-double-validation-enter",
-    "nouveau-deploiement-apps-script"
+    "nouveau-deploiement-apps-script",
+    "google-touch-zone-prioritaire",
+    "google-native-fallback-fedcm",
+    "android-google-stuck-recovery"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -79,5 +82,6 @@
   "login_backend_update_required": false,
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
-  "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec"
+  "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
+  "pwa_version": "2026.09.17.2033-v21.59-google-touch-fix"
 }
