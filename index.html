@@ -419,7 +419,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v21.90-package-propre-deploiement-production';
+const CDQ_PWA_BUILD = '2026.09.18-v21.95-iframe-load-fallback';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -464,6 +464,7 @@ const APP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjP
 const MIN_LOADING_MS = 1300;
 let loadingShownAt = performance.now();
 let selectorReady = false;
+let iframeLoaded = false;
 let selectorAwaitingAccess = false;
 let accessWaitTimer = null;
 let selectorWindow = null;
@@ -773,7 +774,7 @@ function armLoadingTimeout() {
   clearTimeout(slowLoadingTimer);
   const generation = loadGeneration;
   slowLoadingTimer=setTimeout(()=>{
-    if(selectorReady||generation!==loadGeneration)return;
+    if(selectorReady||iframeLoaded||generation!==loadGeneration)return;
     loading.style.display='none';
     loadHelp.style.display='flex';
     document.getElementById('load-title').textContent='Chargement plus long que prévu';
@@ -784,7 +785,7 @@ function armLoadingTimeout() {
     document.getElementById('open-direct').hidden=true;
   },15000);
   loadingTimer=setTimeout(()=>{
-    if(selectorReady||generation!==loadGeneration)return;
+    if(selectorReady||iframeLoaded||generation!==loadGeneration)return;
     afficherConnexionGoogle(false,'chargement');
   },45000);
 }
@@ -833,12 +834,26 @@ loading.style.display = 'none';
 // iframe.load also fires for Google error pages. Only the Selector handshake
 // proves that the application's own JavaScript has started.
 app.addEventListener('load', () => {
+if(!app.src || app.src === 'about:blank')return;
+iframeLoaded = true;
 const pcOneWall=window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches;
-if(pcOneWall && app.src && app.src !== 'about:blank'){
+if(pcOneWall){
   app.style.visibility='visible';
   loading.classList.add('pc-frame-ready');
 }
-if (!selectorReady && app.src && app.src !== 'about:blank') armLoadingTimeout();
+// V21.95 : le rendu de l'application ne dépend plus exclusivement du postMessage.
+// Sur certains Android/PWA, le Selector est chargé mais CDQ_SELECTOR_READY peut se perdre.
+// Après un très court délai, montrer l'iframe chargée au lieu de bloquer l'utilisateur.
+setTimeout(()=>{
+  if(!iframeLoaded || selectorReady)return;
+  clearTimeout(loadingTimer);
+  clearTimeout(slowLoadingTimer);
+  clearTimeout(hideLoadingTimer);
+  if(loadHelp)loadHelp.style.display='none';
+  loading.style.display='none';
+  app.style.visibility='visible';
+},900);
+if (!selectorReady) armLoadingTimeout();
 });
 
 function reessayerChargement() {
@@ -846,6 +861,7 @@ if (navigator.onLine === false) { afficherConnexionGoogle(false); return; }
 loadGeneration++;
 cdqOffline.then(controller=>controller.lock());
 selectorReady = false;
+iframeLoaded = false;
 selectorAwaitingAccess = false;
 clearTimeout(accessWaitTimer);
 annulerPontBiometrique();
