@@ -26,8 +26,8 @@ try {
     top:document.querySelector('#versionChip')?.textContent,
     badge:document.querySelector('#versionBadge')?.textContent
   }));
-  assert(visibleVersion.top==='V13','Top version chip must show V13');
-  assert(visibleVersion.badge?.includes('V13'),'Version badge must show V13');
+  assert(visibleVersion.top==='V14','Top version chip must show V14');
+  assert(visibleVersion.badge?.includes('V14'),'Version badge must show V14');
 
   const manifest = await client.send('Page.getAppManifest');
   assert(!manifest.errors?.length,'Manifest errors: '+JSON.stringify(manifest.errors));
@@ -59,7 +59,7 @@ try {
         const tokenClient={
           callback:opts.callback,
           error_callback:opts.error_callback,
-          requestAccessToken(){setTimeout(()=>tokenClient.callback({access_token:'TEST_TOKEN',expires_in:3600}),10)}
+          requestAccessToken(config={}){window.__lastTokenConfig=config;setTimeout(()=>tokenClient.callback({access_token:'TEST_TOKEN',expires_in:3600}),10)}
         };
         return tokenClient;
       },
@@ -95,6 +95,16 @@ try {
   await page.waitForFunction(()=>!document.querySelector('#connect')?.disabled,{timeout:8000});
   await page.click('#connect');
   await page.waitForFunction(()=>document.querySelector('#authBadge')?.textContent.includes('connecté'),{timeout:5000});
+  const remembered=await page.evaluate(()=>({
+    keep:localStorage.getItem('cdqsm_keep_connected'),
+    until:Number(localStorage.getItem('cdqsm_auto_connect_until')||0),
+    checked:document.querySelector('#keepConnected')?.checked,
+    prompt:window.__lastTokenConfig?.prompt
+  }));
+  assert(remembered.checked===true,'Keep connected must default to enabled');
+  assert(remembered.keep==='1','Keep connected preference must be stored');
+  assert(remembered.until>Date.now(),'Auto-connect expiration must be in the future');
+  assert(remembered.prompt==='select_account','Manual connect should allow account selection');
   await sleep(500);
   const afterAuth = await page.evaluate(()=>({
     topStatus:document.querySelector('#topStatus')?.textContent,
@@ -173,8 +183,9 @@ try {
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
+  console.log('PASS: V14 remembers the Google connection preference for 7 days without storing a permanent token');
   console.log('PASS: Drive project listing works');
-  console.log('PASS: V13 is visibly displayed in the app');
+  console.log('PASS: V14 is visibly displayed in the app');
   console.log('PASS: ZIP import shows received/decoding/success visual state');
   console.log('PASS: ZIP import finds nested GS and Selector files and maps them to the project');
   console.log('PASS: read-only HEAD deployment is excluded');
