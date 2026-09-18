@@ -1,0 +1,73 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.18",
+  "build": "2026.09.18-v22.18-audit-stable",
+  "title": "Balance CDQ V22.18 — Audit stable",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "requiresBuild": "2026.09.18-v22.17-autofit-stable",
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.17-autofit-stable",
+      "to": "2026.09.18-v22.18-audit-stable"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.17-autofit-stable",
+      "to": "2026.09.18-v22.18-audit-stable"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id",
+      "id": "cdqV2209IconSliderSafety"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id",
+      "id": "cdqV2211SliderSafety"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id",
+      "id": "cdqV2212CenteringSafety"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id",
+      "id": "cdqV2213IconRangeFinal"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "expected": 1,
+      "search": "    const m=document.getElementById('cdqDisplayModal');if(!m)return;\n    const options=m.querySelector('.cdq-display-options');if(!options||options.querySelector('[data-cdq-install-share=\"1\"]'))return;",
+      "replacement": "    const m=document.getElementById('cdqDisplayModal');if(!m)return;\n    const options=m.querySelector('.cdq-display-options');\n    if(!options || document.getElementById('cdqInstallShareSettingsButton') || options.querySelector('[data-cdq-install-share=\"1\"]'))return;"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "expected": 1,
+      "search": "  const options=panel.querySelector(\".cdq-display-options\");\n  if(!options || options.querySelector('[data-cdq-install-share-v2204=\"1\"]'))return;",
+      "replacement": "  const options=panel.querySelector(\".cdq-display-options\");\n  if(!options || document.getElementById(\"cdqInstallShareSettingsButton\") || options.querySelector('[data-cdq-install-share-v2204=\"1\"]'))return;"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "<script id=\"cdqV2218AuditDiagnostics\">\\n(function(){\\n\\\"use strict\\\";\\nconst KEY=\\\"cdq_runtime_errors_v2218\\\";\\nfunction push(item){try{const a=JSON.parse(localStorage.getItem(KEY)||\\\"[]\\\");a.push(Object.assign({at:new Date().toISOString()},item||{}));while(a.length>20)a.shift();localStorage.setItem(KEY,JSON.stringify(a));}catch(e){}}\\nwindow.addEventListener(\\\"error\\\",function(e){push({kind:\\\"error\\\",message:String(e.message||\\\"\\\"),source:String(e.filename||\\\"\\\"),line:Number(e.lineno||0)});});\\nwindow.addEventListener(\\\"unhandledrejection\\\",function(e){let reason=\\\"\\\";try{reason=e.reason&&e.reason.message?e.reason.message:String(e.reason||\\\"\\\");}catch(_){ }push({kind:\\\"rejection\\\",message:reason});});\\n})();\\n<\\/script>\\n"
+    }
+  ],
+  "audit": {
+    "activeScripts": 25,
+    "duplicateStaticIds": 0,
+    "syntaxChecked": true,
+    "notes": [
+      "Listeners Icônes redondants supprimés",
+      "Watcher centrage redondant supprimé",
+      "Double bouton Installer/partager empêché",
+      "Journal local des 20 dernières erreurs runtime ajouté"
+    ]
+  }
+}
