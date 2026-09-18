@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-87-update-center';
-const FORCE_BUILD = '2026.09.18-v21.87-centre-mise-a-jour';
+const CACHE = 'cdq-installable-v21-88-update-loop-fix';
+const FORCE_BUILD = '2026.09.18-v21.88-correctif-boucle-mise-a-jour';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
