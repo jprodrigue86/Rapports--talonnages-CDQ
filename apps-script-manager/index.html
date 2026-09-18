@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>CDQ Apps Script Manager</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -92,11 +92,16 @@
 
     <section class="card accent-card">
       <div class="section-title"><span>4</span><h2>Package CDQ</h2></div>
-      <p class="muted">Quand je te donne plusieurs codes, colle tout ici une seule fois. L’application reconnaît automatiquement les fichiers.</p>
+      <p class="muted">Quand je te donne plusieurs codes, colle tout ici une seule fois. Tu peux aussi parcourir ton téléphone et sélectionner directement un ou plusieurs fichiers.</p>
+      <input id="localFiles" type="file" accept=".gs,.html,.htm,.txt,.cdq,.json,.js,text/plain,text/html,application/json" multiple hidden>
+      <div class="actions two">
+        <button id="browseFiles" class="primary" type="button">📁 Parcourir le téléphone</button>
+        <button id="pastePackage" class="secondary" type="button">Coller le Package CDQ</button>
+      </div>
+      <p class="muted">Fichiers acceptés : <b>Code.gs</b>, <b>Selector.html</b>, <b>appsscript.json</b> et fichiers <b>.txt/.cdq</b> contenant un Package CDQ.</p>
       <div class="package-example">=== FILE: Code.gs ===<br>...code...<br><br>=== FILE: Selecteur.html ===<br>...code...</div>
       <textarea id="packageEditor" class="code package" spellcheck="false" placeholder="Colle ici le Package CDQ complet"></textarea>
-      <div class="actions three">
-        <button id="pastePackage" class="secondary" type="button">Coller</button>
+      <div class="actions two">
         <button id="parsePackage" class="primary" type="button">Préparer les modifications</button>
         <button id="clearPackage" class="secondary" type="button">Vider</button>
       </div>
@@ -157,7 +162,7 @@
     </div>
   </div>
 
-  <script src="api.js?v=9"></script>
-  <script src="app.js?v=9"></script>
+  <script src="api.js?v=10"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
