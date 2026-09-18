@@ -426,7 +426,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v22.00-performance-sync';
+const CDQ_PWA_BUILD = '2026.09.18-v22.15-persistance-largeur-pwa';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -959,6 +959,72 @@ await controllerPromise;
 if(!controllerChanged)cdqReloadOuterOnceV88();
 }
 
+
+/* =====================================================
+CDQ V22.15 — PRÉFÉRENCES D’AFFICHAGE PWA + VIEWPORT RÉEL
+===================================================== */
+const CDQ_DISPLAY_PREFS_PWA_KEY_V2215='cdq_display_prefs_by_email_v2215';
+
+function cdqPrefsEmailKeyV2215(email){
+  return String(email||'').trim().toLowerCase();
+}
+function cdqPrefsMapLoadV2215(){
+  try{
+    const v=JSON.parse(localStorage.getItem(CDQ_DISPLAY_PREFS_PWA_KEY_V2215)||'{}');
+    return v&&typeof v==='object'?v:{};
+  }catch(e){return {};}
+}
+function cdqPrefsMapSaveV2215(map){
+  try{localStorage.setItem(CDQ_DISPLAY_PREFS_PWA_KEY_V2215,JSON.stringify(map||{}));}catch(e){}
+}
+function cdqSanitizeDisplayPrefsV2215(p){
+  p=p&&typeof p==='object'?p:{};
+  const clamp=v=>Math.max(0,Math.min(100,Math.round(Number(v)||0)));
+  return {
+    uiScale:clamp(p.uiScale),
+    uiTextScale:clamp(p.uiTextScale),
+    uiIconScale:clamp(p.uiIconScale),
+    uiScaleMapVersion:2202,
+    uiUpdatedAt:Math.max(0,Math.round(Number(p.uiUpdatedAt)||Date.now()))
+  };
+}
+function cdqViewportWidthV2215(){
+  const vals=[
+    Number(window.innerWidth),
+    Number(document.documentElement&&document.documentElement.clientWidth),
+    Number(window.visualViewport&&window.visualViewport.width)
+  ].filter(v=>Number.isFinite(v)&&v>0);
+  return vals.length?Math.floor(Math.min(...vals)):360;
+}
+function cdqReplyViewportV2215(source){
+  if(!source)return;
+  replyToSelector(source,{type:'CDQ_VIEWPORT_VALUE',width:cdqViewportWidthV2215()});
+}
+function cdqHandleDisplayPrefsV2215(data,source){
+  const email=cdqPrefsEmailKeyV2215(data.email);
+  if(!email)return false;
+
+  if(data.type==='CDQ_DISPLAY_PREFS_SET'){
+    const map=cdqPrefsMapLoadV2215();
+    const incoming=cdqSanitizeDisplayPrefsV2215(data.prefs);
+    const current=map[email]||null;
+    if(!current || Number(incoming.uiUpdatedAt||0)>=Number(current.uiUpdatedAt||0)){
+      map[email]=incoming;
+      cdqPrefsMapSaveV2215(map);
+    }
+    replyToSelector(source,{type:'CDQ_DISPLAY_PREFS_VALUE',prefs:map[email]||incoming});
+    return true;
+  }
+
+  if(data.type==='CDQ_DISPLAY_PREFS_GET'){
+    const map=cdqPrefsMapLoadV2215();
+    replyToSelector(source,{type:'CDQ_DISPLAY_PREFS_VALUE',prefs:map[email]||null});
+    return true;
+  }
+
+  return false;
+}
+
 window.addEventListener('message', event => {
 const data = event.data || {};
 if (!isSelectorMessage(event)) return;
@@ -974,6 +1040,8 @@ if (data.authProtocol >= 24) recevoirEtatAcces(data.accessState || 'pending');
 else if (!selectorAwaitingAccess) masquerMurApresDelaiMinimum();
 }
 if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
+if(data.type==='CDQ_VIEWPORT_GET'){cdqReplyViewportV2215(event.source);return;}
+if(cdqHandleDisplayPrefsV2215(data,event.source))return;
 if(data.type==='CDQ_GOOGLE_AUTH_REQUIRED'){afficherConnexionGoogleV42(data);return;}
 if(data.type==='CDQ_GOOGLE_AUTH_OK'){
   loading.style.display='grid';loadHelp.style.display='none';
@@ -1022,6 +1090,16 @@ if (data.type === 'CDQ_BIOMETRIC_CANCEL') {
 if (!data.requestId || (bioContext && data.requestId === bioContext.requestId)) annulerPontBiometrique();
 }
 });
+
+window.addEventListener('resize',function(){
+  if(selectorWindow)cdqReplyViewportV2215(selectorWindow);
+},{passive:true});
+if(window.visualViewport){
+  visualViewport.addEventListener('resize',function(){
+    if(selectorWindow)cdqReplyViewportV2215(selectorWindow);
+  },{passive:true});
+}
+
 
 
 
