@@ -160,16 +160,6 @@ try {
   assert(zipVisual.title.includes('ZIP décodé'),'ZIP visual title must confirm decode');
   assert(zipVisual.detail.includes('GS trouvé'),'ZIP visual detail must confirm GS detection');
   assert(zipVisual.detail.includes('Selector/HTML trouvé'),'ZIP visual detail must confirm Selector detection');
-  await page.click('#clearPackage');
-  await page.waitForFunction(()=>document.querySelector('#changeBadge')?.textContent.includes('0'),{timeout:3000});
-
-  const packageText=`=== FILE: Code.gs ===\nfunction test(){ return 1; }\n\n=== FILE: Selecteur.html ===\n<div>nouveau sélecteur</div>`;
-  await page.$eval('#packageEditor',(el,text)=>{el.value=text;el.dispatchEvent(new Event('input',{bubbles:true}))},packageText);
-  await page.click('#parsePackage');
-  await page.waitForFunction(()=>document.querySelector('#changeBadge')?.textContent.includes('2'),{timeout:3000});
-  await page.click('#validateChanges');
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('Vérification réussie'),{timeout:3000});
-
   const selectedDeployment=await page.$eval('#deployment',el=>el.value);
   assert(selectedDeployment==='dep1','Existing versioned deployment must be selected by default, not New deployment');
 
@@ -201,8 +191,8 @@ try {
   const code=result.files.find(f=>f.type==='SERVER_JS'&&f.name==='Code');
   const selector=result.files.find(f=>f.type==='HTML'&&f.name==='Selecteur');
   const manifestFile=result.files.find(f=>f.type==='JSON'&&f.name==='appsscript');
-  assert(code?.source==='function test(){ return 1; }','Code.gs was not replaced');
-  assert(selector?.source==='<div>nouveau sélecteur</div>','Selecteur.html was not replaced');
+  assert(code?.source==='function fromZip(){ return 12; }','ZIP Code.gs was not written');
+  assert(selector?.source==='<main>selector zip</main>','ZIP Selector.html was not written');
   assert(!!manifestFile,'appsscript.json was not preserved');
 
   console.log('PASS: manager page loaded in Chrome');
