@@ -265,6 +265,66 @@ function preparePackage() {
   }
 }
 
+function importedFileSpec(fileName) {
+  let name = String(fileName || '').trim();
+  name = name.replace(/\.txt$/i, '');
+  if (/^appsscript\.json$/i.test(name)) return { name: 'appsscript', type: 'JSON', displayName: 'appsscript.json' };
+  if (/\.gs$/i.test(name)) return { name: name.replace(/\.gs$/i, ''), type: 'SERVER_JS', displayName: name };
+  if (/\.html?$/i.test(name)) return { name: name.replace(/\.html?$/i, ''), type: 'HTML', displayName: name.replace(/\.htm$/i, '.html') };
+  if (/\.js$/i.test(name)) return { name: name.replace(/\.js$/i, ''), type: 'SERVER_JS', displayName: name.replace(/\.js$/i, '.gs') };
+  return null;
+}
+
+async function importPhoneFiles(fileList) {
+  try {
+    if (!S.files.length) throw Error('Charge d’abord le projet.');
+    const selected = Array.from(fileList || []);
+    if (!selected.length) return;
+
+    const entries = [];
+    const ignored = [];
+    for (const file of selected) {
+      const text = await file.text();
+      if (/\.(txt|cdq)$/i.test(file.name) && /^\s*===\s*FILE\s*:/mi.test(text)) {
+        entries.push(...parsePackage(text));
+        continue;
+      }
+      const spec = importedFileSpec(file.name);
+      if (!spec) {
+        ignored.push(file.name);
+        continue;
+      }
+      entries.push({ ...spec, source: text.replace(/\r\n/g, '\n') });
+    }
+
+    if (!entries.length) {
+      throw Error('Aucun fichier compatible trouvé. Utilise .gs, .html, appsscript.json ou un Package CDQ .txt/.cdq.');
+    }
+
+    S.pkg.clear();
+    entries.forEach(entry => {
+      const k = `${entry.type}:${entry.name.toLowerCase()}`;
+      S.draft.delete(k);
+      S.pkg.set(k, entry);
+    });
+
+    packageResult.innerHTML =
+      `<b>${entries.length} fichier(s) importé(s) du téléphone</b><br>${entries.map(x => esc(x.displayName || displayNameForFile(x))).join(' • ')}` +
+      (ignored.length ? `<br><span>Ignoré(s) : ${ignored.map(esc).join(' • ')}</span>` : '');
+
+    renderFiles();
+    if (S.pkg.has(S.sel)) fileEditor.value = S.pkg.get(S.sel).source;
+    renderDiff();
+    stat(`${entries.length} fichier(s) prêt(s). Vérifie avant d’écrire.`, 'ok');
+  } catch (e) {
+    packageResult.textContent = e.message;
+    stat('Import impossible : ' + e.message, 'err');
+  } finally {
+    const input = $('localFiles');
+    if (input) input.value = '';
+  }
+}
+
 function changes() {
   const merged = new Map(S.draft);
   for (const [k, v] of S.pkg) merged.set(k, v);
@@ -437,6 +497,8 @@ $('copyFile').addEventListener('click', () => {
     .catch(() => stat('Copie automatique impossible.', 'warn'));
 });
 
+$('browseFiles').addEventListener('click', () => $('localFiles').click());
+$('localFiles').addEventListener('change', e => importPhoneFiles(e.target.files));
 $('pastePackage').addEventListener('click', () => {
   navigator.clipboard.readText()
     .then(text => {
@@ -515,7 +577,7 @@ window.addEventListener('appinstalled', updateInstallState);
   renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=8').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=10').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
