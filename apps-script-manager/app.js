@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V22';
+const APP_VERSION = 'V23';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -152,50 +152,93 @@ function isAppsScriptOriginV21(origin){
       (h==='script.google.com' || h==='script.googleusercontent.com' || h.endsWith('-script.googleusercontent.com'));
   }catch(e){return false;}
 }
-function knownGoodKeyV22(){return 'cdqsm_known_good_'+CDQ_PRODUCTION_SCRIPT_ID;}
-function getKnownGoodV22(){return Number(LS.getItem(knownGoodKeyV22())||0)||0;}
-function setKnownGoodV22(v){v=Number(v)||0;if(v>0)LS.setItem(knownGoodKeyV22(),String(v));}
-function verifyProductionWebAppReadyV22(expectedBuild='',timeoutMs=30000){
+function knownGoodKeyV23(){return 'cdqsm_known_good_'+CDQ_PRODUCTION_SCRIPT_ID;}
+function getKnownGoodV23(){return Number(LS.getItem(knownGoodKeyV23())||0)||0;}
+function setKnownGoodV23(v){v=Number(v)||0;if(v>0)LS.setItem(knownGoodKeyV23(),String(v));}
+// Compatibilité avec V22.
+const knownGoodKeyV22=knownGoodKeyV23;
+const getKnownGoodV22=getKnownGoodV23;
+const setKnownGoodV22=setKnownGoodV23;
+
+function verifyProductionWebAppReadyV23(expectedBuild='',timeoutMs=90000){
   return new Promise((resolve,reject)=>{
-    let finished=false,loaded=false;
+    let finished=false;
+    let attempt=0;
+    let lastSeen='';
+    let lastSelector='';
     const frame=document.createElement('iframe');
-    frame.title='Vérification silencieuse Balance CDQ';
+    frame.title='Vérification serveur Balance CDQ';
     frame.tabIndex=-1;
     frame.setAttribute('aria-hidden','true');
-    frame.style.cssText='position:fixed;left:-12000px;top:0;width:420px;height:800px;opacity:0;pointer-events:none;border:0';
+    frame.style.cssText='position:fixed;left:-12000px;top:0;width:420px;height:220px;opacity:0;pointer-events:none;border:0';
+
     const cleanup=()=>{
       if(finished)return;
       finished=true;
-      clearTimeout(timer);
+      clearInterval(pollTimer);
+      clearTimeout(timeoutTimer);
       window.removeEventListener('message',onMessage);
       try{frame.remove();}catch(e){}
     };
     const fail=msg=>{cleanup();reject(new Error(msg));};
+
     const onMessage=e=>{
       const d=e.data||{};
       if(!isAppsScriptOriginV21(e.origin))return;
-      if(d.type!=='CDQ_SELECTOR_READY' && d.type!=='CDQ_HEALTH_READY')return;
-      const build=String(d.build||'');
-      if(expectedBuild && build && compareBuildLabels(build,expectedBuild)<0){
-        fail('La production répond, mais elle annonce encore '+build+' au lieu de '+expectedBuild+'.');
+      if(d.type!=='CDQ_HEALTH_READY')return;
+
+      lastSeen=String(d.build||'');
+      lastSelector=String(d.selectorBuild||'');
+      const announced=lastSelector||lastSeen;
+
+      if(!d.selectorOk || Number(d.selectorBytes||0)<1000){
+        // La nouvelle version peut être en cours de propagation. Continuer à sonder.
+        setQuickResult('Production répond, mais Selector n’est pas encore prêt. Propagation en cours…','warn');
         return;
       }
+
+      if(expectedBuild && announced && compareBuildLabels(announced,expectedBuild)<0){
+        setQuickResult('Production répond encore avec '+announced+'. Attente de '+expectedBuild+'…','warn');
+        return;
+      }
+
       cleanup();
-      resolve({build:build||'version non annoncée',signal:d.type,loaded});
+      resolve({
+        build:lastSeen||'version backend non annoncée',
+        selectorBuild:lastSelector||'version Selector non annoncée',
+        selectorBytes:Number(d.selectorBytes||0),
+        signal:d.type,
+        attempts:attempt
+      });
     };
-    const timer=setTimeout(()=>{
-      fail('La version déployée n’a envoyé ni CDQ_HEALTH_READY ni CDQ_SELECTOR_READY dans '+Math.round(timeoutMs/1000)+' secondes.');
-    },timeoutMs);
+
+    function loadHealth(){
+      if(finished)return;
+      attempt++;
+      const sep=CDQ_PRODUCTION_WEBAPP_URL.includes('?')?'&':'?';
+      const expected=encodeURIComponent(expectedBuild||'');
+      frame.src=CDQ_PRODUCTION_WEBAPP_URL+sep+
+        'cdq_health=1&cdq_sm_health='+Date.now()+
+        '&attempt='+attempt+'&expected='+expected;
+    }
+
     window.addEventListener('message',onMessage);
-    frame.onload=()=>{loaded=true;};
-    frame.onerror=()=>fail('La page de production n’a pas pu être chargée.');
-    const sep=CDQ_PRODUCTION_WEBAPP_URL.includes('?')?'&':'?';
-    frame.src=CDQ_PRODUCTION_WEBAPP_URL+sep+'cdq_sm_health='+Date.now();
+    frame.onerror=()=>{}; // une tentative réseau peut échouer pendant la propagation.
     document.body.appendChild(frame);
+    loadHealth();
+    const pollTimer=setInterval(loadHealth,5000);
+    const timeoutTimer=setTimeout(()=>{
+      const detail=(lastSelector||lastSeen)
+        ? ' Dernière version observée : '+(lastSelector||lastSeen)+'.'
+        : '';
+      fail('Le endpoint de santé de production n’a pas confirmé '+(expectedBuild||'la nouvelle version')+
+        ' dans '+Math.round(timeoutMs/1000)+' secondes.'+detail);
+    },timeoutMs);
   });
 }
-// compatibilité
-const verifyProductionWebAppReadyV21=verifyProductionWebAppReadyV22;
+// Compatibilité.
+const verifyProductionWebAppReadyV22=verifyProductionWebAppReadyV23;
+const verifyProductionWebAppReadyV21=verifyProductionWebAppReadyV23;
 
 function setQuickResult(text, kind = '') {
   if (!quickResult) return;
@@ -1081,17 +1124,17 @@ async function deployNewVersion(targetOverride = null) {
   }
 
   if(isProductionProject()){
-    stat('Étape 3/3 — ouverture réelle de Balance CDQ en production…');
-    setQuickResult('Déploiement écrit. Vérification de la vraie application de production en cours…','warn');
+    stat('Étape 3/3 — vérification serveur de Balance CDQ en production…');
+    setQuickResult('Déploiement écrit. Attente de la propagation Google et vérification du Selector déployé…','warn');
     try{
-      const health=await verifyProductionWebAppReadyV22(sourceBuild,30000);
-      setKnownGoodV22(v.versionNumber);
+      const health=await verifyProductionWebAppReadyV23(sourceBuild,90000);
+      setKnownGoodV23(v.versionNumber);
       setQuickResult(
-        `PRODUCTION TESTÉE ✓ ${sourceBuild||health.build} • Apps Script v${v.versionNumber} • CDQ_SELECTOR_READY reçu.`,
+        `PRODUCTION TESTÉE ✓ ${sourceBuild||health.build} • Apps Script v${v.versionNumber} • endpoint serveur confirmé.`,
         'ok'
       );
     }catch(healthError){
-      const knownGood=getKnownGoodV22();
+      const knownGood=getKnownGoodV23();
       const rollbackVersion=knownGood>0?knownGood:previousVersion;
       if(rollbackVersion>0){
         stat(`Échec du démarrage — retour automatique à Apps Script v${rollbackVersion}…`,'warn');
@@ -1129,7 +1172,7 @@ async function deployNewVersion(targetOverride = null) {
   updateQuickUi();
 
   if(isProductionProject()){
-    stat(`MISE À JOUR TERMINÉE ✓ Apps Script v${v.versionNumber} • production ouverte et testée • même URL.`,'ok');
+    stat(`MISE À JOUR TERMINÉE ✓ Apps Script v${v.versionNumber} • production vérifiée côté serveur • même URL.`,'ok');
   }else{
     stat(`MISE À JOUR TERMINÉE ✓ Déploiement actuel conservé • nouvelle version Apps Script v${v.versionNumber}.`,'ok');
   }
