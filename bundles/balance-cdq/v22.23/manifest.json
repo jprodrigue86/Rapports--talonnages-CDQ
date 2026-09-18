@@ -1,0 +1,43 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.23",
+  "build": "2026.09.18-v22.23-slash-n-fix",
+  "title": "Balance CDQ V22.23 — Slash N Fix",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "requiresBuild": "2026.09.18-v22.22-android-zoom-fix",
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.22-android-zoom-fix",
+      "to": "2026.09.18-v22.23-slash-n-fix"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.22-android-zoom-fix",
+      "to": "2026.09.18-v22.23-slash-n-fix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id",
+      "id": "cdqV2218AuditDiagnostics"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "expected": 1,
+      "search": "\\n<style id=\"cdqV2219ContentContainment\">",
+      "replacement": "<style id=\"cdqV2219ContentContainment\">"
+    }
+  ],
+  "audit": {
+    "syntaxChecked": true,
+    "visibleLiteralBackslashN": 0,
+    "notes": [
+      "Bloc diagnostic V22.18 retiré",
+      "Texte parasite \\\\n retiré",
+      "Aucune fonction métier modifiée"
+    ]
+  }
+}
