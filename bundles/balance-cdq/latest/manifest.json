@@ -1,64 +1,73 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.19",
-  "build": "2026.09.18-v22.19-text-slider-stable",
-  "title": "Balance CDQ V22.19 — Texte/Icônes stables",
+  "version": "V22.20",
+  "build": "2026.09.18-v22.20-largeur-verrouillee",
+  "title": "Balance CDQ V22.20 — Largeur verrouillée",
   "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
-  "requiresBuild": "2026.09.18-v22.18-audit-stable",
+  "requiresBuild": "2026.09.18-v22.19-text-slider-stable",
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.18-v22.18-audit-stable",
-      "to": "2026.09.18-v22.19-text-slider-stable"
+      "from": "2026.09.18-v22.19-text-slider-stable",
+      "to": "2026.09.18-v22.20-largeur-verrouillee"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.18-v22.18-audit-stable",
-      "to": "2026.09.18-v22.19-text-slider-stable"
+      "from": "2026.09.18-v22.19-text-slider-stable",
+      "to": "2026.09.18-v22.20-largeur-verrouillee"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
       "expected": 1,
-      "search": "function cdqCriticalRectsV2216(){\n  const sels=[\n    \".app-header\",\n    \".top-bar\",\n    \".company-wrapper\",\n    \".quick-buttons\",\n    \"#cdqTopActionsV2204\",\n    \"#clientInfoBar\",\n    \"#filesContainer\",\n    \"#cdqInlineDisplayPanelV2204\"\n  ];",
-      "replacement": "function cdqCriticalRectsV2216(){\n  // V22.19 : only fixed navigation/header geometry is allowed to clamp\n  // the global interface zoom. File/client text must never shrink the app.\n  const sels=[\n    \".app-header\",\n    \".top-bar\",\n    \".company-wrapper\",\n    \".quick-buttons\",\n    \"#cdqTopActionsV2204\"\n  ];"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id",
-      "id": "cdqV2216AutoFitWatch"
+      "search": "function cdqViewportWidthV2216(){\n  const vals=[\n    Number(window.__cdqPwaViewportWidthV2215||0),\n    Number(window.innerWidth),\n    Number(document.documentElement&&document.documentElement.clientWidth),\n    Number(window.visualViewport&&window.visualViewport.width)\n  ].filter(function(v){return Number.isFinite(v)&&v>0;});\n  return Math.max(280,Math.floor(vals.length?Math.min.apply(null,vals):360));\n}",
+      "replacement": "function cdqViewportWidthV2216(){\n  // V22.20 : la barre du bas est notre référence réelle, car elle est\n  // positionnée par le viewport Android et correspond exactement à l'écran.\n  const nav=document.querySelector(\".bottom-nav\");\n  const navRect=nav&&nav.getBoundingClientRect ? nav.getBoundingClientRect() : null;\n\n  const vals=[\n    navRect&&Number(navRect.width),\n    Number(window.__cdqPwaViewportWidthV2215||0),\n    Number(document.documentElement&&document.documentElement.clientWidth),\n    Number(window.innerWidth),\n    Number(window.visualViewport&&window.visualViewport.width)\n  ].filter(function(v){return Number.isFinite(v)&&v>0;});\n\n  return Math.max(280,Math.floor(vals.length?Math.min.apply(null,vals):360));\n}"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
       "expected": 1,
-      "search": "      const endText=function(){\n        applyText(true);\n        window.__cdqDisplaySliderDraggingV2217=false;\n        window.__cdqAutoFitSuppressedUntilV2217=Date.now()+900;\n      };",
-      "replacement": "      const endText=function(){\n        applyText(true);\n        window.__cdqDisplaySliderDraggingV2217=false;\n        // Text changes may reflow rows for a moment. They are not allowed\n        // to modify the global interface scale.\n        window.__cdqAutoFitSuppressedUntilV2217=Date.now()+2500;\n      };"
+      "search": "function cdqSetEffectiveScaleV2216(zoom){\n  const container=document.querySelector(\".container\");\n  if(!container)return;\n\n  const viewport=cdqViewportWidthV2216();\n  const visualMargin=10;\n  const visualWidth=Math.max(250,viewport-(visualMargin*2));\n  const safeZoom=Math.max(.30,Math.min(1.60,Number(zoom)||1));\n  const cssWidth=visualWidth/safeZoom;\n  const cssMargin=visualMargin/safeZoom;\n\n  document.documentElement.style.setProperty(\"overflow-x\",\"hidden\",\"important\");\n  document.body.style.setProperty(\"width\",\"100%\",\"important\");\n  document.body.style.setProperty(\"max-width\",\"100%\",\"important\");\n  document.body.style.setProperty(\"min-width\",\"0\",\"important\");\n  document.body.style.setProperty(\"margin\",\"0\",\"important\");\n  document.body.style.setProperty(\"padding\",\"0\",\"important\");\n  document.body.style.setProperty(\"overflow-x\",\"hidden\",\"important\");\n\n  container.style.setProperty(\"box-sizing\",\"border-box\",\"important\");\n  container.style.setProperty(\"zoom\",String(safeZoom),\"important\");\n  container.style.setProperty(\"width\",cssWidth.toFixed(2)+\"px\",\"important\");\n  container.style.setProperty(\"max-width\",cssWidth.toFixed(2)+\"px\",\"important\");\n  container.style.setProperty(\"min-width\",\"0\",\"important\");\n  container.style.setProperty(\"margin-left\",cssMargin.toFixed(2)+\"px\",\"important\");\n  container.style.setProperty(\"margin-right\",cssMargin.toFixed(2)+\"px\",\"important\");\n  container.style.setProperty(\"padding-left\",\"0\",\"important\");\n  container.style.setProperty(\"padding-right\",\"0\",\"important\");\n  container.style.setProperty(\"position\",\"relative\",\"important\");\n  container.style.setProperty(\"left\",\"0\",\"important\");\n  container.style.setProperty(\"right\",\"auto\",\"important\");\n  container.style.setProperty(\"transform\",\"none\",\"important\");\n  container.style.setProperty(\"transform-origin\",\"top left\",\"important\");\n  container.style.setProperty(\"overflow-x\",\"visible\",\"important\");\n\n  window.__cdqEffectiveZoomV2216=safeZoom;\n}",
+      "replacement": "function cdqSetEffectiveScaleV2216(zoom){\n  const container=document.querySelector(\".container\");\n  if(!container)return;\n\n  const viewport=cdqViewportWidthV2216();\n  const visualMargin=10;\n  const safeZoom=Math.max(.30,Math.min(1.60,Number(zoom)||1));\n\n  // Invariant V22.20 :\n  // largeur visuelle du container = largeur réelle de l'écran - 20 px,\n  // peu importe la valeur du zoom.\n  const visualWidth=Math.max(240,viewport-(visualMargin*2));\n  const cssWidth=visualWidth/safeZoom;\n  const cssMargin=visualMargin/safeZoom;\n\n  document.documentElement.style.setProperty(\"overflow-x\",\"hidden\",\"important\");\n  document.body.style.setProperty(\"width\",\"100%\",\"important\");\n  document.body.style.setProperty(\"max-width\",\"100%\",\"important\");\n  document.body.style.setProperty(\"min-width\",\"0\",\"important\");\n  document.body.style.setProperty(\"margin\",\"0\",\"important\");\n  document.body.style.setProperty(\"padding\",\"0\",\"important\");\n  document.body.style.setProperty(\"overflow-x\",\"hidden\",\"important\");\n\n  container.style.setProperty(\"box-sizing\",\"border-box\",\"important\");\n  container.style.setProperty(\"zoom\",String(safeZoom),\"important\");\n  container.style.setProperty(\"width\",cssWidth.toFixed(2)+\"px\",\"important\");\n  container.style.setProperty(\"max-width\",cssWidth.toFixed(2)+\"px\",\"important\");\n  container.style.setProperty(\"min-width\",\"0\",\"important\");\n  container.style.setProperty(\"margin-left\",cssMargin.toFixed(2)+\"px\",\"important\");\n  container.style.setProperty(\"margin-right\",cssMargin.toFixed(2)+\"px\",\"important\");\n  container.style.setProperty(\"padding-left\",\"0\",\"important\");\n  container.style.setProperty(\"padding-right\",\"0\",\"important\");\n  container.style.setProperty(\"position\",\"relative\",\"important\");\n  container.style.setProperty(\"left\",\"0\",\"important\");\n  container.style.setProperty(\"right\",\"auto\",\"important\");\n  container.style.setProperty(\"transform\",\"none\",\"important\");\n  container.style.setProperty(\"transform-origin\",\"top left\",\"important\");\n  container.style.setProperty(\"overflow-x\",\"hidden\",\"important\");\n\n  window.__cdqEffectiveZoomV2216=safeZoom;\n}"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
       "expected": 1,
-      "search": "      const endIcons=function(){\n        applyIcons(true);\n        window.__cdqDisplaySliderDraggingV2217=false;\n        window.__cdqAutoFitSuppressedUntilV2217=Date.now()+1200;\n      };",
-      "replacement": "      const endIcons=function(){\n        applyIcons(true);\n        window.__cdqDisplaySliderDraggingV2217=false;\n        // Icon-only changes never modify the global interface zoom.\n        window.__cdqAutoFitSuppressedUntilV2217=Date.now()+2500;\n      };"
+      "search": "function cdqAutoFitHorizontalV2216(){\n  if(!cdqIsMobileUiV89())return;\n  if(window.__cdqGeneralScaleDraggingV2211)return;\n  if(window.__cdqDisplaySliderDraggingV2217)return;\n  if(window.__cdqAutoFitSuppressedUntilV2217 && Date.now()<window.__cdqAutoFitSuppressedUntilV2217)return;\n\n  const viewport=cdqViewportWidthV2216();\n  const margin=10;\n  const available=Math.max(1,viewport-(margin*2));\n  const rects=cdqCriticalRectsV2216();\n  if(!rects.length)return;\n\n  let left=Infinity,right=-Infinity;\n  rects.forEach(function(r){\n    if(Number.isFinite(r.left))left=Math.min(left,r.left);\n    if(Number.isFinite(r.right))right=Math.max(right,r.right);\n  });\n  if(!Number.isFinite(left)||!Number.isFinite(right))return;\n\n  const span=Math.max(1,right-left);\n  const desiredZoom=cdqGeneralZoomV89(cdqGeneralValueV89());\n  const currentZoom=Math.max(.30,Number(window.__cdqEffectiveZoomV2216||desiredZoom)||desiredZoom);\n\n  // Idempotent fit:\n  // span = intrinsicWidth * currentZoom\n  // currentZoom * available/span = zoom that fits intrinsic content.\n  const maxFitZoom=currentZoom*(available/span)*0.99;\n  let targetZoom=Math.min(desiredZoom,maxFitZoom);\n  targetZoom=Math.max(.30,Math.min(1.60,targetZoom));\n\n  const fitsNow=(left>=margin-2 && right<=viewport-margin+2 && span<=available+2);\n  if(fitsNow && currentZoom<desiredZoom){\n    targetZoom=Math.min(desiredZoom,maxFitZoom);\n  }\n\n  if(Math.abs(targetZoom-currentZoom)>.006){\n    cdqSetEffectiveScaleV2216(targetZoom);\n  }\n}\n",
+      "replacement": "function cdqAutoFitHorizontalV2216(){\n  // V22.20 : désactivé.\n  // La largeur est maintenant mathématiquement verrouillée sur le viewport.\n  // Aucun contenu, texte ou icône n'a le droit de réduire le zoom général.\n  return;\n}\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "expected": 1,
+      "search": "function cdqScheduleAutoFitV2216(delay){\n  if(window.__cdqDisplaySliderDraggingV2217)return;\n  if(window.__cdqAutoFitSuppressedUntilV2217 && Date.now()<window.__cdqAutoFitSuppressedUntilV2217)return;\n  clearTimeout(window.__cdqAutoFitTimerV2216);\n  window.__cdqAutoFitTimerV2216=setTimeout(cdqAutoFitHorizontalV2216,Number(delay)||100);\n}\n",
+      "replacement": "function cdqScheduleAutoFitV2216(delay){\n  // V22.20 : aucun recalcul automatique de zoom.\n  return;\n}\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "expected": 1,
+      "search": "function cdqFitGeneralScaleV92(value){\n  if(!cdqIsMobileUiV89())return;\n  value=cdqClampScaleV89(value);\n  const desiredZoom=cdqGeneralZoomV89(value);\n\n  window.__cdqEffectiveZoomV2216=desiredZoom;\n  cdqSetEffectiveScaleV2216(desiredZoom);\n  window.__cdqGeneralScaleLastApplyV2211=Date.now();\n\n  if(!window.__cdqDisplaySliderDraggingV2217){\n    cdqScheduleAutoFitV2216(120);\n  }\n}",
+      "replacement": "function cdqFitGeneralScaleV92(value){\n  if(!cdqIsMobileUiV89())return;\n  value=cdqClampScaleV89(value);\n\n  const desiredZoom=cdqGeneralZoomV89(value);\n  window.__cdqEffectiveZoomV2216=desiredZoom;\n  cdqSetEffectiveScaleV2216(desiredZoom);\n  window.__cdqGeneralScaleLastApplyV2211=Date.now();\n}"
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "<style id=\"cdqV2219ContentContainment\">\nhtml:is(.android,.ios,.mobile-device) #filesContainer,\nhtml:is(.android,.ios,.mobile-device) #clientInfoBar,\nhtml:is(.android,.ios,.mobile-device) .file-row,\nhtml:is(.android,.ios,.mobile-device) .file-info,\nhtml:is(.android,.ios,.mobile-device) .folder-header,\nhtml:is(.android,.ios,.mobile-device) .folder-content{\n  min-width:0!important;\n  max-width:100%!important;\n  box-sizing:border-box!important;\n}\nhtml:is(.android,.ios,.mobile-device) .file-row,\nhtml:is(.android,.ios,.mobile-device) .folder-header{overflow:hidden!important}\nhtml:is(.android,.ios,.mobile-device) .file-info,\nhtml:is(.android,.ios,.mobile-device) .file-name,\nhtml:is(.android,.ios,.mobile-device) .file-name-text,\nhtml:is(.android,.ios,.mobile-device) .folder-name,\nhtml:is(.android,.ios,.mobile-device) .folder-name-text{\n  min-width:0!important;\n  max-width:100%!important;\n  overflow-wrap:anywhere!important;\n  word-break:break-word!important;\n}\n</style>\n<script id=\"cdqV2219TextScaleRecovery\">\n(function(){\n\"use strict\";\nfunction restoreRequestedZoomV2219(){\n  if(typeof cdqGeneralValueV89!==\"function\" ||\n     typeof cdqGeneralZoomV89!==\"function\" ||\n     typeof cdqSetEffectiveScaleV2216!==\"function\")return;\n  const requested=cdqGeneralZoomV89(cdqGeneralValueV89());\n  const current=Number(window.__cdqEffectiveZoomV2216||requested)||requested;\n  if(current < requested*0.82){\n    window.__cdqEffectiveZoomV2216=requested;\n    cdqSetEffectiveScaleV2216(requested);\n  }\n}\nwindow.addEventListener(\"load\",function(){\n  setTimeout(restoreRequestedZoomV2219,100);\n  setTimeout(restoreRequestedZoomV2219,700);\n},{once:true});\n})();\n</script>\n"
+      "text": "\n<style id=\"cdqV2220ViewportLock\">\nhtml:is(.android,.ios,.mobile-device),\nhtml:is(.android,.ios,.mobile-device) body{\n  width:100%!important;\n  max-width:100%!important;\n  min-width:0!important;\n  margin:0!important;\n  padding-left:0!important;\n  padding-right:0!important;\n  overflow-x:hidden!important;\n  box-sizing:border-box!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .container{\n  min-width:0!important;\n  box-sizing:border-box!important;\n  overflow-x:hidden!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .app-header,\nhtml:is(.android,.ios,.mobile-device) .top-bar,\nhtml:is(.android,.ios,.mobile-device) .company-wrapper,\nhtml:is(.android,.ios,.mobile-device) .quick-buttons,\nhtml:is(.android,.ios,.mobile-device) #cdqTopActionsV2204,\nhtml:is(.android,.ios,.mobile-device) #clientInfoBar,\nhtml:is(.android,.ios,.mobile-device) #filesContainer,\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204{\n  width:100%!important;\n  min-width:0!important;\n  max-width:100%!important;\n  box-sizing:border-box!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .company-wrapper{\n  display:flex!important;\n  gap:7px!important;\n  overflow:hidden!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .company-button{\n  flex:1 1 0!important;\n  width:auto!important;\n  min-width:0!important;\n  max-width:100%!important;\n  overflow:hidden!important;\n  text-overflow:ellipsis!important;\n  white-space:nowrap!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .company-reset-button{\n  flex:0 0 48px!important;\n  width:48px!important;\n  min-width:48px!important;\n  max-width:48px!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .quick-buttons,\nhtml:is(.android,.ios,.mobile-device) #cdqTopActionsV2204{\n  display:grid!important;\n  grid-template-columns:repeat(4,minmax(0,1fr))!important;\n  gap:7px!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .quick-button,\nhtml:is(.android,.ios,.mobile-device) #cdqTopActionsV2204 > .cdq-top-action{\n  width:100%!important;\n  min-width:0!important;\n  max-width:100%!important;\n  overflow:hidden!important;\n  box-sizing:border-box!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .quick-name,\nhtml:is(.android,.ios,.mobile-device) #cdqTopActionsV2204 > .cdq-top-action span{\n  min-width:0!important;\n  max-width:100%!important;\n  white-space:normal!important;\n  overflow-wrap:anywhere!important;\n  text-align:center!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .company-menu{\n  left:0!important;\n  right:0!important;\n  width:100%!important;\n  max-width:100%!important;\n  box-sizing:border-box!important;\n}\n\nhtml:is(.android,.ios,.mobile-device) .file-row,\nhtml:is(.android,.ios,.mobile-device) .folder-header,\nhtml:is(.android,.ios,.mobile-device) .file-info,\nhtml:is(.android,.ios,.mobile-device) .file-name,\nhtml:is(.android,.ios,.mobile-device) .folder-name{\n  min-width:0!important;\n  max-width:100%!important;\n  box-sizing:border-box!important;\n}\n</style>\n\n<script id=\"cdqV2220ViewportLockJs\">\n(function(){\n\"use strict\";\n\nfunction fitV2220(){\n  if(typeof cdqFitGeneralScaleV92===\"function\" && typeof cdqGeneralValueV89===\"function\"){\n    cdqFitGeneralScaleV92(cdqGeneralValueV89());\n  }\n}\n\nwindow.addEventListener(\"load\",function(){\n  setTimeout(fitV2220,80);\n  setTimeout(fitV2220,500);\n},{once:true});\n\nwindow.addEventListener(\"orientationchange\",function(){\n  setTimeout(fitV2220,180);\n},{passive:true});\n\nwindow.addEventListener(\"resize\",function(){\n  clearTimeout(window.__cdqV2220ResizeTimer);\n  window.__cdqV2220ResizeTimer=setTimeout(fitV2220,120);\n},{passive:true});\n\nif(window.visualViewport){\n  visualViewport.addEventListener(\"resize\",function(){\n    clearTimeout(window.__cdqV2220ViewportTimer);\n    window.__cdqV2220ViewportTimer=setTimeout(fitV2220,120);\n  },{passive:true});\n}\n})();\n</script>\n"
     }
   ],
   "audit": {
+    "activeScripts": 26,
     "syntaxChecked": true,
-    "duplicateStaticIds": 0,
     "notes": [
-      "Auto-fit lié à la liste de fichiers supprimé",
-      "Texte et icônes isolés du zoom général",
-      "Les noms longs se replient au lieu de rétrécir l'application",
-      "Récupération du zoom runtime ajoutée"
+      "Viewport basé sur la barre du bas réelle",
+      "Auto-fit horizontal désactivé",
+      "Largeur visuelle verrouillée avec 10 px de marge",
+      "Grilles 4 colonnes et compagnie bornées à 100 %"
     ]
   }
 }
