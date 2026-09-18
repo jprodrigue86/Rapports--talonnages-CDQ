@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V13';
+const APP_VERSION = 'V14';
 
 const status = $('status');
 const topStatus = $('topStatus');
@@ -23,6 +23,7 @@ const confirmModal = $('confirmModal');
 const browserWarning = $('browserWarning');
 const installApp = $('installApp');
 const installModal = $('installModal');
+const keepConnected = $('keepConnected');
 const zipStatus = $('zipStatus');
 const zipStatusIcon = $('zipStatusIcon');
 const zipStatusTitle = $('zipStatusTitle');
@@ -47,6 +48,32 @@ const clone = x => JSON.parse(JSON.stringify(x || []));
 const cid = () => clientId.value.trim();
 const sid = () => normalizeScriptId(S.id || scriptIdInput.value || projectSelect.value);
 const nlabel = () => new Date().toLocaleString('fr-CA', { hour12: false });
+const AUTO_CONNECT_MS = 7 * 24 * 60 * 60 * 1000;
+const AUTO_CONNECT_UNTIL_KEY = 'cdqsm_auto_connect_until';
+const KEEP_CONNECTED_KEY = 'cdqsm_keep_connected';
+
+function keepConnectionEnabled() {
+  return keepConnected ? keepConnected.checked : true;
+}
+
+function rememberConnection() {
+  LS.setItem(KEEP_CONNECTED_KEY, keepConnectionEnabled() ? '1' : '0');
+  if (keepConnectionEnabled()) {
+    LS.setItem(AUTO_CONNECT_UNTIL_KEY, String(Date.now() + AUTO_CONNECT_MS));
+  } else {
+    LS.removeItem(AUTO_CONNECT_UNTIL_KEY);
+  }
+}
+
+function clearRememberedConnection() {
+  LS.removeItem(AUTO_CONNECT_UNTIL_KEY);
+}
+
+function shouldAutoReconnect() {
+  if (!keepConnectionEnabled()) return false;
+  const until = Number(LS.getItem(AUTO_CONNECT_UNTIL_KEY) || 0);
+  return Number.isFinite(until) && until > Date.now();
+}
 
 function stat(text, kind = '') {
   status.textContent = text;
@@ -75,6 +102,9 @@ function bootSettings() {
   clientId.value = LS.getItem('cdqsm_client_id') || clientId.value;
   scriptIdInput.value = LS.getItem('cdqsm_script_id') || '';
   description.value = LS.getItem('cdqsm_description') || `Mise à jour CDQ - ${nlabel()}`;
+  if (keepConnected) {
+    keepConnected.checked = LS.getItem(KEEP_CONNECTED_KEY) !== '0';
+  }
 }
 
 function backups() {
@@ -117,7 +147,8 @@ async function restoreBackup(index) {
 async function handleGoogleConnect() {
   try {
     topstat('Ouverture de Google…');
-    await requestGoogleToken(cid(), true);
+    await requestGoogleToken(cid(), 'manual');
+    rememberConnection();
     badge('authBadge', 'Google : connecté', 'ok');
     await refreshProjectList();
   } catch (e) {
@@ -127,6 +158,7 @@ async function handleGoogleConnect() {
 }
 
 function handleGoogleDisconnect() {
+  clearRememberedConnection();
   revokeGoogleToken();
   badge('authBadge', 'Google : non connecté');
   topstat('Session Google déconnectée.');
@@ -143,6 +175,7 @@ async function refreshProjectList() {
     const old = normalizeScriptId(LS.getItem('cdqsm_script_id') || '');
     if (projects.some(f => f.id === old)) projectSelect.value = old;
     badge('authBadge', 'Google : connecté', 'ok');
+    if (keepConnectionEnabled()) rememberConnection();
     topstat(`${projects.length} projet(s) trouvé(s).`, 'ok');
   } catch (e) {
     topstat('Impossible de charger les projets : ' + e.message, 'err');
@@ -754,6 +787,13 @@ deployment.addEventListener('change', () => {
 description.addEventListener('change', saveSettings);
 scriptIdInput.addEventListener('change', saveSettings);
 clientId.addEventListener('change', saveSettings);
+if (keepConnected) {
+  keepConnected.addEventListener('change', () => {
+    LS.setItem(KEEP_CONNECTED_KEY, keepConnected.checked ? '1' : '0');
+    if (keepConnected.checked && hasLiveToken()) rememberConnection();
+    if (!keepConnected.checked) clearRememberedConnection();
+  });
+}
 installApp.addEventListener('click', handleInstallPwa);
 $('closeInstall').addEventListener('click', () => { installModal.hidden = true; });
 $('copyUrl').addEventListener('click', () => {
@@ -776,12 +816,27 @@ window.addEventListener('appinstalled', updateInstallState);
   renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=13').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=14').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
     $('connect').textContent = 'Se connecter à Google';
-    topstat('Application prête. Touche « Se connecter à Google ».');
+
+    if (shouldAutoReconnect()) {
+      badge('authBadge', 'Google : reconnexion…', 'warn');
+      topstat('Reconnexion automatique à Google…');
+      try {
+        await requestGoogleToken(cid(), 'reuse');
+        badge('authBadge', 'Google : connecté', 'ok');
+        rememberConnection();
+        await refreshProjectList();
+      } catch (autoError) {
+        badge('authBadge', 'Google : session à renouveler', 'warn');
+        topstat('La session automatique n’a pas pu être reprise. Touche « Se connecter à Google » pour la renouveler.', 'warn');
+      }
+    } else {
+      topstat('Application prête. Touche « Se connecter à Google ».');
+    }
   } catch (e) {
     $('connect').disabled = false;
     $('connect').textContent = 'Réessayer Google';
