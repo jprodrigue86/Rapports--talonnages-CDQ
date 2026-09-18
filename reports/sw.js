@@ -1,6 +1,6 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE='cdq-reports-independent-v22-00-performance-sync';
-const FORCE_BUILD='2026.09.18-v22.00-performance-sync';
+const CACHE='cdq-reports-independent-v22-15';
+const FORCE_BUILD='2026.09.18-v22.15-persistance-largeur-pwa';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;
