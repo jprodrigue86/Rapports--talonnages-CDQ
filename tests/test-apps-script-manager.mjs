@@ -108,6 +108,23 @@ try {
   assert(deployOptions.some(o=>o.value==='dep1'),'Missing versioned deployment option');
   assert(!deployOptions.some(o=>o.value==='HEAD_DEP'),'Read-only HEAD deployment must not be selectable');
 
+  await page.evaluate(async()=>{
+    const zip=new JSZip();
+    zip.file('patches/Code_PATCH_V12.gs','function fromZip(){ return 12; }');
+    zip.file('patches/Selector_PATCH_V12.html','<main>selector zip</main>');
+    const blob=await zip.generateAsync({type:'blob'});
+    const f=new File([blob],'CDQ_patch.zip',{type:'application/zip'});
+    await importPhoneFiles([f]);
+  });
+  await page.waitForFunction(()=>document.querySelector('#changeBadge')?.textContent.includes('2'),{timeout:3000});
+  const zipImport=await page.evaluate(()=>({
+    packageResult:document.querySelector('#packageResult')?.textContent,
+    tabs:Array.from(document.querySelectorAll('#fileTabs .file-tab')).map(x=>x.textContent)
+  }));
+  assert(zipImport.packageResult.includes('2 fichier(s) importé(s)'), 'ZIP import did not prepare 2 files: '+zipImport.packageResult);
+  await page.click('#clearPackage');
+  await page.waitForFunction(()=>document.querySelector('#changeBadge')?.textContent.includes('0'),{timeout:3000});
+
   const packageText=`=== FILE: Code.gs ===\nfunction test(){ return 1; }\n\n=== FILE: Selecteur.html ===\n<div>nouveau sélecteur</div>`;
   await page.$eval('#packageEditor',(el,text)=>{el.value=text;el.dispatchEvent(new Event('input',{bubbles:true}))},packageText);
   await page.click('#parsePackage');
@@ -140,6 +157,7 @@ try {
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
   console.log('PASS: Drive project listing works');
+  console.log('PASS: ZIP import finds nested GS and Selector files and maps them to the project');
   console.log('PASS: read-only HEAD deployment is excluded');
   console.log('PASS: package -> backup -> write -> readback verification -> new version -> new deployment works');
   console.log('PASS: appsscript.json is preserved');
