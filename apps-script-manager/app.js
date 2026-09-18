@@ -218,7 +218,7 @@ async function backupPut(record) {
   }
 }
 
-async function backupList() {
+async function listBackupRecords() {
   const db = await openBackupDb();
   try {
     return await new Promise((resolve, reject) => {
@@ -261,7 +261,7 @@ async function backupDelete(id) {
 }
 
 async function pruneBackups() {
-  const all = await backupList();
+  const all = await listBackupRecords();
   for (const old of all.slice(BACKUP_LIMIT)) {
     await backupDelete(old.id);
   }
@@ -307,7 +307,7 @@ async function saveBackup(id, content, label = 'Sauvegarde automatique') {
 
 async function renderBackups() {
   try {
-    const all = await backupList();
+    const all = await listBackupRecords();
     backupList.innerHTML = all.length
       ? all.map(b => `<div class="backup-item"><div><b>${esc(b.label)}</b><span>${esc(new Date(b.date).toLocaleString('fr-CA', { hour12: false }))} • ${esc(b.scriptId)}</span></div><button data-r="${esc(b.id)}">Restaurer</button></div>`).join('')
       : '<div class="empty">Aucune sauvegarde locale.</div>';
@@ -1096,7 +1096,7 @@ $('backupNow').addEventListener('click', () => runAction(async () => {
   stat('Sauvegarde créée.', 'ok');
 }, 'Sauvegarde…'));
 $('downloadBackup').addEventListener('click', () => runAction(async () => {
-  const all = await backupList();
+  const all = await listBackupRecords();
   const backup = all[0];
   if (!backup) return stat('Aucune sauvegarde.', 'warn');
   const a = document.createElement('a');
