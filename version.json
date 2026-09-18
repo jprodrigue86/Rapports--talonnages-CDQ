@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.18-v22.00-performance-sync",
+  "version": "2026.09.18-v22.15-persistance-largeur-pwa",
   "reader_version": "21.33",
-  "selector_version": "2026.09.18-v22.00-performance-sync",
-  "backend_version": "2026.09.17-v21.57-tech-login-fix",
+  "selector_version": "2026.09.18-v22.15-persistance-largeur-pwa",
+  "backend_version": "2026.09.18-v22.15-persistance-largeur-pwa",
   "date": "2026-09-18",
   "features": [
     "demarrage-verifie",
@@ -98,7 +98,11 @@
     "auth-domcontentloaded",
     "early-apps-script-iframe",
     "foreground-folder-sync-12s",
-    "fast-cross-device-refresh"
+    "fast-cross-device-refresh",
+    "display-prefs-pwa-cache",
+    "display-pref-revision",
+    "real-parent-viewport",
+    "mobile-width-safe"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -111,5 +115,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.18-v22.00-performance-sync"
+  "pwa_version": "2026.09.18-v22.15-persistance-largeur-pwa"
 }
