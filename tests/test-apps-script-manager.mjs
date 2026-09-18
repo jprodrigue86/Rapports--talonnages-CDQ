@@ -26,8 +26,8 @@ try {
     top:document.querySelector('#versionChip')?.textContent,
     badge:document.querySelector('#versionBadge')?.textContent
   }));
-  assert(visibleVersion.top==='V14','Top version chip must show V14');
-  assert(visibleVersion.badge?.includes('V14'),'Version badge must show V14');
+  assert(visibleVersion.top==='V15','Top version chip must show V15');
+  assert(visibleVersion.badge?.includes('V15'),'Version badge must show V15');
 
   const manifest = await client.send('Page.getAppManifest');
   assert(!manifest.errors?.length,'Manifest errors: '+JSON.stringify(manifest.errors));
@@ -159,18 +159,24 @@ try {
   await page.click('#validateChanges');
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('Vérification réussie'),{timeout:3000});
 
-  await page.select('#deployment','__new__');
-  await page.click('#writeAndDeploy');
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('Version 99') && document.querySelector('#status')?.textContent.includes('nouveau déploiement'),{timeout:7000});
+  const selectedDeployment=await page.$eval('#deployment',el=>el.value);
+  assert(selectedDeployment==='dep1','Existing versioned deployment must be selected by default, not New deployment');
+
+  await page.click('#deployVersion');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('MISE À JOUR TERMINÉE') && document.querySelector('#status')?.textContent.includes('v99'),{timeout:7000});
 
   const result = await page.evaluate(()=>({
     status:document.querySelector('#status')?.textContent,
     backup:localStorage.getItem('cdqsm_backups'),
-    files:window.__mockServerFiles
+    files:window.__mockServerFiles,
+    fetchLog:window.__mockFetchLog
   }));
-  assert(result.status.includes('Version 99'),'Deployment flow did not finish on version 99: '+result.status);
-  assert(result.status.includes('nouveau déploiement'),'New deployment flow did not complete: '+result.status);
+  assert(result.status.includes('MISE À JOUR TERMINÉE'),'Existing deployment update flow did not complete: '+result.status);
+  assert(result.status.includes('v99'),'Deployment flow did not finish on version 99: '+result.status);
   assert(!!result.backup,'Automatic backup was not created');
+  assert(result.fetchLog.some(x=>x.includes('PUT https://script.googleapis.com/v1/projects/TEST_SCRIPT_ID/content')),'Pending files were not written before deployment');
+  assert(result.fetchLog.some(x=>x.includes('PUT https://script.googleapis.com/v1/projects/TEST_SCRIPT_ID/deployments/dep1')),'Existing deployment was not updated');
+  assert(!result.fetchLog.some(x=>x.includes('POST https://script.googleapis.com/v1/projects/TEST_SCRIPT_ID/deployments')),'A new deployment was incorrectly created');
   const backup=JSON.parse(result.backup);
   assert(Array.isArray(backup) && backup.length>0,'Backup history is empty');
   const code=result.files.find(f=>f.type==='SERVER_JS'&&f.name==='Code');
@@ -183,13 +189,15 @@ try {
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
-  console.log('PASS: V14 remembers the Google connection preference for 7 days without storing a permanent token');
+  console.log('PASS: V15 remembers the Google connection preference for 7 days without storing a permanent token');
   console.log('PASS: Drive project listing works');
-  console.log('PASS: V14 is visibly displayed in the app');
+  console.log('PASS: V15 is visibly displayed in the app');
   console.log('PASS: ZIP import shows received/decoding/success visual state');
   console.log('PASS: ZIP import finds nested GS and Selector files and maps them to the project');
   console.log('PASS: read-only HEAD deployment is excluded');
-  console.log('PASS: package -> backup -> write -> readback verification -> new version -> new deployment works');
+  console.log('PASS: existing versioned deployment is selected by default so technician URL stays unchanged');
+  console.log('PASS: deploy button writes pending ZIP/package changes before creating the version');
+  console.log('PASS: package -> backup -> write -> readback verification -> new version -> existing deployment update works');
   console.log('PASS: appsscript.json is preserved');
 } finally {
   if(browser) await browser.close();
