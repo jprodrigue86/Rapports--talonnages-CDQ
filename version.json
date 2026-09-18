@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.17.2218-v21.70-music-wall-fit",
+  "version": "2026.09.17.2248-v21.73-pc-music-wall",
   "reader_version": "21.33",
   "selector_version": "2026.09.17-v21.57-tech-login-fix",
   "backend_version": "2026.09.17-v21.57-tech-login-fix",
@@ -73,7 +73,10 @@
     "android-google-stuck-recovery",
     "music-wall-full-image",
     "music-wall-no-cover-zoom",
-    "music-wall-responsive-contain"
+    "music-wall-responsive-contain",
+    "pc-music-wall-responsive",
+    "pc-music-wall-30-bands",
+    "pc-music-wall-exact-app-logo"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -86,5 +89,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.17.2218-v21.70-music-wall-fit"
-}
+  "pwa_version": "2026.09.17.2248-v21.73-pc-music-wall"
+}\n
