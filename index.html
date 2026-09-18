@@ -419,13 +419,20 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v21.87-centre-mise-a-jour';
+const CDQ_PWA_BUILD = '2026.09.18-v21.88-correctif-boucle-mise-a-jour';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
 let swRegistration = null;
 let reloadingForUpdate = false;
 let updateRequested = false;
+try{
+  const target=sessionStorage.getItem('cdq_update_target_v88')||'';
+  if(target && cdqComparerVersions(CDQ_PWA_BUILD,target)>=0){
+    sessionStorage.removeItem('cdq_update_target_v88');
+    sessionStorage.removeItem('cdq_update_reload_v88');
+  }
+}catch(e){}
 
 if ('serviceWorker' in navigator) {
 navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'})
@@ -435,10 +442,17 @@ reg.update().catch(()=>{});
 })
 .catch(()=>{});
 
+function cdqReloadOuterOnceV88(){
+if(reloadingForUpdate)return;
+reloadingForUpdate=true;
+try{sessionStorage.setItem('cdq_update_reload_v88','1');}catch(e){}
+const u=new URL(window.location.href);
+u.searchParams.set('cdq_updated',Date.now());
+window.location.replace(u.toString());
+}
 navigator.serviceWorker.addEventListener('controllerchange', () => {
-if (reloadingForUpdate || !updateRequested) return;
-reloadingForUpdate = true;
-window.location.reload();
+if(!updateRequested)return;
+cdqReloadOuterOnceV88();
 });
 }
 
@@ -875,33 +889,51 @@ function cdqComparerVersions(a,b) {
 async function repondreEtatMiseAJour(source, buildSelector) {
 const latest = await lireVersionDistante();
 const selector = String(buildSelector||'');
-const current = selector || CDQ_PWA_BUILD;
+const current = CDQ_PWA_BUILD;
 const available = cdqComparerVersions(latest,current) > 0;
 try {
-replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available,latest,current,selectorCurrent:selector,pwaCurrent:CDQ_PWA_BUILD,backendCurrent:backendBuild});
+replyToSelector(source,{
+type:'CDQ_UPDATE_STATUS',
+available,
+latest,
+current,
+selectorCurrent:selector,
+pwaCurrent:CDQ_PWA_BUILD,
+backendCurrent:backendBuild
+});
 } catch (e) {}
 }
 
 async function forcerMiseAJour(source) {
-updateRequested = true;
-// Garder le cache fonctionnel jusqu’à l’activation de la nouvelle version.
-// Les rapports et les modèles privés ne sont jamais effacés ici.
+const latest=await lireVersionDistante();
+if(cdqComparerVersions(latest,CDQ_PWA_BUILD)<=0){
+  updateRequested=false;
+  try{replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available:false,latest,current:CDQ_PWA_BUILD,selectorCurrent:'',pwaCurrent:CDQ_PWA_BUILD,backendCurrent:backendBuild});}catch(e){}
+  return;
+}
+updateRequested=true;
+try{sessionStorage.setItem('cdq_update_target_v88',latest);}catch(e){}
 
-if ('serviceWorker' in navigator) {
-try {
-const reg = swRegistration || await navigator.serviceWorker.getRegistration();
-if (reg) {
-await reg.update();
-if (reg.waiting) {
-reg.waiting.postMessage({type:'SKIP_WAITING'});
-return;
-}
-}
-} catch (e) {}
+let controllerChanged=false;
+const controllerPromise=new Promise(resolve=>{
+  const done=()=>{controllerChanged=true;resolve(true);};
+  navigator.serviceWorker.addEventListener('controllerchange',done,{once:true});
+  setTimeout(()=>resolve(false),3500);
+});
+
+if('serviceWorker' in navigator){
+  try{
+    const reg=swRegistration || await navigator.serviceWorker.getRegistration();
+    if(reg){
+      await reg.update();
+      if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+    }
+  }catch(e){}
 }
 
-try { replyToSelector(source,{type:'CDQ_UPDATE_RELOAD'}); } catch (e) {}
-window.location.reload();
+// One outer reload only. Never ask the Selector iframe to reload itself.
+await controllerPromise;
+if(!controllerChanged)cdqReloadOuterOnceV88();
 }
 
 window.addEventListener('message', event => {
