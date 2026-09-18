@@ -1,73 +1,64 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.18",
-  "build": "2026.09.18-v22.18-audit-stable",
-  "title": "Balance CDQ V22.18 — Audit stable",
+  "version": "V22.19",
+  "build": "2026.09.18-v22.19-text-slider-stable",
+  "title": "Balance CDQ V22.19 — Texte/Icônes stables",
   "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
-  "requiresBuild": "2026.09.18-v22.17-autofit-stable",
+  "requiresBuild": "2026.09.18-v22.18-audit-stable",
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.18-v22.17-autofit-stable",
-      "to": "2026.09.18-v22.18-audit-stable"
+      "from": "2026.09.18-v22.18-audit-stable",
+      "to": "2026.09.18-v22.19-text-slider-stable"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.18-v22.17-autofit-stable",
-      "to": "2026.09.18-v22.18-audit-stable"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id",
-      "id": "cdqV2209IconSliderSafety"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id",
-      "id": "cdqV2211SliderSafety"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id",
-      "id": "cdqV2212CenteringSafety"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id",
-      "id": "cdqV2213IconRangeFinal"
+      "from": "2026.09.18-v22.18-audit-stable",
+      "to": "2026.09.18-v22.19-text-slider-stable"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
       "expected": 1,
-      "search": "    const m=document.getElementById('cdqDisplayModal');if(!m)return;\n    const options=m.querySelector('.cdq-display-options');if(!options||options.querySelector('[data-cdq-install-share=\"1\"]'))return;",
-      "replacement": "    const m=document.getElementById('cdqDisplayModal');if(!m)return;\n    const options=m.querySelector('.cdq-display-options');\n    if(!options || document.getElementById('cdqInstallShareSettingsButton') || options.querySelector('[data-cdq-install-share=\"1\"]'))return;"
+      "search": "function cdqCriticalRectsV2216(){\n  const sels=[\n    \".app-header\",\n    \".top-bar\",\n    \".company-wrapper\",\n    \".quick-buttons\",\n    \"#cdqTopActionsV2204\",\n    \"#clientInfoBar\",\n    \"#filesContainer\",\n    \"#cdqInlineDisplayPanelV2204\"\n  ];",
+      "replacement": "function cdqCriticalRectsV2216(){\n  // V22.19 : only fixed navigation/header geometry is allowed to clamp\n  // the global interface zoom. File/client text must never shrink the app.\n  const sels=[\n    \".app-header\",\n    \".top-bar\",\n    \".company-wrapper\",\n    \".quick-buttons\",\n    \"#cdqTopActionsV2204\"\n  ];"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id",
+      "id": "cdqV2216AutoFitWatch"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
       "expected": 1,
-      "search": "  const options=panel.querySelector(\".cdq-display-options\");\n  if(!options || options.querySelector('[data-cdq-install-share-v2204=\"1\"]'))return;",
-      "replacement": "  const options=panel.querySelector(\".cdq-display-options\");\n  if(!options || document.getElementById(\"cdqInstallShareSettingsButton\") || options.querySelector('[data-cdq-install-share-v2204=\"1\"]'))return;"
+      "search": "      const endText=function(){\n        applyText(true);\n        window.__cdqDisplaySliderDraggingV2217=false;\n        window.__cdqAutoFitSuppressedUntilV2217=Date.now()+900;\n      };",
+      "replacement": "      const endText=function(){\n        applyText(true);\n        window.__cdqDisplaySliderDraggingV2217=false;\n        // Text changes may reflow rows for a moment. They are not allowed\n        // to modify the global interface scale.\n        window.__cdqAutoFitSuppressedUntilV2217=Date.now()+2500;\n      };"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "expected": 1,
+      "search": "      const endIcons=function(){\n        applyIcons(true);\n        window.__cdqDisplaySliderDraggingV2217=false;\n        window.__cdqAutoFitSuppressedUntilV2217=Date.now()+1200;\n      };",
+      "replacement": "      const endIcons=function(){\n        applyIcons(true);\n        window.__cdqDisplaySliderDraggingV2217=false;\n        // Icon-only changes never modify the global interface zoom.\n        window.__cdqAutoFitSuppressedUntilV2217=Date.now()+2500;\n      };"
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "<script id=\"cdqV2218AuditDiagnostics\">\\n(function(){\\n\\\"use strict\\\";\\nconst KEY=\\\"cdq_runtime_errors_v2218\\\";\\nfunction push(item){try{const a=JSON.parse(localStorage.getItem(KEY)||\\\"[]\\\");a.push(Object.assign({at:new Date().toISOString()},item||{}));while(a.length>20)a.shift();localStorage.setItem(KEY,JSON.stringify(a));}catch(e){}}\\nwindow.addEventListener(\\\"error\\\",function(e){push({kind:\\\"error\\\",message:String(e.message||\\\"\\\"),source:String(e.filename||\\\"\\\"),line:Number(e.lineno||0)});});\\nwindow.addEventListener(\\\"unhandledrejection\\\",function(e){let reason=\\\"\\\";try{reason=e.reason&&e.reason.message?e.reason.message:String(e.reason||\\\"\\\");}catch(_){ }push({kind:\\\"rejection\\\",message:reason});});\\n})();\\n</script>\\n"
+      "text": "<style id=\"cdqV2219ContentContainment\">\nhtml:is(.android,.ios,.mobile-device) #filesContainer,\nhtml:is(.android,.ios,.mobile-device) #clientInfoBar,\nhtml:is(.android,.ios,.mobile-device) .file-row,\nhtml:is(.android,.ios,.mobile-device) .file-info,\nhtml:is(.android,.ios,.mobile-device) .folder-header,\nhtml:is(.android,.ios,.mobile-device) .folder-content{\n  min-width:0!important;\n  max-width:100%!important;\n  box-sizing:border-box!important;\n}\nhtml:is(.android,.ios,.mobile-device) .file-row,\nhtml:is(.android,.ios,.mobile-device) .folder-header{overflow:hidden!important}\nhtml:is(.android,.ios,.mobile-device) .file-info,\nhtml:is(.android,.ios,.mobile-device) .file-name,\nhtml:is(.android,.ios,.mobile-device) .file-name-text,\nhtml:is(.android,.ios,.mobile-device) .folder-name,\nhtml:is(.android,.ios,.mobile-device) .folder-name-text{\n  min-width:0!important;\n  max-width:100%!important;\n  overflow-wrap:anywhere!important;\n  word-break:break-word!important;\n}\n</style>\n<script id=\"cdqV2219TextScaleRecovery\">\n(function(){\n\"use strict\";\nfunction restoreRequestedZoomV2219(){\n  if(typeof cdqGeneralValueV89!==\"function\" ||\n     typeof cdqGeneralZoomV89!==\"function\" ||\n     typeof cdqSetEffectiveScaleV2216!==\"function\")return;\n  const requested=cdqGeneralZoomV89(cdqGeneralValueV89());\n  const current=Number(window.__cdqEffectiveZoomV2216||requested)||requested;\n  if(current < requested*0.82){\n    window.__cdqEffectiveZoomV2216=requested;\n    cdqSetEffectiveScaleV2216(requested);\n  }\n}\nwindow.addEventListener(\"load\",function(){\n  setTimeout(restoreRequestedZoomV2219,100);\n  setTimeout(restoreRequestedZoomV2219,700);\n},{once:true});\n})();\n</script>\n"
     }
   ],
   "audit": {
-    "activeScripts": 25,
-    "duplicateStaticIds": 0,
     "syntaxChecked": true,
+    "duplicateStaticIds": 0,
     "notes": [
-      "Listeners Icônes redondants supprimés",
-      "Watcher centrage redondant supprimé",
-      "Double bouton Installer/partager empêché",
-      "Journal local des 20 dernières erreurs runtime ajouté"
+      "Auto-fit lié à la liste de fichiers supprimé",
+      "Texte et icônes isolés du zoom général",
+      "Les noms longs se replient au lieu de rétrécir l'application",
+      "Récupération du zoom runtime ajoutée"
     ]
   }
 }
