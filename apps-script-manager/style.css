@@ -32,3 +32,8 @@ main{max-width:980px;margin:auto;padding:12px 12px calc(36px + env(safe-area-ins
 .session-option{display:flex;align-items:flex-start;gap:10px;margin:11px 0 0;padding:10px 11px;border:1px solid #2b4563;border-radius:13px;background:#091522;color:#d8e7f8}
 .session-option input{width:20px;height:20px;min-height:20px;margin:1px 0 0;accent-color:#4fa3ff;flex:0 0 20px}
 .session-option span{display:block;min-width:0}.session-option b{display:block;font-size:12px}.session-option small{display:block;color:#91a8c3;font-size:11px;line-height:1.35;margin-top:3px;font-weight:500}
+
+.deployment-notice{margin-top:10px;border:1px solid #34516e;border-radius:13px;padding:10px 11px;background:#0a1725}
+.deployment-notice strong{display:block;font-size:12px}.deployment-notice span{display:block;color:#a8bdd5;font-size:11px;line-height:1.4;margin-top:3px}
+.deployment-notice.good{border-color:#315f43;background:#0b1d14}.deployment-notice.good strong{color:#98efb3}.deployment-notice.good span{color:#b8eac6}
+.deployment-notice.warn{border-color:#7a6126;background:#271f0b}.deployment-notice.warn strong{color:#ffe2a2}.deployment-notice.warn span{color:#e3cf9e}
