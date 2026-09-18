@@ -1,37 +1,45 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.21",
-  "build": "2026.09.18-v22.21-sans-zoom-horizontal",
-  "title": "Balance CDQ V22.21 — Sans zoom horizontal",
+  "version": "V22.22",
+  "build": "2026.09.18-v22.22-android-zoom-fix",
+  "title": "Balance CDQ V22.22 — Android Root Zoom Fix",
   "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
-  "requiresBuild": "2026.09.18-v22.20-largeur-verrouillee",
+  "requiresBuild": "2026.09.18-v22.21-sans-zoom-horizontal",
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.18-v22.20-largeur-verrouillee",
-      "to": "2026.09.18-v22.21-sans-zoom-horizontal"
+      "from": "2026.09.18-v22.21-sans-zoom-horizontal",
+      "to": "2026.09.18-v22.22-android-zoom-fix"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.18-v22.20-largeur-verrouillee",
-      "to": "2026.09.18-v22.21-sans-zoom-horizontal"
+      "from": "2026.09.18-v22.21-sans-zoom-horizontal",
+      "to": "2026.09.18-v22.22-android-zoom-fix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "expected": 1,
+      "search": "html.android{\n  zoom:1.08!important;\n}",
+      "replacement": "html.android{\n  zoom:1!important;\n}"
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "<style id=\"cdqV2221DirectWidthLock\">\nhtml:is(.android,.ios,.mobile-device),html:is(.android,.ios,.mobile-device) body{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding-left:0!important;padding-right:0!important;overflow-x:hidden!important;box-sizing:border-box!important}\nhtml:is(.android,.ios,.mobile-device) .container{zoom:1!important;width:calc(100% - 20px)!important;max-width:calc(100% - 20px)!important;min-width:0!important;margin-left:10px!important;margin-right:10px!important;padding-left:0!important;padding-right:0!important;transform:none!important;left:0!important;right:auto!important;overflow-x:hidden!important;box-sizing:border-box!important}\nhtml:is(.android,.ios,.mobile-device) .app-header,html:is(.android,.ios,.mobile-device) .top-bar,html:is(.android,.ios,.mobile-device) .company-wrapper,html:is(.android,.ios,.mobile-device) .quick-buttons,html:is(.android,.ios,.mobile-device) #cdqTopActionsV2204,html:is(.android,.ios,.mobile-device) #clientInfoBar,html:is(.android,.ios,.mobile-device) #filesContainer,html:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}\nhtml:is(.android,.ios,.mobile-device) .company-wrapper{display:flex!important;gap:7px!important;overflow:hidden!important}\nhtml:is(.android,.ios,.mobile-device) .company-button{flex:1 1 0!important;width:0!important;min-width:0!important;max-width:none!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}\nhtml:is(.android,.ios,.mobile-device) .company-reset-button{flex:0 0 48px!important;width:48px!important;min-width:48px!important;max-width:48px!important}\nhtml:is(.android,.ios,.mobile-device) .quick-buttons,html:is(.android,.ios,.mobile-device) #cdqTopActionsV2204{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important;overflow:hidden!important}\nhtml:is(.android,.ios,.mobile-device) .quick-button,html:is(.android,.ios,.mobile-device) #cdqTopActionsV2204>.cdq-top-action{width:100%!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;box-sizing:border-box!important}\n</style>\n<script id=\"cdqV2221DirectWidthLockJs\">\n(function(){\n'use strict';\nwindow.cdqGeneralDensityFactorV2221=function(value){value=cdqClampScaleV89(value);return value<=50?0.78+(1-0.78)*(value/50):1+(1.20-1)*((value-50)/50)};\nwindow.cdqSetEffectiveScaleV2216=function(zoom){const c=document.querySelector('.container');if(!c)return;const d=window.cdqGeneralDensityFactorV2221(cdqGeneralValueV89());document.documentElement.style.setProperty('overflow-x','hidden','important');document.body.style.setProperty('width','100%','important');document.body.style.setProperty('max-width','100%','important');document.body.style.setProperty('margin','0','important');document.body.style.setProperty('padding','0','important');document.body.style.setProperty('overflow-x','hidden','important');c.style.setProperty('zoom','1','important');c.style.setProperty('width','calc(100% - 20px)','important');c.style.setProperty('max-width','calc(100% - 20px)','important');c.style.setProperty('min-width','0','important');c.style.setProperty('margin-left','10px','important');c.style.setProperty('margin-right','10px','important');c.style.setProperty('padding-left','0','important');c.style.setProperty('padding-right','0','important');c.style.setProperty('transform','none','important');c.style.setProperty('overflow-x','hidden','important');const px=n=>(Math.round(n*d*10)/10)+'px';cdqEnsureRuntimeStyleV89('cdqGeneralDensityV2221').textContent=`html:is(.android,.ios,.mobile-device) .company-button{min-height:${px(50)}!important;padding-top:${px(8)}!important;padding-bottom:${px(8)}!important}html:is(.android,.ios,.mobile-device) .company-reset-button{min-height:${px(50)}!important;height:${px(50)}!important}html:is(.android,.ios,.mobile-device) #cdqTopActionsV2204>.cdq-top-action{min-height:${px(53)}!important;padding-top:${px(5)}!important;padding-bottom:${px(5)}!important}html:is(.android,.ios,.mobile-device) .file-row{min-height:${px(54)}!important;padding-top:${px(8)}!important;padding-bottom:${px(8)}!important}`;window.__cdqEffectiveZoomV2216=Number(zoom)||1};\nwindow.cdqFitGeneralScaleV92=function(value){if(!cdqIsMobileUiV89())return;value=cdqClampScaleV89(value);window.cdqSetEffectiveScaleV2216(cdqGeneralZoomV89(value));window.__cdqGeneralScaleLastApplyV2211=Date.now()};\nwindow.cdqAutoFitHorizontalV2216=function(){return};window.cdqScheduleAutoFitV2216=function(){return};\nsetTimeout(function(){if(typeof cdqGeneralValueV89==='function')window.cdqFitGeneralScaleV92(cdqGeneralValueV89())},0);\n})();\n</script>\n"
+      "text": "\n<style id=\"cdqV2222AndroidRootZoomFix\">\n/* V22.22 — aucune mise à l'échelle du document Android.\n   Les réglages Affichage ne doivent jamais modifier la largeur physique du viewport. */\nhtml.android,\nhtml.mobile-device{\n  zoom:1!important;\n  width:100%!important;\n  max-width:100%!important;\n  overflow-x:hidden!important;\n}\nhtml.android body,\nhtml.mobile-device body{\n  width:100%!important;\n  max-width:100%!important;\n  min-width:0!important;\n  overflow-x:hidden!important;\n}\n</style>\n"
     }
   ],
   "audit": {
     "syntaxChecked": true,
+    "activeScripts": 26,
     "notes": [
-      "CSS zoom global neutralisé",
-      "Largeur mobile = 100% - 20px",
-      "Auto-fit horizontal neutralisé",
-      "Curseur Interface générale ne change plus la largeur"
+      "Ancien zoom Android 1.08 supprimé",
+      "Zoom racine Android verrouillé à 1",
+      "Largeur html/body bornée à 100 %",
+      "Tests layout PASS: 320,360,384,412,480,709 px"
     ]
   }
 }
