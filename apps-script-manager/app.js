@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V20';
+const APP_VERSION = 'V21';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -143,6 +143,49 @@ function productionDeployment(all=CDQ.deployments||[]) {
 }
 function productionDeploymentReady() {
   return !isProductionProject() || Boolean(productionDeployment());
+}
+function isAppsScriptOriginV21(origin){
+  try{
+    const u=new URL(origin);
+    const h=u.hostname;
+    return u.protocol==='https:' && !u.port &&
+      (h==='script.google.com' || h==='script.googleusercontent.com' || h.endsWith('-script.googleusercontent.com'));
+  }catch(e){return false;}
+}
+function verifyProductionWebAppReadyV21(expectedBuild='',timeoutMs=30000){
+  return new Promise((resolve,reject)=>{
+    let finished=false;
+    const frame=document.createElement('iframe');
+    frame.title='Vérification silencieuse Balance CDQ';
+    frame.tabIndex=-1;
+    frame.setAttribute('aria-hidden','true');
+    frame.style.cssText='position:fixed;left:-12000px;top:0;width:420px;height:800px;opacity:0;pointer-events:none;border:0';
+    const cleanup=()=>{
+      if(finished)return;
+      finished=true;
+      clearTimeout(timer);
+      window.removeEventListener('message',onMessage);
+      try{frame.remove();}catch(e){}
+    };
+    const fail=msg=>{cleanup();reject(new Error(msg));};
+    const onMessage=e=>{
+      const d=e.data||{};
+      if(!isAppsScriptOriginV21(e.origin) || d.type!=='CDQ_SELECTOR_READY')return;
+      const build=String(d.build||'');
+      if(expectedBuild && build && compareBuildLabels(build,expectedBuild)<0){
+        fail('La production répond, mais elle annonce encore '+build+' au lieu de '+expectedBuild+'.');
+        return;
+      }
+      cleanup();
+      resolve({build:build||'version non annoncée'});
+    };
+    const timer=setTimeout(()=>fail('La version déployée n’a pas envoyé CDQ_SELECTOR_READY dans '+Math.round(timeoutMs/1000)+' secondes.'),timeoutMs);
+    window.addEventListener('message',onMessage);
+    frame.onerror=()=>fail('La page de production n’a pas pu être chargée.');
+    const sep=CDQ_PRODUCTION_WEBAPP_URL.includes('?')?'&':'?';
+    frame.src=CDQ_PRODUCTION_WEBAPP_URL+sep+'cdq_sm_health='+Date.now();
+    document.body.appendChild(frame);
+  });
 }
 
 function setQuickResult(text, kind = '') {
@@ -992,6 +1035,11 @@ async function deployNewVersion(targetOverride = null) {
   if(isProductionProject() && !productionDeployment()){
     throw Error('Déploiement de production Balance CDQ introuvable. Écriture/déploiement bloqués pour éviter de publier sur la mauvaise URL.');
   }
+
+  const targetDeployment = (CDQ.deployments || []).find(d => d.deploymentId === target);
+  const previousVersion = Number(targetDeployment?.deploymentConfig?.versionNumber || 0);
+  const sourceBuild = S.lastWrittenBuild || S.pendingBuild || '';
+
   const v = await createProjectVersion(S.id, desc, cid());
 
   if (target === '__new__') {
@@ -1009,35 +1057,70 @@ async function deployNewVersion(targetOverride = null) {
     return { version: v.versionNumber, deploymentId: created?.deploymentId, createdNew: true };
   }
 
-  const targetDeployment = (CDQ.deployments || []).find(d => d.deploymentId === target);
   if (!Number.isInteger(targetDeployment?.deploymentConfig?.versionNumber)) {
     throw Error('Ce déploiement est en lecture seule. Choisis un déploiement versionné.');
   }
 
   await updateDeployment(S.id, target, v.versionNumber, desc, cid());
-  const all = await listDeployments(S.id, cid());
-  const verifiedDeployment=all.find(d=>d.deploymentId===target);
+  let all = await listDeployments(S.id, cid());
+  let verifiedDeployment=all.find(d=>d.deploymentId===target);
   if(!verifiedDeployment||verifiedDeployment.deploymentConfig?.versionNumber!==v.versionNumber){
     throw Error('Le déploiement n’a pas été confirmé sur la nouvelle version. Aucune réussite n’est affichée.');
   }
   if(isProductionProject()&&String(verifiedDeployment.deploymentId)!==CDQ_PRODUCTION_DEPLOYMENT_ID){
     throw Error('Vérification de sécurité échouée : le déploiement confirmé n’est pas le déploiement de production Balance CDQ.');
   }
+
+  if(isProductionProject()){
+    stat('Étape 3/3 — ouverture réelle de Balance CDQ en production…');
+    setQuickResult('Déploiement écrit. Vérification de la vraie application de production en cours…','warn');
+    try{
+      const health=await verifyProductionWebAppReadyV21(sourceBuild,30000);
+      setQuickResult(
+        `PRODUCTION TESTÉE ✓ ${sourceBuild||health.build} • Apps Script v${v.versionNumber} • CDQ_SELECTOR_READY reçu.`,
+        'ok'
+      );
+    }catch(healthError){
+      if(previousVersion>0){
+        stat(`Échec du démarrage — retour automatique à Apps Script v${previousVersion}…`,'warn');
+        try{
+          await updateDeployment(S.id,target,previousVersion,`ROLLBACK automatique — échec santé v${v.versionNumber}`,cid());
+          all=await listDeployments(S.id,cid());
+          const rolled=all.find(d=>d.deploymentId===target);
+          renderDeployments(all);
+          if(!rolled || rolled.deploymentConfig?.versionNumber!==previousVersion){
+            throw new Error('Le retour automatique n’a pas pu être confirmé.');
+          }
+          setQuickResult(
+            `MISE À JOUR REFUSÉE — Balance CDQ n’a pas démarré. Production restaurée automatiquement à Apps Script v${previousVersion}.`,
+            'err'
+          );
+          throw new Error(`La nouvelle version n’a pas démarré. Retour automatique réussi vers Apps Script v${previousVersion}. Détail : ${healthError.message}`);
+        }catch(rollbackError){
+          if(/Retour automatique réussi/.test(rollbackError.message))throw rollbackError;
+          throw new Error(`La nouvelle version n’a pas démarré ET le rollback doit être vérifié manuellement. ${healthError.message} • ${rollbackError.message}`);
+        }
+      }
+      throw healthError;
+    }
+  }
+
   renderDeployments(all);
   if (all.some(d => d.deploymentId === target)) deployment.value = target;
   updateDeploymentUi();
   saveSettings();
-  S.lastDeploymentResult = { version: v.versionNumber, deploymentId: target, createdNew: false };
-  const sourceBuild = S.lastWrittenBuild || S.pendingBuild || '';
-  setQuickResult(
-    `MISE À JOUR CONFIRMÉE ✓${sourceBuild ? ' ' + sourceBuild + ' •' : ''} Apps Script version ${v.versionNumber} • déploiement de production confirmé • même URL pour les techniciens.`,
-    'ok'
-  );
+  S.lastDeploymentResult = { version: v.versionNumber, deploymentId: target, createdNew: false, healthChecked:isProductionProject() };
+
   S.pkg.clear();
   S.pendingBuild = '';
   renderDiff();
   updateQuickUi();
-  stat(`MISE À JOUR TERMINÉE ✓ Déploiement actuel conservé • nouvelle version Apps Script v${v.versionNumber} • même ID/URL pour les techniciens.`, 'ok');
+
+  if(isProductionProject()){
+    stat(`MISE À JOUR TERMINÉE ✓ Apps Script v${v.versionNumber} • production ouverte et testée • même URL.`,'ok');
+  }else{
+    stat(`MISE À JOUR TERMINÉE ✓ Déploiement actuel conservé • nouvelle version Apps Script v${v.versionNumber}.`,'ok');
+  }
   return S.lastDeploymentResult;
 }
 
@@ -1050,13 +1133,15 @@ async function writePendingAndDeploy() {
   const pending=pendingChangeCount();
 
   if (pending > 0) {
-    stat(`Étape 1/2 — écriture de ${pending} modification(s) dans Apps Script…`);
+    stat(`Étape 1/${isProductionProject()?'3':'2'} — écriture de ${pending} modification(s) dans Apps Script…`);
     await writeProjectChanges();
   } else {
-    stat('Étape 1/2 — aucune modification en attente. Le code Google est déjà écrit.');
+    stat(`Étape 1/${isProductionProject()?'3':'2'} — aucune modification en attente. Le code Google est déjà écrit.`);
   }
 
-  stat('Étape 2/2 — création de la nouvelle version et mise à jour du déploiement…');
+  stat(isProductionProject()
+    ? 'Étape 2/3 — création de la version et mise à jour du déploiement de production…'
+    : 'Étape 2/2 — création de la nouvelle version et mise à jour du déploiement…');
   return deployNewVersion(target);
 }
 
