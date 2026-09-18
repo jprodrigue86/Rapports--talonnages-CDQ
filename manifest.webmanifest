@@ -2,8 +2,8 @@
   "name": "Rapports D’étalonnages",
   "short_name": "Étalonnages",
   "description": "Application CDQ pour les rapports d’étalonnage.",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/Rapports--talonnages-CDQ/",
+  "scope": "/Rapports--talonnages-CDQ/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#000000",
@@ -21,5 +21,9 @@
       "type": "image/png",
       "purpose": "any"
     }
-  ]
+  ],
+  "id": "/Rapports--talonnages-CDQ/",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }
