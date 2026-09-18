@@ -103,7 +103,7 @@ try {
   await page.click('#loadProject');
   await page.waitForFunction(()=>document.querySelector('#projectBadge')?.textContent.includes('Projet Test CDQ'),{timeout:5000});
   await page.waitForFunction(()=>document.querySelector('#deployment')?.options.length>1,{timeout:5000});
-  const deployOptions=await page.$eval('#deployment option',opts=>opts.map(o=>({value:o.value,text:o.textContent,disabled:o.disabled})));
+  const deployOptions=await page.evaluate(()=>Array.from(document.querySelectorAll('#deployment option')).map(o=>({value:o.value,text:o.textContent,disabled:o.disabled})));
   assert(deployOptions.some(o=>o.value==='__new__'),'Missing New deployment option');
   assert(deployOptions.some(o=>o.value==='dep1'),'Missing versioned deployment option');
   assert(!deployOptions.some(o=>o.value==='HEAD_DEP'),'Read-only HEAD deployment must not be selectable');
