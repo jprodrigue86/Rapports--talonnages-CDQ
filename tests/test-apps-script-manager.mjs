@@ -26,8 +26,8 @@ try {
     top:document.querySelector('#versionChip')?.textContent,
     badge:document.querySelector('#versionBadge')?.textContent
   }));
-  assert(visibleVersion.top==='V15','Top version chip must show V15');
-  assert(visibleVersion.badge?.includes('V15'),'Version badge must show V15');
+  assert(visibleVersion.top==='V16','Top version chip must show V16');
+  assert(visibleVersion.badge?.includes('V16'),'Version badge must show V16');
 
   const manifest = await client.send('Page.getAppManifest');
   assert(!manifest.errors?.length,'Manifest errors: '+JSON.stringify(manifest.errors));
@@ -106,6 +106,12 @@ try {
   assert(remembered.keep==='1','Keep connected preference must be stored');
   assert(remembered.until>Date.now(),'Auto-connect expiration must be in the future');
   assert(remembered.prompt==='select_account','Manual connect should allow account selection');
+  const storedToken=await page.evaluate(()=>({
+    token:localStorage.getItem('cdqsm_google_access_token'),
+    expires:Number(localStorage.getItem('cdqsm_google_access_token_expires')||0)
+  }));
+  assert(storedToken.token==='TEST_TOKEN','Live Google token should be retained on this device while valid');
+  assert(storedToken.expires>Date.now(),'Stored Google token expiry should be in the future');
   await sleep(500);
   const afterAuth = await page.evaluate(()=>({
     topStatus:document.querySelector('#topStatus')?.textContent,
@@ -119,6 +125,12 @@ try {
   await page.select('#projectSelect','TEST_SCRIPT_ID');
   await page.click('#loadProject');
   await page.waitForFunction(()=>document.querySelector('#projectBadge')?.textContent.includes('Projet Test CDQ'),{timeout:5000});
+  const quickLinked=await page.evaluate(()=>({
+    project:document.querySelector('#quickProjectStatus')?.textContent,
+    connectHidden:document.querySelector('#quickConnect')?.hidden
+  }));
+  assert(quickLinked.project.includes('Projet Test CDQ'),'Quick mode did not show the linked project');
+  assert(quickLinked.connectHidden===true,'Quick Google button should hide after connection');
   await page.waitForFunction(()=>document.querySelector('#deployment')?.options.length>1,{timeout:5000});
   const deployOptions=await page.evaluate(()=>Array.from(document.querySelectorAll('#deployment option')).map(o=>({value:o.value,text:o.textContent,disabled:o.disabled})));
   assert(deployOptions.some(o=>o.value==='__new__'),'Missing New deployment option');
@@ -163,8 +175,16 @@ try {
   const selectedDeployment=await page.$eval('#deployment',el=>el.value);
   assert(selectedDeployment==='dep1','Existing versioned deployment must be selected by default, not New deployment');
 
-  await page.click('#deployVersion');
+  const quickReady=await page.evaluate(()=>({
+    disabled:document.querySelector('#quickApply')?.disabled,
+    zip:document.querySelector('#quickZipSummary')?.textContent
+  }));
+  assert(quickReady.disabled===false,'Quick apply must be enabled after ZIP import');
+  assert(quickReady.zip.includes('2 modification'),'Quick mode must show ZIP modifications');
+
+  await page.click('#quickApply');
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('MISE À JOUR TERMINÉE') && document.querySelector('#status')?.textContent.includes('v99'),{timeout:7000});
+  await page.waitForFunction(()=>document.querySelector('#quickResult')?.textContent.includes('MISE À JOUR CONFIRMÉE'),{timeout:3000});
 
   const result = await page.evaluate(()=>({
     status:document.querySelector('#status')?.textContent,
@@ -190,14 +210,16 @@ try {
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
-  console.log('PASS: V15 remembers the Google connection preference for 7 days without storing a permanent token');
+  console.log('PASS: V16 remembers the Google connection preference for 7 days without storing a permanent token');
   console.log('PASS: Drive project listing works');
-  console.log('PASS: V15 is visibly displayed in the app');
+  console.log('PASS: V16 is visibly displayed in the app');
   console.log('PASS: ZIP import shows received/decoding/success visual state');
   console.log('PASS: ZIP import finds nested GS and Selector files and maps them to the project');
   console.log('PASS: read-only HEAD deployment is excluded');
   console.log('PASS: existing versioned deployment is selected by default so technician URL stays unchanged');
-  console.log('PASS: deploy button writes pending ZIP/package changes before creating the version');
+  console.log('PASS: quick mode links the saved project automatically');
+  console.log('PASS: one quick button writes pending ZIP/package changes before creating the version');
+  console.log('PASS: deployment version is re-read and confirmed after update');
   console.log('PASS: package -> backup -> write -> readback verification -> new version -> existing deployment update works');
   console.log('PASS: appsscript.json is preserved');
 } finally {
