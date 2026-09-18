@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v21-70-music-wall-fit';
-const FORCE_BUILD = '2026.09.17.2218-v21.70-music-wall-fit';
+const CACHE = 'cdq-installable-v21-73-pc-music-wall';
+const FORCE_BUILD = '2026.09.17.2248-v21.73-pc-music-wall';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
