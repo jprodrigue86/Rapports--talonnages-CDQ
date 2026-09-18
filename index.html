@@ -426,7 +426,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v22.15-persistance-largeur-pwa';
+const CDQ_PWA_BUILD = '2026.09.18-v22.16-autofit-restauration';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -964,6 +964,16 @@ if(!controllerChanged)cdqReloadOuterOnceV88();
 CDQ V22.15 — PRÉFÉRENCES D’AFFICHAGE PWA + VIEWPORT RÉEL
 ===================================================== */
 const CDQ_DISPLAY_PREFS_PWA_KEY_V2215='cdq_display_prefs_by_email_v2215';
+const CDQ_DISPLAY_PREFS_LAST_KEY_V2216='cdq_display_prefs_last_v2216';
+function cdqLastPrefsLoadV2216(){
+  try{
+    const v=JSON.parse(localStorage.getItem(CDQ_DISPLAY_PREFS_LAST_KEY_V2216)||'null');
+    return v&&typeof v==='object'?v:null;
+  }catch(e){return null;}
+}
+function cdqLastPrefsSaveV2216(p){
+  try{localStorage.setItem(CDQ_DISPLAY_PREFS_LAST_KEY_V2216,JSON.stringify(p||null));}catch(e){}
+}
 
 function cdqPrefsEmailKeyV2215(email){
   return String(email||'').trim().toLowerCase();
@@ -1001,6 +1011,11 @@ function cdqReplyViewportV2215(source){
   replyToSelector(source,{type:'CDQ_VIEWPORT_VALUE',width:cdqViewportWidthV2215()});
 }
 function cdqHandleDisplayPrefsV2215(data,source){
+  if(data.type==='CDQ_DISPLAY_PREFS_BOOTSTRAP_GET'){
+    replyToSelector(source,{type:'CDQ_DISPLAY_PREFS_BOOTSTRAP',prefs:cdqLastPrefsLoadV2216()});
+    return true;
+  }
+
   const email=cdqPrefsEmailKeyV2215(data.email);
   if(!email)return false;
 
@@ -1012,6 +1027,7 @@ function cdqHandleDisplayPrefsV2215(data,source){
       map[email]=incoming;
       cdqPrefsMapSaveV2215(map);
     }
+    cdqLastPrefsSaveV2216(map[email]||incoming);
     replyToSelector(source,{type:'CDQ_DISPLAY_PREFS_VALUE',prefs:map[email]||incoming});
     return true;
   }
