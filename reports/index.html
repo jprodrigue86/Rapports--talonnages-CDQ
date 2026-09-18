@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v22.16-autofit-restauration';
+const CDQ_PWA_BUILD = '2026.09.18-v22.18-audit-stable';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1058,6 +1058,12 @@ else if (!selectorAwaitingAccess) masquerMurApresDelaiMinimum();
 }
 if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
 if(data.type==='CDQ_VIEWPORT_GET'){cdqReplyViewportV2215(event.source);return;}
+if(data.type==='CDQ_DISPLAY_PREFS_BOOTSTRAP_GET'){
+  let prefs=null;
+  try{prefs=JSON.parse(localStorage.getItem(CDQ_DISPLAY_PREFS_DEVICE_KEY_V2218)||'null');}catch(e){}
+  replyToSelector(event.source,{type:'CDQ_DISPLAY_PREFS_BOOTSTRAP',prefs});
+  return;
+}
 if(cdqHandleDisplayPrefsV2215(data,event.source))return;
 if(data.type==='CDQ_GOOGLE_AUTH_REQUIRED'){afficherConnexionGoogleV42(data);return;}
 if(data.type==='CDQ_GOOGLE_AUTH_OK'){
