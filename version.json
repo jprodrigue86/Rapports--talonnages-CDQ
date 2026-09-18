@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.18-v21.90-package-propre-deploiement-production",
+  "version": "2026.09.18-v21.95-iframe-load-fallback",
   "reader_version": "21.33",
   "selector_version": "2026.09.18-v21.90-package-propre-deploiement-production",
   "backend_version": "2026.09.17-v21.57-tech-login-fix",
@@ -90,7 +90,10 @@
     "no-selector-reload-on-update",
     "manual-update-only-no-auto-loop",
     "script-manager-v20-production-lock",
-    "clean-v21-90-package"
+    "clean-v21-90-package",
+    "iframe-load-fallback",
+    "no-false-server-timeout",
+    "mobile-selector-render-fallback"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -103,5 +106,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.18-v21.90-package-propre-deploiement-production"
+  "pwa_version": "2026.09.18-v21.95-iframe-load-fallback"
 }
