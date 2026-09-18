@@ -43,6 +43,9 @@ self.addEventListener('fetch', event => {
     })());return;
   }
   if (url.origin !== SCOPE.origin || !url.pathname.startsWith(SCOPE.pathname)) return;
+  // Les applications imbriquées ont désormais leurs propres service workers et scopes.
+  if (url.pathname.startsWith(SCOPE.pathname + 'reports/') ||
+      url.pathname.startsWith(SCOPE.pathname + 'apps-script-manager/')) return;
   const key = shellKey(url);
   const critical = event.request.mode === 'navigate' || ['index.html','version.json','firebase-config.js','google-auth-config.js','manifest.webmanifest']
     .some(name => key === new URL(name, SCOPE).href);
