@@ -56,7 +56,7 @@
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "<script id=\"cdqV2218AuditDiagnostics\">\\n(function(){\\n\\\"use strict\\\";\\nconst KEY=\\\"cdq_runtime_errors_v2218\\\";\\nfunction push(item){try{const a=JSON.parse(localStorage.getItem(KEY)||\\\"[]\\\");a.push(Object.assign({at:new Date().toISOString()},item||{}));while(a.length>20)a.shift();localStorage.setItem(KEY,JSON.stringify(a));}catch(e){}}\\nwindow.addEventListener(\\\"error\\\",function(e){push({kind:\\\"error\\\",message:String(e.message||\\\"\\\"),source:String(e.filename||\\\"\\\"),line:Number(e.lineno||0)});});\\nwindow.addEventListener(\\\"unhandledrejection\\\",function(e){let reason=\\\"\\\";try{reason=e.reason&&e.reason.message?e.reason.message:String(e.reason||\\\"\\\");}catch(_){ }push({kind:\\\"rejection\\\",message:reason});});\\n})();\\n<\\/script>\\n"
+      "text": "<script id=\"cdqV2218AuditDiagnostics\">\\n(function(){\\n\\\"use strict\\\";\\nconst KEY=\\\"cdq_runtime_errors_v2218\\\";\\nfunction push(item){try{const a=JSON.parse(localStorage.getItem(KEY)||\\\"[]\\\");a.push(Object.assign({at:new Date().toISOString()},item||{}));while(a.length>20)a.shift();localStorage.setItem(KEY,JSON.stringify(a));}catch(e){}}\\nwindow.addEventListener(\\\"error\\\",function(e){push({kind:\\\"error\\\",message:String(e.message||\\\"\\\"),source:String(e.filename||\\\"\\\"),line:Number(e.lineno||0)});});\\nwindow.addEventListener(\\\"unhandledrejection\\\",function(e){let reason=\\\"\\\";try{reason=e.reason&&e.reason.message?e.reason.message:String(e.reason||\\\"\\\");}catch(_){ }push({kind:\\\"rejection\\\",message:reason});});\\n})();\\n</script>\\n"
     }
   ],
   "audit": {
