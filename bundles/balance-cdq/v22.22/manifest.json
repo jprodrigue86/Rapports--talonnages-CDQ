@@ -1,0 +1,45 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.22",
+  "build": "2026.09.18-v22.22-android-zoom-fix",
+  "title": "Balance CDQ V22.22 — Android Root Zoom Fix",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "requiresBuild": "2026.09.18-v22.21-sans-zoom-horizontal",
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.21-sans-zoom-horizontal",
+      "to": "2026.09.18-v22.22-android-zoom-fix"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.21-sans-zoom-horizontal",
+      "to": "2026.09.18-v22.22-android-zoom-fix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "expected": 1,
+      "search": "html.android{\n  zoom:1.08!important;\n}",
+      "replacement": "html.android{\n  zoom:1!important;\n}"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqV2222AndroidRootZoomFix\">\n/* V22.22 — aucune mise à l'échelle du document Android.\n   Les réglages Affichage ne doivent jamais modifier la largeur physique du viewport. */\nhtml.android,\nhtml.mobile-device{\n  zoom:1!important;\n  width:100%!important;\n  max-width:100%!important;\n  overflow-x:hidden!important;\n}\nhtml.android body,\nhtml.mobile-device body{\n  width:100%!important;\n  max-width:100%!important;\n  min-width:0!important;\n  overflow-x:hidden!important;\n}\n</style>\n"
+    }
+  ],
+  "audit": {
+    "syntaxChecked": true,
+    "activeScripts": 26,
+    "notes": [
+      "Ancien zoom Android 1.08 supprimé",
+      "Zoom racine Android verrouillé à 1",
+      "Largeur html/body bornée à 100 %",
+      "Tests layout PASS: 320,360,384,412,480,709 px"
+    ]
+  }
+}
