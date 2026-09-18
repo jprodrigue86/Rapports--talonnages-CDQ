@@ -859,12 +859,26 @@ return CDQ_PWA_BUILD;
 }
 }
 
+function cdqComparerVersions(a,b) {
+  const va=String(a||''), vb=String(b||'');
+  const ma=va.match(/v(\d+)\.(\d+)(?:\.(\d+))?/i);
+  const mb=vb.match(/v(\d+)\.(\d+)(?:\.(\d+))?/i);
+  if(ma && mb){
+    for(let i=1;i<=3;i++){
+      const na=Number(ma[i]||0), nb=Number(mb[i]||0);
+      if(na!==nb) return na-nb;
+    }
+  }
+  return va.localeCompare(vb,undefined,{numeric:true});
+}
+
 async function repondreEtatMiseAJour(source, buildSelector) {
 const latest = await lireVersionDistante();
-const current = CDQ_PWA_BUILD;
-const available = latest.localeCompare(current, undefined, {numeric:true}) > 0;
+const selector = String(buildSelector||'');
+const current = selector || CDQ_PWA_BUILD;
+const available = cdqComparerVersions(latest,current) > 0;
 try {
-replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available,latest,current,selectorCurrent:String(buildSelector||''),backendCurrent:backendBuild});
+replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available,latest,current,selectorCurrent:selector,pwaCurrent:CDQ_PWA_BUILD,backendCurrent:backendBuild});
 } catch (e) {}
 }
 
