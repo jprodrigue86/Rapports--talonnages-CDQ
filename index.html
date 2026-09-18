@@ -320,7 +320,12 @@ moins de groupes mais des noms plus lisibles.
 .music-wall-pc{display:none}
 @media (min-width:900px) and (min-aspect-ratio:4/3){
   .music-wall-image{display:none!important}
-  .music-wall-pc{
+  .music-wall-pc{display:none!important}
+  #loading{background:#000!important}
+  #loading.pc-frame-ready{background:transparent!important}
+  #loading.pc-frame-ready::before,
+  #loading.pc-frame-ready::after{opacity:0!important}
+  .music-wall-pc-unused{
     position:absolute;inset:0;z-index:-3;display:grid;
     grid-template-columns:repeat(6,minmax(0,1fr));
     grid-template-rows:repeat(5,minmax(0,1fr));
@@ -338,7 +343,7 @@ moins de groupes mais des noms plus lisibles.
       repeating-linear-gradient(135deg,rgba(255,255,255,.018) 0 1px,transparent 1px 10px),
       radial-gradient(ellipse at center,transparent 0 34%,rgba(0,0,0,.32) 72%,rgba(0,0,0,.76) 100%);
   }
-  .pc-band{
+  .pc-band{display:none!important;
     position:relative;z-index:1;max-width:100%;text-align:center;white-space:nowrap;
     font-family:Impact,"Arial Black",system-ui,sans-serif;
     font-size:clamp(17px,1.55vw,30px);font-weight:900;line-height:1;
@@ -346,7 +351,7 @@ moins de groupes mais des noms plus lisibles.
     opacity:.86;transform:rotate(var(--r,0deg));
   }
   .pc-band.red{color:#a91f27}.pc-band.blue{color:#75a9bb}.pc-band.white{color:#e2e2df}.pc-band.dim{color:#8e9499}
-  .music-wall-pc-logo{
+  .music-wall-pc-logo{display:none!important;
     position:absolute;z-index:3;left:50%;top:47%;width:clamp(140px,12vw,210px);height:clamp(140px,12vw,210px);
     transform:translate(-50%,-50%);object-fit:contain;border:0;background:transparent;
     filter:drop-shadow(0 0 15px rgba(0,164,229,.26)) drop-shadow(0 8px 18px rgba(0,0,0,.85));
@@ -413,7 +418,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.17.2248-v21.73-pc-music-wall';
+const CDQ_PWA_BUILD = '2026.09.17.2328-v21.75-one-pc-wall';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -776,6 +781,8 @@ selectorAwaitingAccess = state === 'pending';
 if (selectorAwaitingAccess) {
 clearTimeout(hideLoadingTimer);
 loading.style.display = 'grid';
+const pcOneWall=window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches;
+if(pcOneWall){app.style.visibility='visible';loading.classList.add('pc-frame-ready');}
 // Dernier secours si le Selector cesse complètement de répondre.
 if (!wasPending) accessWaitTimer = setTimeout(() => {
 if (!selectorAwaitingAccess) return;
@@ -811,6 +818,11 @@ loading.style.display = 'none';
 // iframe.load also fires for Google error pages. Only the Selector handshake
 // proves that the application's own JavaScript has started.
 app.addEventListener('load', () => {
+const pcOneWall=window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches;
+if(pcOneWall && app.src && app.src !== 'about:blank'){
+  app.style.visibility='visible';
+  loading.classList.add('pc-frame-ready');
+}
 if (!selectorReady && app.src && app.src !== 'about:blank') armLoadingTimeout();
 });
 
@@ -824,6 +836,8 @@ clearTimeout(accessWaitTimer);
 annulerPontBiometrique();
 selectorWindow = null;
 selectorOrigin = '';
+const pcOneWall=window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches;
+loading.classList.remove('pc-frame-ready');
 app.style.visibility = 'hidden';
 clearTimeout(hideLoadingTimer);
 armLoadingTimeout();
