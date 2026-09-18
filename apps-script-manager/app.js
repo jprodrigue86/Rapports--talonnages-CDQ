@@ -275,6 +275,94 @@ function importedFileSpec(fileName) {
   return null;
 }
 
+
+function fileBaseName(path) {
+  return String(path || '').split('/').filter(Boolean).pop() || '';
+}
+
+function existingProjectFileByName(name, type) {
+  const n = String(name || '').toLowerCase();
+  return S.files.find(f => f.type === type && String(f.name || '').toLowerCase() === n);
+}
+
+function resolveImportedEntry(entry, counts = {}) {
+  const base = fileBaseName(entry.displayName || entry.path || entry.name);
+  const spec = importedFileSpec(base);
+  if (!spec) return null;
+
+  const exact = existingProjectFileByName(spec.name, spec.type);
+  if (exact) {
+    return { name: exact.name, type: exact.type, displayName: displayNameForFile(exact), source: entry.source };
+  }
+
+  if (spec.type === 'SERVER_JS') {
+    const codeTarget = S.files.find(f => f.type === 'SERVER_JS' && /^code$/i.test(f.name));
+    if (codeTarget && (/code/i.test(base) || counts.gs === 1)) {
+      return { name: codeTarget.name, type: codeTarget.type, displayName: displayNameForFile(codeTarget), source: entry.source };
+    }
+  }
+
+  if (spec.type === 'HTML') {
+    const selectorTarget = S.files.find(f => f.type === 'HTML' && /^(selector|selecteur)$/i.test(f.name));
+    if (selectorTarget && (/(selector|selecteur)/i.test(base) || counts.html === 1)) {
+      return { name: selectorTarget.name, type: selectorTarget.type, displayName: displayNameForFile(selectorTarget), source: entry.source };
+    }
+  }
+
+  return { ...spec, source: entry.source };
+}
+
+async function readZipEntries(file) {
+  if (typeof JSZip === 'undefined') throw Error('Le lecteur ZIP n’est pas chargé. Ferme puis rouvre l’application avec Internet.');
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const raw = [];
+
+  for (const [path, entry] of Object.entries(zip.files)) {
+    if (entry.dir) continue;
+    if (/^__MACOSX\//i.test(path)) continue;
+    const base = fileBaseName(path);
+    if (!base || /^\./.test(base)) continue;
+
+    const lower = base.toLowerCase();
+    if (!(/\.gs$/i.test(base) || /\.html?$/i.test(base) || /^appsscript\.json$/i.test(base) || /\.(txt|cdq)$/i.test(base))) {
+      continue;
+    }
+
+    const source = (await entry.async('string')).replace(/\r\n/g, '\n');
+
+    if (/\.(txt|cdq)$/i.test(base) && /^\s*===\s*FILE\s*:/mi.test(source)) {
+      raw.push(...parsePackage(source).map(x => ({ ...x, path, source: x.source })));
+      continue;
+    }
+
+    raw.push({ path, displayName: base, source });
+  }
+
+  if (!raw.length) {
+    throw Error('Le ZIP ne contient aucun fichier .gs, .html, appsscript.json ou Package CDQ compatible.');
+  }
+
+  const counts = {
+    gs: raw.filter(x => /\.gs$/i.test(fileBaseName(x.displayName || x.path))).length,
+    html: raw.filter(x => /\.html?$/i.test(fileBaseName(x.displayName || x.path))).length,
+  };
+
+  const resolved = raw.map(x => {
+    if (x.type && x.name) {
+      const exact = existingProjectFileByName(x.name, x.type);
+      if (exact) return { ...x, name: exact.name, type: exact.type, displayName: displayNameForFile(exact) };
+      return x;
+    }
+    return resolveImportedEntry(x, counts);
+  }).filter(Boolean);
+
+  const dedup = new Map();
+  for (const entry of resolved) {
+    dedup.set(`${entry.type}:${String(entry.name).toLowerCase()}`, entry);
+  }
+  return Array.from(dedup.values());
+}
+
 async function importPhoneFiles(fileList) {
   try {
     if (!S.files.length) throw Error('Charge d’abord le projet.');
@@ -284,21 +372,33 @@ async function importPhoneFiles(fileList) {
     const entries = [];
     const ignored = [];
     for (const file of selected) {
+      if (/\.zip$/i.test(file.name) || /zip/i.test(file.type || '')) {
+        const zipEntries = await readZipEntries(file);
+        entries.push(...zipEntries);
+        continue;
+      }
+
       const text = await file.text();
       if (/\.(txt|cdq)$/i.test(file.name) && /^\s*===\s*FILE\s*:/mi.test(text)) {
         entries.push(...parsePackage(text));
         continue;
       }
+
       const spec = importedFileSpec(file.name);
       if (!spec) {
         ignored.push(file.name);
         continue;
       }
-      entries.push({ ...spec, source: text.replace(/\r\n/g, '\n') });
+
+      const resolved = resolveImportedEntry({ ...spec, displayName: file.name, source: text.replace(/\r\n/g, '\n') }, {
+        gs: /\.gs$/i.test(file.name) ? 1 : 0,
+        html: /\.html?$/i.test(file.name) ? 1 : 0,
+      });
+      entries.push(resolved || { ...spec, source: text.replace(/\r\n/g, '\n') });
     }
 
     if (!entries.length) {
-      throw Error('Aucun fichier compatible trouvé. Utilise .gs, .html, appsscript.json ou un Package CDQ .txt/.cdq.');
+      throw Error('Aucun fichier compatible trouvé. Utilise .zip, .gs, .html, appsscript.json ou un Package CDQ .txt/.cdq.');
     }
 
     S.pkg.clear();
@@ -618,7 +718,7 @@ window.addEventListener('appinstalled', updateInstallState);
   renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=11').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=12').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
