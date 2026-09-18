@@ -1,7 +1,7 @@
 {
-  "version": "2026.09.18-v21.87-centre-mise-a-jour",
+  "version": "2026.09.18-v21.88-correctif-boucle-mise-a-jour",
   "reader_version": "21.33",
-  "selector_version": "2026.09.18-v21.87-centre-mise-a-jour",
+  "selector_version": "2026.09.18-v21.88-correctif-boucle-mise-a-jour",
   "backend_version": "2026.09.17-v21.57-tech-login-fix",
   "date": "2026-09-18",
   "features": [
@@ -84,7 +84,11 @@
     "clean-pc-music-wall-text",
     "update-center-clear-labels",
     "installed-vs-available-version",
-    "install-latest-button"
+    "install-latest-button",
+    "update-status-compares-pwa-only",
+    "single-outer-reload-on-update",
+    "no-selector-reload-on-update",
+    "manual-update-only-no-auto-loop"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -97,5 +101,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.18-v21.87-centre-mise-a-jour"
+  "pwa_version": "2026.09.18-v21.88-correctif-boucle-mise-a-jour"
 }
