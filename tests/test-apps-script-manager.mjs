@@ -26,8 +26,8 @@ try {
     top:document.querySelector('#versionChip')?.textContent,
     badge:document.querySelector('#versionBadge')?.textContent
   }));
-  assert(visibleVersion.top==='V17','Top version chip must show V17');
-  assert(visibleVersion.badge?.includes('V17'),'Version badge must show V17');
+  assert(visibleVersion.top==='V18','Top version chip must show V18');
+  assert(visibleVersion.badge?.includes('V18'),'Version badge must show V18');
 
   const manifest = await client.send('Page.getAppManifest');
   assert(!manifest.errors?.length,'Manifest errors: '+JSON.stringify(manifest.errors));
@@ -203,18 +203,17 @@ try {
 
   const result = await page.evaluate(()=>({
     status:document.querySelector('#status')?.textContent,
-    backup:localStorage.getItem('cdqsm_backups'),
     files:window.__mockServerFiles,
     fetchLog:window.__mockFetchLog
   }));
   assert(result.status.includes('MISE À JOUR TERMINÉE'),'Existing deployment update flow did not complete: '+result.status);
   assert(result.status.includes('v99'),'Deployment flow did not finish on version 99: '+result.status);
-  assert(!!result.backup,'Automatic backup was not created');
+  const idbBackups=await page.evaluate(async()=>await backupList());
+  assert(idbBackups.length>0,'Automatic IndexedDB backup was not created');
+  assert(localStorage.getItem('cdqsm_backups')===null,'Legacy localStorage backup payload should be removed');
   assert(result.fetchLog.some(x=>x.includes('PUT https://script.googleapis.com/v1/projects/TEST_SCRIPT_ID/content')),'Pending files were not written before deployment');
   assert(result.fetchLog.some(x=>x.includes('PUT https://script.googleapis.com/v1/projects/TEST_SCRIPT_ID/deployments/dep1')),'Existing deployment was not updated');
   assert(!result.fetchLog.some(x=>x.includes('POST https://script.googleapis.com/v1/projects/TEST_SCRIPT_ID/deployments')),'A new deployment was incorrectly created');
-  const backup=JSON.parse(result.backup);
-  assert(Array.isArray(backup) && backup.length>0,'Backup history is empty');
   const code=result.files.find(f=>f.type==='SERVER_JS'&&f.name==='Code');
   const selector=result.files.find(f=>f.type==='HTML'&&f.name==='Selecteur');
   const manifestFile=result.files.find(f=>f.type==='JSON'&&f.name==='appsscript');
@@ -225,10 +224,10 @@ try {
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
-  console.log('PASS: V17 remembers the Google connection preference for 7 days without storing a permanent token');
+  console.log('PASS: V18 remembers the Google connection preference for 7 days without storing a permanent token');
   console.log('PASS: Drive project listing works');
-  console.log('PASS: V17 is visibly displayed in the app');
-  console.log('PASS: V17 keeps ÉCRIRE + DÉPLOYER enabled when ZIP matches code already present');
+  console.log('PASS: V18 is visibly displayed in the app');
+  console.log('PASS: V18 keeps ÉCRIRE + DÉPLOYER enabled when ZIP matches code already present');
   console.log('PASS: ZIP import shows received/decoding/success visual state');
   console.log('PASS: ZIP import finds nested GS and Selector files and maps them to the project');
   console.log('PASS: read-only HEAD deployment is excluded');
