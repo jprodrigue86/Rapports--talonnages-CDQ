@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V26';
+const APP_VERSION = 'V27';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -55,6 +55,8 @@ const S = {
   lastDeploymentResult: null,
   bundleUrl: '',
   bundleLabel: '',
+  bundleAlreadyApplied: false,
+  bundleTargetBuild: '',
 };
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({
@@ -261,17 +263,22 @@ function updateQuickUi() {
   if (quickZipSummary) {
     const pending = pendingChangeCount();
     const staged = S.pkg.size;
-    quickZipSummary.textContent = staged
-      ? (pending
-          ? `${staged} fichier(s) • ${pending} modification(s)${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`
-          : `${staged} fichier(s) • code déjà présent${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`)
-      : 'Aucun fichier';
-    quickZipSummary.className = staged ? 'ok' : '';
+    if(S.bundleAlreadyApplied){
+      quickZipSummary.textContent='Code déjà présent • prêt à déployer'+(S.bundleTargetBuild?' • '+S.bundleTargetBuild:'');
+      quickZipSummary.className='ok';
+    }else{
+      quickZipSummary.textContent = staged
+        ? (pending
+            ? `${staged} fichier(s) • ${pending} modification(s)${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`
+            : `${staged} fichier(s) • code déjà présent${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`)
+        : 'Aucun fichier';
+      quickZipSummary.className = staged ? 'ok' : '';
+    }
   }
   if (quickConnect) quickConnect.hidden = hasLiveToken();
   if (quickChooseZip) quickChooseZip.disabled = !S.id;
   if (quickApply) {
-    const ready=Boolean(S.id && S.pkg.size>0 && productionDeploymentReady());
+    const ready=Boolean(S.id && (S.pkg.size>0 || S.bundleAlreadyApplied) && productionDeploymentReady());
     quickApply.disabled=!ready;
     if(isProductionProject() && S.id && !productionDeploymentReady()){
       quickApply.title='Déploiement de production Balance CDQ introuvable : mise à jour bloquée.';
@@ -537,6 +544,8 @@ async function readProject(id, save = true) {
   S.files = clone(content.files);
   S.draft.clear();
   S.pkg.clear();
+  S.bundleAlreadyApplied=false;
+  S.bundleTargetBuild='';
   S.sel = '';
   scriptIdInput.value = id;
   if (save) LS.setItem('cdqsm_script_id', id);
@@ -866,6 +875,41 @@ async function importBundleManifestV24(url){
   }
 
   let resolved=[];
+  const currentBuild=detectBuildLabel(S.files)||'';
+  const targetBuild=String(manifest.build||'');
+  const alreadyAtTarget=Boolean(targetBuild && compareBuildLabels(currentBuild,targetBuild)===0);
+
+  if(alreadyAtTarget){
+    S.pkg.clear();
+    S.pendingBuild=targetBuild;
+    S.bundleTargetBuild=targetBuild;
+    S.bundleAlreadyApplied=true;
+    S.bundleLabel=String(manifest.version||targetBuild||'package direct');
+
+    packageResult.innerHTML=
+      '<b>Code déjà présent dans Apps Script ✓</b><br>'+
+      '<span>'+esc(targetBuild)+'</span><br>'+
+      '<span>Aucun correctif à réappliquer. Tu peux déployer directement cette version.</span>';
+
+    renderDiff();
+    updateQuickUi();
+    setZipVisual('success','Version déjà écrite ✓','Le projet contient déjà '+targetBuild+' • prêt à déployer',100);
+    setQuickResult('Le code '+targetBuild+' est déjà écrit. Appuie simplement sur « ÉCRIRE + DÉPLOYER ».','ok');
+    stat('Package direct : version déjà présente • déploiement prêt.','ok');
+
+    try{
+      const clean=new URL(location.href);
+      clean.searchParams.delete('bundle');
+      history.replaceState({},'',clean.pathname+clean.search+clean.hash);
+    }catch(e){}
+    S.bundleUrl='';
+    return true;
+  }
+
+  if(targetBuild && currentBuild && compareBuildLabels(currentBuild,targetBuild)>0){
+    throw new Error('Le projet chargé est déjà plus récent ('+currentBuild+') que ce package ('+targetBuild+').');
+  }
+
   if(manifest.schema==='cdq-script-bundle-v2'){
     setZipVisual('processing','Package direct '+String(manifest.version||manifest.build||''),'Application des correctifs audités…',45);
     resolved=buildEntriesFromPatchesV25(manifest);
@@ -898,6 +942,8 @@ async function importBundleManifestV24(url){
   if(!resolved.length)throw new Error('Aucun fichier du package ne correspond au projet.');
 
   S.pkg.clear();
+  S.bundleAlreadyApplied=false;
+  S.bundleTargetBuild='';
   resolved.forEach(entry=>{
     const k=entry.type+':'+String(entry.name).toLowerCase();
     S.draft.delete(k);
@@ -1148,7 +1194,7 @@ function renderDiff() {
     quickZipSummary.className = staged ? 'ok' : '';
   }
   if(quickApply){
-    const ready=Boolean(S.id&&S.pkg.size>0&&productionDeploymentReady());
+    const ready=Boolean(S.id&&(S.pkg.size>0||S.bundleAlreadyApplied)&&productionDeploymentReady());
     quickApply.disabled=!ready;
   }
   diffList.innerHTML = list.length ? list.map(x =>
@@ -1491,6 +1537,8 @@ async function deployNewVersion(targetOverride = null) {
 
   S.pkg.clear();
   S.pendingBuild = '';
+  S.bundleAlreadyApplied=false;
+  S.bundleTargetBuild='';
   renderDiff();
   updateQuickUi();
 
@@ -1509,6 +1557,10 @@ async function writePendingAndDeploy() {
   }
   const target=isProductionProject()?CDQ_PRODUCTION_DEPLOYMENT_ID:(deployment.value||'__new__');
   const pending=pendingChangeCount();
+
+  if(pending===0 && !S.pkg.size && !S.bundleAlreadyApplied){
+    throw Error('Aucun package ni code déjà préparé à déployer.');
+  }
 
   if (pending > 0) {
     stat(`Étape 1/${isProductionProject()?'3':'2'} — écriture de ${pending} modification(s) dans Apps Script…`);
@@ -1608,6 +1660,8 @@ $('clearPackage').addEventListener('click', () => {
   packageResult.innerHTML = '';
   clearZipVisual();
   S.pendingBuild = '';
+  S.bundleAlreadyApplied=false;
+  S.bundleTargetBuild='';
   S.pkg.clear();
   renderFiles();
   renderDiff();
