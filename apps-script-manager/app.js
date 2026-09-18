@@ -804,7 +804,10 @@ function renderDiff() {
       : 'Aucun fichier';
     quickZipSummary.className = staged ? 'ok' : '';
   }
-  if (quickApply) quickApply.disabled = !(S.id && S.pkg.size > 0);
+  if(quickApply){
+    const ready=Boolean(S.id&&S.pkg.size>0&&productionDeploymentReady());
+    quickApply.disabled=!ready;
+  }
   diffList.innerHTML = list.length ? list.map(x =>
     `<div class="diff-item"><div class="diff-head"><span class="diff-name">${esc(x.entry.displayName || displayNameForFile(x.entry))}</span><span class="diff-kind ${x.base ? 'changed' : 'new'}">${x.base ? 'MODIFIÉ' : 'NOUVEAU'}</span></div><div class="diff-stats">Avant : ${lines(x.base?.source)} lignes • Après : ${lines(x.entry.source)} lignes</div></div>`
   ).join('') : '<div class="empty">Aucune modification préparée.</div>';
