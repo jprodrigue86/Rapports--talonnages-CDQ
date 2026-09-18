@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V16';
+const APP_VERSION = 'V17';
 
 const status = $('status');
 const topStatus = $('topStatus');
@@ -138,14 +138,17 @@ function updateQuickUi() {
   }
   if (quickZipSummary) {
     const pending = pendingChangeCount();
-    quickZipSummary.textContent = pending
-      ? `${pending} modification(s)${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`
+    const staged = S.pkg.size;
+    quickZipSummary.textContent = staged
+      ? (pending
+          ? `${staged} fichier(s) • ${pending} modification(s)${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`
+          : `${staged} fichier(s) • code déjà présent${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`)
       : 'Aucun fichier';
-    quickZipSummary.className = pending ? 'ok' : '';
+    quickZipSummary.className = staged ? 'ok' : '';
   }
   if (quickConnect) quickConnect.hidden = hasLiveToken();
   if (quickChooseZip) quickChooseZip.disabled = !S.id;
-  if (quickApply) quickApply.disabled = !(S.id && pendingChangeCount() > 0);
+  if (quickApply) quickApply.disabled = !(S.id && S.pkg.size > 0);
 }
 
 function stat(text, kind = '') {
@@ -607,11 +610,19 @@ async function importPhoneFiles(fileList) {
     if (S.pkg.has(S.sel)) fileEditor.value = S.pkg.get(S.sel).source;
     renderDiff();
     updateQuickUi();
+    const pendingNow = pendingChangeCount();
     setQuickResult(
-      `ZIP prêt : ${entries.length} fichier(s) reconnu(s)${S.pendingBuild ? ' • version détectée ' + S.pendingBuild : ''}. Appuie sur « ÉCRIRE + DÉPLOYER ».`,
+      pendingNow > 0
+        ? `ZIP prêt : ${entries.length} fichier(s) reconnu(s) • ${pendingNow} modification(s)${S.pendingBuild ? ' • version détectée ' + S.pendingBuild : ''}. Appuie sur « ÉCRIRE + DÉPLOYER ».`
+        : `ZIP prêt : ${entries.length} fichier(s) reconnu(s)${S.pendingBuild ? ' • version détectée ' + S.pendingBuild : ''}. Le code est déjà présent dans Apps Script : tu peux quand même appuyer sur « ÉCRIRE + DÉPLOYER » pour créer et publier la nouvelle version.`,
       'ok'
     );
-    stat(`${entries.length} fichier(s) prêt(s). Vérifie avant d’écrire.`, 'ok');
+    stat(
+      pendingNow > 0
+        ? `${entries.length} fichier(s) prêt(s) • ${pendingNow} modification(s) à écrire.`
+        : `${entries.length} fichier(s) prêt(s) • code déjà écrit • déploiement disponible.`,
+      'ok'
+    );
   } catch (e) {
     if (zipStatus && !zipStatus.hidden && !zipStatus.classList.contains('error')) {
       setZipVisual('error', 'Décodage ZIP interrompu', e.message, 100);
@@ -640,10 +651,15 @@ function renderDiff() {
   }
   badge('changeBadge', 'Modifications : ' + list.length, list.length ? 'warn' : '');
   if (quickZipSummary) {
-    quickZipSummary.textContent = list.length ? `${list.length} modification(s)${S.pendingBuild ? ' • ' + S.pendingBuild : ''}` : 'Aucun fichier';
-    quickZipSummary.className = list.length ? 'ok' : '';
+    const staged = S.pkg.size;
+    quickZipSummary.textContent = staged
+      ? (list.length
+          ? `${staged} fichier(s) • ${list.length} modification(s)${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`
+          : `${staged} fichier(s) • code déjà présent${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`)
+      : 'Aucun fichier';
+    quickZipSummary.className = staged ? 'ok' : '';
   }
-  if (quickApply) quickApply.disabled = !(S.id && list.length > 0);
+  if (quickApply) quickApply.disabled = !(S.id && S.pkg.size > 0);
   diffList.innerHTML = list.length ? list.map(x =>
     `<div class="diff-item"><div class="diff-head"><span class="diff-name">${esc(x.entry.displayName || displayNameForFile(x.entry))}</span><span class="diff-kind ${x.base ? 'changed' : 'new'}">${x.base ? 'MODIFIÉ' : 'NOUVEAU'}</span></div><div class="diff-stats">Avant : ${lines(x.base?.source)} lignes • Après : ${lines(x.entry.source)} lignes</div></div>`
   ).join('') : '<div class="empty">Aucune modification préparée.</div>';
@@ -801,6 +817,10 @@ async function deployNewVersion(targetOverride = null) {
     if (created?.deploymentId && all.some(d => d.deploymentId === created.deploymentId)) deployment.value = created.deploymentId;
     updateDeploymentUi();
     saveSettings();
+    S.pkg.clear();
+    S.pendingBuild = '';
+    renderDiff();
+    updateQuickUi();
     stat(`Version ${v.versionNumber} créée + NOUVEAU déploiement créé. Attention : nouvelle URL.`, 'warn');
     return { version: v.versionNumber, deploymentId: created?.deploymentId, createdNew: true };
   }
@@ -826,6 +846,10 @@ async function deployNewVersion(targetOverride = null) {
     `MISE À JOUR CONFIRMÉE ✓${sourceBuild ? ' ' + sourceBuild + ' •' : ''} Apps Script version ${v.versionNumber} • déploiement existant confirmé • même URL pour les techniciens.`,
     'ok'
   );
+  S.pkg.clear();
+  S.pendingBuild = '';
+  renderDiff();
+  updateQuickUi();
   stat(`MISE À JOUR TERMINÉE ✓ Déploiement actuel conservé • nouvelle version Apps Script v${v.versionNumber} • même ID/URL pour les techniciens.`, 'ok');
   return S.lastDeploymentResult;
 }
@@ -1005,7 +1029,7 @@ window.addEventListener('appinstalled', updateInstallState);
   renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=16').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=17').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
