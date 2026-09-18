@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>CDQ Apps Script Manager</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=15">
+  <link rel="stylesheet" href="style.css?v=16">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -20,7 +20,7 @@
         <strong>Apps Script Manager</strong>
         <span>Android • lire • comparer • écrire • déployer</span>
       </div>
-      <div class="version-chip" id="versionChip" title="Version de CDQ Script Manager">V15</div>
+      <div class="version-chip" id="versionChip" title="Version de CDQ Script Manager">V16</div>
       <button id="installApp" class="install-btn" type="button">Installer</button>
     </div>
   </header>
@@ -39,14 +39,28 @@
         <p>Connecte ton compte Google, choisis le projet, colle le nouveau code et écris-le sans ouvrir l’éditeur Apps Script.</p>
       </div>
       <div class="status-row">
-        <span id="versionBadge" class="badge version-badge">Version : V15</span>
+        <span id="versionBadge" class="badge version-badge">Version : V16</span>
         <span id="authBadge" class="badge">Google : non connecté</span>
         <span id="projectBadge" class="badge">Projet : aucun</span>
         <span id="changeBadge" class="badge">Modifications : 0</span>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card quick-card" id="quickCard">
+      <div class="section-title"><span>⚡</span><h2>Mise à jour rapide</h2></div>
+      <div class="quick-grid">
+        <div class="quick-line"><span>Google</span><b id="quickGoogleStatus">Non connecté</b></div>
+        <div class="quick-line"><span>Projet</span><b id="quickProjectStatus">Non lié</b></div>
+        <div class="quick-line"><span>ZIP</span><b id="quickZipSummary">Aucun fichier</b></div>
+      </div>
+      <button id="quickConnect" class="primary quick-main" type="button">1. Se connecter à Google</button>
+      <button id="quickChooseZip" class="primary quick-main" type="button">2. Choisir le ZIP</button>
+      <button id="quickApply" class="green quick-apply" type="button" disabled>3. ÉCRIRE + DÉPLOYER</button>
+      <div id="quickResult" class="quick-result">Le projet sera lié automatiquement après la première connexion.</div>
+      <button id="toggleAdvanced" class="secondary quick-advanced" type="button">Options avancées</button>
+    </section>
+
+    <section class="card advanced-section">
       <div class="section-title"><span>1</span><h2>Connexion Google</h2></div>
       <label for="clientId">OAuth Client ID</label>
       <input id="clientId" autocomplete="off" value="764508884818-u4qnjmflg2bbht0e8ja22m8blrbm8nmk.apps.googleusercontent.com">
@@ -67,7 +81,7 @@
       <pre id="topStatus" class="status">Prêt.</pre>
     </section>
 
-    <section class="card">
+    <section class="card advanced-section">
       <div class="section-title"><span>2</span><h2>Choisir le projet</h2></div>
       <label for="projectSelect">Mes projets Apps Script</label>
       <div class="inline-select">
@@ -84,7 +98,7 @@
       <div id="projectMeta" class="meta"></div>
     </section>
 
-    <section class="card" id="filesCard">
+    <section class="card advanced-section" id="filesCard">
       <div class="section-title"><span>3</span><h2>Fichiers du projet</h2></div>
       <div id="fileTabs" class="file-tabs"><span class="empty">Charge un projet pour voir ses fichiers.</span></div>
       <label for="fileEditor">Contenu du fichier sélectionné</label>
@@ -96,7 +110,7 @@
       </div>
     </section>
 
-    <section class="card accent-card">
+    <section class="card advanced-section accent-card">
       <div class="section-title"><span>4</span><h2>Package CDQ</h2></div>
       <p class="muted">Quand je te donne plusieurs codes, colle tout ici une seule fois. Tu peux aussi parcourir ton téléphone et sélectionner directement un ou plusieurs fichiers.</p>
       <input id="localFiles" type="file" accept=".zip,.gs,.html,.htm,.txt,.cdq,.json,.js,application/zip,application/x-zip-compressed,text/plain,text/html,application/json" multiple hidden>
@@ -122,7 +136,7 @@
       <div id="packageResult" class="meta"></div>
     </section>
 
-    <section class="card">
+    <section class="card advanced-section">
       <div class="section-title"><span>5</span><h2>Comparer avant d’écrire</h2></div>
       <div id="diffList" class="diff-list"><div class="empty">Aucune modification préparée.</div></div>
       <div class="actions two">
@@ -132,7 +146,7 @@
       <p class="safe-note">Avant toute écriture, le projet est relu depuis Google et une sauvegarde complète est créée automatiquement. Les fichiers non modifiés et <b>appsscript.json</b> sont conservés.</p>
     </section>
 
-    <section class="card">
+    <section class="card advanced-section">
       <div class="section-title"><span>6</span><h2>Version et déploiement</h2></div>
       <label for="description">Description de version</label>
       <input id="description" placeholder="Mise à jour CDQ">
@@ -148,7 +162,7 @@
       </div>
     </section>
 
-    <section class="card">
+    <section class="card advanced-section">
       <div class="section-title"><span>7</span><h2>Sauvegardes</h2></div>
       <div id="backupList" class="backup-list"><div class="empty">Aucune sauvegarde locale.</div></div>
       <div class="actions two">
@@ -179,8 +193,8 @@
     </div>
   </div>
 
-  <script src="api.js?v=15"></script>
-  <script src="jszip.min.js?v=15"></script>
-  <script src="app.js?v=15"></script>
+  <script src="api.js?v=16"></script>
+  <script src="jszip.min.js?v=16"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>
