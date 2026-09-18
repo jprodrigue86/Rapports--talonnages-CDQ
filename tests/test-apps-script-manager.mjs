@@ -122,8 +122,6 @@ try {
   }));
   console.log('STATE_AFTER_AUTH',JSON.stringify(afterAuth));
   await page.waitForFunction(()=>document.querySelector('#projectSelect')?.options.length>1,{timeout:5000});
-  await page.select('#projectSelect','TEST_SCRIPT_ID');
-  await page.click('#loadProject');
   await page.waitForFunction(()=>document.querySelector('#projectBadge')?.textContent.includes('Projet Test CDQ'),{timeout:5000});
   const quickLinked=await page.evaluate(()=>({
     project:document.querySelector('#quickProjectStatus')?.textContent,
