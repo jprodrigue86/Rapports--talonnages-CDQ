@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V15';
+const APP_VERSION = 'V16';
 
 const status = $('status');
 const topStatus = $('topStatus');
@@ -30,6 +30,14 @@ const zipStatusIcon = $('zipStatusIcon');
 const zipStatusTitle = $('zipStatusTitle');
 const zipStatusDetail = $('zipStatusDetail');
 const zipProgressBar = $('zipProgressBar');
+const quickGoogleStatus = $('quickGoogleStatus');
+const quickProjectStatus = $('quickProjectStatus');
+const quickZipSummary = $('quickZipSummary');
+const quickResult = $('quickResult');
+const quickConnect = $('quickConnect');
+const quickChooseZip = $('quickChooseZip');
+const quickApply = $('quickApply');
+const toggleAdvanced = $('toggleAdvanced');
 
 const S = {
   id: '',
@@ -39,6 +47,9 @@ const S = {
   pkg: new Map(),
   sel: '',
   install: null,
+  pendingBuild: '',
+  lastWrittenBuild: '',
+  lastDeploymentResult: null,
 };
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({
@@ -52,6 +63,32 @@ const nlabel = () => new Date().toLocaleString('fr-CA', { hour12: false });
 const AUTO_CONNECT_MS = 7 * 24 * 60 * 60 * 1000;
 const AUTO_CONNECT_UNTIL_KEY = 'cdqsm_auto_connect_until';
 const KEEP_CONNECTED_KEY = 'cdqsm_keep_connected';
+const TOKEN_KEY = 'cdqsm_google_access_token';
+const TOKEN_EXPIRES_KEY = 'cdqsm_google_access_token_expires';
+
+function saveLiveGoogleToken() {
+  if (!keepConnectionEnabled() || !CDQ.token || !CDQ.expiresAt) return;
+  LS.setItem(TOKEN_KEY, CDQ.token);
+  LS.setItem(TOKEN_EXPIRES_KEY, String(CDQ.expiresAt));
+}
+
+function clearSavedGoogleToken() {
+  LS.removeItem(TOKEN_KEY);
+  LS.removeItem(TOKEN_EXPIRES_KEY);
+}
+
+function restoreSavedGoogleToken() {
+  if (!keepConnectionEnabled()) return false;
+  const token = LS.getItem(TOKEN_KEY) || '';
+  const expiresAt = Number(LS.getItem(TOKEN_EXPIRES_KEY) || 0);
+  if (!token || !Number.isFinite(expiresAt) || expiresAt <= Date.now() + 60000) {
+    clearSavedGoogleToken();
+    return false;
+  }
+  CDQ.token = token;
+  CDQ.expiresAt = expiresAt;
+  return true;
+}
 
 function keepConnectionEnabled() {
   return keepConnected ? keepConnected.checked : true;
@@ -74,6 +111,41 @@ function shouldAutoReconnect() {
   if (!keepConnectionEnabled()) return false;
   const until = Number(LS.getItem(AUTO_CONNECT_UNTIL_KEY) || 0);
   return Number.isFinite(until) && until > Date.now();
+}
+
+function detectBuildLabel(files) {
+  const texts = (files || []).map(f => String(f.source || '')).join('\n');
+  const matches = texts.match(/(?:20\d{2}\.\d{2}\.\d{2}(?:\.\d+)?-)?v\d+\.\d+(?:-[A-Za-z0-9._-]+)?/gi) || [];
+  if (!matches.length) return '';
+  return matches.sort((a,b) => b.length - a.length)[0];
+}
+
+function setQuickResult(text, kind = '') {
+  if (!quickResult) return;
+  quickResult.textContent = text;
+  quickResult.className = `quick-result ${kind}`.trim();
+}
+
+function updateQuickUi() {
+  if (quickGoogleStatus) {
+    const connected = hasLiveToken();
+    quickGoogleStatus.textContent = connected ? 'Connecté' : 'Non connecté';
+    quickGoogleStatus.className = connected ? 'ok' : '';
+  }
+  if (quickProjectStatus) {
+    quickProjectStatus.textContent = S.meta?.title || (sid() ? 'Projet mémorisé' : 'Non lié');
+    quickProjectStatus.className = S.id ? 'ok' : (sid() ? 'warn' : '');
+  }
+  if (quickZipSummary) {
+    const pending = pendingChangeCount();
+    quickZipSummary.textContent = pending
+      ? `${pending} modification(s)${S.pendingBuild ? ' • ' + S.pendingBuild : ''}`
+      : 'Aucun fichier';
+    quickZipSummary.className = pending ? 'ok' : '';
+  }
+  if (quickConnect) quickConnect.hidden = hasLiveToken();
+  if (quickChooseZip) quickChooseZip.disabled = !S.id;
+  if (quickApply) quickApply.disabled = !(S.id && pendingChangeCount() > 0);
 }
 
 function stat(text, kind = '') {
@@ -150,7 +222,9 @@ async function handleGoogleConnect() {
     topstat('Ouverture de Google…');
     await requestGoogleToken(cid(), 'manual');
     rememberConnection();
+    saveLiveGoogleToken();
     badge('authBadge', 'Google : connecté', 'ok');
+    updateQuickUi();
     await refreshProjectList();
   } catch (e) {
     badge('authBadge', 'Google : non connecté');
@@ -160,6 +234,7 @@ async function handleGoogleConnect() {
 
 function handleGoogleDisconnect() {
   clearRememberedConnection();
+  clearSavedGoogleToken();
   revokeGoogleToken();
   badge('authBadge', 'Google : non connecté');
   topstat('Session Google déconnectée.');
@@ -174,10 +249,30 @@ async function refreshProjectList() {
       `<option value="${esc(f.id)}">${esc(f.name || 'Sans titre')} • ${esc(new Date(f.modifiedTime).toLocaleString('fr-CA', { hour12: false }))}</option>`
     ).join('');
     const old = normalizeScriptId(LS.getItem('cdqsm_script_id') || '');
-    if (projects.some(f => f.id === old)) projectSelect.value = old;
+    if (projects.some(f => f.id === old)) {
+      projectSelect.value = old;
+    } else if (projects.length === 1) {
+      projectSelect.value = projects[0].id;
+      scriptIdInput.value = projects[0].id;
+      LS.setItem('cdqsm_script_id', projects[0].id);
+    }
     badge('authBadge', 'Google : connecté', 'ok');
-    if (keepConnectionEnabled()) rememberConnection();
+    if (keepConnectionEnabled()) {
+      rememberConnection();
+      saveLiveGoogleToken();
+    }
     topstat(`${projects.length} projet(s) trouvé(s).`, 'ok');
+    updateQuickUi();
+
+    const autoId = projectSelect.value || normalizeScriptId(LS.getItem('cdqsm_script_id') || '');
+    if (autoId && S.id !== autoId) {
+      try {
+        await readProject(autoId, true);
+        setQuickResult('Google connecté et projet lié automatiquement. Choisis maintenant ton ZIP.', 'ok');
+      } catch (projectError) {
+        setQuickResult('Projet trouvé, mais lecture impossible : ' + projectError.message, 'err');
+      }
+    }
   } catch (e) {
     topstat('Impossible de charger les projets : ' + e.message, 'err');
   }
@@ -205,6 +300,7 @@ async function readProject(id, save = true) {
   renderFiles();
   renderDiff();
   renderDeployments(deps);
+  updateQuickUi();
   stat(`${S.files.length} fichier(s) chargé(s).`, 'ok');
 }
 
@@ -506,9 +602,15 @@ async function importPhoneFiles(fileList) {
       `<b>${entries.length} fichier(s) importé(s) du téléphone</b><br>${entries.map(x => esc(x.displayName || displayNameForFile(x))).join(' • ')}` +
       (ignored.length ? `<br><span>Ignoré(s) : ${ignored.map(esc).join(' • ')}</span>` : '');
 
+    S.pendingBuild = detectBuildLabel(entries);
     renderFiles();
     if (S.pkg.has(S.sel)) fileEditor.value = S.pkg.get(S.sel).source;
     renderDiff();
+    updateQuickUi();
+    setQuickResult(
+      `ZIP prêt : ${entries.length} fichier(s) reconnu(s)${S.pendingBuild ? ' • version détectée ' + S.pendingBuild : ''}. Appuie sur « ÉCRIRE + DÉPLOYER ».`,
+      'ok'
+    );
     stat(`${entries.length} fichier(s) prêt(s). Vérifie avant d’écrire.`, 'ok');
   } catch (e) {
     if (zipStatus && !zipStatus.hidden && !zipStatus.classList.contains('error')) {
@@ -537,6 +639,11 @@ function renderDiff() {
     if (!base || (base.source || '') !== entry.source) list.push({ entry, base });
   }
   badge('changeBadge', 'Modifications : ' + list.length, list.length ? 'warn' : '');
+  if (quickZipSummary) {
+    quickZipSummary.textContent = list.length ? `${list.length} modification(s)${S.pendingBuild ? ' • ' + S.pendingBuild : ''}` : 'Aucun fichier';
+    quickZipSummary.className = list.length ? 'ok' : '';
+  }
+  if (quickApply) quickApply.disabled = !(S.id && list.length > 0);
   diffList.innerHTML = list.length ? list.map(x =>
     `<div class="diff-item"><div class="diff-head"><span class="diff-name">${esc(x.entry.displayName || displayNameForFile(x.entry))}</span><span class="diff-kind ${x.base ? 'changed' : 'new'}">${x.base ? 'MODIFIÉ' : 'NOUVEAU'}</span></div><div class="diff-stats">Avant : ${lines(x.base?.source)} lignes • Après : ${lines(x.entry.source)} lignes</div></div>`
   ).join('') : '<div class="empty">Aucune modification préparée.</div>';
@@ -596,6 +703,7 @@ async function writeProjectChanges() {
     }
   }
   S.files = clone(checked.files);
+  S.lastWrittenBuild = detectBuildLabel(checked.files) || S.pendingBuild || '';
   S.draft.clear();
   S.pkg.clear();
   packageEditor.value = '';
@@ -603,7 +711,8 @@ async function writeProjectChanges() {
   renderFiles();
   renderDiff();
   saveSettings();
-  stat(`TERMINÉ ✓ ${count} fichier(s) écrit(s) et vérifié(s).`, 'ok');
+  updateQuickUi();
+  stat(`TERMINÉ ✓ ${count} fichier(s) écrit(s) et vérifié(s)${S.lastWrittenBuild ? ' • ' + S.lastWrittenBuild : ''}.`, 'ok');
   return count;
 }
 
@@ -703,12 +812,22 @@ async function deployNewVersion(targetOverride = null) {
 
   await updateDeployment(S.id, target, v.versionNumber, desc, cid());
   const all = await listDeployments(S.id, cid());
+  const verifiedDeployment = all.find(d => d.deploymentId === target);
+  if (!verifiedDeployment || verifiedDeployment.deploymentConfig?.versionNumber !== v.versionNumber) {
+    throw Error('Le déploiement n’a pas été confirmé sur la nouvelle version. Aucune réussite n’est affichée.');
+  }
   renderDeployments(all);
   if (all.some(d => d.deploymentId === target)) deployment.value = target;
   updateDeploymentUi();
   saveSettings();
+  S.lastDeploymentResult = { version: v.versionNumber, deploymentId: target, createdNew: false };
+  const sourceBuild = S.lastWrittenBuild || S.pendingBuild || '';
+  setQuickResult(
+    `MISE À JOUR CONFIRMÉE ✓${sourceBuild ? ' ' + sourceBuild + ' •' : ''} Apps Script version ${v.versionNumber} • déploiement existant confirmé • même URL pour les techniciens.`,
+    'ok'
+  );
   stat(`MISE À JOUR TERMINÉE ✓ Déploiement actuel conservé • nouvelle version Apps Script v${v.versionNumber} • même ID/URL pour les techniciens.`, 'ok');
-  return { version: v.versionNumber, deploymentId: target, createdNew: false };
+  return S.lastDeploymentResult;
 }
 
 async function writePendingAndDeploy() {
@@ -763,6 +882,13 @@ async function handleInstallPwa() {
   }
 }
 
+if (quickConnect) quickConnect.addEventListener('click', handleGoogleConnect);
+if (quickChooseZip) quickChooseZip.addEventListener('click', () => $('localFiles').click());
+if (quickApply) quickApply.addEventListener('click', () => runAction(writePendingAndDeploy, 'Mise à jour rapide…'));
+if (toggleAdvanced) toggleAdvanced.addEventListener('click', () => {
+  document.body.classList.toggle('show-advanced');
+  toggleAdvanced.textContent = document.body.classList.contains('show-advanced') ? 'Masquer les options avancées' : 'Options avancées';
+});
 $('connect').addEventListener('click', handleGoogleConnect);
 $('disconnect').addEventListener('click', handleGoogleDisconnect);
 $('refreshProjects').addEventListener('click', refreshProjectList);
@@ -804,6 +930,7 @@ $('clearPackage').addEventListener('click', () => {
   packageEditor.value = '';
   packageResult.innerHTML = '';
   clearZipVisual();
+  S.pendingBuild = '';
   S.pkg.clear();
   renderFiles();
   renderDiff();
@@ -850,7 +977,10 @@ if (keepConnected) {
   keepConnected.addEventListener('change', () => {
     LS.setItem(KEEP_CONNECTED_KEY, keepConnected.checked ? '1' : '0');
     if (keepConnected.checked && hasLiveToken()) rememberConnection();
-    if (!keepConnected.checked) clearRememberedConnection();
+    if (!keepConnected.checked) {
+      clearRememberedConnection();
+      clearSavedGoogleToken();
+    }
   });
 }
 installApp.addEventListener('click', handleInstallPwa);
@@ -875,25 +1005,34 @@ window.addEventListener('appinstalled', updateInstallState);
   renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=15').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=16').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
     $('connect').textContent = 'Se connecter à Google';
 
-    if (shouldAutoReconnect()) {
+    if (restoreSavedGoogleToken()) {
+      badge('authBadge', 'Google : connecté', 'ok');
+      topstat('Session Google restaurée automatiquement.', 'ok');
+      updateQuickUi();
+      await refreshProjectList();
+    } else if (shouldAutoReconnect()) {
       badge('authBadge', 'Google : reconnexion…', 'warn');
       topstat('Reconnexion automatique à Google…');
       try {
         await requestGoogleToken(cid(), 'reuse');
+        saveLiveGoogleToken();
         badge('authBadge', 'Google : connecté', 'ok');
         rememberConnection();
+        updateQuickUi();
         await refreshProjectList();
       } catch (autoError) {
         badge('authBadge', 'Google : session à renouveler', 'warn');
-        topstat('La session automatique n’a pas pu être reprise. Touche « Se connecter à Google » pour la renouveler.', 'warn');
+        updateQuickUi();
+        topstat('Google exige une nouvelle autorisation. Touche « Se connecter à Google » une fois.', 'warn');
       }
     } else {
+      updateQuickUi();
       topstat('Application prête. Touche « Se connecter à Google ».');
     }
   } catch (e) {
