@@ -15,7 +15,7 @@ import androidx.browser.customtabs.CustomTabsIntent;
 
 public class MainActivity extends Activity {
     private static final Uri APP_URL = Uri.parse(
-        "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/?v=16&source=android-apk"
+        "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/?v=17&source=android-apk"
     );
 
     @Override
