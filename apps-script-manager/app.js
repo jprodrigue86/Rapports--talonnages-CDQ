@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V23';
+const APP_VERSION = 'V24';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -53,6 +53,8 @@ const S = {
   pendingBuild: '',
   lastWrittenBuild: '',
   lastDeploymentResult: null,
+  bundleUrl: '',
+  bundleLabel: '',
 };
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({
@@ -545,6 +547,7 @@ async function readProject(id, save = true) {
   renderDeployments(deps);
   updateQuickUi();
   stat(`${S.files.length} fichier(s) chargé(s).`, 'ok');
+  if(S.bundleUrl)await maybeImportBundleV24();
 }
 
 async function loadSelectedProject() {
@@ -699,6 +702,155 @@ function resolveImportedEntry(entry, counts = {}) {
   return { ...spec, source: entry.source };
 }
 
+
+
+const CDQ_BUNDLE_BASE_PATH='/Rapports--talonnages-CDQ/bundles/balance-cdq/';
+
+function bundleUrlFromValueV24(raw){
+  raw=String(raw||'').trim();
+  if(!raw)return '';
+  if(/^v\d+\.\d+$/i.test(raw)){
+    raw=CDQ_BUNDLE_BASE_PATH+raw.toLowerCase()+'/manifest.json';
+  }
+  const u=new URL(raw,location.origin);
+  if(u.origin!==location.origin || !u.pathname.startsWith(CDQ_BUNDLE_BASE_PATH)){
+    throw new Error('Lien package refusé : seules les versions Balance CDQ publiées par CDQ sont acceptées.');
+  }
+  return u.href;
+}
+
+function bundleUrlFromLocationV24(){
+  try{
+    const raw=new URL(location.href).searchParams.get('bundle')||'';
+    return bundleUrlFromValueV24(raw);
+  }catch(e){
+    setQuickResult(e.message,'err');
+    return '';
+  }
+}
+
+async function sha256HexV24(text){
+  const bytes=new TextEncoder().encode(String(text||''));
+  const digest=await crypto.subtle.digest('SHA-256',bytes);
+  return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function fetchBundleTextV24(url,expectedSha=''){
+  const u=bundleUrlFromValueV24(url);
+  const r=await fetch(u,{cache:'no-store',credentials:'omit'});
+  if(!r.ok)throw new Error('Téléchargement package impossible : '+r.status+' '+u);
+  const text=await r.text();
+  if(text.length>3_000_000)throw new Error('Fichier package trop volumineux.');
+  if(expectedSha){
+    const got=await sha256HexV24(text);
+    if(got.toLowerCase()!==String(expectedSha).toLowerCase()){
+      throw new Error('Vérification SHA-256 échouée pour '+u.split('/').pop()+'.');
+    }
+  }
+  return text;
+}
+
+async function importBundleManifestV24(url){
+  url=bundleUrlFromValueV24(url);
+  S.bundleUrl=url;
+
+  if(!S.files.length){
+    S.bundleLabel=url.split('/').slice(-2,-1)[0]||'package direct';
+    if(quickZipSummary){
+      quickZipSummary.textContent='Package direct en attente • '+S.bundleLabel;
+      quickZipSummary.className='warn';
+    }
+    setQuickResult('Package direct reçu. Connexion/projet en cours; il sera préparé automatiquement.','warn');
+    return false;
+  }
+
+  setQuickResult('Chargement du package direct…','warn');
+  setZipVisual('processing','Package direct','Lecture du manifeste sécurisé…',15);
+
+  const manifestText=await fetchBundleTextV24(url);
+  let manifest;
+  try{manifest=JSON.parse(manifestText);}catch(e){throw new Error('Manifeste package invalide.');}
+
+  if(manifest.schema!=='cdq-script-bundle-v1')throw new Error('Format package non reconnu.');
+  if(manifest.projectScriptId && normalizeScriptId(manifest.projectScriptId)!==normalizeScriptId(S.id)){
+    throw new Error('Ce package vise un autre projet Apps Script.');
+  }
+  if(!Array.isArray(manifest.files)||!manifest.files.length||manifest.files.length>10){
+    throw new Error('Liste de fichiers package invalide.');
+  }
+
+  const base=new URL(url);
+  const raw=[];
+  let index=0;
+  for(const f of manifest.files){
+    index++;
+    const name=String(f.name||'').trim();
+    if(!/^(Code\.gs|Selector\.html|appsscript\.json)$/i.test(name)){
+      throw new Error('Fichier non autorisé dans le package : '+name);
+    }
+    const fileUrl=new URL(String(f.url||name),base).href;
+    const source=(await fetchBundleTextV24(fileUrl,String(f.sha256||''))).replace(/\r\n/g,'\n');
+    raw.push({displayName:name,path:name,source});
+    setZipVisual('processing','Package direct '+String(manifest.version||manifest.build||''),'Chargement '+index+'/'+manifest.files.length+' : '+name,15+Math.round(index/manifest.files.length*65));
+  }
+
+  const counts={
+    gs:raw.filter(x=>/\.gs$/i.test(x.displayName)).length,
+    html:raw.filter(x=>/\.html?$/i.test(x.displayName)).length
+  };
+  const resolved=raw.map(x=>resolveImportedEntry(x,counts)).filter(Boolean);
+  if(!resolved.length)throw new Error('Aucun fichier du package ne correspond au projet.');
+
+  S.pkg.clear();
+  resolved.forEach(entry=>{
+    const k=entry.type+':'+String(entry.name).toLowerCase();
+    S.draft.delete(k);
+    S.pkg.set(k,entry);
+  });
+
+  S.pendingBuild=String(manifest.build||detectBuildLabel(resolved)||'');
+  S.bundleLabel=String(manifest.version||manifest.build||'package direct');
+
+  packageResult.innerHTML=
+    '<b>Package direct chargé ✓</b><br>'+resolved.map(x=>esc(x.displayName||displayNameForFile(x))).join(' • ')+
+    (S.pendingBuild?'<br><span>Version : '+esc(S.pendingBuild)+'</span>':'');
+
+  renderFiles();
+  if(S.pkg.has(S.sel))fileEditor.value=S.pkg.get(S.sel).source;
+  renderDiff();
+  updateQuickUi();
+
+  const pendingNow=pendingChangeCount();
+  setZipVisual('success','Package direct prêt ✓',resolved.length+' fichier(s) vérifié(s) • '+(S.pendingBuild||S.bundleLabel),100);
+  setQuickResult(
+    pendingNow>0
+      ? 'Package direct prêt • '+pendingNow+' modification(s). Appuie sur « ÉCRIRE + DÉPLOYER ».'
+      : 'Package direct prêt • code déjà présent. Appuie sur « ÉCRIRE + DÉPLOYER » pour publier la version.',
+    'ok'
+  );
+  stat('Package direct prêt : '+resolved.length+' fichier(s) • '+(S.pendingBuild||S.bundleLabel)+'.','ok');
+
+  // Le package est maintenant en mémoire : retirer le paramètre pour éviter
+  // un nouvel import automatique après un futur redémarrage involontaire.
+  try{
+    const clean=new URL(location.href);
+    clean.searchParams.delete('bundle');
+    history.replaceState({},'',clean.pathname+clean.search+clean.hash);
+  }catch(e){}
+  S.bundleUrl='';
+  return true;
+}
+
+async function maybeImportBundleV24(){
+  if(!S.bundleUrl)return false;
+  try{return await importBundleManifestV24(S.bundleUrl);}
+  catch(e){
+    setZipVisual('error','Package direct refusé',e.message,100);
+    setQuickResult('Package direct : '+e.message,'err');
+    stat('Package direct : '+e.message,'err');
+    return false;
+  }
+}
 
 function setZipVisual(state, title, detail, progress = null) {
   if (!zipStatus) return;
@@ -1358,6 +1510,22 @@ window.addEventListener('appinstalled', updateInstallState);
   if ($('versionChip')) $('versionChip').textContent = APP_VERSION;
   if ($('versionBadge')) $('versionBadge').textContent = 'Version : ' + APP_VERSION;
   bootSettings();
+
+  // V24 : un lien ChatGPT/CDQ peut préparer directement Code.gs + Selector.html
+  // sans téléchargement ZIP sur le téléphone.
+  try{
+    const directBundle=bundleUrlFromLocationV24();
+    if(directBundle){
+      S.bundleUrl=directBundle;
+      S.bundleLabel=directBundle.split('/').slice(-2,-1)[0]||'package direct';
+      if(quickZipSummary){
+        quickZipSummary.textContent='Package direct • '+S.bundleLabel;
+        quickZipSummary.className='warn';
+      }
+      setQuickResult('Package direct détecté. Connexion et projet en cours…','warn');
+    }
+  }catch(e){setQuickResult(e.message,'err');}
+
   try {
     await migrateLegacyBackups();
   } catch (migrationError) {
@@ -1366,7 +1534,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=24').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
