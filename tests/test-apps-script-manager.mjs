@@ -95,6 +95,7 @@ try {
   await page.waitForFunction(()=>!document.querySelector('#connect')?.disabled,{timeout:8000});
   await page.click('#connect');
   await page.waitForFunction(()=>document.querySelector('#authBadge')?.textContent.includes('connecté'),{timeout:5000});
+  await page.waitForFunction(()=>localStorage.getItem('cdqsm_keep_connected')==='1',{timeout:3000});
   const remembered=await page.evaluate(()=>({
     keep:localStorage.getItem('cdqsm_keep_connected'),
     until:Number(localStorage.getItem('cdqsm_auto_connect_until')||0),
