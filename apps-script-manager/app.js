@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V14';
+const APP_VERSION = 'V15';
 
 const status = $('status');
 const topStatus = $('topStatus');
@@ -11,6 +11,7 @@ const scriptIdInput = $('scriptIdInput');
 const projectSelect = $('projectSelect');
 const description = $('description');
 const deployment = $('deployment');
+const deploymentNotice = $('deploymentNotice');
 const backupList = $('backupList');
 const projectMeta = $('projectMeta');
 const fileTabs = $('fileTabs');
@@ -209,6 +210,14 @@ async function readProject(id, save = true) {
 
 async function loadSelectedProject() {
   try {
+    const pending = pendingChangeCount();
+    if (pending > 0) {
+      const ok = confirm(`Tu as ${pending} modification(s) non écrite(s). Relire le projet va les effacer. Continuer quand même ?`);
+      if (!ok) {
+        stat('Lecture annulée : tes modifications sont conservées.', 'warn');
+        return;
+      }
+    }
     await readProject(projectSelect.value || scriptIdInput.value);
   } catch (e) {
     stat('Échec : ' + e.message, 'err');
@@ -533,6 +542,15 @@ function renderDiff() {
   ).join('') : '<div class="empty">Aucune modification préparée.</div>';
 }
 
+function pendingChangeCount() {
+  let count = 0;
+  for (const [k, entry] of changes()) {
+    const base = S.files.find(f => key(f) === k);
+    if (!base || (base.source || '') !== entry.source) count++;
+  }
+  return count;
+}
+
 function validateChanges() {
   if (!S.id) throw Error('Aucun projet chargé.');
   let count = 0;
@@ -599,69 +617,114 @@ function openWriteConfirmation() {
   }
 }
 
-function updateDeploymentButtonLabels() {
-  const isNew = deployment.value === '__new__';
-  $('deployVersion').textContent = isNew ? 'Nouvelle version + déployer' : 'Nouvelle version + mettre à jour';
-  $('writeAndDeploy').textContent = isNew ? 'Écrire + nouveau déploiement' : 'Écrire + mettre à jour';
+function updateDeploymentUi() {
+  const target = deployment.value;
+  const selected = (CDQ.deployments || []).find(d => d.deploymentId === target);
+  const isNew = target === '__new__';
+
+  if (isNew) {
+    $('deployVersion').textContent = 'CRÉER UN NOUVEAU DÉPLOIEMENT';
+    deploymentNotice.className = 'deployment-notice warn';
+    deploymentNotice.innerHTML = '<strong>⚠ Nouvelle URL</strong><span>Ce choix crée un autre déploiement. Les techniciens qui utilisent l’ancienne URL ne basculeront pas automatiquement vers cette nouvelle URL.</span>';
+    return;
+  }
+
+  if (selected && Number.isInteger(selected.deploymentConfig?.versionNumber)) {
+    const v = selected.deploymentConfig.versionNumber;
+    $('deployVersion').textContent = 'ÉCRIRE + DÉPLOYER LA MISE À JOUR';
+    deploymentNotice.className = 'deployment-notice good';
+    deploymentNotice.innerHTML = `<strong>✓ Recommandé — mise à jour du déploiement actuel (v${v})</strong><span>Le Script Manager écrira d’abord le ZIP s’il y a des modifications, créera une nouvelle version, puis mettra ce même déploiement à jour. L’ID et l’URL restent les mêmes pour les techniciens.</span>`;
+    return;
+  }
+
+  $('deployVersion').textContent = 'ÉCRIRE + DÉPLOYER LA MISE À JOUR';
+  deploymentNotice.className = 'deployment-notice';
+  deploymentNotice.innerHTML = '<strong>Aucun déploiement versionné sélectionné</strong><span>Choisis un déploiement existant ou crée un nouveau déploiement.</span>';
 }
 
 function renderDeployments(all) {
-  const versioned = (all || []).filter(d => Number.isInteger(d.deploymentConfig?.versionNumber) && d.deploymentConfig.versionNumber > 0);
+  const versioned = (all || [])
+    .filter(d => Number.isInteger(d.deploymentConfig?.versionNumber) && d.deploymentConfig.versionNumber > 0)
+    .sort((a,b) => (b.deploymentConfig.versionNumber || 0) - (a.deploymentConfig.versionNumber || 0));
   const readOnly = (all || []).filter(d => !Number.isInteger(d.deploymentConfig?.versionNumber));
 
   deployment.innerHTML =
-    '<option value="__new__">➕ Nouveau déploiement — créer une nouvelle version</option>' +
-    versioned.map(d =>
-      `<option value="${esc(d.deploymentId)}">${esc(d.deploymentConfig?.description || 'Déploiement versionné')} • v${d.deploymentConfig.versionNumber}</option>`
+    versioned.map((d, i) =>
+      `<option value="${esc(d.deploymentId)}">${i === 0 ? '✅ ' : ''}${esc(d.deploymentConfig?.description || 'Déploiement actuel')} • v${d.deploymentConfig.versionNumber}</option>`
     ).join('') +
-    (readOnly.length ? `<option value="" disabled>— ${readOnly.length} déploiement(s) HEAD/test ignoré(s) (lecture seule) —</option>` : '');
+    '<option value="__new__">⚠ Créer un NOUVEAU déploiement — nouvelle URL</option>' +
+    (readOnly.length ? `<option value="" disabled>— ${readOnly.length} HEAD/test ignoré(s) —</option>` : '');
 
   const old = LS.getItem('cdqsm_deployment');
-  if (versioned.some(d => d.deploymentId === old)) deployment.value = old;
-  else deployment.value = '__new__';
+  if (versioned.some(d => d.deploymentId === old)) {
+    deployment.value = old;
+  } else if (versioned.length) {
+    deployment.value = versioned[0].deploymentId;
+  } else {
+    deployment.value = '__new__';
+  }
 
-  updateDeploymentButtonLabels();
+  updateDeploymentUi();
 }
 
 async function createVersionOnly() {
   if (!S.id) throw Error('Charge d’abord un projet.');
+  const pending = pendingChangeCount();
+  if (pending > 0) {
+    throw Error(`Il reste ${pending} modification(s) non écrite(s). Utilise « ÉCRIRE + DÉPLOYER LA MISE À JOUR » pour ne pas créer une version de l’ancien code.`);
+  }
   const v = await createProjectVersion(S.id, description.value.trim(), cid());
-  stat('Version ' + v.versionNumber + ' créée.', 'ok');
+  stat('Version ' + v.versionNumber + ' créée à partir du code déjà écrit.', 'ok');
   return v;
 }
 
-async function deployNewVersion() {
+async function deployNewVersion(targetOverride = null) {
   if (!S.id) throw Error('Charge d’abord un projet.');
 
   const desc = description.value.trim() || `Mise à jour CDQ - ${nlabel()}`;
-  const target = deployment.value || '__new__';
+  const target = targetOverride || deployment.value || '__new__';
   const v = await createProjectVersion(S.id, desc, cid());
 
   if (target === '__new__') {
     const created = await createDeployment(S.id, v.versionNumber, desc, cid());
     const all = await listDeployments(S.id, cid());
     renderDeployments(all);
-    if (created?.deploymentId && all.some(d => d.deploymentId === created.deploymentId)) {
-      deployment.value = created.deploymentId;
-    }
-    updateDeploymentButtonLabels();
+    if (created?.deploymentId && all.some(d => d.deploymentId === created.deploymentId)) deployment.value = created.deploymentId;
+    updateDeploymentUi();
     saveSettings();
-    stat(`Version ${v.versionNumber} créée + nouveau déploiement créé ✓`, 'ok');
-    return created;
+    stat(`Version ${v.versionNumber} créée + NOUVEAU déploiement créé. Attention : nouvelle URL.`, 'warn');
+    return { version: v.versionNumber, deploymentId: created?.deploymentId, createdNew: true };
   }
 
   const targetDeployment = (CDQ.deployments || []).find(d => d.deploymentId === target);
   if (!Number.isInteger(targetDeployment?.deploymentConfig?.versionNumber)) {
-    throw Error('Ce déploiement est en lecture seule. Choisis « Nouveau déploiement » ou un déploiement versionné.');
+    throw Error('Ce déploiement est en lecture seule. Choisis un déploiement versionné.');
   }
 
   await updateDeployment(S.id, target, v.versionNumber, desc, cid());
   const all = await listDeployments(S.id, cid());
   renderDeployments(all);
   if (all.some(d => d.deploymentId === target)) deployment.value = target;
-  updateDeploymentButtonLabels();
+  updateDeploymentUi();
   saveSettings();
-  stat(`Version ${v.versionNumber} créée et déploiement existant mis à jour ✓`, 'ok');
+  stat(`MISE À JOUR TERMINÉE ✓ Déploiement actuel conservé • nouvelle version Apps Script v${v.versionNumber} • même ID/URL pour les techniciens.`, 'ok');
+  return { version: v.versionNumber, deploymentId: target, createdNew: false };
+}
+
+async function writePendingAndDeploy() {
+  if (!S.id) throw Error('Charge d’abord le projet.');
+  const target = deployment.value || '__new__';
+  const pending = pendingChangeCount();
+
+  if (pending > 0) {
+    stat(`Étape 1/2 — écriture de ${pending} modification(s) dans Apps Script…`);
+    await writeProjectChanges();
+  } else {
+    stat('Étape 1/2 — aucune modification en attente. Le code Google est déjà écrit.');
+  }
+
+  stat('Étape 2/2 — création de la nouvelle version et mise à jour du déploiement…');
+  return deployNewVersion(target);
 }
 
 async function runAction(fn, start = '') {
@@ -760,11 +823,7 @@ $('confirmWrite').addEventListener('click', () => {
 });
 
 $('createVersion').addEventListener('click', () => runAction(createVersionOnly, 'Création de version…'));
-$('deployVersion').addEventListener('click', () => runAction(deployNewVersion, 'Déploiement…'));
-$('writeAndDeploy').addEventListener('click', () => runAction(async () => {
-  await writeProjectChanges();
-  await deployNewVersion();
-}, 'Écriture + déploiement…'));
+$('deployVersion').addEventListener('click', () => runAction(writePendingAndDeploy, 'Préparation de la mise à jour…'));
 $('backupNow').addEventListener('click', () => runAction(async () => {
   const id = sid();
   if (!id) throw Error('Aucun projet.');
@@ -781,7 +840,7 @@ $('downloadBackup').addEventListener('click', () => {
 });
 
 deployment.addEventListener('change', () => {
-  updateDeploymentButtonLabels();
+  updateDeploymentUi();
   saveSettings();
 });
 description.addEventListener('change', saveSettings);
@@ -816,7 +875,7 @@ window.addEventListener('appinstalled', updateInstallState);
   renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=14').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=15').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
