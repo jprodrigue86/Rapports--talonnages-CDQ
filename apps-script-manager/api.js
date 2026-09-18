@@ -82,7 +82,7 @@ async function prepareGoogleClient(clientId) {
   return client;
 }
 
-async function requestGoogleToken(clientId, forceConsent = false) {
+async function requestGoogleToken(clientId, mode = 'reuse') {
   let client = (CDQ.tokenClient && CDQ.tokenClient.__clientId === clientId) ? CDQ.tokenClient : null;
   if (!client) client = await prepareGoogleClient(clientId);
   return new Promise((resolve, reject) => {
@@ -106,7 +106,8 @@ async function requestGoogleToken(clientId, forceConsent = false) {
     };
     client.error_callback = finishError;
     try {
-      client.requestAccessToken({ prompt: forceConsent ? 'consent select_account' : 'select_account' });
+      const override = mode === 'manual' ? { prompt: 'select_account' } : {};
+      client.requestAccessToken(override);
     } catch (err) {
       finishError(err);
     }
@@ -119,7 +120,7 @@ function hasLiveToken() {
 
 async function ensureAuth(clientId) {
   if (hasLiveToken()) return CDQ.token;
-  await requestGoogleToken(clientId, false);
+  await requestGoogleToken(clientId, 'reuse');
   return CDQ.token;
 }
 
