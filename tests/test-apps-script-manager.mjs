@@ -44,6 +44,10 @@ try {
       {name:'Selecteur',type:'HTML',source:'<div>ancien</div>'},
       {name:'appsscript',type:'JSON',source:'{"timeZone":"America/Toronto"}'}
     ];
+    window.__mockDeployments=[
+      {deploymentId:'HEAD_DEP',deploymentConfig:{description:'Head / test'}},
+      {deploymentId:'dep1',deploymentConfig:{versionNumber:1,description:'Production'}}
+    ];
     window.google={accounts:{oauth2:{
       initTokenClient(opts){
         const tokenClient={
@@ -69,7 +73,13 @@ try {
         window.__mockServerFiles=JSON.parse(JSON.stringify(body.files||[]));
         return ok({scriptId:'TEST_SCRIPT_ID',files:window.__mockServerFiles});
       }
-      if(s.endsWith('/projects/TEST_SCRIPT_ID/deployments') && method==='GET') return ok({deployments:[{deploymentId:'dep1',deploymentConfig:{versionNumber:1,description:'Production'}}]});
+      if(s.endsWith('/projects/TEST_SCRIPT_ID/deployments') && method==='GET') return ok({deployments:JSON.parse(JSON.stringify(window.__mockDeployments))});
+      if(s.endsWith('/projects/TEST_SCRIPT_ID/deployments') && method==='POST'){
+        const body=JSON.parse(opts.body||'{}');
+        const created={deploymentId:'depNew',deploymentConfig:{versionNumber:body.versionNumber,manifestFileName:body.manifestFileName,description:body.description}};
+        window.__mockDeployments.push(created);
+        return ok(created);
+      }
       if(s.endsWith('/projects/TEST_SCRIPT_ID/versions') && method==='POST') return ok({scriptId:'TEST_SCRIPT_ID',versionNumber:99,description:'test'});
       if(s.includes('/projects/TEST_SCRIPT_ID/deployments/dep1') && method==='PUT') return ok({deploymentId:'dep1',deploymentConfig:{versionNumber:99,description:'test'}});
       return new Response(JSON.stringify({error:{message:'Unexpected mocked request '+s+' '+method}}),{status:500,headers:{'Content-Type':'application/json'}});
@@ -93,6 +103,10 @@ try {
   await page.click('#loadProject');
   await page.waitForFunction(()=>document.querySelector('#projectBadge')?.textContent.includes('Projet Test CDQ'),{timeout:5000});
   await page.waitForFunction(()=>document.querySelector('#deployment')?.options.length>1,{timeout:5000});
+  const deployOptions=await page.$eval('#deployment option',opts=>opts.map(o=>({value:o.value,text:o.textContent,disabled:o.disabled})));
+  assert(deployOptions.some(o=>o.value==='__new__'),'Missing New deployment option');
+  assert(deployOptions.some(o=>o.value==='dep1'),'Missing versioned deployment option');
+  assert(!deployOptions.some(o=>o.value==='HEAD_DEP'),'Read-only HEAD deployment must not be selectable');
 
   const packageText=`=== FILE: Code.gs ===\nfunction test(){ return 1; }\n\n=== FILE: Selecteur.html ===\n<div>nouveau sélecteur</div>`;
   await page.$eval('#packageEditor',(el,text)=>{el.value=text;el.dispatchEvent(new Event('input',{bubbles:true}))},packageText);
@@ -101,9 +115,9 @@ try {
   await page.click('#validateChanges');
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('Vérification réussie'),{timeout:3000});
 
-  await page.select('#deployment','dep1');
+  await page.select('#deployment','__new__');
   await page.click('#writeAndDeploy');
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('Version 99') && document.querySelector('#status')?.textContent.includes('déployée'),{timeout:7000});
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('Version 99') && document.querySelector('#status')?.textContent.includes('nouveau déploiement'),{timeout:7000});
 
   const result = await page.evaluate(()=>({
     status:document.querySelector('#status')?.textContent,
@@ -111,6 +125,7 @@ try {
     files:window.__mockServerFiles
   }));
   assert(result.status.includes('Version 99'),'Deployment flow did not finish on version 99: '+result.status);
+  assert(result.status.includes('nouveau déploiement'),'New deployment flow did not complete: '+result.status);
   assert(!!result.backup,'Automatic backup was not created');
   const backup=JSON.parse(result.backup);
   assert(Array.isArray(backup) && backup.length>0,'Backup history is empty');
@@ -125,7 +140,8 @@ try {
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
   console.log('PASS: Drive project listing works');
-  console.log('PASS: package -> backup -> write -> readback verification -> deploy works');
+  console.log('PASS: read-only HEAD deployment is excluded');
+  console.log('PASS: package -> backup -> write -> readback verification -> new version -> new deployment works');
   console.log('PASS: appsscript.json is preserved');
 } finally {
   if(browser) await browser.close();
