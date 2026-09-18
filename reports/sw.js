@@ -1,6 +1,6 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE='cdq-reports-independent-v22-16';
-const FORCE_BUILD='2026.09.18-v22.16-autofit-restauration';
+const CACHE='cdq-reports-independent-v22-18-audit-stable';
+const FORCE_BUILD='2026.09.18-v22.18-audit-stable';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;
