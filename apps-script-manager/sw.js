@@ -1,5 +1,5 @@
-const CACHE='cdq-apps-script-manager-v20-production-lock';
-const ASSETS=['./','index.html','style.css?v=20','api.js?v=20','jszip.min.js?v=20','app.js?v=20','manifest.webmanifest','icon-192.png','icon-512.png'];
+const CACHE='cdq-apps-script-manager-v21-health-rollback';
+const ASSETS=['./','index.html','style.css?v=21','api.js?v=21','jszip.min.js?v=21','app.js?v=21','manifest.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)))});
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('cdq-apps-script-manager-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
