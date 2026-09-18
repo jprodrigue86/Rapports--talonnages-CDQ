@@ -711,6 +711,8 @@ function bundleUrlFromValueV24(raw){
   if(!raw)return '';
   if(/^v\d+\.\d+$/i.test(raw)){
     raw=CDQ_BUNDLE_BASE_PATH+raw.toLowerCase()+'/manifest.json';
+  }else if(/^latest$/i.test(raw)){
+    raw=CDQ_BUNDLE_BASE_PATH+'latest/manifest.json';
   }
   const u=new URL(raw,location.origin);
   if(u.origin!==location.origin || !u.pathname.startsWith(CDQ_BUNDLE_BASE_PATH)){
