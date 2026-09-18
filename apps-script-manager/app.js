@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V24';
+const APP_VERSION = 'V25';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -750,6 +750,91 @@ async function fetchBundleTextV24(url,expectedSha=''){
   return text;
 }
 
+
+function findProjectFileForBundleV25(displayName){
+  const spec=importedFileSpec(displayName);
+  if(!spec)return null;
+  return existingProjectFileByName(spec.name,spec.type) ||
+    (spec.type==='SERVER_JS' ? S.files.find(f=>f.type==='SERVER_JS'&&/^code$/i.test(f.name)) : null) ||
+    (spec.type==='HTML' ? S.files.find(f=>f.type==='HTML'&&/^(selector|selecteur)$/i.test(f.name)) : null);
+}
+
+function countLiteralV25(source,needle){
+  if(!needle)return 0;
+  return String(source).split(String(needle)).length-1;
+}
+
+function removeTaggedBlockV25(source,tag,id){
+  const escId=String(id).replace(/[.*+?^$()|[\]\\{}]/g,'\\$&');
+  const re=new RegExp('\\s*<'+tag+'([^>]*)id=["\\\']'+escId+'["\\\']([^>]*)>[\\s\\S]*?<\\/'+tag+'>\\s*','i');
+  if(!re.test(source))throw new Error(tag+' #'+id+' introuvable.');
+  return source.replace(re,'\n');
+}
+
+function applyPatchV25(source,patch,fileLabel){
+  const op=String(patch.op||'');
+  if(op==='replace_literal'){
+    const search=String(patch.search||'');
+    const replacement=String(patch.replacement||'');
+    const found=countLiteralV25(source,search);
+    const expected=patch.expected==null?1:Number(patch.expected);
+    if(found!==expected)throw new Error(fileLabel+' : replace_literal attendu '+expected+', trouvé '+found+'.');
+    return source.split(search).join(replacement);
+  }
+  if(op==='replace_build'){
+    const from=String(patch.from||'');
+    const to=String(patch.to||'');
+    const found=countLiteralV25(source,from);
+    if(found<1)throw new Error(fileLabel+' : ancien build introuvable.');
+    return source.split(from).join(to);
+  }
+  if(op==='remove_script_id')return removeTaggedBlockV25(source,'script',patch.id);
+  if(op==='remove_style_id')return removeTaggedBlockV25(source,'style',patch.id);
+  if(op==='insert_before_literal'){
+    const needle=String(patch.before||'');
+    const text=String(patch.text||'');
+    const found=countLiteralV25(source,needle);
+    if(found!==1)throw new Error(fileLabel+' : point insertion attendu 1 fois, trouvé '+found+'.');
+    return source.replace(needle,text+needle);
+  }
+  throw new Error('Opération patch non supportée : '+op);
+}
+
+function buildEntriesFromPatchesV25(manifest){
+  if(!Array.isArray(manifest.patches)||!manifest.patches.length||manifest.patches.length>80){
+    throw new Error('Liste de correctifs invalide.');
+  }
+  const currentBuild=detectBuildLabel(S.files)||'';
+  if(manifest.requiresBuild && compareBuildLabels(currentBuild,String(manifest.requiresBuild))!==0){
+    throw new Error('Ce correctif exige '+manifest.requiresBuild+', mais le projet chargé annonce '+(currentBuild||'aucune version')+'.');
+  }
+
+  const byFile=new Map();
+  for(const p of manifest.patches){
+    const file=String(p.file||'').trim();
+    if(!/^(Code\.gs|Selector\.html|appsscript\.json)$/i.test(file)){
+      throw new Error('Fichier patch non autorisé : '+file);
+    }
+    if(!byFile.has(file))byFile.set(file,[]);
+    byFile.get(file).push(p);
+  }
+
+  const entries=[];
+  for(const [displayName,patches] of byFile){
+    const base=findProjectFileForBundleV25(displayName);
+    if(!base)throw new Error('Fichier projet introuvable : '+displayName);
+    let source=String(base.source||'');
+    for(const patch of patches)source=applyPatchV25(source,patch,displayName);
+    entries.push({
+      name:base.name,
+      type:base.type,
+      displayName:displayNameForFile(base),
+      source
+    });
+  }
+  return entries;
+}
+
 async function importBundleManifestV24(url){
   url=bundleUrlFromValueV24(url);
   S.bundleUrl=url;
@@ -771,34 +856,43 @@ async function importBundleManifestV24(url){
   let manifest;
   try{manifest=JSON.parse(manifestText);}catch(e){throw new Error('Manifeste package invalide.');}
 
-  if(manifest.schema!=='cdq-script-bundle-v1')throw new Error('Format package non reconnu.');
+  if(!['cdq-script-bundle-v1','cdq-script-bundle-v2'].includes(manifest.schema)){
+    throw new Error('Format package non reconnu.');
+  }
   if(manifest.projectScriptId && normalizeScriptId(manifest.projectScriptId)!==normalizeScriptId(S.id)){
     throw new Error('Ce package vise un autre projet Apps Script.');
   }
-  if(!Array.isArray(manifest.files)||!manifest.files.length||manifest.files.length>10){
-    throw new Error('Liste de fichiers package invalide.');
-  }
 
-  const base=new URL(url);
-  const raw=[];
-  let index=0;
-  for(const f of manifest.files){
-    index++;
-    const name=String(f.name||'').trim();
-    if(!/^(Code\.gs|Selector\.html|appsscript\.json)$/i.test(name)){
-      throw new Error('Fichier non autorisé dans le package : '+name);
+  let resolved=[];
+  if(manifest.schema==='cdq-script-bundle-v2'){
+    setZipVisual('processing','Package direct '+String(manifest.version||manifest.build||''),'Application des correctifs audités…',45);
+    resolved=buildEntriesFromPatchesV25(manifest);
+  }else{
+    if(!Array.isArray(manifest.files)||!manifest.files.length||manifest.files.length>10){
+      throw new Error('Liste de fichiers package invalide.');
     }
-    const fileUrl=new URL(String(f.url||name),base).href;
-    const source=(await fetchBundleTextV24(fileUrl,String(f.sha256||''))).replace(/\r\n/g,'\n');
-    raw.push({displayName:name,path:name,source});
-    setZipVisual('processing','Package direct '+String(manifest.version||manifest.build||''),'Chargement '+index+'/'+manifest.files.length+' : '+name,15+Math.round(index/manifest.files.length*65));
-  }
 
-  const counts={
-    gs:raw.filter(x=>/\.gs$/i.test(x.displayName)).length,
-    html:raw.filter(x=>/\.html?$/i.test(x.displayName)).length
-  };
-  const resolved=raw.map(x=>resolveImportedEntry(x,counts)).filter(Boolean);
+    const base=new URL(url);
+    const raw=[];
+    let index=0;
+    for(const f of manifest.files){
+      index++;
+      const name=String(f.name||'').trim();
+      if(!/^(Code\.gs|Selector\.html|appsscript\.json)$/i.test(name)){
+        throw new Error('Fichier non autorisé dans le package : '+name);
+      }
+      const fileUrl=new URL(String(f.url||name),base).href;
+      const source=(await fetchBundleTextV24(fileUrl,String(f.sha256||''))).replace(/\r\n/g,'\n');
+      raw.push({displayName:name,path:name,source});
+      setZipVisual('processing','Package direct '+String(manifest.version||manifest.build||''),'Chargement '+index+'/'+manifest.files.length+' : '+name,15+Math.round(index/manifest.files.length*65));
+    }
+
+    const counts={
+      gs:raw.filter(x=>/\.gs$/i.test(x.displayName)).length,
+      html:raw.filter(x=>/\.html?$/i.test(x.displayName)).length
+    };
+    resolved=raw.map(x=>resolveImportedEntry(x,counts)).filter(Boolean);
+  }
   if(!resolved.length)throw new Error('Aucun fichier du package ne correspond au projet.');
 
   S.pkg.clear();
@@ -1534,7 +1628,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=24').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=25').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
