@@ -2,7 +2,10 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V18';
+const APP_VERSION = 'V20';
+const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
+const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
+const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
 
 const status = $('status');
 const topStatus = $('topStatus');
@@ -113,11 +116,33 @@ function shouldAutoReconnect() {
   return Number.isFinite(until) && until > Date.now();
 }
 
+function parseBuildVersion(label) {
+  const s=String(label||'');
+  const m=s.match(/v(\d+)\.(\d+)(?:\.(\d+))?/i);
+  return m ? [Number(m[1]||0),Number(m[2]||0),Number(m[3]||0)] : [0,0,0];
+}
+function compareBuildLabels(a,b) {
+  const av=parseBuildVersion(a),bv=parseBuildVersion(b);
+  for(let i=0;i<3;i++){if(av[i]!==bv[i])return av[i]-bv[i];}
+  const ad=(String(a).match(/^(20\d{2}\.\d{2}\.\d{2}(?:\.\d+)?)/)||[])[1]||'';
+  const bd=(String(b).match(/^(20\d{2}\.\d{2}\.\d{2}(?:\.\d+)?)/)||[])[1]||'';
+  if(ad!==bd)return ad.localeCompare(bd,undefined,{numeric:true});
+  return String(a).localeCompare(String(b),undefined,{numeric:true});
+}
 function detectBuildLabel(files) {
-  const texts = (files || []).map(f => String(f.source || '')).join('\n');
-  const matches = texts.match(/(?:20\d{2}\.\d{2}\.\d{2}(?:\.\d+)?-)?v\d+\.\d+(?:-[A-Za-z0-9._-]+)?/gi) || [];
-  if (!matches.length) return '';
-  return matches.sort((a,b) => b.length - a.length)[0];
+  const texts=(files||[]).map(f=>String(f.source||'')).join('\n');
+  const matches=texts.match(/(?:20\d{2}\.\d{2}\.\d{2}(?:\.\d+)?-)?v\d+\.\d+(?:-[A-Za-z0-9._-]+)?/gi)||[];
+  if(!matches.length)return '';
+  return Array.from(new Set(matches)).sort((a,b)=>compareBuildLabels(b,a))[0];
+}
+function isProductionProject(id=sid()) {
+  return normalizeScriptId(id)===CDQ_PRODUCTION_SCRIPT_ID;
+}
+function productionDeployment(all=CDQ.deployments||[]) {
+  return (all||[]).find(d=>String(d.deploymentId||'')===CDQ_PRODUCTION_DEPLOYMENT_ID)||null;
+}
+function productionDeploymentReady() {
+  return !isProductionProject() || Boolean(productionDeployment());
 }
 
 function setQuickResult(text, kind = '') {
@@ -148,7 +173,13 @@ function updateQuickUi() {
   }
   if (quickConnect) quickConnect.hidden = hasLiveToken();
   if (quickChooseZip) quickChooseZip.disabled = !S.id;
-  if (quickApply) quickApply.disabled = !(S.id && S.pkg.size > 0);
+  if (quickApply) {
+    const ready=Boolean(S.id && S.pkg.size>0 && productionDeploymentReady());
+    quickApply.disabled=!ready;
+    if(isProductionProject() && S.id && !productionDeploymentReady()){
+      quickApply.title='Déploiement de production Balance CDQ introuvable : mise à jour bloquée.';
+    }else quickApply.title='';
+  }
 }
 
 function stat(text, kind = '') {
@@ -833,7 +864,10 @@ async function writeProjectChanges() {
     }
   }
   S.files = clone(checked.files);
-  S.lastWrittenBuild = detectBuildLabel(checked.files) || S.pendingBuild || '';
+  S.lastWrittenBuild=detectBuildLabel(checked.files)||S.pendingBuild||'';
+  if(S.pendingBuild && compareBuildLabels(S.lastWrittenBuild,S.pendingBuild)<0){
+    throw Error(`Vérification de version échouée : ZIP ${S.pendingBuild}, mais le projet relu annonce ${S.lastWrittenBuild||'aucune version'}.`);
+  }
   S.draft.clear();
   S.pkg.clear();
   packageEditor.value = '';
@@ -857,55 +891,82 @@ function openWriteConfirmation() {
 }
 
 function updateDeploymentUi() {
-  const target = deployment.value;
-  const selected = (CDQ.deployments || []).find(d => d.deploymentId === target);
-  const isNew = target === '__new__';
-
-  if (isNew) {
-    $('deployVersion').textContent = 'CRÉER UN NOUVEAU DÉPLOIEMENT';
-    deploymentNotice.className = 'deployment-notice warn';
-    deploymentNotice.innerHTML = '<strong>⚠ Nouvelle URL</strong><span>Ce choix crée un autre déploiement. Les techniciens qui utilisent l’ancienne URL ne basculeront pas automatiquement vers cette nouvelle URL.</span>';
+  if(isProductionProject()){
+    const prod=productionDeployment();
+    if(prod){
+      deployment.value=CDQ_PRODUCTION_DEPLOYMENT_ID;
+      deployment.disabled=true;
+      $('deployVersion').textContent='ÉCRIRE + DÉPLOYER EN PRODUCTION';
+      deploymentNotice.className='deployment-notice good';
+      deploymentNotice.innerHTML=`<strong>🔒 Production Balance CDQ • Apps Script v${prod.deploymentConfig.versionNumber}</strong><span>Le même déploiement et la même URL seront conservés. Aucun nouveau déploiement ne peut être créé depuis la mise à jour rapide.</span>`;
+    }else{
+      $('deployVersion').textContent='PRODUCTION INTROUVABLE';
+      deploymentNotice.className='deployment-notice warn';
+      deploymentNotice.innerHTML='<strong>⛔ Mise à jour bloquée</strong><span>Recharge les déploiements. Script Manager ne choisira pas un autre déploiement à la place.</span>';
+    }
+    updateQuickUi();
     return;
   }
 
-  if (selected && Number.isInteger(selected.deploymentConfig?.versionNumber)) {
-    const v = selected.deploymentConfig.versionNumber;
-    $('deployVersion').textContent = 'ÉCRIRE + DÉPLOYER LA MISE À JOUR';
-    deploymentNotice.className = 'deployment-notice good';
-    deploymentNotice.innerHTML = `<strong>✓ Recommandé — mise à jour du déploiement actuel (v${v})</strong><span>Le Script Manager écrira d’abord le ZIP s’il y a des modifications, créera une nouvelle version, puis mettra ce même déploiement à jour. L’ID et l’URL restent les mêmes pour les techniciens.</span>`;
+  const target=deployment.value;
+  const selected=(CDQ.deployments||[]).find(d=>d.deploymentId===target);
+  const isNew=target==='__new__';
+
+  if(isNew){
+    $('deployVersion').textContent='CRÉER UN NOUVEAU DÉPLOIEMENT';
+    deploymentNotice.className='deployment-notice warn';
+    deploymentNotice.innerHTML='<strong>⚠ Nouvelle URL</strong><span>Ce choix crée un autre déploiement.</span>';
     return;
   }
-
-  $('deployVersion').textContent = 'ÉCRIRE + DÉPLOYER LA MISE À JOUR';
-  deploymentNotice.className = 'deployment-notice';
-  deploymentNotice.innerHTML = '<strong>Aucun déploiement versionné sélectionné</strong><span>Choisis un déploiement existant ou crée un nouveau déploiement.</span>';
+  if(selected&&Number.isInteger(selected.deploymentConfig?.versionNumber)){
+    const v=selected.deploymentConfig.versionNumber;
+    $('deployVersion').textContent='ÉCRIRE + DÉPLOYER LA MISE À JOUR';
+    deploymentNotice.className='deployment-notice good';
+    deploymentNotice.innerHTML=`<strong>✓ Déploiement sélectionné (v${v})</strong><span>L’ID et l’URL restent identiques.</span>`;
+    return;
+  }
+  $('deployVersion').textContent='ÉCRIRE + DÉPLOYER LA MISE À JOUR';
+  deploymentNotice.className='deployment-notice';
+  deploymentNotice.innerHTML='<strong>Aucun déploiement versionné sélectionné</strong>';
 }
-
 function renderDeployments(all) {
-  const versioned = (all || [])
-    .filter(d => Number.isInteger(d.deploymentConfig?.versionNumber) && d.deploymentConfig.versionNumber > 0)
-    .sort((a,b) => (b.deploymentConfig.versionNumber || 0) - (a.deploymentConfig.versionNumber || 0));
-  const readOnly = (all || []).filter(d => !Number.isInteger(d.deploymentConfig?.versionNumber));
+  const versioned=(all||[])
+    .filter(d=>Number.isInteger(d.deploymentConfig?.versionNumber)&&d.deploymentConfig.versionNumber>0)
+    .sort((a,b)=>(b.deploymentConfig.versionNumber||0)-(a.deploymentConfig.versionNumber||0));
+  const readOnly=(all||[]).filter(d=>!Number.isInteger(d.deploymentConfig?.versionNumber));
 
-  deployment.innerHTML =
-    versioned.map((d, i) =>
-      `<option value="${esc(d.deploymentId)}">${i === 0 ? '✅ ' : ''}${esc(d.deploymentConfig?.description || 'Déploiement actuel')} • v${d.deploymentConfig.versionNumber}</option>`
-    ).join('') +
-    '<option value="__new__">⚠ Créer un NOUVEAU déploiement — nouvelle URL</option>' +
-    (readOnly.length ? `<option value="" disabled>— ${readOnly.length} HEAD/test ignoré(s) —</option>` : '');
-
-  const old = LS.getItem('cdqsm_deployment');
-  if (versioned.some(d => d.deploymentId === old)) {
-    deployment.value = old;
-  } else if (versioned.length) {
-    deployment.value = versioned[0].deploymentId;
-  } else {
-    deployment.value = '__new__';
+  if(isProductionProject()){
+    const prod=versioned.find(d=>String(d.deploymentId||'')===CDQ_PRODUCTION_DEPLOYMENT_ID);
+    deployment.disabled=true;
+    if(prod){
+      deployment.innerHTML=`<option value="${esc(prod.deploymentId)}">🔒 PRODUCTION Balance CDQ • Apps Script v${prod.deploymentConfig.versionNumber}</option>`;
+      deployment.value=prod.deploymentId;
+      LS.setItem('cdqsm_deployment',prod.deploymentId);
+      deploymentNotice.className='deployment-notice good';
+      deploymentNotice.innerHTML=`<strong>🔒 Déploiement de production verrouillé</strong><span>Script Manager modifiera uniquement l’ID <code>${esc(CDQ_PRODUCTION_DEPLOYMENT_ID)}</code>. URL techniciens conservée : <code>${esc(CDQ_PRODUCTION_WEBAPP_URL)}</code>.</span>`;
+    }else{
+      deployment.innerHTML='<option value="">❌ Déploiement de production introuvable</option>';
+      deployment.value='';
+      deploymentNotice.className='deployment-notice warn';
+      deploymentNotice.innerHTML=`<strong>⛔ Mise à jour bloquée</strong><span>Le déploiement utilisé par Balance CDQ n’a pas été trouvé. Aucun autre déploiement ne sera choisi automatiquement.</span>`;
+    }
+    updateQuickUi();
+    return;
   }
+
+  deployment.disabled=false;
+  deployment.innerHTML =
+    versioned.map((d,i)=>`<option value="${esc(d.deploymentId)}">${i===0?'✅ ':''}${esc(d.deploymentConfig?.description||'Déploiement actuel')} • v${d.deploymentConfig.versionNumber}</option>`).join('')+
+    '<option value="__new__">⚠ Créer un NOUVEAU déploiement — nouvelle URL</option>'+
+    (readOnly.length?`<option value="" disabled>— ${readOnly.length} HEAD/test ignoré(s) —</option>`:'');
+
+  const old=LS.getItem('cdqsm_deployment');
+  if(versioned.some(d=>d.deploymentId===old))deployment.value=old;
+  else if(versioned.length)deployment.value=versioned[0].deploymentId;
+  else deployment.value='__new__';
 
   updateDeploymentUi();
 }
-
 async function createVersionOnly() {
   if (!S.id) throw Error('Charge d’abord un projet.');
   const pending = pendingChangeCount();
@@ -921,7 +982,13 @@ async function deployNewVersion(targetOverride = null) {
   if (!S.id) throw Error('Charge d’abord un projet.');
 
   const desc = description.value.trim() || `Mise à jour CDQ - ${nlabel()}`;
-  const target = targetOverride || deployment.value || '__new__';
+  const target = isProductionProject()
+    ? CDQ_PRODUCTION_DEPLOYMENT_ID
+    : (targetOverride || deployment.value || '__new__');
+
+  if(isProductionProject() && !productionDeployment()){
+    throw Error('Déploiement de production Balance CDQ introuvable. Écriture/déploiement bloqués pour éviter de publier sur la mauvaise URL.');
+  }
   const v = await createProjectVersion(S.id, desc, cid());
 
   if (target === '__new__') {
@@ -946,9 +1013,12 @@ async function deployNewVersion(targetOverride = null) {
 
   await updateDeployment(S.id, target, v.versionNumber, desc, cid());
   const all = await listDeployments(S.id, cid());
-  const verifiedDeployment = all.find(d => d.deploymentId === target);
-  if (!verifiedDeployment || verifiedDeployment.deploymentConfig?.versionNumber !== v.versionNumber) {
+  const verifiedDeployment=all.find(d=>d.deploymentId===target);
+  if(!verifiedDeployment||verifiedDeployment.deploymentConfig?.versionNumber!==v.versionNumber){
     throw Error('Le déploiement n’a pas été confirmé sur la nouvelle version. Aucune réussite n’est affichée.');
+  }
+  if(isProductionProject()&&String(verifiedDeployment.deploymentId)!==CDQ_PRODUCTION_DEPLOYMENT_ID){
+    throw Error('Vérification de sécurité échouée : le déploiement confirmé n’est pas le déploiement de production Balance CDQ.');
   }
   renderDeployments(all);
   if (all.some(d => d.deploymentId === target)) deployment.value = target;
@@ -957,7 +1027,7 @@ async function deployNewVersion(targetOverride = null) {
   S.lastDeploymentResult = { version: v.versionNumber, deploymentId: target, createdNew: false };
   const sourceBuild = S.lastWrittenBuild || S.pendingBuild || '';
   setQuickResult(
-    `MISE À JOUR CONFIRMÉE ✓${sourceBuild ? ' ' + sourceBuild + ' •' : ''} Apps Script version ${v.versionNumber} • déploiement existant confirmé • même URL pour les techniciens.`,
+    `MISE À JOUR CONFIRMÉE ✓${sourceBuild ? ' ' + sourceBuild + ' •' : ''} Apps Script version ${v.versionNumber} • déploiement de production confirmé • même URL pour les techniciens.`,
     'ok'
   );
   S.pkg.clear();
@@ -969,9 +1039,12 @@ async function deployNewVersion(targetOverride = null) {
 }
 
 async function writePendingAndDeploy() {
-  if (!S.id) throw Error('Charge d’abord le projet.');
-  const target = deployment.value || '__new__';
-  const pending = pendingChangeCount();
+  if(!S.id)throw Error('Charge d’abord le projet.');
+  if(isProductionProject()&&!productionDeployment()){
+    throw Error('Déploiement de production Balance CDQ introuvable. Mise à jour annulée avant toute écriture.');
+  }
+  const target=isProductionProject()?CDQ_PRODUCTION_DEPLOYMENT_ID:(deployment.value||'__new__');
+  const pending=pendingChangeCount();
 
   if (pending > 0) {
     stat(`Étape 1/2 — écriture de ${pending} modification(s) dans Apps Script…`);
@@ -1150,7 +1223,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=18').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
