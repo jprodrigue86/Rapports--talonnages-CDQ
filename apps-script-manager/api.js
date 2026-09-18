@@ -106,7 +106,10 @@ async function requestGoogleToken(clientId, mode = 'reuse') {
     };
     client.error_callback = finishError;
     try {
-      const override = mode === 'manual' ? { prompt: 'select_account' } : {};
+      const override =
+        mode === 'manual' ? { prompt: 'select_account' } :
+        mode === 'silent' ? { prompt: 'none' } :
+        { prompt: '' };
       client.requestAccessToken(override);
     } catch (err) {
       finishError(err);
