@@ -87,7 +87,12 @@ try {
         return ok(created);
       }
       if(s.endsWith('/projects/TEST_SCRIPT_ID/versions') && method==='POST') return ok({scriptId:'TEST_SCRIPT_ID',versionNumber:99,description:'test'});
-      if(s.includes('/projects/TEST_SCRIPT_ID/deployments/dep1') && method==='PUT') return ok({deploymentId:'dep1',deploymentConfig:{versionNumber:99,description:'test'}});
+      if(s.includes('/projects/TEST_SCRIPT_ID/deployments/dep1') && method==='PUT'){
+        const body=JSON.parse(opts.body||'{}');
+        const i=window.__mockDeployments.findIndex(d=>d.deploymentId==='dep1');
+        if(i>=0) window.__mockDeployments[i]={deploymentId:'dep1',deploymentConfig:{...(window.__mockDeployments[i].deploymentConfig||{}),...(body.deploymentConfig||{})}};
+        return ok(window.__mockDeployments[i]);
+      }
       return new Response(JSON.stringify({error:{message:'Unexpected mocked request '+s+' '+method}}),{status:500,headers:{'Content-Type':'application/json'}});
     };
   });
