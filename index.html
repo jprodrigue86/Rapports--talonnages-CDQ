@@ -170,6 +170,33 @@ margin-top:10px;
 background:#43c98b;
 color:#071b33;
 }
+#google-button-container{
+position:relative!important;
+z-index:10020!important;
+min-height:56px!important;
+align-items:center!important;
+pointer-events:auto!important;
+touch-action:manipulation!important;
+isolation:isolate;
+}
+#google-button-container>div,
+#google-button-container iframe{
+position:relative!important;
+z-index:10021!important;
+pointer-events:auto!important;
+touch-action:manipulation!important;
+}
+#google-touch-fallback{
+background:#173a5f;
+color:#fff;
+min-height:52px;
+}
+#google-touch-help{
+margin-top:8px;
+font-size:12px;
+line-height:1.35;
+color:#aebdca;
+}
 #load-retry{
 background:#173a5f;
 color:#fff;
@@ -290,7 +317,9 @@ referrerpolicy="strict-origin-when-cross-origin">
 <div class="load-card">
 <h2 id="load-title">Connexion à Balance CDQ</h2>
 <p id="load-message">Connectez votre compte Google pour continuer.</p>
-<div id="google-button-container" style="display:flex;justify-content:center;min-height:44px"></div>
+<div id="google-button-container" style="display:flex;justify-content:center;min-height:56px"></div>
+<button id="google-touch-fallback" type="button" hidden>Continuer avec Google</button>
+<div id="google-touch-help" hidden>Si le bouton Google blanc ne répond pas sur ce téléphone, utilisez « Continuer avec Google ».</div>
 <button id="google-connect" type="button" hidden>Réessayer la connexion Google</button>
 <button id="load-retry" type="button">Réessayer le chargement</button>
 <a id="open-direct" target="_blank" rel="noopener" style="color:#a8dcff;margin-top:18px">Ouvrir CDQ dans un onglet</a>
@@ -318,7 +347,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.17.2008-v21.57-tech-login-fix';
+const CDQ_PWA_BUILD = '2026.09.17.2033-v21.59-google-touch-fix';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -387,6 +416,83 @@ document.getElementById('open-direct').href = APP_URL;
 
 let cdqGoogleChallengeV42 = null;
 let cdqGoogleRenderingV42 = false;
+let cdqGoogleFallbackBusyV59 = false;
+
+function cdqArmerZoneGoogleV59(container){
+  if(!container)return;
+  container.style.pointerEvents='auto';
+  container.style.touchAction='manipulation';
+  container.style.position='relative';
+  container.style.zIndex='10020';
+  const fixer=function(){
+    container.querySelectorAll('iframe').forEach(function(frame){
+      frame.style.pointerEvents='auto';
+      frame.style.touchAction='manipulation';
+      frame.style.position='relative';
+      frame.style.zIndex='10021';
+    });
+  };
+  fixer();
+  setTimeout(fixer,80);
+  setTimeout(fixer,500);
+  setTimeout(fixer,1500);
+}
+
+async function cdqGoogleSecoursV59(){
+  if(cdqGoogleFallbackBusyV59)return;
+  const defi=cdqGoogleChallengeV42;
+  const fallback=document.getElementById('google-touch-fallback');
+  const help=document.getElementById('google-touch-help');
+  const message=document.getElementById('load-message');
+  if(!defi || !defi.challengeId || !defi.clientId){
+    if(selectorWindow)replyToSelector(selectorWindow,{type:'CDQ_GOOGLE_AUTH_RETRY',authProtocol:42});
+    return;
+  }
+  if(defi.expiresAt && defi.expiresAt<=Date.now()){
+    if(selectorWindow)replyToSelector(selectorWindow,{type:'CDQ_GOOGLE_AUTH_RETRY',authProtocol:42});
+    return;
+  }
+  cdqGoogleFallbackBusyV59=true;
+  if(fallback){fallback.disabled=true;fallback.textContent='Ouverture de Google…';}
+  try{
+    const gsi=await attendreGoogleIdentityV42();
+    try{gsi.cancel();}catch(e){}
+    gsi.initialize({
+      client_id:defi.clientId,
+      callback:envoyerCredentialGoogleV42,
+      nonce:defi.nonce,
+      auto_select:false,
+      cancel_on_tap_outside:false,
+      ux_mode:'popup',
+      context:'signin',
+      use_fedcm_for_prompt:true
+    });
+    let retour=false;
+    gsi.prompt(function(notification){
+      retour=true;
+      try{
+        const nonAffiche=notification&&notification.isNotDisplayed&&notification.isNotDisplayed();
+        const saute=notification&&notification.isSkippedMoment&&notification.isSkippedMoment();
+        if((nonAffiche||saute) && message){
+          message.textContent='Google n’a pas ouvert la fenêtre. Touchez de nouveau « Continuer avec Google » ou le bouton blanc.';
+        }
+      }catch(e){}
+    });
+    setTimeout(function(){
+      if(!retour && message)message.textContent='Si Google ne s’est pas ouvert, touchez de nouveau « Continuer avec Google ».';
+    },3200);
+  }catch(e){
+    if(message)message.textContent=(e&&e.message?e.message:String(e))+' Réessayez la connexion Google.';
+    const retry=document.getElementById('google-connect');
+    if(retry)retry.hidden=false;
+  }finally{
+    setTimeout(function(){
+      cdqGoogleFallbackBusyV59=false;
+      if(fallback){fallback.disabled=false;fallback.textContent='Continuer avec Google';}
+      if(help)help.hidden=false;
+    },1200);
+  }
+}
 
 function afficherConnexionGoogle(premiere=false, cause='chargement') {
   clearTimeout(loadingTimer);
@@ -401,6 +507,10 @@ function afficherConnexionGoogle(premiere=false, cause='chargement') {
   const googleContainer = document.getElementById('google-button-container');
   if(googleContainer)googleContainer.innerHTML='';
   document.getElementById('google-connect').hidden=true;
+  const googleTouchFallback=document.getElementById('google-touch-fallback');
+  const googleTouchHelp=document.getElementById('google-touch-help');
+  if(googleTouchFallback)googleTouchFallback.hidden=true;
+  if(googleTouchHelp)googleTouchHelp.hidden=true;
   document.getElementById('load-retry').hidden=false;
   document.getElementById('open-direct').hidden=true;
   title.textContent = offline ? 'Connexion Internet requise' : 'Connexion à Balance CDQ';
@@ -455,9 +565,14 @@ async function afficherConnexionGoogleV42(data){
   document.getElementById('load-retry').hidden=true;
   document.getElementById('open-direct').hidden=true;
   const fallback=document.getElementById('google-connect');
+  const touchFallback=document.getElementById('google-touch-fallback');
+  const touchHelp=document.getElementById('google-touch-help');
   fallback.hidden=true;
+  if(touchFallback){touchFallback.hidden=false;touchFallback.disabled=false;touchFallback.textContent='Continuer avec Google';}
+  if(touchHelp)touchHelp.hidden=false;
   const container=document.getElementById('google-button-container');
   container.innerHTML='';
+  cdqArmerZoneGoogleV59(container);
   if(!cdqGoogleChallengeV42.clientId){
     document.getElementById('load-message').textContent='La configuration Google de Balance CDQ est incomplète.';
     fallback.hidden=false;return;
@@ -488,6 +603,7 @@ async function afficherConnexionGoogleV42(data){
       locale:'fr',
       width:300
     });
+    cdqArmerZoneGoogleV59(container);
   }catch(e){
     document.getElementById('load-message').textContent=(e&&e.message?e.message:String(e))+' Touchez Réessayer.';
     fallback.hidden=false;
@@ -501,6 +617,10 @@ function masquerConnexionGoogleV42(){
   const container=document.getElementById('google-button-container');
   if(container)container.innerHTML='';
   document.getElementById('google-connect').hidden=true;
+  const touchFallback=document.getElementById('google-touch-fallback');
+  const touchHelp=document.getElementById('google-touch-help');
+  if(touchFallback)touchFallback.hidden=true;
+  if(touchHelp)touchHelp.hidden=true;
   if(selectorReady && !selectorAwaitingAccess){
     loadHelp.style.display='none';
   }
@@ -1039,6 +1159,7 @@ pushReplyTarget=null;
 });
 
 document.getElementById('load-retry').addEventListener('click', reessayerChargement);
+document.getElementById('google-touch-fallback').addEventListener('click',cdqGoogleSecoursV59);
 document.getElementById('google-connect').addEventListener('click',()=>{
   if(selectorWindow)replyToSelector(selectorWindow,{type:'CDQ_GOOGLE_AUTH_RETRY',authProtocol:42});
 });
