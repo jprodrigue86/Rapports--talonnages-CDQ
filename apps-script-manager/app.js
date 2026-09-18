@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V21';
+const APP_VERSION = 'V22';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -152,9 +152,12 @@ function isAppsScriptOriginV21(origin){
       (h==='script.google.com' || h==='script.googleusercontent.com' || h.endsWith('-script.googleusercontent.com'));
   }catch(e){return false;}
 }
-function verifyProductionWebAppReadyV21(expectedBuild='',timeoutMs=30000){
+function knownGoodKeyV22(){return 'cdqsm_known_good_'+CDQ_PRODUCTION_SCRIPT_ID;}
+function getKnownGoodV22(){return Number(LS.getItem(knownGoodKeyV22())||0)||0;}
+function setKnownGoodV22(v){v=Number(v)||0;if(v>0)LS.setItem(knownGoodKeyV22(),String(v));}
+function verifyProductionWebAppReadyV22(expectedBuild='',timeoutMs=30000){
   return new Promise((resolve,reject)=>{
-    let finished=false;
+    let finished=false,loaded=false;
     const frame=document.createElement('iframe');
     frame.title='Vérification silencieuse Balance CDQ';
     frame.tabIndex=-1;
@@ -170,23 +173,29 @@ function verifyProductionWebAppReadyV21(expectedBuild='',timeoutMs=30000){
     const fail=msg=>{cleanup();reject(new Error(msg));};
     const onMessage=e=>{
       const d=e.data||{};
-      if(!isAppsScriptOriginV21(e.origin) || d.type!=='CDQ_SELECTOR_READY')return;
+      if(!isAppsScriptOriginV21(e.origin))return;
+      if(d.type!=='CDQ_SELECTOR_READY' && d.type!=='CDQ_HEALTH_READY')return;
       const build=String(d.build||'');
       if(expectedBuild && build && compareBuildLabels(build,expectedBuild)<0){
         fail('La production répond, mais elle annonce encore '+build+' au lieu de '+expectedBuild+'.');
         return;
       }
       cleanup();
-      resolve({build:build||'version non annoncée'});
+      resolve({build:build||'version non annoncée',signal:d.type,loaded});
     };
-    const timer=setTimeout(()=>fail('La version déployée n’a pas envoyé CDQ_SELECTOR_READY dans '+Math.round(timeoutMs/1000)+' secondes.'),timeoutMs);
+    const timer=setTimeout(()=>{
+      fail('La version déployée n’a envoyé ni CDQ_HEALTH_READY ni CDQ_SELECTOR_READY dans '+Math.round(timeoutMs/1000)+' secondes.');
+    },timeoutMs);
     window.addEventListener('message',onMessage);
+    frame.onload=()=>{loaded=true;};
     frame.onerror=()=>fail('La page de production n’a pas pu être chargée.');
     const sep=CDQ_PRODUCTION_WEBAPP_URL.includes('?')?'&':'?';
     frame.src=CDQ_PRODUCTION_WEBAPP_URL+sep+'cdq_sm_health='+Date.now();
     document.body.appendChild(frame);
   });
 }
+// compatibilité
+const verifyProductionWebAppReadyV21=verifyProductionWebAppReadyV22;
 
 function setQuickResult(text, kind = '') {
   if (!quickResult) return;
@@ -1075,27 +1084,30 @@ async function deployNewVersion(targetOverride = null) {
     stat('Étape 3/3 — ouverture réelle de Balance CDQ en production…');
     setQuickResult('Déploiement écrit. Vérification de la vraie application de production en cours…','warn');
     try{
-      const health=await verifyProductionWebAppReadyV21(sourceBuild,30000);
+      const health=await verifyProductionWebAppReadyV22(sourceBuild,30000);
+      setKnownGoodV22(v.versionNumber);
       setQuickResult(
         `PRODUCTION TESTÉE ✓ ${sourceBuild||health.build} • Apps Script v${v.versionNumber} • CDQ_SELECTOR_READY reçu.`,
         'ok'
       );
     }catch(healthError){
-      if(previousVersion>0){
-        stat(`Échec du démarrage — retour automatique à Apps Script v${previousVersion}…`,'warn');
+      const knownGood=getKnownGoodV22();
+      const rollbackVersion=knownGood>0?knownGood:previousVersion;
+      if(rollbackVersion>0){
+        stat(`Échec du démarrage — retour automatique à Apps Script v${rollbackVersion}…`,'warn');
         try{
-          await updateDeployment(S.id,target,previousVersion,`ROLLBACK automatique — échec santé v${v.versionNumber}`,cid());
+          await updateDeployment(S.id,target,rollbackVersion,`ROLLBACK automatique — échec santé v${v.versionNumber}`,cid());
           all=await listDeployments(S.id,cid());
           const rolled=all.find(d=>d.deploymentId===target);
           renderDeployments(all);
-          if(!rolled || rolled.deploymentConfig?.versionNumber!==previousVersion){
+          if(!rolled || rolled.deploymentConfig?.versionNumber!==rollbackVersion){
             throw new Error('Le retour automatique n’a pas pu être confirmé.');
           }
           setQuickResult(
-            `MISE À JOUR REFUSÉE — Balance CDQ n’a pas démarré. Production restaurée automatiquement à Apps Script v${previousVersion}.`,
+            `MISE À JOUR REFUSÉE — Balance CDQ n’a pas démarré. Production restaurée automatiquement à Apps Script v${rollbackVersion}.`,
             'err'
           );
-          throw new Error(`La nouvelle version n’a pas démarré. Retour automatique réussi vers Apps Script v${previousVersion}. Détail : ${healthError.message}`);
+          throw new Error(`La nouvelle version n’a pas démarré. Retour automatique réussi vers Apps Script v${rollbackVersion}. Détail : ${healthError.message}`);
         }catch(rollbackError){
           if(/Retour automatique réussi/.test(rollbackError.message))throw rollbackError;
           throw new Error(`La nouvelle version n’a pas démarré ET le rollback doit être vérifié manuellement. ${healthError.message} • ${rollbackError.message}`);
