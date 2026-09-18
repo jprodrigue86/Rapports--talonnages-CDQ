@@ -5,6 +5,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="dns-prefetch" href="//script.google.com">
+<link rel="dns-prefetch" href="//script.googleusercontent.com">
 <meta name="interface-scale" content="1.30">
 <link rel="manifest" href="/Rapports--talonnages-CDQ/reports/manifest.webmanifest">
 <script src="./firebase-config.js"></script>
@@ -382,6 +386,9 @@ moins de groupes mais des noms plus lisibles.
 <iframe
 id="app"
 title="Rapports D’étalonnages"
+src="https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec?cdq_boot=1"
+loading="eager"
+fetchpriority="high"
 allow="clipboard-read; clipboard-write"
 referrerpolicy="strict-origin-when-cross-origin">
 </iframe>
@@ -420,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v21.95-iframe-load-fallback';
+const CDQ_PWA_BUILD = '2026.09.18-v22.00-performance-sync';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -462,7 +469,7 @@ const loading = document.getElementById('loading');
 const loadHelp = document.getElementById('load-help');
 
 const APP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
-const MIN_LOADING_MS = 1300;
+const MIN_LOADING_MS = 400;
 let loadingShownAt = performance.now();
 let selectorReady = false;
 let iframeLoaded = false;
@@ -1309,7 +1316,10 @@ document.getElementById('google-connect').addEventListener('click',()=>{
 });
 
 if (!navigator.onLine) afficherConnexionGoogle(false);
-else reessayerChargement();
+else {
+  afficherMurChargement();
+  armLoadingTimeout();
+}
 </script>
 </body>
 </html>
