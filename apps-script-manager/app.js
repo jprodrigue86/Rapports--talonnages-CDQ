@@ -2,6 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
+const APP_VERSION = 'V13';
 
 const status = $('status');
 const topStatus = $('topStatus');
@@ -22,6 +23,11 @@ const confirmModal = $('confirmModal');
 const browserWarning = $('browserWarning');
 const installApp = $('installApp');
 const installModal = $('installModal');
+const zipStatus = $('zipStatus');
+const zipStatusIcon = $('zipStatusIcon');
+const zipStatusTitle = $('zipStatusTitle');
+const zipStatusDetail = $('zipStatusDetail');
+const zipProgressBar = $('zipProgressBar');
 
 const S = {
   id: '',
@@ -312,12 +318,45 @@ function resolveImportedEntry(entry, counts = {}) {
   return { ...spec, source: entry.source };
 }
 
+
+function setZipVisual(state, title, detail, progress = null) {
+  if (!zipStatus) return;
+  zipStatus.hidden = false;
+  zipStatus.className = `zip-status ${state || ''}`.trim();
+  zipStatusIcon.textContent =
+    state === 'processing' ? '🔄' :
+    state === 'success' ? '✅' :
+    state === 'error' ? '⚠️' : '📦';
+  zipStatusTitle.textContent = title || 'ZIP';
+  zipStatusDetail.textContent = detail || '';
+  if (progress !== null && zipProgressBar) zipProgressBar.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+  else if (zipProgressBar) zipProgressBar.style.width = '';
+}
+
+function clearZipVisual() {
+  if (!zipStatus) return;
+  zipStatus.hidden = true;
+  zipStatus.className = 'zip-status';
+  if (zipProgressBar) zipProgressBar.style.width = '';
+}
+
 async function readZipEntries(file) {
   if (typeof JSZip === 'undefined') throw Error('Le lecteur ZIP n’est pas chargé. Ferme puis rouvre l’application avec Internet.');
+  setZipVisual('processing', `ZIP reçu : ${file.name}`, 'Décodage de l’archive… recherche du code GS et du Selector.', 10);
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
   const raw = [];
+  const zipFiles = Object.entries(zip.files);
+  setZipVisual('processing', `ZIP ouvert : ${file.name}`, `Analyse de ${zipFiles.length} élément(s)… recherche de Code.gs et Selector.html.`, 35);
 
-  for (const [path, entry] of Object.entries(zip.files)) {
+  let inspected = 0;
+  for (const [path, entry] of zipFiles) {
+    inspected++;
+    if (inspected % 4 === 0) {
+      const pct = 35 + Math.round((inspected / Math.max(1, zipFiles.length)) * 45);
+      setZipVisual('processing', `Décodage : ${file.name}`, `Lecture ${inspected}/${zipFiles.length} — recherche du GS et du Selector…`, pct);
+      await new Promise(r => setTimeout(r, 0));
+    }
     if (entry.dir) continue;
     if (/^__MACOSX\//i.test(path)) continue;
     const base = fileBaseName(path);
@@ -339,6 +378,7 @@ async function readZipEntries(file) {
   }
 
   if (!raw.length) {
+    setZipVisual('error', `ZIP lu : ${file.name}`, 'Aucun Code.gs, Selector.html, appsscript.json ou Package CDQ compatible trouvé.', 100);
     throw Error('Le ZIP ne contient aucun fichier .gs, .html, appsscript.json ou Package CDQ compatible.');
   }
 
@@ -360,7 +400,17 @@ async function readZipEntries(file) {
   for (const entry of resolved) {
     dedup.set(`${entry.type}:${String(entry.name).toLowerCase()}`, entry);
   }
-  return Array.from(dedup.values());
+  const finalEntries = Array.from(dedup.values());
+  const labels = finalEntries.map(x => x.displayName || displayNameForFile(x));
+  const foundGs = finalEntries.some(x => x.type === 'SERVER_JS');
+  const foundHtml = finalEntries.some(x => x.type === 'HTML');
+  setZipVisual(
+    'success',
+    `ZIP décodé ✓ : ${file.name}`,
+    `${finalEntries.length} fichier(s) reconnu(s) — ${foundGs ? 'GS trouvé' : 'GS non trouvé'} • ${foundHtml ? 'Selector/HTML trouvé' : 'Selector/HTML non trouvé'}${labels.length ? ' • ' + labels.join(' • ') : ''}`,
+    100
+  );
+  return finalEntries;
 }
 
 async function importPhoneFiles(fileList) {
@@ -371,6 +421,8 @@ async function importPhoneFiles(fileList) {
 
     const entries = [];
     const ignored = [];
+    const hasZip = selected.some(file => /\.zip$/i.test(file.name) || /zip/i.test(file.type || ''));
+    if (!hasZip) clearZipVisual();
     for (const file of selected) {
       if (/\.zip$/i.test(file.name) || /zip/i.test(file.type || '')) {
         const zipEntries = await readZipEntries(file);
@@ -417,6 +469,9 @@ async function importPhoneFiles(fileList) {
     renderDiff();
     stat(`${entries.length} fichier(s) prêt(s). Vérifie avant d’écrire.`, 'ok');
   } catch (e) {
+    if (zipStatus && !zipStatus.hidden && !zipStatus.classList.contains('error')) {
+      setZipVisual('error', 'Décodage ZIP interrompu', e.message, 100);
+    }
     packageResult.textContent = e.message;
     stat('Import impossible : ' + e.message, 'err');
   } finally {
@@ -652,6 +707,7 @@ $('parsePackage').addEventListener('click', preparePackage);
 $('clearPackage').addEventListener('click', () => {
   packageEditor.value = '';
   packageResult.innerHTML = '';
+  clearZipVisual();
   S.pkg.clear();
   renderFiles();
   renderDiff();
@@ -714,11 +770,13 @@ window.addEventListener('beforeinstallprompt', e => {
 window.addEventListener('appinstalled', updateInstallState);
 
 (async () => {
+  if ($('versionChip')) $('versionChip').textContent = APP_VERSION;
+  if ($('versionBadge')) $('versionBadge').textContent = 'Version : ' + APP_VERSION;
   bootSettings();
   renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=12').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=13').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
