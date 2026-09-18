@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V25';
+const APP_VERSION = 'V26';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -1324,6 +1324,43 @@ async function createVersionOnly() {
   return v;
 }
 
+async function waitForDeploymentVersionV26(target,versionNumber,timeoutMs=60000){
+  const started=Date.now();
+  let lastAll=[];
+  let lastVersion=0;
+  let lastError=null;
+
+  while(Date.now()-started<timeoutMs){
+    try{
+      const all=await listDeployments(S.id,cid());
+      lastAll=all||[];
+      const d=lastAll.find(x=>String(x.deploymentId||'')===String(target));
+      lastVersion=Number(d?.deploymentConfig?.versionNumber||0);
+
+      if(d && lastVersion===Number(versionNumber)){
+        return {all:lastAll,deployment:d,confirmed:true};
+      }
+
+      const elapsed=Math.round((Date.now()-started)/1000);
+      setQuickResult(
+        'Déploiement envoyé. Google annonce encore '+(lastVersion?('Apps Script v'+lastVersion):'une ancienne version')+
+        ' — propagation '+elapsed+' s / '+Math.round(timeoutMs/1000)+' s…',
+        'warn'
+      );
+    }catch(e){
+      lastError=e;
+    }
+    await new Promise(r=>setTimeout(r,2500));
+  }
+
+  const suffix=lastError?(' Dernière erreur : '+lastError.message):'';
+  throw new Error(
+    'Google n’a pas encore confirmé Apps Script v'+versionNumber+
+    ' sur le déploiement après '+Math.round(timeoutMs/1000)+' secondes.'+
+    (lastVersion?(' Dernière version annoncée : v'+lastVersion+'.'):'')+suffix
+  );
+}
+
 async function deployNewVersion(targetOverride = null) {
   if (!S.id) throw Error('Charge d’abord un projet.');
 
@@ -1362,23 +1399,64 @@ async function deployNewVersion(targetOverride = null) {
   }
 
   await updateDeployment(S.id, target, v.versionNumber, desc, cid());
-  let all = await listDeployments(S.id, cid());
-  let verifiedDeployment=all.find(d=>d.deploymentId===target);
-  if(!verifiedDeployment||verifiedDeployment.deploymentConfig?.versionNumber!==v.versionNumber){
-    throw Error('Le déploiement n’a pas été confirmé sur la nouvelle version. Aucune réussite n’est affichée.');
+
+  let all=[];
+  let verifiedDeployment=null;
+  let productionHealth=null;
+  let apiConfirmed=false;
+
+  try{
+    const confirmation=await waitForDeploymentVersionV26(
+      target,
+      v.versionNumber,
+      isProductionProject()?45000:60000
+    );
+    all=confirmation.all;
+    verifiedDeployment=confirmation.deployment;
+    apiConfirmed=true;
+  }catch(deploymentConfirmError){
+    if(!isProductionProject())throw deploymentConfirmError;
+
+    // Apps Script deployment listings can be eventually consistent.
+    // For production, the live web-app build is the strongest evidence of
+    // what technicians actually receive.
+    stat('Étape 3/3 — API Google encore en propagation, vérification directe de Balance CDQ…','warn');
+    setQuickResult(
+      'La liste des déploiements Google est encore en retard. Vérification directe de l’URL de production…',
+      'warn'
+    );
+
+    try{
+      productionHealth=await verifyProductionWebAppReadyV23(sourceBuild,90000);
+      try{all=await listDeployments(S.id,cid());}catch(_){all=[];}
+      verifiedDeployment=all.find(d=>String(d.deploymentId||'')===String(target))||targetDeployment||null;
+    }catch(healthError){
+      throw new Error(
+        'Le déploiement n’a été confirmé ni par la liste Google ni par l’URL de production. '+
+        deploymentConfirmError.message+' • '+healthError.message
+      );
+    }
   }
-  if(isProductionProject()&&String(verifiedDeployment.deploymentId)!==CDQ_PRODUCTION_DEPLOYMENT_ID){
-    throw Error('Vérification de sécurité échouée : le déploiement confirmé n’est pas le déploiement de production Balance CDQ.');
+
+  if(isProductionProject()&&String(target)!==CDQ_PRODUCTION_DEPLOYMENT_ID){
+    throw Error('Vérification de sécurité échouée : la cible n’est pas le déploiement de production Balance CDQ.');
   }
 
   if(isProductionProject()){
     stat('Étape 3/3 — vérification serveur de Balance CDQ en production…');
-    setQuickResult('Déploiement écrit. Attente de la propagation Google et vérification du Selector déployé…','warn');
+    setQuickResult(
+      apiConfirmed
+        ? 'Déploiement confirmé. Vérification du Selector réellement servi en production…'
+        : 'Déploiement API encore en propagation, mais production joignable. Validation du nouveau build…',
+      'warn'
+    );
+
     try{
-      const health=await verifyProductionWebAppReadyV23(sourceBuild,90000);
+      const health=productionHealth || await verifyProductionWebAppReadyV23(sourceBuild,90000);
+      productionHealth=health;
       setKnownGoodV23(v.versionNumber);
       setQuickResult(
-        `PRODUCTION TESTÉE ✓ ${sourceBuild||health.build} • Apps Script v${v.versionNumber} • endpoint serveur confirmé.`,
+        `PRODUCTION TESTÉE ✓ ${sourceBuild||health.selectorBuild||health.build} • Apps Script v${v.versionNumber} • ${apiConfirmed?'déploiement + ':''}endpoint serveur confirmé.`,
         'ok'
       );
     }catch(healthError){
@@ -1388,12 +1466,9 @@ async function deployNewVersion(targetOverride = null) {
         stat(`Échec du démarrage — retour automatique à Apps Script v${rollbackVersion}…`,'warn');
         try{
           await updateDeployment(S.id,target,rollbackVersion,`ROLLBACK automatique — échec santé v${v.versionNumber}`,cid());
-          all=await listDeployments(S.id,cid());
-          const rolled=all.find(d=>d.deploymentId===target);
+          const rolledConfirmation=await waitForDeploymentVersionV26(target,rollbackVersion,60000);
+          all=rolledConfirmation.all;
           renderDeployments(all);
-          if(!rolled || rolled.deploymentConfig?.versionNumber!==rollbackVersion){
-            throw new Error('Le retour automatique n’a pas pu être confirmé.');
-          }
           setQuickResult(
             `MISE À JOUR REFUSÉE — Balance CDQ n’a pas démarré. Production restaurée automatiquement à Apps Script v${rollbackVersion}.`,
             'err'
