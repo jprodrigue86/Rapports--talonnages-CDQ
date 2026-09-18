@@ -26,8 +26,8 @@ try {
     top:document.querySelector('#versionChip')?.textContent,
     badge:document.querySelector('#versionBadge')?.textContent
   }));
-  assert(visibleVersion.top==='V16','Top version chip must show V16');
-  assert(visibleVersion.badge?.includes('V16'),'Version badge must show V16');
+  assert(visibleVersion.top==='V17','Top version chip must show V17');
+  assert(visibleVersion.badge?.includes('V17'),'Version badge must show V17');
 
   const manifest = await client.send('Page.getAppManifest');
   assert(!manifest.errors?.length,'Manifest errors: '+JSON.stringify(manifest.errors));
@@ -140,6 +140,28 @@ try {
   assert(deployOptions.some(o=>o.value==='dep1'),'Missing versioned deployment option');
   assert(!deployOptions.some(o=>o.value==='HEAD_DEP'),'Read-only HEAD deployment must not be selectable');
 
+  // Regression: a ZIP may match the code already present in HEAD. It still must enable deploy,
+  // because the user may only need to create a version/update the existing technician deployment.
+  await page.evaluate(async()=>{
+    const zip=new JSZip();
+    zip.file('Code.gs','function oldCode(){ return 0; }');
+    zip.file('Selecteur.html','<div>ancien</div>');
+    const blob=await zip.generateAsync({type:'blob'});
+    const f=new File([blob],'CDQ_same_code.zip',{type:'application/zip'});
+    await importPhoneFiles([f]);
+  });
+  const sameCodeState=await page.evaluate(()=>({
+    disabled:document.querySelector('#quickApply')?.disabled,
+    zip:document.querySelector('#quickZipSummary')?.textContent,
+    result:document.querySelector('#quickResult')?.textContent,
+    changes:document.querySelector('#changeBadge')?.textContent
+  }));
+  assert(sameCodeState.changes.includes('0'),'Same-code ZIP should have zero textual modifications');
+  assert(sameCodeState.disabled===false,'Quick deploy must stay enabled when ZIP is valid but code is already present');
+  assert(sameCodeState.zip.includes('code déjà présent'),'Quick ZIP summary must explain that code is already present');
+  assert(sameCodeState.result.includes('tu peux quand même'),'Quick result must explain that deployment is still available');
+  await page.evaluate(()=>{ S.pkg.clear(); S.pendingBuild=''; clearZipVisual(); renderDiff(); updateQuickUi(); });
+
   await page.evaluate(async()=>{
     const zip=new JSZip();
     zip.file('patches/Code_PATCH_V12.gs','function fromZip(){ return 12; }');
@@ -203,9 +225,10 @@ try {
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
-  console.log('PASS: V16 remembers the Google connection preference for 7 days without storing a permanent token');
+  console.log('PASS: V17 remembers the Google connection preference for 7 days without storing a permanent token');
   console.log('PASS: Drive project listing works');
-  console.log('PASS: V16 is visibly displayed in the app');
+  console.log('PASS: V17 is visibly displayed in the app');
+  console.log('PASS: V17 keeps ÉCRIRE + DÉPLOYER enabled when ZIP matches code already present');
   console.log('PASS: ZIP import shows received/decoding/success visual state');
   console.log('PASS: ZIP import finds nested GS and Selector files and maps them to the project');
   console.log('PASS: read-only HEAD deployment is excluded');
