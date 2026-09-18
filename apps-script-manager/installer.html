@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111f">
+<meta name="description" content="Installer CDQ Script Manager comme application indépendante.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>Installer CDQ Script Manager</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#050a12;color:#f4f7fa}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(180deg,#050a12,#07111f 55%,#03070c)}
+main{max-width:560px;margin:0 auto;padding:34px 20px 54px;text-align:center}
+.logo{width:112px;height:112px;border-radius:24px;margin:12px auto 18px;display:block;box-shadow:0 14px 40px #0008}
+h1{font-size:28px;line-height:1.15;margin:0 0 12px}p{color:#c8d7e3;line-height:1.5}
+.card{margin-top:20px;padding:20px;border:1px solid #31506a;border-radius:18px;background:#0b1927}
+button,a.button{display:block;width:100%;min-height:56px;border:0;border-radius:12px;padding:15px 18px;font-size:17px;font-weight:850;text-decoration:none;cursor:pointer}
+#install{background:#43c98b;color:#061a16}.secondary{margin-top:10px;background:#173a5f;color:#fff}
+.status{margin-top:14px;min-height:28px;color:#9fc0d4}
+code{font-size:12px;color:#8fd8ff;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<main>
+<img class="logo" src="./icon-192.png" alt="CDQ Script Manager">
+<h1>CDQ Script Manager</h1>
+<p>Installez cette application séparément de Balance CDQ — Rapports. Son icône ouvrira uniquement Script Manager.</p>
+
+<section class="card">
+<button id="install" type="button">Installer CDQ Script Manager</button>
+<a class="button secondary" href="./">Ouvrir Script Manager sans installer</a>
+<div class="status" id="status">Ouvrez cette page dans Chrome ou Edge pour installer l’application.</div>
+</section>
+
+<section class="card">
+<p><strong>Deux applications distinctes :</strong><br>
+CDQ Script Manager possède maintenant sa propre identité PWA et son propre espace d’installation.</p>
+<code>https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/installer.html</code>
+</section>
+</main>
+<script>
+let promptEvent=null;
+const btn=document.getElementById('install');
+const status=document.getElementById('status');
+
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  promptEvent=e;
+  status.textContent='Prête à installer.';
+});
+
+window.addEventListener('appinstalled',()=>{
+  status.textContent='CDQ Script Manager est installé.';
+  btn.disabled=true;
+  btn.textContent='Installée';
+});
+
+btn.addEventListener('click',async()=>{
+  if(promptEvent){
+    promptEvent.prompt();
+    const result=await promptEvent.userChoice;
+    promptEvent=null;
+    status.textContent=result.outcome==='accepted'
+      ? 'Installation lancée.'
+      : 'Installation annulée.';
+    return;
+  }
+  status.textContent='Si la fenêtre ne s’ouvre pas : menu du navigateur → Installer l’application / Ajouter à l’écran d’accueil.';
+});
+
+if(matchMedia('(display-mode:standalone)').matches){
+  status.textContent='Script Manager est déjà ouvert en mode application.';
+  btn.textContent='Déjà installée';
+  btn.disabled=true;
+}
+</script>
+</body>
+</html>
