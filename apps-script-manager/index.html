@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>CDQ Apps Script Manager</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -122,12 +122,13 @@
       <div class="section-title"><span>6</span><h2>Version et déploiement</h2></div>
       <label for="description">Description de version</label>
       <input id="description" placeholder="Mise à jour CDQ">
-      <label for="deployment">Déploiement existant</label>
-      <select id="deployment"><option value="">— Aucun déploiement chargé —</option></select>
+      <label for="deployment">Mode de déploiement</label>
+      <select id="deployment"><option value="__new__">➕ Nouveau déploiement — créer une nouvelle version</option></select>
+      <p class="muted">Choisis <b>Nouveau déploiement</b> pour créer une nouvelle version et un nouveau déploiement. Choisis un déploiement versionné existant pour conserver son ID/URL et le faire pointer vers la nouvelle version. Les déploiements HEAD/test en lecture seule sont exclus.</p>
       <div class="actions three">
-        <button id="createVersion" class="secondary" type="button">Créer une version</button>
-        <button id="deployVersion" class="primary" type="button">Version + déployer</button>
-        <button id="writeAndDeploy" class="green" type="button">Écrire + déployer</button>
+        <button id="createVersion" class="secondary" type="button">Créer version seulement</button>
+        <button id="deployVersion" class="primary" type="button">Nouvelle version + déployer</button>
+        <button id="writeAndDeploy" class="green" type="button">Écrire + nouveau déploiement</button>
       </div>
     </section>
 
@@ -162,7 +163,7 @@
     </div>
   </div>
 
-  <script src="api.js?v=10"></script>
-  <script src="app.js?v=10"></script>
+  <script src="api.js?v=11"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>
