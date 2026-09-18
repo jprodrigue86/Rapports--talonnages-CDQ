@@ -1,0 +1,35 @@
+{
+  "id": "/Rapports--talonnages-CDQ/reports/",
+  "name": "Balance CDQ — Rapports d’étalonnage",
+  "short_name": "Balance CDQ",
+  "description": "Application indépendante Balance CDQ pour les rapports d’étalonnage.",
+  "start_url": "/Rapports--talonnages-CDQ/reports/",
+  "scope": "/Rapports--talonnages-CDQ/reports/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "icons": [
+    {
+      "src": "../icons/icon-heavy-v3-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../icons/icon-heavy-v3-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../icons/icon-heavy-v3-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
