@@ -22,6 +22,12 @@ try {
 
   await page.goto('http://127.0.0.1:8080/apps-script-manager/',{waitUntil:'domcontentloaded',timeout:15000});
   await page.waitForSelector('#connect',{timeout:5000});
+  const visibleVersion=await page.evaluate(()=>({
+    top:document.querySelector('#versionChip')?.textContent,
+    badge:document.querySelector('#versionBadge')?.textContent
+  }));
+  assert(visibleVersion.top==='V13','Top version chip must show V13');
+  assert(visibleVersion.badge?.includes('V13'),'Version badge must show V13');
 
   const manifest = await client.send('Page.getAppManifest');
   assert(!manifest.errors?.length,'Manifest errors: '+JSON.stringify(manifest.errors));
@@ -122,6 +128,17 @@ try {
     tabs:Array.from(document.querySelectorAll('#fileTabs .file-tab')).map(x=>x.textContent)
   }));
   assert(zipImport.packageResult.includes('2 fichier(s) importé(s)'), 'ZIP import did not prepare 2 files: '+zipImport.packageResult);
+  const zipVisual=await page.evaluate(()=>({
+    hidden:document.querySelector('#zipStatus')?.hidden,
+    cls:document.querySelector('#zipStatus')?.className,
+    title:document.querySelector('#zipStatusTitle')?.textContent,
+    detail:document.querySelector('#zipStatusDetail')?.textContent
+  }));
+  assert(zipVisual.hidden===false,'ZIP visual status must be visible after decoding');
+  assert(zipVisual.cls.includes('success'),'ZIP visual status must end in success');
+  assert(zipVisual.title.includes('ZIP décodé'),'ZIP visual title must confirm decode');
+  assert(zipVisual.detail.includes('GS trouvé'),'ZIP visual detail must confirm GS detection');
+  assert(zipVisual.detail.includes('Selector/HTML trouvé'),'ZIP visual detail must confirm Selector detection');
   await page.click('#clearPackage');
   await page.waitForFunction(()=>document.querySelector('#changeBadge')?.textContent.includes('0'),{timeout:3000});
 
@@ -157,6 +174,8 @@ try {
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
   console.log('PASS: Drive project listing works');
+  console.log('PASS: V13 is visibly displayed in the app');
+  console.log('PASS: ZIP import shows received/decoding/success visual state');
   console.log('PASS: ZIP import finds nested GS and Selector files and maps them to the project');
   console.log('PASS: read-only HEAD deployment is excluded');
   console.log('PASS: package -> backup -> write -> readback verification -> new version -> new deployment works');
