@@ -428,7 +428,7 @@ let reloadingForUpdate = false;
 let updateRequested = false;
 try{
   const target=sessionStorage.getItem('cdq_update_target_v88')||'';
-  if(target && cdqComparerVersions(CDQ_PWA_BUILD,target)>=0){
+  if(target && target===CDQ_PWA_BUILD){
     sessionStorage.removeItem('cdq_update_target_v88');
     sessionStorage.removeItem('cdq_update_reload_v88');
   }
