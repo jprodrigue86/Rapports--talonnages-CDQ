@@ -210,7 +210,8 @@ try {
   assert(result.status.includes('v99'),'Deployment flow did not finish on version 99: '+result.status);
   const idbBackups=await page.evaluate(async()=>await listBackupRecords());
   assert(idbBackups.length>0,'Automatic IndexedDB backup was not created');
-  assert(localStorage.getItem('cdqsm_backups')===null,'Legacy localStorage backup payload should be removed');
+  const legacyBackupValue=await page.evaluate(()=>localStorage.getItem('cdqsm_backups'));
+  assert(legacyBackupValue===null,'Legacy localStorage backup payload should be removed');
   assert(result.fetchLog.some(x=>x.includes('PUT https://script.googleapis.com/v1/projects/TEST_SCRIPT_ID/content')),'Pending files were not written before deployment');
   assert(result.fetchLog.some(x=>x.includes('PUT https://script.googleapis.com/v1/projects/TEST_SCRIPT_ID/deployments/dep1')),'Existing deployment was not updated');
   assert(!result.fetchLog.some(x=>x.includes('POST https://script.googleapis.com/v1/projects/TEST_SCRIPT_ID/deployments')),'A new deployment was incorrectly created');
