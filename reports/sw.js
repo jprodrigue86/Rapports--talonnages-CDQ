@@ -1,6 +1,6 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE='cdq-reports-independent-v21-90';
-const FORCE_BUILD='2026.09.18-v21.90-package-propre-deploiement-production';
+const CACHE='cdq-reports-independent-v21-95';
+const FORCE_BUILD='2026.09.18-v21.95-iframe-load-fallback';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;
