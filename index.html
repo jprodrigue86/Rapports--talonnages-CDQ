@@ -218,14 +218,15 @@ isolation:isolate;
 }
 .music-wall-image{
 position:absolute;
-inset:-1px;
+inset:0;
 z-index:-3;
-background-image:url("assets/music-wall-choice1.webp?v=20260911-clean");
-background-size:cover;
+background-image:url("assets/music-wall-choice1.webp?v=20260917-fit70");
+background-size:contain;
 background-position:center center;
 background-repeat:no-repeat;
-filter:brightness(.56) contrast(1.10) saturate(.86);
-transform:scale(1.015);
+background-color:#000;
+filter:brightness(.62) contrast(1.08) saturate(.88);
+transform:none;
 }
 #loading::before{
 z-index:-2;
@@ -259,8 +260,23 @@ border-radius:18px;
 #loading .loading-label{margin-top:6px;font-size:11px;}
 #loading .loading-bar{margin-top:13px;}
 @media(min-width:900px){
-.music-wall-image{background-size:cover;background-position:center 44%;}
+.music-wall-image{
+background-size:contain;
+background-position:center center;
+}
 #loading .box{width:280px;}
+}
+@media(max-width:899px) and (orientation:portrait){
+.music-wall-image{
+background-size:contain;
+background-position:center center;
+}
+}
+@media(max-width:899px) and (orientation:landscape){
+.music-wall-image{
+background-size:contain;
+background-position:center center;
+}
 }
 
 
@@ -347,7 +363,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.17.2033-v21.59-google-touch-fix';
+const CDQ_PWA_BUILD = '2026.09.17.2218-v21.70-music-wall-fit';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
