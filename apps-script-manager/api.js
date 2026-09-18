@@ -48,6 +48,9 @@ function friendlyGoogleError(status, data) {
   if (/insufficient.*scope|insufficient authentication scopes/i.test(message)) {
     return 'Google n’a pas accordé toutes les autorisations nécessaires. Déconnecte puis reconnecte Google.';
   }
+  if (/read-only deployments may not be modified/i.test(message)) {
+    return 'Ce déploiement est en lecture seule (HEAD/test). Choisis « Nouveau déploiement » ou un déploiement versionné existant.';
+  }
   if (/permission|forbidden|not have permission/i.test(message)) {
     return 'Ton compte Google n’a pas la permission d’accéder à ce projet Apps Script.';
   }
@@ -188,6 +191,17 @@ async function createProjectVersion(scriptId, description, clientId) {
   return googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/versions`), clientId, {
     method: 'POST',
     body: JSON.stringify({ description: description || 'Mise à jour CDQ' }),
+  });
+}
+
+async function createDeployment(scriptId, versionNumber, description, clientId) {
+  return googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/deployments`), clientId, {
+    method: 'POST',
+    body: JSON.stringify({
+      versionNumber,
+      manifestFileName: 'appsscript',
+      description: description || `Version ${versionNumber}`,
+    }),
   });
 }
 
