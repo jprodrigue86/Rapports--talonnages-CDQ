@@ -411,13 +411,28 @@ function openWriteConfirmation() {
   }
 }
 
+function updateDeploymentButtonLabels() {
+  const isNew = deployment.value === '__new__';
+  $('deployVersion').textContent = isNew ? 'Nouvelle version + déployer' : 'Nouvelle version + mettre à jour';
+  $('writeAndDeploy').textContent = isNew ? 'Écrire + nouveau déploiement' : 'Écrire + mettre à jour';
+}
+
 function renderDeployments(all) {
-  deployment.innerHTML = '<option value="">— Choisir un déploiement existant —</option>' + all.map(d =>
-    `<option value="${esc(d.deploymentId)}">${esc(d.deploymentConfig?.description || d.deploymentId)}${d.deploymentConfig?.versionNumber ? ' • v' + d.deploymentConfig.versionNumber : ''}</option>`
-  ).join('');
+  const versioned = (all || []).filter(d => Number.isInteger(d.deploymentConfig?.versionNumber) && d.deploymentConfig.versionNumber > 0);
+  const readOnly = (all || []).filter(d => !Number.isInteger(d.deploymentConfig?.versionNumber));
+
+  deployment.innerHTML =
+    '<option value="__new__">➕ Nouveau déploiement — créer une nouvelle version</option>' +
+    versioned.map(d =>
+      `<option value="${esc(d.deploymentId)}">${esc(d.deploymentConfig?.description || 'Déploiement versionné')} • v${d.deploymentConfig.versionNumber}</option>`
+    ).join('') +
+    (readOnly.length ? `<option value="" disabled>— ${readOnly.length} déploiement(s) HEAD/test ignoré(s) (lecture seule) —</option>` : '');
+
   const old = LS.getItem('cdqsm_deployment');
-  if (all.some(d => d.deploymentId === old)) deployment.value = old;
-  else if (all.length === 1) deployment.value = all[0].deploymentId;
+  if (versioned.some(d => d.deploymentId === old)) deployment.value = old;
+  else deployment.value = '__new__';
+
+  updateDeploymentButtonLabels();
 }
 
 async function createVersionOnly() {
@@ -428,14 +443,37 @@ async function createVersionOnly() {
 }
 
 async function deployNewVersion() {
-  if (!deployment.value) throw Error('Choisis le déploiement existant.');
-  const dep = deployment.value;
-  const v = await createProjectVersion(S.id, description.value.trim(), cid());
-  await updateDeployment(S.id, dep, v.versionNumber, description.value.trim(), cid());
-  renderDeployments(await listDeployments(S.id, cid()));
-  deployment.value = dep;
+  if (!S.id) throw Error('Charge d’abord un projet.');
+
+  const desc = description.value.trim() || `Mise à jour CDQ - ${nlabel()}`;
+  const target = deployment.value || '__new__';
+  const v = await createProjectVersion(S.id, desc, cid());
+
+  if (target === '__new__') {
+    const created = await createDeployment(S.id, v.versionNumber, desc, cid());
+    const all = await listDeployments(S.id, cid());
+    renderDeployments(all);
+    if (created?.deploymentId && all.some(d => d.deploymentId === created.deploymentId)) {
+      deployment.value = created.deploymentId;
+    }
+    updateDeploymentButtonLabels();
+    saveSettings();
+    stat(`Version ${v.versionNumber} créée + nouveau déploiement créé ✓`, 'ok');
+    return created;
+  }
+
+  const targetDeployment = (CDQ.deployments || []).find(d => d.deploymentId === target);
+  if (!Number.isInteger(targetDeployment?.deploymentConfig?.versionNumber)) {
+    throw Error('Ce déploiement est en lecture seule. Choisis « Nouveau déploiement » ou un déploiement versionné.');
+  }
+
+  await updateDeployment(S.id, target, v.versionNumber, desc, cid());
+  const all = await listDeployments(S.id, cid());
+  renderDeployments(all);
+  if (all.some(d => d.deploymentId === target)) deployment.value = target;
+  updateDeploymentButtonLabels();
   saveSettings();
-  stat(`Version ${v.versionNumber} créée et déployée ✓`, 'ok');
+  stat(`Version ${v.versionNumber} créée et déploiement existant mis à jour ✓`, 'ok');
 }
 
 async function runAction(fn, start = '') {
@@ -553,7 +591,10 @@ $('downloadBackup').addEventListener('click', () => {
   a.click();
 });
 
-deployment.addEventListener('change', saveSettings);
+deployment.addEventListener('change', () => {
+  updateDeploymentButtonLabels();
+  saveSettings();
+});
 description.addEventListener('change', saveSettings);
 scriptIdInput.addEventListener('change', saveSettings);
 clientId.addEventListener('change', saveSettings);
@@ -577,7 +618,7 @@ window.addEventListener('appinstalled', updateInstallState);
   renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=10').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=11').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
