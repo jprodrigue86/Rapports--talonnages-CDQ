@@ -820,6 +820,15 @@ function applyPatchV25(source,patch,fileLabel){
     if(found!==expected)throw new Error(fileLabel+' : replace_literal attendu '+expected+', trouvé '+found+'.');
     return source.split(search).join(replacement);
   }
+  if(op==='replace_literal_if_present'){
+    const search=String(patch.search||'');
+    const replacement=String(patch.replacement||'');
+    const found=countLiteralV25(source,search);
+    if(found===0)return source;
+    const expected=patch.expected==null?1:Number(patch.expected);
+    if(found!==expected)throw new Error(fileLabel+' : replace_literal_if_present attendu '+expected+', trouvé '+found+'.');
+    return source.split(search).join(replacement);
+  }
   if(op==='replace_build'){
     const from=String(patch.from||'');
     const to=String(patch.to||'');
