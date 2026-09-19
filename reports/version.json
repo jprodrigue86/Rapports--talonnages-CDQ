@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.57-large-pdf-open-fast",
+  "version": "2026.09.19-v22.58-lazy-heavy-work",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.57-large-pdf-open-fast",
-  "backend_version": "2026.09.19-v22.57-large-pdf-open-fast",
+  "selector_version": "2026.09.19-v22.58-lazy-heavy-work",
+  "backend_version": "2026.09.19-v22.58-lazy-heavy-work",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -129,7 +129,9 @@
     "persistent-update-banner",
     "latest-selector-version-synced",
     "nested-apps-script-health-probe-fix",
-    "live-update-detects-deployed-selector"
+    "live-update-detects-deployed-selector",
+    "lazy-heavy-model-preparation",
+    "ui-no-background-pdf-freeze"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
