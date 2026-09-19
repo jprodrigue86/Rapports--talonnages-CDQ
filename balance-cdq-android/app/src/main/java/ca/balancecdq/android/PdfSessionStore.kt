@@ -85,7 +85,7 @@ object PdfSessionStore {
         val now = System.currentTimeMillis()
         prefs.all.forEach { (key, value) ->
             try {
-                val expires = JSONObject(String(value)).optLong("expiresAt", 0L)
+                val expires = JSONObject(value?.toString().orEmpty()).optLong("expiresAt", 0L)
                 if (expires <= now) edit.remove(key)
             } catch (_: Exception) {
                 edit.remove(key)
