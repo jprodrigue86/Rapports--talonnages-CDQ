@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.19-v22.77-pdf-reader-preference';
+const CDQ_PWA_BUILD = '2026.09.19-v22.78-pdf-real-file-share';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1135,6 +1135,209 @@ function cdqHandleDisplayPrefsV2215(data,source){
 // La coque PWA ne gère plus l'ouverture PDF.
 // =====================================================
 
+// =====================================================
+// V22.78 — COMPTE GOOGLE → VRAI PDF → SÉLECTEUR ANDROID
+// Aucun APK, aucun pont, aucun package externe forcé.
+// =====================================================
+let cdqPdfShareStateV2278=null;
+let cdqPdfShareTokenClientV2278=null;
+const CDQ_DRIVE_SCOPE_V2278='https://www.googleapis.com/auth/drive.readonly';
+
+function cdqPdfShareUiV2278(){
+  let ov=document.getElementById('cdq-pdf-share-v2278');
+  if(ov)return ov;
+
+  ov=document.createElement('div');
+  ov.id='cdq-pdf-share-v2278';
+  ov.style.cssText='position:fixed;inset:0;z-index:100800;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,10,18,.72);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)';
+  ov.innerHTML=
+    '<div style="width:min(430px,100%);border:1px solid #168dc2;border-radius:18px;background:#071a29;color:#f4fbff;box-shadow:0 20px 60px rgba(0,0,0,.55);padding:18px">'+
+      '<div style="display:flex;align-items:center;gap:12px">'+
+        '<div style="width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#4285f4;font-size:20px;font-weight:900">G</div>'+
+        '<div style="min-width:0;flex:1"><strong style="display:block;font-size:19px">Ouvrir le PDF</strong><small id="cdqPdfShareNameV2278" style="display:block;margin-top:3px;color:#a9c4d3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></small></div>'+
+        '<button id="cdqPdfShareCloseV2278" type="button" style="width:40px;height:40px;border-radius:10px;border:1px solid #31556c;background:#10283b;color:#fff;font-size:24px">×</button>'+
+      '</div>'+
+      '<div id="cdqPdfShareStatusV2278" style="margin-top:15px;color:#b9ceda;font-size:14px;line-height:1.45">Sélectionnez le compte Google qui a accès au PDF.</div>'+
+      '<button id="cdqPdfShareAccountV2278" type="button" style="width:100%;min-height:54px;margin-top:15px;border:1px solid #d5d9df;border-radius:12px;background:#fff;color:#1f2937;font-weight:850;font-size:15px">Sélectionner un compte Google</button>'+
+      '<button id="cdqPdfShareOpenV2278" type="button" style="display:none;width:100%;min-height:54px;margin-top:12px;border:0;border-radius:12px;background:#199fe0;color:#fff;font-weight:900;font-size:15px">Ouvrir avec…</button>'+
+    '</div>';
+
+  document.body.appendChild(ov);
+
+  ov.querySelector('#cdqPdfShareCloseV2278').onclick=function(){
+    cdqPdfShareStateV2278=null;
+    ov.style.display='none';
+  };
+  ov.querySelector('#cdqPdfShareAccountV2278').onclick=cdqPdfChooseAccountV2278;
+  ov.querySelector('#cdqPdfShareOpenV2278').onclick=function(){
+    cdqPdfShareOpenChooserV2278(true);
+  };
+  return ov;
+}
+
+function cdqPdfShareErrorV2278(message){
+  const st=cdqPdfShareStateV2278;
+  if(st&&st.source)replyToSelector(st.source,{
+    type:'CDQ_PDF_SHARE_ERROR_V2278',
+    requestId:st.requestId,
+    message:String(message||'Impossible d’ouvrir le PDF.')
+  });
+  const ov=cdqPdfShareUiV2278();
+  ov.querySelector('#cdqPdfShareStatusV2278').textContent=String(message||'Impossible d’ouvrir le PDF.');
+}
+
+async function cdqPdfFetchRealFileV2278(st,token){
+  const url='https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(st.fileId)+'?alt=media&supportsAllDrives=true';
+  const response=await fetch(url,{
+    method:'GET',
+    cache:'no-store',
+    credentials:'omit',
+    headers:{Authorization:'Bearer '+token,Accept:'application/pdf'}
+  });
+
+  if(!response.ok){
+    if(response.status===403||response.status===404)throw new Error('Ce compte Google n’a pas accès à ce PDF.');
+    throw new Error('Google Drive a refusé le PDF ('+response.status+').');
+  }
+
+  const blob=await response.blob();
+  if(!blob||blob.size<5)throw new Error('Le PDF reçu est vide.');
+  if(blob.size>32*1024*1024)throw new Error('Ce PDF dépasse la limite de 32 Mo.');
+
+  const head=await blob.slice(0,5).text();
+  if(head!=='%PDF-')throw new Error('Le fichier reçu n’est pas un PDF valide.');
+
+  const safe=String(st.name||'Rapport.pdf').replace(/[\\/\x00-\x1f]/g,'_').slice(0,180);
+  return new File([blob],/\.pdf$/i.test(safe)?safe:safe+'.pdf',{type:'application/pdf'});
+}
+
+async function cdqPdfShareOpenChooserV2278(fromUser){
+  const st=cdqPdfShareStateV2278;
+  if(!st||!(st.file instanceof File))return;
+
+  const ov=cdqPdfShareUiV2278();
+  const status=ov.querySelector('#cdqPdfShareStatusV2278');
+  const open=ov.querySelector('#cdqPdfShareOpenV2278');
+
+  const payload={files:[st.file],title:st.file.name};
+
+  if(navigator.share && (!navigator.canShare || navigator.canShare(payload))){
+    try{
+      await navigator.share(payload);
+      ov.style.display='none';
+      cdqPdfShareStateV2278=null;
+      return;
+    }catch(e){
+      if(e&&e.name==='AbortError')return;
+      if(e&&e.name==='NotAllowedError'&&!fromUser){
+        status.textContent='PDF prêt. Touchez « Ouvrir avec… » pour afficher les applications installées.';
+        open.style.display='block';
+        return;
+      }
+      status.textContent='Android n’a pas pu ouvrir le sélecteur. Touchez « Ouvrir avec… » pour réessayer.';
+      open.style.display='block';
+      return;
+    }
+  }
+
+  const objectUrl=URL.createObjectURL(st.file);
+  const a=document.createElement('a');
+  a.href=objectUrl;
+  a.download=st.file.name;
+  a.rel='noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
+  status.textContent='Le PDF a été téléchargé. Ouvrez-le depuis Téléchargements avec votre lecteur PDF.';
+}
+
+async function cdqPdfChooseAccountV2278(){
+  const st=cdqPdfShareStateV2278;
+  if(!st)return;
+
+  const ov=cdqPdfShareUiV2278();
+  const account=ov.querySelector('#cdqPdfShareAccountV2278');
+  const status=ov.querySelector('#cdqPdfShareStatusV2278');
+  const open=ov.querySelector('#cdqPdfShareOpenV2278');
+
+  const clientId=String((globalThis.CDQ_GOOGLE_AUTH_CONFIG||{}).clientId||'');
+  if(!clientId){
+    status.textContent='Configuration Google incomplète.';
+    return;
+  }
+  if(!(window.google&&google.accounts&&google.accounts.oauth2)){
+    status.textContent='Google n’est pas encore prêt. Réessayez dans un instant.';
+    return;
+  }
+
+  account.disabled=true;
+  account.textContent='Ouverture de Google…';
+  open.style.display='none';
+
+  cdqPdfShareTokenClientV2278=google.accounts.oauth2.initTokenClient({
+    client_id:clientId,
+    scope:CDQ_DRIVE_SCOPE_V2278,
+    include_granted_scopes:true,
+    prompt:'select_account',
+    callback:async function(resp){
+      account.disabled=false;
+      account.textContent='Choisir un autre compte Google';
+
+      if(!resp||resp.error||!resp.access_token){
+        status.textContent=resp&&resp.error_description?resp.error_description:'Le choix du compte Google a été annulé.';
+        return;
+      }
+
+      try{
+        status.textContent='Ouverture du vrai PDF depuis Google Drive…';
+        const expected=cdqPdfShareStateV2278;
+        if(!expected)return;
+        expected.file=await cdqPdfFetchRealFileV2278(expected,String(resp.access_token));
+        status.textContent='PDF prêt. Ouverture des applications installées…';
+
+        // Essai immédiat. Android/Chrome exige parfois un second toucher
+        // pour Web Share; dans ce cas le bouton apparaît automatiquement.
+        await cdqPdfShareOpenChooserV2278(false);
+      }catch(e){
+        cdqPdfShareErrorV2278(e&&e.message?e.message:String(e));
+      }
+    },
+    error_callback:function(err){
+      account.disabled=false;
+      account.textContent='Sélectionner un compte Google';
+      status.textContent=err&&err.type==='popup_closed'
+        ? 'Le choix du compte Google a été annulé.'
+        : 'Impossible d’ouvrir le choix du compte Google.';
+    }
+  });
+
+  cdqPdfShareTokenClientV2278.requestAccessToken({prompt:'select_account'});
+}
+
+function cdqPdfShareRequestV2278(data,source){
+  if(!data||!/^[A-Za-z0-9_-]{10,200}$/.test(String(data.fileId||'')))return;
+
+  const ov=cdqPdfShareUiV2278();
+  cdqPdfShareStateV2278={
+    requestId:String(data.requestId||'pdf-'+Date.now()),
+    source,
+    fileId:String(data.fileId),
+    name:String(data.name||'Rapport.pdf'),
+    reader:String(data.reader||'ask'),
+    version:String(data.version||''),
+    file:null
+  };
+
+  ov.style.display='flex';
+  ov.querySelector('#cdqPdfShareNameV2278').textContent=cdqPdfShareStateV2278.name;
+  ov.querySelector('#cdqPdfShareStatusV2278').textContent='Sélectionnez le compte Google qui a accès au PDF.';
+  const account=ov.querySelector('#cdqPdfShareAccountV2278');
+  account.disabled=false;
+  account.textContent='Sélectionner un compte Google';
+  ov.querySelector('#cdqPdfShareOpenV2278').style.display='none';
+}
+
 window.addEventListener('message', event => {
 const data = event.data || {};
 if (!isSelectorMessage(event)) return;
@@ -1172,6 +1375,7 @@ if(data.type==='CDQ_GOOGLE_AUTH_ERROR'){
   document.getElementById('load-message').textContent=String(data.message||'La connexion Google a échoué. Réessayez.');
 }
 if(data.type==='CDQ_GOOGLE_AUTH_HIDE')masquerConnexionGoogleV42();
+if(data.type==='CDQ_PDF_SHARE_REQUEST_V2278'){cdqPdfShareRequestV2278(data,event.source);return;}
 if(String(data.type||'').startsWith('CDQ_OFFLINE_'))cdqOffline.then(controller=>controller.handle(data));
 if(data.type==='CDQ_ACCESS_STATE' && data.state!=='ready')cdqOffline.then(controller=>controller.lock());
 if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready'))replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
