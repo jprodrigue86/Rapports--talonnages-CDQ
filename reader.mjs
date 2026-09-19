@@ -27,7 +27,7 @@ async function save(external=false){
  }catch(e){error(e);}
 }
 async function open(blob,filename,id=''){
- if(!(blob instanceof Blob)||blob.size>15*1024*1024||(await blob.slice(0,5).text())!=='%PDF-')throw Error('PDF invalide ou supérieur à 15 Mo.');
+ if(!(blob instanceof Blob)||blob.size>32*1024*1024||(await blob.slice(0,5).text())!=='%PDF-')throw Error('PDF invalide ou supérieur à 32 Mo.');
  touchNavigation?.reset();formNavigation?.reset();
  if(doc){viewer.setDocument(null);await doc.destroy();}
  name=String(filename||'Rapport.pdf');hostId=id;$('name').textContent=name;$('empty').style.display='none';status('Ouverture…');dirty=false;editVersion=0;
