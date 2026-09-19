@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.58-lazy-heavy-work",
+  "version": "2026.09.19-v22.60-android-direct-touch-pdf",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.58-lazy-heavy-work",
-  "backend_version": "2026.09.19-v22.58-lazy-heavy-work",
+  "selector_version": "2026.09.19-v22.60-android-direct-touch-pdf",
+  "backend_version": "2026.09.19-v22.60-android-direct-touch-pdf",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -131,7 +131,10 @@
     "nested-apps-script-health-probe-fix",
     "live-update-detects-deployed-selector",
     "lazy-heavy-model-preparation",
-    "ui-no-background-pdf-freeze"
+    "ui-no-background-pdf-freeze",
+    "android-direct-pointer-settings",
+    "pdf-1mb-chunks-two-workers",
+    "direct-pdf-row-tap"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
