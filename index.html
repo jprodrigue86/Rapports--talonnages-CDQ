@@ -265,7 +265,8 @@ border-radius:18px;
 #loading .loading-bar{margin-top:13px;}
 @media(min-width:900px){
 .music-wall-image{
-background-size:contain;
+background-image:url("assets/music-wall-pc-chosen-v2233.webp?v=20260918-pc35");
+background-size:cover;
 background-position:center center;
 }
 #loading .box{width:280px;}
@@ -385,7 +386,7 @@ moins de groupes mais des noms plus lisibles.
 <iframe
 id="app"
 title="Rapports D’étalonnages"
-src="https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec?cdq_boot=1"
+src="about:blank"
 loading="eager"
 fetchpriority="high"
 allow="clipboard-read; clipboard-write"
@@ -426,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v22.18-audit-stable';
+const CDQ_PWA_BUILD = '2026.09.18-v22.35-live-iframe-refresh';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -468,6 +469,11 @@ const loading = document.getElementById('loading');
 const loadHelp = document.getElementById('load-help');
 
 const APP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
+const CDQ_BOOT_NONCE = Date.now() + '-' + Math.random().toString(36).slice(2);
+function cdqFreshAppUrl(reason='boot'){
+  const sep=APP_URL.includes('?')?'&':'?';
+  return APP_URL+sep+'cdq_boot=1&cdq_reason='+encodeURIComponent(reason)+'&cdq_live='+encodeURIComponent(CDQ_BOOT_NONCE)+'&ts='+Date.now();
+}
 const MIN_LOADING_MS = 400;
 let loadingShownAt = performance.now();
 let selectorReady = false;
@@ -506,7 +512,8 @@ throw new Error('Le déverrouillage de l’appareil n’a pas été confirmé.')
 let loadingTimer = null;
 let hideLoadingTimer = null;
 let loadGeneration = 0;
-document.getElementById('open-direct').href = APP_URL;
+document.getElementById('open-direct').href = cdqFreshAppUrl('direct');
+app.src = cdqFreshAppUrl('startup');
 
 let cdqGoogleChallengeV42 = null;
 let cdqGoogleRenderingV42 = false;
@@ -882,7 +889,7 @@ armLoadingTimeout();
 if(loadHelp) loadHelp.style.display = 'none';
 afficherMurChargement();
 const separator = APP_URL.indexOf('?') === -1 ? '?' : '&';
-app.src = APP_URL + separator + 'cdq_retry=' + Date.now();
+app.src = cdqFreshAppUrl('retry');
 }
 
 async function lireVersionDistante() {
