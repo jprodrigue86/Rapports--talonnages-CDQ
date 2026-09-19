@@ -1,0 +1,43 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.83",
+  "build": "2026.09.19-v22.83-pdf-ask-android-chooser",
+  "title": "Balance CDQ V22.83 — mode Demander : sélecteur Android des lecteurs PDF",
+  "requiresBuild": [
+    "2026.09.19-v22.82-pdf-same-native-path-as-sheets"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.82-pdf-same-native-path-as-sheets",
+      "to": "2026.09.19-v22.83-pdf-ask-android-chooser"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.82-pdf-same-native-path-as-sheets",
+      "to": "2026.09.19-v22.83-pdf-ask-android-chooser"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "function cdqPdfDriveUrlV2282(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]+$/.test(id))throw new Error('Identifiant PDF invalide.');\n  return 'https://drive.google.com/file/d/'+id+'/view?usp=drivesdk';\n}\nfunction cdqPdfDriveAppUrlV2282(id){\n  id=String(id||'');\n  const url=cdqPdfDriveUrlV2282(id);\n  return /Android/i.test(navigator.userAgent||'')\n    ? 'intent://drive.google.com/file/d/'+id+'/view?usp=drivesdk#Intent;scheme=https;package=com.google.android.apps.docs;S.browser_fallback_url='+encodeURIComponent(url)+';end'\n    : url;\n}\nfunction cdqV19OpenDrivePdfV2282(id){\n  const a=document.createElement('a');\n  a.href=cdqPdfDriveAppUrlV2282(id);\n  a.target='_blank';\n  a.rel='noopener';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String((cdqDocumentMeta(id)||{}).dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n}\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false){\n      cdqV19OpenDrivePdfV2282(id);\n      return;\n    }\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "replacement": "function cdqPdfDriveUrlV2282(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]+$/.test(id))throw new Error('Identifiant PDF invalide.');\n  return 'https://drive.google.com/file/d/'+id+'/view?usp=drivesdk';\n}\nfunction cdqPdfDriveAppUrlV2283(id,reader){\n  id=String(id||'');\n  const url=cdqPdfDriveUrlV2282(id);\n\n  if(!/Android/i.test(navigator.userAgent||''))return url;\n\n  const pref=String(reader||'ask').toLowerCase();\n\n  // MODE DEMANDER : ancien chemin qui fonctionnait.\n  // Aucun package imposé => Android affiche les lecteurs PDF compatibles.\n  if(pref==='ask'){\n    return 'intent://drive.google.com/file/d/'+id+\n      '/view#Intent;scheme=https;action=android.intent.action.VIEW;type=application/pdf;'+\n      'S.browser_fallback_url='+encodeURIComponent(url)+';end';\n  }\n\n  // Pour ce test, les autres préférences restent volontairement sur\n  // le chemin Drive stable. On les corrigera seulement après validation\n  // du mode Demander.\n  return 'intent://drive.google.com/file/d/'+id+\n    '/view?usp=drivesdk#Intent;scheme=https;package=com.google.android.apps.docs;'+\n    'S.browser_fallback_url='+encodeURIComponent(url)+';end';\n}\nfunction cdqV19OpenDrivePdfV2282(id){\n  const pref=typeof cdqPdfReaderPreference==='function'\n    ? cdqPdfReaderPreference()\n    : 'ask';\n\n  const a=document.createElement('a');\n  a.href=cdqPdfDriveAppUrlV2283(id,pref);\n  a.target='_blank';\n  a.rel='noopener';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String((cdqDocumentMeta(id)||{}).dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n}\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false){\n      cdqV19OpenDrivePdfV2282(id);\n      return;\n    }\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V32",
+    "scope": "Micro-correction du mode Demander uniquement",
+    "behavior": [
+      "Si Lecteur PDF = Demander : intent Android générique ACTION_VIEW + application/pdf sans package forcé.",
+      "Android doit afficher les applications PDF compatibles installées.",
+      "Le fallback reste l'URL Drive du PDF.",
+      "Les autres préférences restent temporairement sur le chemin Drive stable.",
+      "Google Sheets inchangés.",
+      "Aucune nouvelle application, aucun pont, aucun OAuth PDF personnalisé."
+    ],
+    "restoredReference": "V22.67 generic PDF intent without package"
+  }
+}
