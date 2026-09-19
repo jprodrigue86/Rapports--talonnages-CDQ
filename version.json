@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.80-restore-v2268-pdf-flow",
+  "version": "2026.09.19-v22.81-complete-v2268-pdf-flow",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.80-restore-v2268-pdf-flow",
-  "backend_version": "2026.09.19-v22.80-restore-v2268-pdf-flow",
+  "selector_version": "2026.09.19-v22.81-complete-v2268-pdf-flow",
+  "backend_version": "2026.09.19-v22.81-complete-v2268-pdf-flow",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -187,7 +187,10 @@
     "pdf-rollback-v2276-stable-v2279",
     "pdf-account-first-v2268-restored-v2280",
     "pdf-real-file-share-v2268-restored-v2280",
-    "pdf-android-app-chooser-v2268-restored-v2280"
+    "pdf-android-app-chooser-v2268-restored-v2280",
+    "pdf-account-ui-immediate-v2281",
+    "pdf-v2268-server-helper-restored-v2281",
+    "pdf-real-file-android-chooser-v2281"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -200,5 +203,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.19-v22.80-restore-v2268-pdf-flow"
+  "pwa_version": "2026.09.19-v22.81-complete-v2268-pdf-flow"
 }
