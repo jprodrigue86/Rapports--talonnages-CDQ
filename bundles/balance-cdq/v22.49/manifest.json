@@ -1,0 +1,124 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.49",
+  "build": "2026.09.19-v22.49-pdf32mb",
+  "title": "Balance CDQ V22.49 — PDF hors ligne 32 Mo",
+  "requiresBuild": [
+    "2026.09.19-v22.47-plancher-app-resource",
+    "2026.09.19-v22.48-update-center-correct"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.47-plancher-app-resource",
+        "2026.09.19-v22.48-update-center-correct"
+      ],
+      "to": "2026.09.19-v22.49-pdf32mb"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.47-plancher-app-resource",
+        "2026.09.19-v22.48-update-center-correct"
+      ],
+      "to": "2026.09.19-v22.49-pdf32mb"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "data.blob.size<=15*1024*1024",
+      "replacement": "data.blob.size<=32*1024*1024",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "meta.taille>15*1024*1024",
+      "replacement": "meta.taille>32*1024*1024",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "const CDQ_DOCUMENT_MAX_BYTES=15*1024*1024;",
+      "replacement": "const CDQ_DOCUMENT_MAX_BYTES=32*1024*1024;",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "Ce PDF dépasse la limite de 15 Mo pour la copie hors ligne.",
+      "replacement": "Ce PDF dépasse la limite de 32 Mo pour la copie hors ligne.",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqVersionDetailV87(v){\n  v=String(v||'').trim();\n  return v||'—';\n}",
+      "replacement": "function cdqVersionDetailV87(v){\n  v=String(v||'').trim();\n  return v||'—';\n}\nfunction cdqCompareVersionV2248(a,b){\n  function parts(v){\n    const m=String(v||'').match(/v(\\d+)\\.(\\d+)(?:\\.(\\d+))?/i);\n    return m?[Number(m[1]||0),Number(m[2]||0),Number(m[3]||0)]:[0,0,0];\n  }\n  const A=parts(a),B=parts(b);\n  for(let i=0;i<3;i++){if(A[i]!==B[i])return A[i]-B[i];}\n  return 0;\n}\n",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "    const installedBuild=CDQ_BUILD;\n    const availableBuild=String(cdqUpdateInfo.latest||installedBuild);",
+      "replacement": "    const installedBuild=CDQ_BUILD;\n    const remoteBuild=String(cdqUpdateInfo.latest||\"\");\n    const newer=cdqCompareVersionV2248(remoteBuild,installedBuild)>0;\n    const availableBuild=newer?remoteBuild:\"\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "    if(latest){\n      latest.textContent=cdqVersionLabelV87(availableBuild);\n      latest.title=cdqVersionDetailV87(availableBuild);\n    }",
+      "replacement": "    if(latest){\n      latest.textContent=newer?cdqVersionLabelV87(availableBuild):\"—\";\n      latest.title=newer?cdqVersionDetailV87(availableBuild):\"Aucune version plus récente.\";\n    }",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "      }else if(cdqUpdateInfo.disponible){",
+      "replacement": "      }else if(newer){",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "      install.disabled=!cdqUpdateInfo.disponible;\n      install.textContent=cdqUpdateInfo.disponible\n        ? (\"Installer \"+cdqVersionLabelV87(availableBuild))\n        : \"Déjà à jour\";\n      install.title=cdqUpdateInfo.disponible\n        ? (\"Installer la dernière version publiée : \"+availableBuild)\n        : \"Aucune mise à jour plus récente n’est disponible.\";",
+      "replacement": "      install.disabled=!newer;\n      install.textContent=newer\n        ? (\"Installer \"+cdqVersionLabelV87(availableBuild))\n        : \"Déjà à jour\";\n      install.title=newer\n        ? (\"Installer la dernière version publiée : \"+availableBuild)\n        : \"Aucune mise à jour plus récente n’est disponible.\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "cdqUpdateInfo={disponible:false,latest:CDQ_BUILD,current:CDQ_BUILD,verifie:true};",
+      "replacement": "cdqUpdateInfo={disponible:false,latest:\"\",current:CDQ_BUILD,verifie:true};",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "      cdqUpdateInfo={disponible:!!d.available,latest:String(d.latest||\"\"),current:String(d.current||CDQ_BUILD),verifie:true};",
+      "replacement": "      const remote=String(d.latest||\"\");\n      cdqUpdateInfo={\n        disponible:!!d.available && cdqCompareVersionV2248(remote,CDQ_BUILD)>0,\n        latest:remote,\n        current:String(d.current||CDQ_BUILD),\n        verifie:true\n      };",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "if(!cdqUpdateInfo.disponible)return;",
+      "replacement": "if(cdqCompareVersionV2248(cdqUpdateInfo.latest,CDQ_BUILD)<=0)return;",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "notes": [
+      "PWA Android, Selector et backend synchronisés en V22.49",
+      "Limite des PDF locaux/hors ligne portée à 32 Mo",
+      "Nouveau cache service worker et nouveau module offline-templates v22.49",
+      "Le PDF Balance de Plancher haute qualité 22,6 Mo est accepté",
+      "Le dossier Template Drive existant reste intact"
+    ]
+  }
+}
