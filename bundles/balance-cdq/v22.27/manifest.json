@@ -1,0 +1,51 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.27",
+  "build": "2026.09.18-v22.27-mur-cadre-gauche",
+  "title": "Balance CDQ V22.27 — Mur musical + cadre gauche",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "requiresBuild": "2026.09.18-v22.26-script-manager-final",
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.26-script-manager-final",
+      "to": "2026.09.18-v22.27-mur-cadre-gauche"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.26-script-manager-final",
+      "to": "2026.09.18-v22.27-mur-cadre-gauche"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "r.dataset.build='v22.26-script-manager-final';",
+      "replacement": "r.dataset.build='v22.27-mur-cadre-gauche';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "<span>V22.26</span>",
+      "replacement": "<span>V22.27</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqPcV2227WallSidebarFix\">\n/* V22.27 — micro-correction PC : restaurer le mur musical validé + grand cadre gauche. */\nhtml.pc16-startup-lock,\nhtml.pc16-startup-lock body{\n  background:#050608 url(\"https://jprodrigue86.github.io/Rapports--talonnages-CDQ/assets/music-wall-choice1.webp?v=20260917-fit70\") center center / cover no-repeat fixed !important;\n}\nhtml.pc16-startup-lock #accessOverlay{\n  background:#050608 url(\"https://jprodrigue86.github.io/Rapports--talonnages-CDQ/assets/music-wall-choice1.webp?v=20260917-fit70\") center center / cover no-repeat !important;\n}\n\n/* Rétablit le grand panneau encadré à gauche sans déplacer le contenu central. */\nhtml.windows #cdqPcV16 .pc16-sidebar{\n  width:174px!important;\n  height:716px!important;\n  margin:8px 0 8px 8px!important;\n  box-sizing:border-box!important;\n  border:1px solid #1e5874!important;\n  border-radius:7px!important;\n  background:linear-gradient(180deg,#061622 0%,#04131d 70%,#05141f 100%)!important;\n  box-shadow:inset 0 0 20px rgba(0,0,0,.38),0 0 0 1px rgba(20,133,195,.08)!important;\n  overflow:hidden!important;\n}\nhtml.windows #cdqPcV16 .pc16-body{\n  grid-template-columns:182px minmax(0,1fr)!important;\n}\n</style>\n"
+    }
+  ],
+  "audit": {
+    "syntaxChecked": true,
+    "robustPatch": true,
+    "notes": [
+      "Restaure exactement le mur musical validé music-wall-choice1.webp",
+      "Rétablit le grand panneau encadré gauche de l’interface PC",
+      "Ne touche pas au bandeau supérieur, aux KPI, au Centre de contrôle ni aux fonctions Android/PWA"
+    ]
+  }
+}
