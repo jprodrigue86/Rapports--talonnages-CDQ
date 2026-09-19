@@ -1,57 +1,36 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.59",
-  "build": "2026.09.19-v22.59-mobile-interaction-fix",
-  "title": "Balance CDQ V22.59 — interactions Android débloquées",
+  "version": "V22.60",
+  "build": "2026.09.19-v22.60-android-direct-touch-pdf",
+  "title": "Balance CDQ V22.60 — taps Android directs + PDF fiable",
   "requiresBuild": [
-    "2026.09.19-v22.58-lazy-heavy-work",
-    "2026.09.19-v22.57-large-pdf-open-fast"
+    "2026.09.19-v22.59-mobile-interaction-fix",
+    "2026.09.19-v22.58-lazy-heavy-work"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.58-lazy-heavy-work",
-        "2026.09.19-v22.57-large-pdf-open-fast"
+        "2026.09.19-v22.59-mobile-interaction-fix",
+        "2026.09.19-v22.58-lazy-heavy-work"
       ],
-      "to": "2026.09.19-v22.59-mobile-interaction-fix"
+      "to": "2026.09.19-v22.60-android-direct-touch-pdf"
     },
     {
       "file": "Code.gs",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.58-lazy-heavy-work",
-        "2026.09.19-v22.57-large-pdf-open-fast"
+        "2026.09.19-v22.59-mobile-interaction-fix",
+        "2026.09.19-v22.58-lazy-heavy-work"
       ],
-      "to": "2026.09.19-v22.59-mobile-interaction-fix"
+      "to": "2026.09.19-v22.60-android-direct-touch-pdf"
     },
     {
-      "file": "Selector.html",
+      "file": "Code.gs",
       "op": "replace_literal",
-      "search": "try{\n  new MutationObserver(function(){\n    clearTimeout(window.__cdqV2204MutationTimer);\n    window.__cdqV2204MutationTimer=setTimeout(refreshV2204,40);\n  }).observe(document.body,{childList:true,subtree:true});\n}catch(e){}",
-      "replacement": "/* V22.59 : observateur global V22.04 supprimé — il s’auto-déclenchait. */",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "try{\n  new MutationObserver(function(){\n    clearTimeout(window.__cdqV2206Mutation);\n    window.__cdqV2206Mutation=setTimeout(cdqRefreshV2206,60);\n  }).observe(document.body,{childList:true,subtree:true});\n}catch(e){}",
-      "replacement": "/* V22.59 : observateur global V22.06 supprimé — il s’auto-déclenchait. */",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "try{\n  new MutationObserver(function(){\n    clearTimeout(window.__cdqV2207CrispTimer);\n    window.__cdqV2207CrispTimer=setTimeout(refresh,80);\n  }).observe(document.body,{childList:true,subtree:true});\n}catch(e){}",
-      "replacement": "/* V22.59 : observateur global V22.07 supprimé — il s’auto-déclenchait. */",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "try{\n  new MutationObserver(scheduleFixV2210).observe(document.body,{\n    childList:true,subtree:true,characterData:true,\n    attributes:true,attributeFilter:[\"style\",\"class\"]\n  });\n}catch(e){}",
-      "replacement": "try{\n  [document.getElementById(\"clientInfoBar\"),document.getElementById(\"filesContainer\")].filter(Boolean).forEach(function(target){\n    new MutationObserver(scheduleFixV2210).observe(target,{\n      childList:true,subtree:true,characterData:true\n    });\n  });\n}catch(e){}",
+      "search": "const CDQ_DOCUMENT_CHUNK_BYTES_ = 4 * 1024 * 1024;",
+      "replacement": "const CDQ_DOCUMENT_CHUNK_BYTES_ = 1024 * 1024;",
       "expected": 1
     },
     {
@@ -66,41 +45,51 @@
     },
     {
       "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2260AndroidDirectCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2260AndroidDirectJs"
+    },
+    {
+      "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqV2259MobileInteractionCss\">\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204,\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204 *{\n  pointer-events:auto!important;\n}\n</style>\n<script id=\"cdqV2259MobileInteractionJs\">\n(function(){\n  'use strict';\n\n  function inDisplay(btn){\n    return !!btn.closest('#cdqInlineDisplayPanelV2204,#cdqDisplayModal');\n  }\n  function setActive(btn,selector){\n    const root=btn.closest('#cdqInlineDisplayPanelV2204,#cdqDisplayModal')||document;\n    root.querySelectorAll(selector).forEach(function(x){x.classList.toggle('active',x===btn);});\n  }\n\n  document.addEventListener('click',function(e){\n    const btn=e.target&&e.target.closest?e.target.closest('button[data-long],button[data-swipe],button[data-pdf-reader]'):null;\n    if(!btn||!inDisplay(btn))return;\n\n    // Gestion directe : ne dépend plus des handlers reconstruits/déplacés du modal.\n    e.preventDefault();\n    e.stopImmediatePropagation();\n\n    if(btn.dataset.long){\n      try{if(typeof cdqSetLongPress==='function')cdqSetLongPress(btn.dataset.long);else localStorage.setItem('cdqLongPressMs',String(btn.dataset.long));}catch(_){}\n      setActive(btn,'button[data-long]');\n      return;\n    }\n    if(btn.dataset.swipe){\n      try{if(typeof cdqSetSwipeSensitivity==='function')cdqSetSwipeSensitivity(btn.dataset.swipe);else localStorage.setItem('cdqSwipeSensitivity',String(btn.dataset.swipe));}catch(_){}\n      setActive(btn,'button[data-swipe]');\n      return;\n    }\n    if(btn.dataset.pdfReader){\n      try{\n        localStorage.setItem('cdqPdfReaderPreferenceV1',String(btn.dataset.pdfReader));\n        if(typeof cdqScheduleSavePreferencesV72==='function')cdqScheduleSavePreferencesV72();\n        if(typeof afficherMessage==='function')afficherMessage('Lecteur PDF par défaut enregistré.',true);\n      }catch(_){}\n      setActive(btn,'button[data-pdf-reader]');\n    }\n  },true);\n\n  // Si un ancien refresh visuel tente de repartir, ne pas le laisser monopoliser Android.\n  try{\n    clearTimeout(window.__cdqV2204MutationTimer);\n    clearTimeout(window.__cdqV2206Mutation);\n    clearTimeout(window.__cdqV2207CrispTimer);\n    clearTimeout(window.__cdqFixEmptyZonesTimerV2210);\n  }catch(_){}\n\n  // Version PC visible.\n  setTimeout(function(){\n    const root=document.getElementById('cdqPcV16');\n    if(root){\n      root.dataset.build='v22.59-mobile-interaction-fix';\n      const meta=root.querySelector('.pc16-side-meta span:last-child');\n      if(meta)meta.textContent='V22.59';\n    }\n  },250);\n})();\n</script>\n"
+      "text": "\n<style id=\"cdqV2260AndroidDirectCss\">\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204.open{\n  position:relative!important;\n  z-index:60010!important;\n  pointer-events:auto!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204.open *,\nhtml:is(.android,.ios,.mobile-device) .file-row{\n  pointer-events:auto!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqDisplayModal{\n  pointer-events:none!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204 button,\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204 input[type=\"range\"]{\n  touch-action:manipulation!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204 input[type=\"range\"]{\n  touch-action:pan-x!important;\n}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child{font-size:0!important;line-height:1!important}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child::after{\n  content:\"V22.60\";font-size:9px!important;font-weight:800!important;color:#dbe8ee!important;white-space:nowrap!important\n}\n</style>\n<script id=\"cdqV2260AndroidDirectJs\">\n(function(){\n  'use strict';\n  const MB=1024*1024;\n  let lastSettingPointer=0;\n  let pdfTap=null;\n\n  function progressToken(){\n    return Number(window.__cdqPdfProgressTokenV2255||0);\n  }\n  function pg(pct,detail){\n    const t=progressToken();\n    try{\n      if(t&&typeof window.cdqMajorProgressUpdateV2255==='function')\n        window.cdqMajorProgressUpdateV2255(t,pct,null,detail);\n    }catch(_){}\n  }\n  function timeout(promise,ms,label){\n    return Promise.race([\n      Promise.resolve(promise),\n      new Promise(function(_,reject){\n        setTimeout(function(){reject(new Error(label+' a pris trop de temps. Réessayez.'));},ms);\n      })\n    ]);\n  }\n\n  // Moteur PDF Android fiable : blocs 1 Mo côté serveur, 2 requêtes en parallèle.\n  async function ensurePdfV2260(id,refresh){\n    if(cdqDocumentDownloads.has(id))return cdqDocumentDownloads.get(id);\n    const op=(async function(){\n      const old=await cdqV19GetRecord('document-pdf',id);\n      if(!navigator.onLine){\n        if(old&&old.blob)return old;\n        throw new Error('Ce PDF n’a pas été préparé. Reconnectez Internet et réessayez.');\n      }\n      if(!refresh&&old&&old.blob&&old.instantCopy&&Number(old.localReadyUntil||0)>Date.now())return old;\n\n      pg(7,'Lecture des informations du PDF…');\n      let meta;\n      try{\n        meta=await timeout(cdqV19Gs('obtenirMetaDocumentPdfCDQ',[id]),15000,'La lecture des informations du PDF');\n      }catch(e){\n        if(old&&old.blob&&!refresh)return Object.assign({},old,{stale:true});\n        throw e;\n      }\n\n      const size=Number(meta&&meta.taille||0),total=Number(meta&&meta.chunks||0);\n      if(!meta||size<5||size>32*MB||!Number.isInteger(total)||total<1||total>64)\n        throw new Error('Informations du PDF invalides.');\n\n      if(old&&old.blob&&old.revision===meta.revision&&old.blob.size===size)return old;\n\n      const parts=new Array(total);\n      let next=0,done=0;\n      pg(10,'Téléchargement du PDF · 0 / '+total+' blocs');\n\n      async function worker(){\n        while(true){\n          const i=next++;\n          if(i>=total)return;\n          const part=await timeout(\n            cdqV19Gs('obtenirChunkDocumentPdfCDQ',[id,meta.revision,i]),\n            20000,\n            'Le bloc PDF '+(i+1)\n          );\n          if(!part||!part.base64)throw new Error('Bloc PDF '+(i+1)+' manquant.');\n          if(part.revision!==meta.revision)throw new Error('Le PDF a changé pendant la préparation. Réessayez.');\n          parts[i]=cdqV2112Base64ToBytes(part.base64);\n          done++;\n          pg(10+Math.round((done/total)*76),'Téléchargement du PDF · '+done+' / '+total+' blocs');\n        }\n      }\n      await Promise.all([worker(),worker()]);\n\n      pg(89,'Assemblage du PDF…');\n      const blob=new Blob(parts,{type:'application/pdf'});\n      if(blob.size!==size||(await blob.slice(0,5).text())!=='%PDF-')\n        throw new Error('Copie PDF incomplète. Réessayez.');\n\n      const rec=Object.assign({},meta,{blob:blob});\n      await cdqV19PutRecord('document-pdf',id,rec);\n      pg(94,'PDF prêt à ouvrir…');\n      return rec;\n    })();\n\n    cdqDocumentDownloads.set(id,op);\n    try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n  }\n  try{\n    cdqEnsurePdf=ensurePdfV2260;\n    window.cdqEnsurePdf=ensurePdfV2260;\n  }catch(_){}\n\n  function active(btn,selector){\n    const root=btn.closest('#cdqInlineDisplayPanelV2204,#cdqDisplayModal')||document;\n    root.querySelectorAll(selector).forEach(function(x){x.classList.toggle('active',x===btn);});\n  }\n  function savePrefs(){\n    try{if(typeof cdqScheduleSavePreferencesV72==='function')cdqScheduleSavePreferencesV72();}catch(_){}\n  }\n  function applySetting(btn){\n    if(!btn)return false;\n    if(btn.dataset.long){\n      const v=String(btn.dataset.long);\n      localStorage.setItem('cdqLongPressMs',v);\n      active(btn,'button[data-long]');savePrefs();\n      try{afficherMessage('Appui long : '+(Number(v)/1000).toFixed(1).replace('.',',')+' s',true);}catch(_){}\n      return true;\n    }\n    if(btn.dataset.swipe){\n      localStorage.setItem('cdqSwipeSensitivity',String(btn.dataset.swipe));\n      active(btn,'button[data-swipe]');savePrefs();\n      try{afficherMessage('Glissement : '+btn.textContent.trim(),true);}catch(_){}\n      return true;\n    }\n    if(btn.dataset.pdfReader){\n      localStorage.setItem('cdqPdfReaderPreferenceV1',String(btn.dataset.pdfReader));\n      active(btn,'button[data-pdf-reader]');savePrefs();\n      try{afficherMessage('Lecteur PDF : '+btn.textContent.trim(),true);}catch(_){}\n      return true;\n    }\n    return false;\n  }\n\n  // Sur Android, pointerup est plus fiable que le click synthétique pour ces réglages.\n  document.addEventListener('pointerup',function(e){\n    const btn=e.target&&e.target.closest?e.target.closest(\n      '#cdqInlineDisplayPanelV2204 button[data-long],#cdqInlineDisplayPanelV2204 button[data-swipe],#cdqInlineDisplayPanelV2204 button[data-pdf-reader]'\n    ):null;\n    if(!btn)return;\n    lastSettingPointer=Date.now();\n    if(applySetting(btn)){\n      e.preventDefault();\n      e.stopImmediatePropagation();\n    }\n  },true);\n\n  // Empêche le click synthétique suivant de refaire l'ancien handler.\n  document.addEventListener('click',function(e){\n    if(Date.now()-lastSettingPointer>700)return;\n    const btn=e.target&&e.target.closest?e.target.closest(\n      '#cdqInlineDisplayPanelV2204 button[data-long],#cdqInlineDisplayPanelV2204 button[data-swipe],#cdqInlineDisplayPanelV2204 button[data-pdf-reader]'\n    ):null;\n    if(btn){e.preventDefault();e.stopImmediatePropagation();}\n  },true);\n\n  // Curseurs : traitement direct, sans dépendre des anciens handlers déplacés avec le panneau.\n  document.addEventListener('input',function(e){\n    const x=e.target;\n    if(!x||!x.closest||!x.closest('#cdqInlineDisplayPanelV2204'))return;\n    const v=Math.max(0,Math.min(100,Math.round(Number(x.value)||0)));\n    try{\n      if(x.id==='cdqGeneralScaleRange'){\n        const lab=document.getElementById('cdqGeneralScaleValue');if(lab)lab.textContent=v+' / 100';\n        localStorage.setItem('cdqUiGeneralScaleV89',String(v));\n        localStorage.setItem('cdqUiScaleV86',String(v));\n      }else if(x.id==='cdqTextScaleRange'){\n        const lab=document.getElementById('cdqTextScaleValue');if(lab)lab.textContent=v+' / 100';\n        if(typeof cdqApplyTextScaleV89==='function')cdqApplyTextScaleV89(v,true);\n      }else if(x.id==='cdqIconScaleRange'){\n        const lab=document.getElementById('cdqIconScaleValue');if(lab)lab.textContent=v+' / 100';\n        if(typeof window.cdqApplyVisibleIconScaleV2208==='function')window.cdqApplyVisibleIconScaleV2208(v);\n      }\n    }catch(_){}\n  },true);\n  document.addEventListener('change',function(e){\n    const x=e.target;\n    if(!x||!x.closest||!x.closest('#cdqInlineDisplayPanelV2204'))return;\n    const v=Math.max(0,Math.min(100,Math.round(Number(x.value)||0)));\n    try{\n      if(x.id==='cdqGeneralScaleRange'&&typeof cdqApplyGeneralScaleV89==='function')cdqApplyGeneralScaleV89(v,true);\n      if(x.id==='cdqTextScaleRange'&&typeof cdqApplyTextScaleV89==='function')cdqApplyTextScaleV89(v,true);\n      if(x.id==='cdqIconScaleRange'&&typeof cdqApplyIconScaleV89==='function')cdqApplyIconScaleV89(v,true);\n      savePrefs();\n    }catch(_){}\n  },true);\n\n  // PDF : court toucher direct au pointerup, avant les anciens handlers swipe/click.\n  document.addEventListener('pointerdown',function(e){\n    const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n    if(!row||String(row.dataset.fileType||'').toUpperCase()!=='PDF')return;\n    pdfTap={row:row,x:e.clientX,y:e.clientY,t:Date.now(),pointerId:e.pointerId};\n  },true);\n\n  document.addEventListener('pointerup',function(e){\n    if(!pdfTap||pdfTap.pointerId!==e.pointerId)return;\n    const s=pdfTap;pdfTap=null;\n    const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n    if(!row||row!==s.row)return;\n    const dx=e.clientX-s.x,dy=e.clientY-s.y,dt=Date.now()-s.t;\n    if(dt>650||Math.hypot(dx,dy)>24)return;\n    if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return;\n    if(e.target.closest('button'))return;\n    const cb=row.querySelector('.file-checkbox[data-file-id]');\n    const id=cb&&cb.dataset.fileId;\n    if(!id)return;\n    row.dataset.cdqDirectPdfUntil=String(Date.now()+800);\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    try{\n      Promise.resolve(cdqOpenPdf(id)).catch(function(err){\n        try{afficherErreur(err);}catch(_){}\n      });\n    }catch(err){\n      try{afficherErreur(err);}catch(_){}\n    }\n  },true);\n\n  document.addEventListener('click',function(e){\n    const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n    if(!row)return;\n    const until=Number(row.dataset.cdqDirectPdfUntil||0);\n    if(until>Date.now()){e.preventDefault();e.stopImmediatePropagation();}\n  },true);\n\n  // Nettoyer un éventuel ancien modal Affichage invisible qui pourrait capter les taps.\n  function clearGhosts(){\n    const panel=document.getElementById('cdqInlineDisplayPanelV2204');\n    const modal=document.getElementById('cdqDisplayModal');\n    if(panel&&panel.classList.contains('open')&&modal){\n      modal.style.setProperty('display','none','important');\n      modal.style.setProperty('pointer-events','none','important');\n    }\n    try{\n      const ov=document.getElementById('accessOverlay');\n      if(ov&&typeof cdqAccessState!=='undefined'&&cdqAccessState==='ready'){\n        ov.style.setProperty('display','none','important');\n        ov.style.setProperty('pointer-events','none','important');\n      }\n    }catch(_){}\n  }\n  setTimeout(clearGhosts,50);\n  setTimeout(clearGhosts,500);\n})();\n</script>\n"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "content:\"V22.58\";",
-      "replacement": "content:\"V22.59\";",
+      "search": "content:\"V22.59\";",
+      "replacement": "content:\"V22.60\";",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "meta.textContent='V22.58';",
-      "replacement": "meta.textContent='V22.59';",
+      "search": "meta.textContent='V22.59';",
+      "replacement": "meta.textContent='V22.60';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "root.dataset.build='v22.58-lazy-heavy-work';",
-      "replacement": "root.dataset.build='v22.59-mobile-interaction-fix';",
+      "search": "root.dataset.build='v22.59-mobile-interaction-fix';",
+      "replacement": "root.dataset.build='v22.60-android-direct-touch-pdf';",
       "expected": 1
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
     "notes": [
-      "Supprime trois MutationObserver globaux qui se redéclenchaient en modifiant eux-mêmes le DOM",
-      "Le contrôle des zones vides n'observe plus les attributs style/class qu'il modifie lui-même",
-      "Ajoute un gestionnaire direct de secours pour Gestes et Lecteur PDF dans Affichage",
-      "Réduit fortement le travail DOM permanent sur Android",
-      "Le clic PDF retrouve le thread principal disponible pour lancer la préparation/lecture",
-      "Conserve les corrections PDF 32 Mo et les gros travaux à la demande"
+      "Retour des blocs PDF serveur à 1 Mo pour éviter les gros messages base64 instables avec google.script.run",
+      "Deux blocs PDF sont téléchargés en parallèle avec progression réelle et timeout explicite",
+      "Les réglages Gestes et Lecteur PDF sont appliqués directement au pointerup Android",
+      "Les trois curseurs Affichage ont un traitement direct de secours",
+      "Un tap court sur une ligne PDF appelle directement cdqOpenPdf avant les anciens gestionnaires swipe/click",
+      "Nettoie les anciens overlays Affichage/accès susceptibles de capter les taps"
     ]
   }
 }
