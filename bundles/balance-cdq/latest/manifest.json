@@ -1,119 +1,67 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.40",
-  "build": "2026.09.18-v22.40-pc-no-flash-core",
-  "title": "Balance CDQ V22.40 — PC sans flash (correctif robuste)",
+  "version": "V22.41",
+  "build": "2026.09.18-v22.41-pc-syntax-recovery",
+  "title": "Balance CDQ V22.41 — récupération syntaxe PC",
   "requiresBuild": [
-    "2026.09.18-v22.36-pc-recovery-stable"
+    "2026.09.18-v22.40-pc-no-flash-core"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.18-v22.36-pc-recovery-stable",
-      "to": "2026.09.18-v22.40-pc-no-flash-core"
+      "from": "2026.09.18-v22.40-pc-no-flash-core",
+      "to": "2026.09.18-v22.41-pc-syntax-recovery"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.18-v22.36-pc-recovery-stable",
-      "to": "2026.09.18-v22.40-pc-no-flash-core"
+      "from": "2026.09.18-v22.40-pc-no-flash-core",
+      "to": "2026.09.18-v22.41-pc-syntax-recovery"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
-      "search": "[0,30,80,160,300,500,800,1200,1800]",
-      "replacement": "[70]",
+      "search": "const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\\n  const pc16KpiKeyV2240=[pct,s.ok,nc,watch,Number(t.surveillancesActives||0),Math.max(types.size,4),st.clients.length||0].join('|');\\n  if(x.dataset.kpiKeyV2240===pc16KpiKeyV2240)return;\\n  x.dataset.kpiKeyV2240=pc16KpiKeyV2240;",
+      "replacement": "const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  const pc16KpiKeyV2240=[pct,s.ok,nc,watch,Number(t.surveillancesActives||0),Math.max(types.size,4),st.clients.length||0].join('|');\n  if(x.dataset.kpiKeyV2240===pc16KpiKeyV2240)return;\n  x.dataset.kpiKeyV2240=pc16KpiKeyV2240;",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "setTimeout(function(){if(document.visibilityState==='visible'){pc16WatchWindowV21_65();scaleStage()}},900);",
-      "replacement": "/* V22.40 : recalcul supplémentaire supprimé */",
+      "search": "<span>V22.40</span>",
+      "replacement": "<span>V22.41</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);",
-      "replacement": "const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\\n  const pc16KpiKeyV2240=[pct,s.ok,nc,watch,Number(t.surveillancesActives||0),Math.max(types.size,4),st.clients.length||0].join('|');\\n  if(x.dataset.kpiKeyV2240===pc16KpiKeyV2240)return;\\n  x.dataset.kpiKeyV2240=pc16KpiKeyV2240;",
+      "search": "v.textContent='V22.40';",
+      "replacement": "v.textContent='V22.41';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "if(Array.isArray(clients)){st.clients=clients;st.lastClientsSync=Date.now();renderAll();pc16SaveGlobalCache()}",
-      "replacement": "if(Array.isArray(clients)){st.clients=clients;st.lastClientsSync=Date.now();pc16SaveGlobalCache()}",
+      "search": "r.dataset.build='v22.40-pc-no-flash-core';",
+      "replacement": "r.dataset.build='v22.41-pc-syntax-recovery';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "<span>V22.26</span>",
-      "replacement": "<span>V22.40</span>",
+      "search": "root.dataset.build='v22.40-pc-no-flash-core';",
+      "replacement": "root.dataset.build='v22.41-pc-syntax-recovery';",
       "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "<span>V22.36</span>",
-      "replacement": "<span>V22.40</span>",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "r.dataset.build='v22.26-script-manager-final';",
-      "replacement": "r.dataset.build='v22.40-pc-no-flash-core';",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "r.dataset.build='v22.36-pc-recovery-stable';",
-      "replacement": "r.dataset.build='v22.40-pc-no-flash-core';",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqPcV2236RecoveryCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqPcV2236RecoveryJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqPcV2240NoFlashCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqPcV2240NoFlashJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "insert_before_literal",
-      "before": "</body>",
-      "text": "\n<style id=\"cdqPcV2240NoFlashCss\">\nhtml.windows #cdqPcV16,\nhtml.windows #cdqPcV16 .pc16-stage{\n  backface-visibility:hidden!important;\n  -webkit-backface-visibility:hidden!important;\n}\nhtml.windows #cdqPcV16 .pc16-kpi,\nhtml.windows #cdqPcV16 .pc16-kpi *{\n  animation:none!important;\n  transition:none!important;\n}\n</style>\n<script id=\"cdqPcV2240NoFlashJs\">\n(function(){\n  var observer=null;\n  function stamp(){\n    var root=document.getElementById('cdqPcV16');\n    if(!root)return false;\n    root.dataset.build='v22.40-pc-no-flash-core';\n    var v=root.querySelector('.pc16-side-meta span');\n    if(v)v.textContent='V22.40';\n    if(observer)observer.disconnect();\n    return true;\n  }\n  if(!stamp()){\n    observer=new MutationObserver(function(){stamp()});\n    observer.observe(document.documentElement,{childList:true,subtree:true});\n  }\n})();\n</script>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
-    "exactSource": "V22.36 confirmé par diagnostic PC",
-    "revision": "robuste-2",
+    "recovery": true,
     "notes": [
-      "Correctif précédent refusé car bloc complet trop strict",
-      "Réduit les 9 recalculs AutoFit à un seul délai",
-      "Supprime le recalcul additionnel de 900 ms",
-      "Évite un renderAll intermédiaire pendant loadClients",
-      "Stabilise les KPI quand les valeurs ne changent pas",
-      "Corrige le texte visible V22.26/V22.36 vers V22.40",
-      "MutationObserver uniquement temporaire pour estampiller la version puis se déconnecte"
+      "Corrige les caractères \\\\n littéraux injectés par V22.40",
+      "Restaure un JavaScript Selector syntaxiquement valide",
+      "Aucun autre changement fonctionnel dans cette récupération"
     ]
   }
 }
