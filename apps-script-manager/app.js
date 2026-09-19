@@ -989,6 +989,33 @@ async function importBundleManifestV24(url){
   if(manifest.schema==='cdq-script-bundle-v2'){
     setZipVisual('processing','Package direct '+String(manifest.version||manifest.build||''),'Application des correctifs audités…',45);
     resolved=buildEntriesFromPatchesV25(manifest);
+
+    if(Array.isArray(manifest.extraFiles)&&manifest.extraFiles.length){
+      if(manifest.extraFiles.length>24)throw new Error('Trop de fichiers complémentaires dans le package.');
+      const base=new URL(url);
+      let extraIndex=0;
+      for(const f of manifest.extraFiles){
+        extraIndex++;
+        const name=String(f.name||'').trim();
+        if(!(/^[A-Za-z0-9_ -]+\.gs$/i.test(name)||/^[A-Za-z0-9_ -]+\.html?$/i.test(name)||/^appsscript\.json$/i.test(name))){
+          throw new Error('Fichier complémentaire non autorisé : '+name);
+        }
+        const fileUrl=new URL(String(f.url||('files/'+name)),base).href;
+        const source=(await fetchBundleTextV24(fileUrl,String(f.sha256||''))).replace(/\r\n/g,'\n');
+        const spec=importedFileSpec(name);
+        if(!spec)throw new Error('Fichier complémentaire non reconnu : '+name);
+        const exact=existingProjectFileByName(spec.name,spec.type);
+        resolved.push(exact
+          ? {name:exact.name,type:exact.type,displayName:displayNameForFile(exact),source}
+          : {name:spec.name,type:spec.type,displayName:name,source});
+        setZipVisual(
+          'processing',
+          'Package direct '+String(manifest.version||manifest.build||''),
+          'Chargement fichier intégré '+extraIndex+'/'+manifest.extraFiles.length+' : '+name,
+          45+Math.round(extraIndex/manifest.extraFiles.length*38)
+        );
+      }
+    }
   }else{
     if(!Array.isArray(manifest.files)||!manifest.files.length||manifest.files.length>10){
       throw new Error('Liste de fichiers package invalide.');
