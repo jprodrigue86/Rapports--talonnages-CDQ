@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.88-restore-native-drive-account-path",
+  "version": "2026.09.19-v22.89-account-then-system-pdf-chooser",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.88-restore-native-drive-account-path",
-  "backend_version": "2026.09.19-v22.88-restore-native-drive-account-path",
+  "selector_version": "2026.09.19-v22.89-account-then-system-pdf-chooser",
+  "backend_version": "2026.09.19-v22.89-account-then-system-pdf-chooser",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -205,7 +205,9 @@
     "pdf-system-chooser-v2286",
     "pdf-native-account-picker-v2287",
     "pdf-drive-direct-download-intent-v2287",
-    "pdf-native-drive-v2276-restored-v2288"
+    "pdf-native-drive-v2276-restored-v2288",
+    "pdf-account-prompt-v2289",
+    "pdf-real-file-system-chooser-v2289"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -218,5 +220,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.19-v22.88-restore-native-drive-account-path"
+  "pwa_version": "2026.09.19-v22.89-account-then-system-pdf-chooser"
 }
