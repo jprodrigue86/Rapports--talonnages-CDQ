@@ -7,7 +7,7 @@ export function validDestination(d) {
   return !!d && identifier(d.clientId) && identifier(d.folderId) && typeof d.name==='string' && d.name.length>0;
 }
 export function validPdf(blob) {
-  return blob instanceof Blob && blob.type==='application/pdf' && blob.size>5 && blob.size<=15*1024*1024;
+  return blob instanceof Blob && blob.type==='application/pdf' && blob.size>5 && blob.size<=32*1024*1024;
 }
 export function validTemplate(t) {
   return !!t && known(t.modeleId) && validPdf(t.blob) && identifier(t.templateId);
