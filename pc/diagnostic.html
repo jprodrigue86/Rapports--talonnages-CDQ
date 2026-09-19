@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diagnostic Balance CDQ PC</title>
+<style>
+:root{font-family:Segoe UI,system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#05090d;color:#edf6fa}
+header{padding:16px 20px;background:#081826;border-bottom:1px solid #21485f;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:22px}
+main{display:grid;grid-template-columns:minmax(320px,430px) minmax(0,1fr);gap:16px;padding:16px;height:calc(100vh - 66px)}
+.panel{background:#08131d;border:1px solid #244b61;border-radius:12px;padding:14px;overflow:auto}
+.row{padding:10px;border-bottom:1px solid #173445}.row:last-child{border-bottom:0}
+.lab{font-size:12px;color:#85a8bb;text-transform:uppercase;letter-spacing:.06em}
+.val{margin-top:4px;font:700 14px ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all;color:#fff}
+.good{color:#57df9b}.bad{color:#ff6c76}.warn{color:#ffd166}
+iframe{width:100%;height:100%;border:1px solid #244b61;border-radius:12px;background:#000}
+button,a{display:inline-block;margin-top:12px;padding:10px 14px;border:0;border-radius:8px;background:#116fa8;color:#fff;text-decoration:none;font-weight:800;cursor:pointer}
+small{color:#8da6b4}
+@media(max-width:900px){main{grid-template-columns:1fr;height:auto}iframe{height:65vh}}
+</style>
+</head>
+<body>
+<header><h1>Diagnostic Balance CDQ PC — 2026-09-19T01:42:14.969Z</h1></header>
+<main>
+<section class="panel">
+  <div class="row"><div class="lab">Page diagnostic</div><div class="val good">DIAG-PC-2026.09.18-2148</div></div>
+  <div class="row"><div class="lab">Adresse ouverte</div><div class="val" id="here"></div></div>
+  <div class="row"><div class="lab">Shell PC GitHub</div><div class="val" id="shell">lecture…</div></div>
+  <div class="row"><div class="lab">Selector réellement servi</div><div class="val" id="selector">attente Apps Script…</div></div>
+  <div class="row"><div class="lab">Backend réellement servi</div><div class="val" id="backend">attente Apps Script…</div></div>
+  <div class="row"><div class="lab">Taille Selector</div><div class="val" id="bytes">—</div></div>
+  <div class="row"><div class="lab">Messages iframe</div><div class="val" id="msg">aucun</div></div>
+  <div class="row"><div class="lab">User agent</div><div class="val" id="ua"></div></div>
+  <button id="reload">Recharger sans cache</button>
+  <a id="direct" target="_blank" rel="noopener">Ouvrir Apps Script directement</a>
+  <p><small>Cette page n'installe rien et n'utilise pas l'icône Windows. Elle sert uniquement à déterminer quelle version Google envoie réellement au PC.</small></p>
+</section>
+<section class="panel" style="padding:0"><iframe id="app" title="Balance CDQ diagnostic"></iframe></section>
+</main>
+<iframe id="health" title="health" style="position:fixed;left:-10000px;top:0;width:10px;height:10px"></iframe>
+<script>
+const APP='https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
+const $=id=>document.getElementById(id);
+$('here').textContent=location.href;
+$('ua').textContent=navigator.userAgent;
+$('direct').href=APP+'?diag_direct=1&ts='+Date.now();
+
+function set(id,text,cls=''){
+  const e=$(id);e.textContent=String(text||'—');e.className='val '+cls;
+}
+async function readShell(){
+  try{
+    const r=await fetch('./version.json?diag='+Date.now(),{cache:'no-store'});
+    const j=await r.json();
+    set('shell',j.version||j.pwa_version||'inconnue',(String(j.version||'').includes('22.39')?'good':'warn'));
+  }catch(e){set('shell','Erreur: '+e.message,'bad');}
+}
+function load(){
+  const ts=Date.now();
+  $('app').src=APP+'?cdq_diag_pc=1&ts='+ts;
+  $('health').src=APP+'?cdq_health=1&cdq_diag_pc=1&ts='+ts;
+  set('selector','attente Apps Script…','warn');
+  set('backend','attente Apps Script…','warn');
+  set('msg','chargement…','warn');
+  readShell();
+}
+window.addEventListener('message',e=>{
+  if(!/^https:\/\/(script\.google\.com|.*script\.googleusercontent\.com)$/.test(e.origin))return;
+  const d=e.data||{};
+  set('msg',d.type||'message sans type');
+  if(d.type==='CDQ_HEALTH_READY'){
+    set('selector',d.selectorBuild||'non annoncé',String(d.selectorBuild||'').includes('22.36')?'good':'bad');
+    set('backend',d.build||'non annoncé',String(d.build||'').includes('22.36')?'good':'warn');
+    set('bytes',d.selectorBytes||0);
+  }
+  if(d.type==='CDQ_SELECTOR_READY'){
+    if(d.build)set('selector',d.build,String(d.build).includes('22.36')?'good':'bad');
+  }
+  if(d.type==='CDQ_BACKEND_STATUS'){
+    if(d.build)set('backend',d.build,String(d.build).includes('22.36')?'good':'warn');
+  }
+});
+$('reload').onclick=()=>{history.replaceState({},'',location.pathname+'?diag='+Date.now());load();};
+load();
+</script>
+</body></html>
