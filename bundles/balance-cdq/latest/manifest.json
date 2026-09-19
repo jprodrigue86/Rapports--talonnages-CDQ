@@ -1,97 +1,125 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.57",
-  "build": "2026.09.19-v22.57-large-pdf-open-fast",
-  "title": "Balance CDQ V22.57 — ouverture rapide gros PDF",
+  "version": "V22.58",
+  "build": "2026.09.19-v22.58-lazy-heavy-work",
+  "title": "Balance CDQ V22.58 — interface fluide, gros travaux à la demande",
   "requiresBuild": [
-    "2026.09.19-v22.56-pdf-chunk-fix",
-    "2026.09.19-v22.55-major-progress-pdf-open"
+    "2026.09.19-v22.57-large-pdf-open-fast",
+    "2026.09.19-v22.56-pdf-chunk-fix"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.56-pdf-chunk-fix",
-        "2026.09.19-v22.55-major-progress-pdf-open"
+        "2026.09.19-v22.57-large-pdf-open-fast",
+        "2026.09.19-v22.56-pdf-chunk-fix"
       ],
-      "to": "2026.09.19-v22.57-large-pdf-open-fast"
+      "to": "2026.09.19-v22.58-lazy-heavy-work"
     },
     {
       "file": "Code.gs",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.56-pdf-chunk-fix",
-        "2026.09.19-v22.55-major-progress-pdf-open"
+        "2026.09.19-v22.57-large-pdf-open-fast",
+        "2026.09.19-v22.56-pdf-chunk-fix"
       ],
-      "to": "2026.09.19-v22.57-large-pdf-open-fast"
+      "to": "2026.09.19-v22.58-lazy-heavy-work"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
-      "search": "async function cdqLoadPdfRecord(id){\n  let rec=await cdqEnsurePdf(id,false);\n  const pending=(await cdqV19QueueGet()).find(a=>a.kind==='pdf-import'&&a.targetId===id);\n  if(pending)rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n  rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  try{if(!pending)await cdqV19PutRecord('document-pdf',id,rec);}catch(e){}\n  return rec;\n}",
-      "replacement": "async function cdqLoadPdfRecord(id){\n  let rec=await cdqEnsurePdf(id,false);\n  const pending=(await cdqV19QueueGet()).find(a=>a.kind==='pdf-import'&&a.targetId===id);\n  if(pending)rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n  // Les gros PDF haute qualité ne sont plus entièrement réécrits avant ouverture.\n  // PDF-Lib pouvait bloquer Android plusieurs dizaines de secondes sans retour.\n  if(rec&&rec.blob instanceof Blob&&rec.blob.size<=8*1024*1024){\n    rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  }\n  try{if(!pending)await cdqV19PutRecord('document-pdf',id,rec);}catch(e){}\n  return rec;\n}",
+      "search": "async function cdqPreparerQuvre4Pwa(){\n  if(cdqQuvrePreparation)return cdqQuvrePreparation;\n  if(cdqAccessState!=='ready' || !navigator.onLine)return;\n  const email=utilisateurCourantEmail;\n  cdqQuvrePreparation=(async function(){\n    cdqPublierSessionHorsLigne();\n    for(const modeleId of ['plancher','cuve4','precision','camion','cuve3']){\n      if(email!==utilisateurCourantEmail || cdqAccessState!=='ready' || !navigator.onLine)break;\n      try{\n        await cdqV2112EnsureTemplateOfflineCached(false,modeleId);\n        const rec=await cdqV2112GetCachedTemplate(modeleId);\n        if(rec && email===utilisateurCourantEmail && cdqAccessState==='ready'){\n          const blobRapport=await cdqPersonnaliserBlobTechnicienPdf(rec.blob);\n          cdqPostToPwa({type:'CDQ_OFFLINE_TEMPLATE',email:email,modeleId:modeleId,blob:blobRapport,\n            templateId:rec.templateId,modifieLe:rec.modifieLe,revision:rec.revision,sha256:\"\",name:CDQ_MODELES_INTERMEDIAIRES[modeleId]});\n        }\n      }catch(e){console.warn('Modèle '+modeleId+' : '+(e.message||e));}\n    }\n  })().catch(function(e){console.warn('Préparation de Balance Quvre 4 : '+(e.message||e));})\n    .finally(function(){cdqQuvrePreparation=null;});\n  return cdqQuvrePreparation;\n}",
+      "replacement": "async function cdqPreparerQuvre4Pwa(){\n  // V22.58 : aucune préparation lourde automatique.\n  // On publie seulement la session. Les PDF sont préparés à la demande.\n  if(cdqAccessState!=='ready')return false;\n  cdqPublierSessionHorsLigne();\n  cdqMemoriserDestinationQuvre4();\n  return true;\n}",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
-      "search": "async function cdqOpenPdfInternal(id,preparedRecord){\n  if(document.getElementById('cdqReaderFrame'))return;\n  afficherMessage('Ouverture du PDF…',true);\n  let rec=preparedRecord||await cdqLoadPdfRecord(id);\n  rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  if(document.getElementById('cdqReaderFrame'))return;",
-      "replacement": "async function cdqOpenPdfInternal(id,preparedRecord){\n  if(document.getElementById('cdqReaderFrame'))return;\n  afficherMessage('Ouverture du PDF…',true);\n  let rec=preparedRecord||await cdqLoadPdfRecord(id);\n  if(rec&&rec.blob instanceof Blob&&rec.blob.size<=8*1024*1024){\n    rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  }\n  if(document.getElementById('cdqReaderFrame'))return;",
+      "search": "window.addEventListener('cdq:access-ready',function(){cdqRafraichirTechniciensRapports(false).then(cdqPreparerQuvre4Pwa).catch(function(){cdqPreparerQuvre4Pwa();});});\nwindow.addEventListener('online',function(){cdqRafraichirTechniciensRapports(true).then(cdqPreparerQuvre4Pwa).catch(function(){cdqPreparerQuvre4Pwa();});});",
+      "replacement": "window.addEventListener('cdq:access-ready',function(){\n  cdqPublierSessionHorsLigne();\n  cdqMemoriserDestinationQuvre4();\n  cdqRafraichirTechniciensRapports(false).catch(function(){});\n});\nwindow.addEventListener('online',function(){\n  cdqPublierSessionHorsLigne();\n  cdqRafraichirTechniciensRapports(true).catch(function(){});\n});",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "function cdqSynchroniserTechniciensEtModeles(){return cdqRafraichirTechniciensRapports(true).then(liste=>{try{if(window.cdqPreparerQuvre4Pwa)return Promise.resolve(window.cdqPreparerQuvre4Pwa()).then(()=>liste);}catch(e){}return liste;});}",
+      "replacement": "function cdqSynchroniserTechniciensEtModeles(){return cdqRafraichirTechniciensRapports(true);}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "  if(window.cdqPreparerQuvre4Pwa)window.cdqPreparerQuvre4Pwa();\n  document.getElementById(\"copyTemplateName\").textContent=\"« \"+CDQ_MODELES_INTERMEDIAIRES[modeleCopieEnAttente]+\" »\";",
+      "replacement": "  // Aucun téléchargement lourd simplement en choisissant le modèle.\n  document.getElementById(\"copyTemplateName\").textContent=\"« \"+CDQ_MODELES_INTERMEDIAIRES[modeleCopieEnAttente]+\" »\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "  if(data.type==='CDQ_OFFLINE_PREPARE'){cdqPreparerQuvre4Pwa();cdqMemoriserDestinationQuvre4();}",
+      "replacement": "  if(data.type==='CDQ_OFFLINE_PREPARE'){cdqPublierSessionHorsLigne();cdqMemoriserDestinationQuvre4();}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "    if(navigator.onLine){\n      manifest=await cdqV19Gs('obtenirManifestHorsLigneClient',[id]);\n      // Les modèles sont préparés séparément après connexion : ce bouton ne recharge pas CDQ Système.\n    }else{const old=await cdqV19GetRecord('documents-manifest',id);manifest=old&&old.manifest;}",
+      "replacement": "    if(navigator.onLine){\n      manifest=await cdqV19Gs('obtenirManifestHorsLigneClient',[id]);\n      // Préparer uniquement le modèle Balance de Plancher quand l'utilisateur\n      // demande explicitement le mode hors ligne.\n      try{await cdqV2112EnsureTemplateOfflineCached(true,'plancher');}catch(e){console.warn('Préparation Balance de Plancher hors ligne :',e);}\n    }else{const old=await cdqV19GetRecord('documents-manifest',id);manifest=old&&old.manifest;}",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "  const blobTechnicien=await cdqPersonnaliserBlobTechnicienPdf(modele.blob);\n  const techKey=String(cdqTechniciensVersion||\"cache\")+\"|\"+String(utilisateurCourantEmail||\"\").toLowerCase()+\"|\"+String(utilisateurCourantNomRapport||\"\");\n  await cdqV19PutRecord(\"document-pdf\",id,{\n    id:id,nom:String(resultat.nom||modele.nom||\"Balance intermédiaire.pdf\"),clientId:String(resultat.clientId||idClient||compagnieSelectionnee||\"\"),type:\"PDF\",\n    taille:Number(blobTechnicien.size),revision:String(resultat.revision||(\"copie-locale-\"+Date.now())),chunks:Math.ceil(blobTechnicien.size/(1024*1024)),blob:blobTechnicien,\n    instantCopy:true,localReadyUntil:Date.now()+(2*60*1000),cachedAt:Date.now(),cdqTechVersion:techKey\n  });",
-      "replacement": "  const blobTechnicien=(modele.blob instanceof Blob && modele.blob.size<=8*1024*1024)\n    ? await cdqPersonnaliserBlobTechnicienPdf(modele.blob)\n    : modele.blob;\n  const techKey=String(cdqTechniciensVersion||\"cache\")+\"|\"+String(utilisateurCourantEmail||\"\").toLowerCase()+\"|\"+String(utilisateurCourantNomRapport||\"\");\n  await cdqV19PutRecord(\"document-pdf\",id,{\n    id:id,nom:String(resultat.nom||modele.nom||\"Balance intermédiaire.pdf\"),clientId:String(resultat.clientId||idClient||compagnieSelectionnee||\"\"),type:\"PDF\",\n    taille:Number(blobTechnicien.size),revision:String(resultat.revision||(\"copie-locale-\"+Date.now())),chunks:Math.ceil(blobTechnicien.size/(1024*1024)),blob:blobTechnicien,\n    instantCopy:true,localReadyUntil:Date.now()+(2*60*1000),cachedAt:Date.now(),cdqTechVersion:(blobTechnicien===modele.blob?\"\":techKey)\n  });",
+      "search": "data.blob.size<=15*1024*1024",
+      "replacement": "data.blob.size<=32*1024*1024",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "const workers=Math.min(3,total);",
-      "replacement": "const workers=Math.min(2,total);",
+      "search": "const CDQ_DOCUMENT_MAX_BYTES=15*1024*1024;",
+      "replacement": "const CDQ_DOCUMENT_MAX_BYTES=32*1024*1024;",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "frame.src=CDQ_PWA_ORIGIN+'/Rapports--talonnages-CDQ/reader.html?cdq=1&v=21.32';",
-      "replacement": "frame.src=CDQ_PWA_ORIGIN+'/Rapports--talonnages-CDQ/reader.html?cdq=1&v=22.57&ts='+Date.now();",
+      "search": "Choisissez le PDF rempli, de 15 Mo maximum.",
+      "replacement": "Choisissez le PDF rempli, de 32 Mo maximum.",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "content:\"V22.56\";",
-      "replacement": "content:\"V22.57\";",
+      "search": "content:\"V22.57\";",
+      "replacement": "content:\"V22.58\";",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "meta.textContent='V22.56';",
-      "replacement": "meta.textContent='V22.57';",
+      "search": "meta.textContent='V22.57';",
+      "replacement": "meta.textContent='V22.58';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "root.dataset.build='v22.56-pdf-chunk-fix';",
-      "replacement": "root.dataset.build='v22.57-large-pdf-open-fast';",
+      "search": "root.dataset.build='v22.57-large-pdf-open-fast';",
+      "replacement": "root.dataset.build='v22.58-lazy-heavy-work';",
       "expected": 1
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
     "notes": [
-      "Les PDF de plus de 8 Mo ne sont plus réécrits avec PDF-Lib avant ouverture",
-      "Évite le blocage silencieux après Préparation du PDF sur Android",
-      "Conserve le téléchargement par blocs et la barre de progression des grosses tâches",
-      "Réduit les téléchargements parallèles de 3 à 2 pour limiter la mémoire Android",
-      "Force une nouvelle instance du lecteur PDF",
-      "La préparation locale après copie ne réécrit plus les gros PDF avec PDF-Lib en arrière-plan"
+      "Supprime la préparation automatique lourde de tous les modèles au démarrage",
+      "Supprime la préparation lourde automatique au retour en ligne",
+      "Choisir Balance de Plancher dans le menu ne lance plus de téléchargement en arrière-plan",
+      "Le bouton Hors ligne prépare explicitement Balance de Plancher quand l'utilisateur le demande",
+      "Les réglages Affichage, gestes et lecteur PDF restent interactifs pendant l'utilisation normale",
+      "Conserve les correctifs PDF 32 Mo, progression grosses tâches et ouverture V22.57"
     ]
   }
 }
