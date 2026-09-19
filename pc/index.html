@@ -971,8 +971,8 @@ function cdqComparerVersions(a,b) {
 const CDQ_PC_LATEST_MANIFEST='/Rapports--talonnages-CDQ/bundles/balance-cdq/latest/manifest.json';
 let cdqPcUpdateCheckBusyV2244=false;
 
-function cdqPcReplyV2244(source,payload){
-  try{source.postMessage(payload,'https://script.google.com');}catch(e){
+function cdqPcReplyV2244(source,origin,payload){
+  try{source.postMessage(payload,origin||'*');}catch(e){
     try{source.postMessage(payload,'*');}catch(_){}
   }
 }
@@ -1011,7 +1011,7 @@ function cdqPcHealthBuildV2244(targetBuild,timeoutMs=12000){
   });
 }
 
-async function cdqPcCheckUpdateV2244(source,currentBuild){
+async function cdqPcCheckUpdateV2244(source,origin,currentBuild){
   if(cdqPcUpdateCheckBusyV2244)return;
   cdqPcUpdateCheckBusyV2244=true;
   try{
@@ -1022,11 +1022,11 @@ async function cdqPcCheckUpdateV2244(source,currentBuild){
     const targetVersion=String(m.version||targetBuild||'');
     const current=String(currentBuild||'');
     if(!targetBuild || !current || cdqComparerVersions(targetBuild,current)<=0){
-      cdqPcReplyV2244(source,{type:'CDQ_PC_UPDATE_STATUS',available:false,deployed:false,currentBuild:current,targetBuild,targetVersion});
+      cdqPcReplyV2244(source,origin,{type:'CDQ_PC_UPDATE_STATUS',available:false,deployed:false,currentBuild:current,targetBuild,targetVersion});
       return;
     }
     const health=await cdqPcHealthBuildV2244(targetBuild,12000);
-    cdqPcReplyV2244(source,{
+    cdqPcReplyV2244(source,origin,{
       type:'CDQ_PC_UPDATE_STATUS',
       available:!!health.ok,
       deployed:!!health.ok,
@@ -1036,7 +1036,7 @@ async function cdqPcCheckUpdateV2244(source,currentBuild){
       liveBuild:health.build||''
     });
   }catch(e){
-    cdqPcReplyV2244(source,{type:'CDQ_PC_UPDATE_STATUS',available:false,deployed:false,error:String(e&&e.message||e)});
+    cdqPcReplyV2244(source,origin,{type:'CDQ_PC_UPDATE_STATUS',available:false,deployed:false,error:String(e&&e.message||e)});
   }finally{
     cdqPcUpdateCheckBusyV2244=false;
   }
@@ -1194,7 +1194,7 @@ window.addEventListener('message', event => {
 const data = event.data || {};
 if (!isSelectorMessage(event)) return;
 if(data.type==='CDQ_PC_UPDATE_QUERY'){
-  cdqPcCheckUpdateV2244(event.source,String(data.build||''));
+  cdqPcCheckUpdateV2244(event.source,event.origin,String(data.build||''));
   return;
 }
 if(data.type==='CDQ_PC_APPLY_UPDATE'){
