@@ -1,91 +1,75 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.61",
-  "build": "2026.09.19-v22.61-pdf-global-open-fix",
-  "title": "Balance CDQ V22.61 — ouverture PDF globale corrigée",
+  "version": "V22.62",
+  "build": "2026.09.19-v22.62-pdf-scope-selection-fix",
+  "title": "Balance CDQ V22.62 — PDF + sélection Android corrigés",
   "requiresBuild": [
-    "2026.09.19-v22.60-android-direct-touch-pdf",
-    "2026.09.19-v22.59-mobile-interaction-fix"
+    "2026.09.19-v22.61-pdf-global-open-fix",
+    "2026.09.19-v22.60-android-direct-touch-pdf"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.60-android-direct-touch-pdf",
-        "2026.09.19-v22.59-mobile-interaction-fix"
+        "2026.09.19-v22.61-pdf-global-open-fix",
+        "2026.09.19-v22.60-android-direct-touch-pdf"
       ],
-      "to": "2026.09.19-v22.61-pdf-global-open-fix"
+      "to": "2026.09.19-v22.62-pdf-scope-selection-fix"
     },
     {
       "file": "Code.gs",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.60-android-direct-touch-pdf",
-        "2026.09.19-v22.59-mobile-interaction-fix"
+        "2026.09.19-v22.61-pdf-global-open-fix",
+        "2026.09.19-v22.60-android-direct-touch-pdf"
       ],
-      "to": "2026.09.19-v22.61-pdf-global-open-fix"
+      "to": "2026.09.19-v22.62-pdf-scope-selection-fix"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
-      "search": "async function cdqOpenPdf(id){\n  afficherMessage('Préparation du PDF…',true);\n  try{\n    const rec=await cdqLoadPdfRecord(id);\n    if(cdqPdfReaderPreference()==='cdq')cdqOpenPdfInternal(id,rec);\n    else cdqShowPdfReaderChoice(id,rec);\n  }\n  catch(e){afficherErreur(e);}\n}",
-      "replacement": "async function cdqOpenPdf(id){\n  afficherMessage('Préparation du PDF…',true);\n  try{\n    const rec=await cdqLoadPdfRecord(id);\n    if(cdqPdfReaderPreference()==='cdq')await cdqOpenPdfInternal(id,rec);\n    else cdqShowPdfReaderChoice(id,rec);\n    return true;\n  }\n  catch(e){afficherErreur(e);throw e;}\n}\nwindow.cdqOpenPdf=cdqOpenPdf;",
+      "search": "async function cdqOpenPdf(id){\n  afficherMessage('Préparation du PDF…',true);\n  try{\n    const rec=await cdqLoadPdfRecord(id);\n    if(cdqPdfReaderPreference()==='cdq')await cdqOpenPdfInternal(id,rec);\n    else cdqShowPdfReaderChoice(id,rec);\n    return true;\n  }\n  catch(e){afficherErreur(e);throw e;}\n}\nwindow.cdqOpenPdf=cdqOpenPdf;",
+      "replacement": "// V22.62 — rendre tout le chemin PDF accessible aux gestionnaires Android externes.\nwindow.cdqLoadPdfRecord=cdqLoadPdfRecord;\nwindow.cdqOpenPdfInternal=cdqOpenPdfInternal;\nwindow.cdqPdfReaderPreference=cdqPdfReaderPreference;\nwindow.cdqShowPdfReaderChoice=cdqShowPdfReaderChoice;\nwindow.cdqSetPdfReaderPreference=cdqSetPdfReaderPreference;\n\nasync function cdqOpenPdf(id){\n  afficherMessage('Préparation du PDF…',true);\n  try{\n    const rec=await window.cdqLoadPdfRecord(id);\n    if(window.cdqPdfReaderPreference()==='cdq'){\n      await window.cdqOpenPdfInternal(id,rec);\n    }else{\n      window.cdqShowPdfReaderChoice(id,rec);\n    }\n    return true;\n  }\n  catch(e){\n    afficherErreur(e);\n    throw e;\n  }\n}\nwindow.cdqOpenPdf=cdqOpenPdf;",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
-      "search": "    // Tap normal : ouvre le rapport directement.\n    modifierFichier(fichier.id);",
-      "replacement": "    // Tap normal : les PDF utilisent directement le lecteur CDQ/PDF.\n    if(String(fichier.type||'').toUpperCase()==='PDF' && typeof window.cdqOpenPdf==='function'){\n      window.cdqOpenPdf(fichier.id).catch(function(){});\n      return;\n    }\n    modifierFichier(fichier.id);",
+      "search": "    row.dataset.cdqDirectPdfUntil=String(Date.now()+800);\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    try{\n      Promise.resolve(window.cdqOpenPdf(id)).catch(function(err){\n        try{afficherErreur(err);}catch(_){}\n      });\n    }catch(err){\n      try{afficherErreur(err);}catch(_){}\n    }",
+      "replacement": "    // Ne PAS stopper pointerup : le gestionnaire natif de la ligne doit\n    // recevoir pointerup pour annuler la minuterie d'appui long.\n    row.dataset.cdqDirectPdfUntil=String(Date.now()+1400);\n    e.preventDefault();\n    try{\n      Promise.resolve(window.cdqOpenPdf(id)).catch(function(err){\n        try{afficherErreur(err);}catch(_){}\n      });\n    }catch(err){\n      try{afficherErreur(err);}catch(_){}\n    }",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "Promise.resolve(cdqOpenPdf(id)).catch(function(err){",
-      "replacement": "Promise.resolve(window.cdqOpenPdf(id)).catch(function(err){",
+      "search": "const rec=await cdqLoadPdfRecord(id);",
+      "replacement": "const rec=await window.cdqLoadPdfRecord(id);",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "  try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n}\nfunction cdqDownloadPdf(rec){",
-      "replacement": "  try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n}\nwindow.cdqEnsurePdf=cdqEnsurePdf;\nfunction cdqDownloadPdf(rec){",
+      "search": "meta.textContent='V22.61';",
+      "replacement": "meta.textContent='V22.62';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "content:\"V22.60\";",
-      "replacement": "content:\"V22.61\";",
-      "expected": 2
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "meta.textContent='V22.60';",
-      "replacement": "meta.textContent='V22.61';",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "root.dataset.build='v22.60-android-direct-touch-pdf';",
-      "replacement": "root.dataset.build='v22.61-pdf-global-open-fix';",
+      "search": "root.dataset.build='v22.61-pdf-global-open-fix';",
+      "replacement": "root.dataset.build='v22.62-pdf-scope-selection-fix';",
       "expected": 1
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
     "notes": [
-      "Corrige exactement l'erreur cdqOpenPdf is not defined de V22.60",
-      "Expose cdqOpenPdf sur window pour les gestionnaires Android externes",
-      "La ligne PDF possède aussi un chemin d'ouverture direct de secours",
-      "Expose cdqEnsurePdf pour diagnostic sans changer son moteur local",
-      "Conserve les blocs PDF 1 Mo et les interactions Android directes",
-      "Le remplacement visuel V22.60 → V22.61 accepte les deux occurrences présentes dans le Selector."
-    ],
-    "revision": "robuste-2"
+      "Expose cdqLoadPdfRecord, cdqOpenPdfInternal, cdqPdfReaderPreference et cdqShowPdfReaderChoice",
+      "cdqOpenPdf utilise explicitement les fonctions globales exposées",
+      "Le pointerup d'un PDF n'est plus bloqué : la minuterie d'appui long est annulée normalement",
+      "Le click synthétique suivant reste supprimé pour éviter une double ouverture",
+      "Conserve le moteur PDF 1 Mo / deux téléchargements parallèles de V22.60"
+    ]
   }
 }
