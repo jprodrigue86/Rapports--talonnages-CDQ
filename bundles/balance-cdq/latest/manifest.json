@@ -4,8 +4,7 @@
   "build": "2026.09.19-v22.62-pdf-scope-selection-fix",
   "title": "Balance CDQ V22.62 — PDF + sélection Android corrigés",
   "requiresBuild": [
-    "2026.09.19-v22.61-pdf-global-open-fix",
-    "2026.09.19-v22.60-android-direct-touch-pdf"
+    "2026.09.19-v22.61-pdf-global-open-fix"
   ],
   "patches": [
     {
@@ -39,27 +38,6 @@
       "search": "    row.dataset.cdqDirectPdfUntil=String(Date.now()+800);\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    try{\n      Promise.resolve(window.cdqOpenPdf(id)).catch(function(err){\n        try{afficherErreur(err);}catch(_){}\n      });\n    }catch(err){\n      try{afficherErreur(err);}catch(_){}\n    }",
       "replacement": "    // Ne PAS stopper pointerup : le gestionnaire natif de la ligne doit\n    // recevoir pointerup pour annuler la minuterie d'appui long.\n    row.dataset.cdqDirectPdfUntil=String(Date.now()+1400);\n    e.preventDefault();\n    try{\n      Promise.resolve(window.cdqOpenPdf(id)).catch(function(err){\n        try{afficherErreur(err);}catch(_){}\n      });\n    }catch(err){\n      try{afficherErreur(err);}catch(_){}\n    }",
       "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "const rec=await cdqLoadPdfRecord(id);",
-      "replacement": "const rec=await window.cdqLoadPdfRecord(id);",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "meta.textContent='V22.61';",
-      "replacement": "meta.textContent='V22.62';",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "root.dataset.build='v22.61-pdf-global-open-fix';",
-      "replacement": "root.dataset.build='v22.62-pdf-scope-selection-fix';",
-      "expected": 1
     }
   ],
   "audit": {
@@ -69,7 +47,8 @@
       "cdqOpenPdf utilise explicitement les fonctions globales exposées",
       "Le pointerup d'un PDF n'est plus bloqué : la minuterie d'appui long est annulée normalement",
       "Le click synthétique suivant reste supprimé pour éviter une double ouverture",
-      "Conserve le moteur PDF 1 Mo / deux téléchargements parallèles de V22.60"
+      "Conserve le moteur PDF 1 Mo / deux téléchargements parallèles de V22.60",
+      "Package V22.62 simplifié : seulement les deux corrections fonctionnelles exactes, sans remplacements visuels optionnels ambigus."
     ]
   }
 }
