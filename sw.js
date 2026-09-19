@@ -1,11 +1,11 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v22-18-audit-stable';
-const FORCE_BUILD='2026.09.18-v22.18-audit-stable';
+const CACHE = 'cdq-installable-v22-35-live-iframe-refresh';
+const FORCE_BUILD='2026.09.18-v22.35-live-iframe-refresh';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
-  './assets/music-wall-choice1.webp?v=20260917-fit70'
+  './assets/music-wall-choice1.webp?v=20260917-fit70', './assets/music-wall-pc-chosen-v2233.webp?v=20260918-pc35'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
