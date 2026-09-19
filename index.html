@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.19-v22.73-sheets-native-account-flow';
+const CDQ_PWA_BUILD = '2026.09.19-v22.74-pwa-pdf-stable-reset';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1131,131 +1131,9 @@ function cdqHandleDisplayPrefsV2215(data,source){
 
 
 // =====================================================
-// V22.72 — PDF ANDROID : COMPTE GOOGLE → LECTEUR PDF
-// Aucun pont APK. Aucun onglet Drive. Aucun téléchargement
-// ou reconstruction dans la PWA.
+// V22.74 — PDF géré uniquement par le Selector Balance CDQ.
+// La coque PWA ne gère plus l'ouverture PDF.
 // =====================================================
-let cdqPdfAccountStateV2272=null;
-let cdqPdfTokenClientV2272=null;
-const CDQ_DRIVE_SCOPE_V2272='https://www.googleapis.com/auth/drive.readonly';
-
-function cdqPdfReaderPackageV2272(reader){
-  reader=String(reader||'ask').toLowerCase();
-  if(reader==='ilovepdf')return 'com.ilovepdf.www';
-  if(reader==='acrobat')return 'com.adobe.reader';
-  return '';
-}
-
-function cdqPdfReplyErrorV2272(message){
-  const st=cdqPdfAccountStateV2272;
-  if(st&&st.source)replyToSelector(st.source,{
-    type:'CDQ_PDF_ACCOUNT_ERROR_V2272',
-    requestId:st.requestId,
-    message:String(message||'Impossible d’ouvrir le PDF.')
-  });
-  cdqPdfAccountStateV2272=null;
-}
-
-function cdqPdfMediaUrlV2272(st,token){
-  const u=new URL('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(st.fileId));
-  u.searchParams.set('alt','media');
-  u.searchParams.set('supportsAllDrives','true');
-  u.searchParams.set('access_token',String(token||''));
-  return u;
-}
-
-function cdqPdfIntentUrlV2272(st,token){
-  const media=cdqPdfMediaUrlV2272(st,token);
-  const pkg=cdqPdfReaderPackageV2272(st.reader);
-  let intent='intent://'+media.host+media.pathname+media.search+
-    '#Intent;scheme=https;action=android.intent.action.VIEW;type=application/pdf;';
-  if(pkg)intent+='package='+pkg+';';
-  intent+='end';
-  return intent;
-}
-
-async function cdqPdfWaitGoogleOAuthV2272(timeoutMs=12000){
-  const started=Date.now();
-  return new Promise((resolve,reject)=>{
-    (function check(){
-      if(window.google&&google.accounts&&google.accounts.oauth2){
-        resolve(google.accounts.oauth2);return;
-      }
-      if(Date.now()-started>=timeoutMs){
-        reject(new Error('Le sélecteur de compte Google ne répond pas.'));
-        return;
-      }
-      setTimeout(check,100);
-    })();
-  });
-}
-
-async function cdqPdfAccountOpenV2272(data,source){
-  if(!data||!/^[A-Za-z0-9_-]{10,200}$/.test(String(data.fileId||'')))return;
-
-  cdqPdfAccountStateV2272={
-    requestId:String(data.requestId||'pdf-'+Date.now()),
-    source,
-    fileId:String(data.fileId),
-    name:String(data.name||'Rapport.pdf'),
-    reader:String(data.reader||'ask'),
-    version:String(data.version||'')
-  };
-
-  const clientId=String((globalThis.CDQ_GOOGLE_AUTH_CONFIG||{}).clientId||'');
-  if(!clientId){
-    cdqPdfReplyErrorV2272('Configuration Google incomplète.');
-    return;
-  }
-
-  try{
-    const oauth=await cdqPdfWaitGoogleOAuthV2272();
-    const expected=cdqPdfAccountStateV2272;
-    if(!expected)return;
-
-    cdqPdfTokenClientV2272=oauth.initTokenClient({
-      client_id:clientId,
-      scope:CDQ_DRIVE_SCOPE_V2272,
-      include_granted_scopes:true,
-      prompt:'select_account',
-      callback:function(resp){
-        const st=cdqPdfAccountStateV2272;
-        if(!st||st!==expected)return;
-        if(!resp||resp.error||!resp.access_token){
-          cdqPdfReplyErrorV2272(
-            resp&&resp.error_description
-              ? resp.error_description
-              : 'Le choix du compte Google a été annulé.'
-          );
-          return;
-        }
-
-        const intentUrl=cdqPdfIntentUrlV2272(st,String(resp.access_token));
-        cdqPdfAccountStateV2272=null;
-
-        // Navigation dans LA MÊME PWA. Android intercepte intent:// et
-        // ouvre le lecteur PDF; aucun about:blank / onglet gris n'est créé.
-        try{
-          window.location.assign(intentUrl);
-        }catch(e){
-          cdqPdfReplyErrorV2272('Android n’a pas pu ouvrir le lecteur PDF.');
-        }
-      },
-      error_callback:function(err){
-        cdqPdfReplyErrorV2272(
-          err&&err.type==='popup_closed'
-            ? 'Le choix du compte Google a été annulé.'
-            : 'Impossible d’ouvrir le sélecteur de compte Google.'
-        );
-      }
-    });
-
-    // Le même sélecteur de compte Google est demandé immédiatement.
-    cdqPdfTokenClientV2272.requestAccessToken({prompt:'select_account'});
-  }catch(e){
-    cdqPdfReplyErrorV2272(e&&e.message?e.message:String(e));
-  }
-}
 
 window.addEventListener('message', event => {
 const data = event.data || {};
@@ -1294,7 +1172,6 @@ if(data.type==='CDQ_GOOGLE_AUTH_ERROR'){
   document.getElementById('load-message').textContent=String(data.message||'La connexion Google a échoué. Réessayez.');
 }
 if(data.type==='CDQ_GOOGLE_AUTH_HIDE')masquerConnexionGoogleV42();
-if(data.type==='CDQ_PDF_ACCOUNT_OPEN_V2272'){cdqPdfAccountOpenV2272(data,event.source);return;}
 if(String(data.type||'').startsWith('CDQ_OFFLINE_'))cdqOffline.then(controller=>controller.handle(data));
 if(data.type==='CDQ_ACCESS_STATE' && data.state!=='ready')cdqOffline.then(controller=>controller.lock());
 if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready'))replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
