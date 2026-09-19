@@ -3,7 +3,7 @@
   "name": "Balance CDQ — Rapports d’étalonnage",
   "short_name": "Balance CDQ",
   "description": "Application indépendante Balance CDQ pour les rapports d’étalonnage.",
-  "start_url": "/Rapports--talonnages-CDQ/reports/",
+  "start_url": "/Rapports--talonnages-CDQ/reports/?pc=1&shell=2237",
   "scope": "/Rapports--talonnages-CDQ/reports/",
   "display": "standalone",
   "orientation": "any",
