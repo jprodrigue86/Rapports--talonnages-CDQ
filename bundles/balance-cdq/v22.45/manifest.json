@@ -2,8 +2,9 @@
   "schema": "cdq-script-bundle-v2",
   "version": "V22.45",
   "build": "2026.09.18-v22.45-pc-fullscreen-version",
-  "title": "Balance CDQ V22.45 — plein écran PC + version corrigée",
+  "title": "Balance CDQ V22.45 — plein écran PC robuste",
   "requiresBuild": [
+    "2026.09.18-v22.42-pc-version-label-fix",
     "2026.09.18-v22.43-pc-left-edge-full",
     "2026.09.18-v22.44-pc-update-banner"
   ],
@@ -12,6 +13,7 @@
       "file": "Selector.html",
       "op": "replace_build_any",
       "from": [
+        "2026.09.18-v22.42-pc-version-label-fix",
         "2026.09.18-v22.43-pc-left-edge-full",
         "2026.09.18-v22.44-pc-update-banner"
       ],
@@ -21,6 +23,7 @@
       "file": "Code.gs",
       "op": "replace_build_any",
       "from": [
+        "2026.09.18-v22.42-pc-version-label-fix",
         "2026.09.18-v22.43-pc-left-edge-full",
         "2026.09.18-v22.44-pc-update-banner"
       ],
@@ -28,60 +31,24 @@
     },
     {
       "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "  const pad=6;\n  const scale=Math.max(.10,Math.min(5,Math.min((v.w-pad*2)/BASE_W,(v.h-pad*2)/BASE_H)));\n  const fittedW=Math.round(BASE_W*scale),fittedH=Math.round(BASE_H*scale);\n  const left=Math.max(0,Math.round((v.w-fittedW)/2));\n  const top=Math.max(0,Math.round((v.h-fittedH)/2));",
-      "replacement": "  const scaleX=Math.max(.10,Math.min(5,v.w/BASE_W));\n  const scaleY=Math.max(.10,Math.min(5,v.h/BASE_H));\n  const fittedW=v.w,fittedH=v.h;\n  const left=0,top=0;",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "stage.style.setProperty('transform','scale('+scale+')','important');",
-      "replacement": "stage.style.setProperty('transform','scale('+scaleX+','+scaleY+')','important');",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "const sig=v.w+'x'+v.h+'@'+scale.toFixed(4)+'@'+left+'x'+top;",
-      "replacement": "const sig=v.w+'x'+v.h+'@'+scaleX.toFixed(4)+'x'+scaleY.toFixed(4)+'@0x0';",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.42</span>",
+      "replacement": "<span>V22.45</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "stage.style.setProperty('left',left+'px','important');",
-      "replacement": "stage.style.setProperty('left','0px','important');",
+      "search": "<span>V22.43</span>",
+      "replacement": "<span>V22.45</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "stage.style.setProperty('top',top+'px','important');",
-      "replacement": "stage.style.setProperty('top','0px','important');",
+      "search": "<span>V22.44</span>",
+      "replacement": "<span>V22.45</span>",
       "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "oy:Number(vv&&vv.offsetTop)||0",
-      "replacement": "oy:0",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqPcV2244UpdateBannerCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqPcV2244UpdateBannerJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqPcV2242VersionLabelCss"
     },
     {
       "file": "Selector.html",
@@ -95,19 +62,31 @@
     },
     {
       "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2245RobustFullscreenCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqPcV2245RobustFullscreenJs"
+    },
+    {
+      "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqPcV2244UpdateBannerCss\">\nhtml.windows #cdqPcV16 #cdqPcUpdateBannerV2244{\n  display:flex;\n  align-items:center;\n  justify-content:space-between;\n  gap:8px;\n  margin:8px 6px 10px;\n  padding:8px 9px;\n  border:1px solid rgba(43,205,232,.78);\n  border-radius:9px;\n  background:linear-gradient(180deg,rgba(8,52,72,.97),rgba(5,33,47,.97));\n  box-shadow:0 0 0 1px rgba(24,160,195,.16),0 6px 16px rgba(0,0,0,.26);\n}\nhtml.windows #cdqPcV16 #cdqPcUpdateBannerV2244[hidden]{display:none!important;}\nhtml.windows #cdqPcV16 .cdqPcUpdateTextV2244{\n  display:flex;\n  flex-direction:column;\n  min-width:0;\n  line-height:1.05;\n}\nhtml.windows #cdqPcV16 .cdqPcUpdateTextV2244 strong{\n  font-size:10px;\n  color:#eaffff;\n  white-space:nowrap;\n}\nhtml.windows #cdqPcV16 .cdqPcUpdateTextV2244 span{\n  margin-top:3px;\n  font-size:9px;\n  font-weight:800;\n  color:#5ee8ff;\n}\nhtml.windows #cdqPcV16 #cdqPcUpdateBtnV2244{\n  flex:0 0 auto;\n  min-height:28px;\n  padding:5px 8px;\n  border:1px solid #4ce6ff;\n  border-radius:7px;\n  background:#12a9c6;\n  color:#03171f;\n  font-size:9px;\n  font-weight:900;\n  cursor:pointer;\n}\nhtml.windows #cdqPcV16 #cdqPcUpdateBtnV2244:hover{filter:brightness(1.08);}\n</style>\n<script id=\"cdqPcV2244UpdateBannerJs\">\n(function(){\n  'use strict';\n  const BUILD='2026.09.18-v22.45-pc-fullscreen-version';\n  const PARENT_ORIGIN='https://jprodrigue86.github.io';\n  let queryTimer=0;\n\n  function ensure(){\n    const root=document.getElementById('cdqPcV16');\n    if(!root)return false;\n    root.dataset.build='v22.45-pc-fullscreen-version';\n\n    let meta=root.querySelector('.pc16-side-meta');\n    if(!meta)return false;\n\n    let box=document.getElementById('cdqPcUpdateBannerV2244');\n    if(!box){\n      const wrap=document.createElement('div');\n      wrap.innerHTML=`<div id=\"cdqPcUpdateBannerV2244\" hidden>\n  <div class=\"cdqPcUpdateTextV2244\">\n    <strong>Nouvelle mise à jour</strong>\n    <span id=\"cdqPcUpdateVersionV2244\">V22.45</span>\n  </div>\n  <button id=\"cdqPcUpdateBtnV2244\" type=\"button\">Mettre à jour</button>\n</div>`;\n      box=wrap.firstElementChild;\n      meta.parentNode.insertBefore(box,meta);\n\n      const btn=box.querySelector('#cdqPcUpdateBtnV2244');\n      if(btn)btn.addEventListener('click',function(){\n        btn.disabled=true;\n        btn.textContent='Mise à jour…';\n        try{window.parent.postMessage({type:'CDQ_PC_APPLY_UPDATE',build:BUILD},PARENT_ORIGIN)}catch(e){}\n        setTimeout(function(){btn.disabled=false;btn.textContent='Mettre à jour'},6000);\n      });\n    }\n\n    const v=meta.querySelector('span');\n    if(v)v.textContent='V22.45';\n    return true;\n  }\n\n  function ask(){\n    if(!ensure())return;\n    try{\n      window.parent.postMessage({\n        type:'CDQ_PC_UPDATE_QUERY',\n        build:BUILD,\n        version:'V22.45'\n      },PARENT_ORIGIN);\n    }catch(e){}\n  }\n\n  window.addEventListener('message',function(e){\n    if(e.origin!==PARENT_ORIGIN)return;\n    const d=e.data||{};\n    if(d.type!=='CDQ_PC_UPDATE_STATUS')return;\n    const box=document.getElementById('cdqPcUpdateBannerV2244');\n    if(!box)return;\n\n    if(d.available&&d.deployed){\n      const version=document.getElementById('cdqPcUpdateVersionV2244');\n      if(version)version.textContent=String(d.targetVersion||d.liveBuild||'Nouvelle version');\n      box.hidden=false;\n    }else{\n      box.hidden=true;\n    }\n  });\n\n  if(document.readyState==='loading'){\n    document.addEventListener('DOMContentLoaded',function(){setTimeout(ask,250)},{once:true});\n  }else setTimeout(ask,250);\n\n  queryTimer=setInterval(ask,300000);\n  window.addEventListener('beforeunload',function(){clearInterval(queryTimer)},{once:true});\n})();\n</script>\n\n<style id=\"cdqPcV2245FullscreenCss\">\nhtml.windows,html.windows body.cdq-pc-v16{\n  width:100%!important;\n  height:100%!important;\n  margin:0!important;\n  padding:0!important;\n  overflow:hidden!important;\n}\nhtml.windows #cdqPcV16{\n  position:fixed!important;\n  inset:0!important;\n  left:0!important;\n  top:0!important;\n  width:100vw!important;\n  height:100vh!important;\n  margin:0!important;\n  padding:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-stage{\n  left:0!important;\n  top:0!important;\n  margin:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child{\n  font-size:0!important;\n  line-height:1!important;\n}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child::after{\n  content:\"V22.45\";\n  font-size:9px!important;\n  font-weight:800!important;\n  color:#dbe8ee!important;\n  white-space:nowrap!important;\n}\n</style>\n<script id=\"cdqPcV2245VersionStampJs\">\n(function(){\n  'use strict';\n  var observer=null;\n  function stamp(){\n    var root=document.getElementById('cdqPcV16');\n    if(!root)return false;\n    root.dataset.build='v22.45-pc-fullscreen-version';\n    var meta=root.querySelector('.pc16-side-meta span:last-child');\n    if(meta)meta.textContent='V22.45';\n    if(observer)observer.disconnect();\n    return !!meta;\n  }\n  if(!stamp()){\n    observer=new MutationObserver(function(){stamp()});\n    observer.observe(document.documentElement,{childList:true,subtree:true});\n  }\n})();\n</script>\n"
+      "text": "\n<style id=\"cdqPcV2244UpdateBannerCss\">\nhtml.windows #cdqPcV16 #cdqPcUpdateBannerV2244{\n  display:flex;\n  align-items:center;\n  justify-content:space-between;\n  gap:8px;\n  margin:8px 6px 10px;\n  padding:8px 9px;\n  border:1px solid rgba(43,205,232,.78);\n  border-radius:9px;\n  background:linear-gradient(180deg,rgba(8,52,72,.97),rgba(5,33,47,.97));\n  box-shadow:0 0 0 1px rgba(24,160,195,.16),0 6px 16px rgba(0,0,0,.26);\n}\nhtml.windows #cdqPcV16 #cdqPcUpdateBannerV2244[hidden]{display:none!important;}\nhtml.windows #cdqPcV16 .cdqPcUpdateTextV2244{\n  display:flex;\n  flex-direction:column;\n  min-width:0;\n  line-height:1.05;\n}\nhtml.windows #cdqPcV16 .cdqPcUpdateTextV2244 strong{\n  font-size:10px;\n  color:#eaffff;\n  white-space:nowrap;\n}\nhtml.windows #cdqPcV16 .cdqPcUpdateTextV2244 span{\n  margin-top:3px;\n  font-size:9px;\n  font-weight:800;\n  color:#5ee8ff;\n}\nhtml.windows #cdqPcV16 #cdqPcUpdateBtnV2244{\n  flex:0 0 auto;\n  min-height:28px;\n  padding:5px 8px;\n  border:1px solid #4ce6ff;\n  border-radius:7px;\n  background:#12a9c6;\n  color:#03171f;\n  font-size:9px;\n  font-weight:900;\n  cursor:pointer;\n}\nhtml.windows #cdqPcV16 #cdqPcUpdateBtnV2244:hover{filter:brightness(1.08);}\n</style>\n<script id=\"cdqPcV2244UpdateBannerJs\">\n(function(){\n  'use strict';\n  const BUILD='2026.09.18-v22.45-pc-fullscreen-version';\n  const PARENT_ORIGIN='https://jprodrigue86.github.io';\n  let queryTimer=0;\n\n  function ensure(){\n    const root=document.getElementById('cdqPcV16');\n    if(!root)return false;\n    root.dataset.build='v22.45-pc-fullscreen-version';\n\n    let meta=root.querySelector('.pc16-side-meta');\n    if(!meta)return false;\n\n    let box=document.getElementById('cdqPcUpdateBannerV2244');\n    if(!box){\n      const wrap=document.createElement('div');\n      wrap.innerHTML=`<div id=\"cdqPcUpdateBannerV2244\" hidden>\n  <div class=\"cdqPcUpdateTextV2244\">\n    <strong>Nouvelle mise à jour</strong>\n    <span id=\"cdqPcUpdateVersionV2244\">V22.45</span>\n  </div>\n  <button id=\"cdqPcUpdateBtnV2244\" type=\"button\">Mettre à jour</button>\n</div>`;\n      box=wrap.firstElementChild;\n      meta.parentNode.insertBefore(box,meta);\n\n      const btn=box.querySelector('#cdqPcUpdateBtnV2244');\n      if(btn)btn.addEventListener('click',function(){\n        btn.disabled=true;\n        btn.textContent='Mise à jour…';\n        try{window.parent.postMessage({type:'CDQ_PC_APPLY_UPDATE',build:BUILD},PARENT_ORIGIN)}catch(e){}\n        setTimeout(function(){btn.disabled=false;btn.textContent='Mettre à jour'},6000);\n      });\n    }\n\n    const v=meta.querySelector('span');\n    if(v)v.textContent='V22.45';\n    return true;\n  }\n\n  function ask(){\n    if(!ensure())return;\n    try{\n      window.parent.postMessage({\n        type:'CDQ_PC_UPDATE_QUERY',\n        build:BUILD,\n        version:'V22.45'\n      },PARENT_ORIGIN);\n    }catch(e){}\n  }\n\n  window.addEventListener('message',function(e){\n    if(e.origin!==PARENT_ORIGIN)return;\n    const d=e.data||{};\n    if(d.type!=='CDQ_PC_UPDATE_STATUS')return;\n    const box=document.getElementById('cdqPcUpdateBannerV2244');\n    if(!box)return;\n\n    if(d.available&&d.deployed){\n      const version=document.getElementById('cdqPcUpdateVersionV2244');\n      if(version)version.textContent=String(d.targetVersion||d.liveBuild||'Nouvelle version');\n      box.hidden=false;\n    }else{\n      box.hidden=true;\n    }\n  });\n\n  if(document.readyState==='loading'){\n    document.addEventListener('DOMContentLoaded',function(){setTimeout(ask,250)},{once:true});\n  }else setTimeout(ask,250);\n\n  queryTimer=setInterval(ask,300000);\n  window.addEventListener('beforeunload',function(){clearInterval(queryTimer)},{once:true});\n})();\n</script>\n\n\n\n\n<style id=\"cdqPcV2245RobustFullscreenCss\">\nhtml.windows,\nhtml.windows body.cdq-pc-v16{\n  margin:0!important;\n  padding:0!important;\n  width:100%!important;\n  height:100%!important;\n  overflow:hidden!important;\n}\nhtml.windows #cdqPcV16{\n  position:fixed!important;\n  inset:0!important;\n  left:0!important;\n  top:0!important;\n  width:100vw!important;\n  height:100vh!important;\n  margin:0!important;\n  padding:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-stage{\n  transform-origin:0 0!important;\n  margin:0!important;\n  left:0!important;\n  top:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child{\n  font-size:0!important;\n  line-height:1!important;\n}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child::after{\n  content:\"V22.45\";\n  font-size:9px!important;\n  font-weight:800!important;\n  color:#dbe8ee!important;\n  white-space:nowrap!important;\n}\n</style>\n<script id=\"cdqPcV2245RobustFullscreenJs\">\n(function(){\n  'use strict';\n  const BASE_W=1536,BASE_H=864;\n  let resizeTimer=0,observer=null,done=false;\n\n  function fit(){\n    const root=document.getElementById('cdqPcV16');\n    if(!root)return false;\n    const stage=root.querySelector('.pc16-stage');\n    if(!stage)return false;\n\n    const w=Math.max(1,window.innerWidth||document.documentElement.clientWidth||BASE_W);\n    const h=Math.max(1,window.innerHeight||document.documentElement.clientHeight||BASE_H);\n    const sx=w/BASE_W, sy=h/BASE_H;\n\n    root.style.setProperty('left','0px','important');\n    root.style.setProperty('top','0px','important');\n    root.style.setProperty('width',w+'px','important');\n    root.style.setProperty('height',h+'px','important');\n\n    stage.style.setProperty('left','0px','important');\n    stage.style.setProperty('top','0px','important');\n    stage.style.setProperty('width',BASE_W+'px','important');\n    stage.style.setProperty('height',BASE_H+'px','important');\n    stage.style.setProperty('transform','scale('+sx+','+sy+')','important');\n\n    root.dataset.build='v22.45-pc-fullscreen-version';\n    const meta=root.querySelector('.pc16-side-meta span:last-child');\n    if(meta)meta.textContent='V22.45';\n\n    done=true;\n    if(observer){observer.disconnect();observer=null;}\n    return true;\n  }\n\n  function schedule(){\n    clearTimeout(resizeTimer);\n    resizeTimer=setTimeout(function(){requestAnimationFrame(fit)},90);\n  }\n\n  if(!fit()){\n    observer=new MutationObserver(function(){if(fit()&&observer){observer.disconnect();observer=null;}});\n    observer.observe(document.documentElement,{childList:true,subtree:true});\n  }\n\n  window.addEventListener('resize',schedule,{passive:true});\n})();\n</script>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
+    "revision": "robuste-2",
     "notes": [
-      "Conserve l'anti-flash déjà validé",
-      "Supprime réellement la bande gauche en faisant remplir 100% du viewport au stage PC",
-      "Utilise une mise à l'échelle X/Y pour remplir toute la fenêtre sans couper le bas",
-      "Restaure l'étiquette de version avec V22.45 même si un ancien V22.26 reste dans le HTML",
-      "Conserve le bandeau Nouvelle mise à jour / Mettre à jour"
+      "Supprime les replace_literal obligatoires qui causaient attendu 1 trouvé 0",
+      "Plein écran appliqué sans dépendre du texte exact de scaleStage",
+      "Application collée à gauche et étirée sur toute la fenêtre PC",
+      "Conserve l'anti-flash",
+      "Conserve le bandeau de mise à jour si V22.44 était déjà installé",
+      "Version visible V22.45"
     ]
   }
 }
