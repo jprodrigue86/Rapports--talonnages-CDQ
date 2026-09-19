@@ -432,7 +432,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.19-v22.52-pdf-open-32mb';
+const CDQ_PWA_BUILD = '2026.09.19-v22.54-live-update-watch';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1058,54 +1058,132 @@ function cdqPcApplyUpdateV2244(){
 }
 
 
+let cdqLiveUpdateBusyV2254=false;
+let cdqLiveUpdateTimerV2254=null;
+let cdqSelectorBuildV2254='';
+
+async function cdqLireDernierBundleV2254(){
+  try{
+    const u='/Rapports--talonnages-CDQ/bundles/balance-cdq/latest/manifest.json?ts='+Date.now();
+    const r=await fetch(u,{cache:'no-store'});
+    if(!r.ok)throw new Error('bundle unavailable');
+    const j=await r.json();
+    return {build:String(j.build||''),version:String(j.version||'')};
+  }catch(e){
+    return {build:'',version:''};
+  }
+}
+
+function cdqVerifierProductionV2254(expectedBuild,timeoutMs=9000){
+  return new Promise(resolve=>{
+    let fini=false;
+    const frame=document.createElement('iframe');
+    frame.title='Vérification mise à jour Balance CDQ';
+    frame.tabIndex=-1;
+    frame.setAttribute('aria-hidden','true');
+    frame.style.cssText='position:fixed;left:-12000px;top:0;width:10px;height:10px;opacity:0;pointer-events:none;border:0';
+    function finish(ok,build){
+      if(fini)return;fini=true;
+      clearTimeout(timer);
+      window.removeEventListener('message',onMessage);
+      try{frame.remove()}catch(e){}
+      resolve({ok:!!ok,build:String(build||'')});
+    }
+    function onMessage(e){
+      if(e.source!==frame.contentWindow)return;
+      const host=(()=>{try{return new URL(e.origin).hostname}catch(_){return ''}})();
+      if(!(host==='script.google.com'||host==='script.googleusercontent.com'||host.endsWith('-script.googleusercontent.com')))return;
+      const d=e.data||{};
+      if(d.type!=='CDQ_HEALTH_READY')return;
+      const seen=String(d.selectorBuild||d.build||'');
+      finish(!!seen && cdqComparerVersions(seen,expectedBuild)>=0,seen);
+    }
+    window.addEventListener('message',onMessage);
+    const sep=APP_URL.indexOf('?')===-1?'?':'&';
+    frame.src=APP_URL+sep+'cdq_sm_health=1&cdq_live_update=1&expected='+encodeURIComponent(expectedBuild)+'&ts='+Date.now();
+    document.body.appendChild(frame);
+    const timer=setTimeout(()=>finish(false,''),timeoutMs);
+  });
+}
+
+async function cdqVerifierMiseAJourLiveV2254(source,buildSelector,force){
+  if(cdqLiveUpdateBusyV2254 && !force)return;
+  const cible=source||selectorWindow;
+  const selector=String(buildSelector||cdqSelectorBuildV2254||'');
+  if(!cible||!selector||navigator.onLine===false)return;
+  cdqLiveUpdateBusyV2254=true;
+  try{
+    const latest=await cdqLireDernierBundleV2254();
+    if(!latest.build || cdqComparerVersions(latest.build,selector)<=0){
+      try{replyToSelector(cible,{type:'CDQ_UPDATE_STATUS',available:false,latest:'',current:selector,selectorCurrent:selector,pwaCurrent:CDQ_PWA_BUILD,backendCurrent:backendBuild});}catch(e){}
+      return;
+    }
+    const live=await cdqVerifierProductionV2254(latest.build,9000);
+    const available=!!live.ok;
+    try{
+      replyToSelector(cible,{
+        type:'CDQ_UPDATE_STATUS',
+        available,
+        latest:available?(latest.build||latest.version):'',
+        latestVersion:latest.version,
+        current:selector,
+        selectorCurrent:selector,
+        pwaCurrent:CDQ_PWA_BUILD,
+        backendCurrent:live.build||backendBuild
+      });
+    }catch(e){}
+  }finally{
+    cdqLiveUpdateBusyV2254=false;
+  }
+}
+
 async function repondreEtatMiseAJour(source, buildSelector) {
-const latest = await lireVersionDistante();
-const selector = String(buildSelector||'');
-const current = CDQ_PWA_BUILD;
-const available = cdqComparerVersions(latest,current) > 0;
-try {
-replyToSelector(source,{
-type:'CDQ_UPDATE_STATUS',
-available,
-latest,
-current,
-selectorCurrent:selector,
-pwaCurrent:CDQ_PWA_BUILD,
-backendCurrent:backendBuild
-});
-} catch (e) {}
+  cdqSelectorBuildV2254=String(buildSelector||cdqSelectorBuildV2254||'');
+  return cdqVerifierMiseAJourLiveV2254(source,cdqSelectorBuildV2254,true);
+}
+
+function cdqDemarrerSurveillanceMiseAJourV2254(){
+  if(cdqLiveUpdateTimerV2254)return;
+  cdqLiveUpdateTimerV2254=setInterval(function(){
+    if(document.visibilityState==='visible'&&selectorWindow&&cdqSelectorBuildV2254){
+      cdqVerifierMiseAJourLiveV2254(selectorWindow,cdqSelectorBuildV2254,false);
+    }
+  },30000);
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'&&selectorWindow&&cdqSelectorBuildV2254)
+      setTimeout(function(){cdqVerifierMiseAJourLiveV2254(selectorWindow,cdqSelectorBuildV2254,true)},350);
+  });
+  window.addEventListener('focus',function(){
+    if(selectorWindow&&cdqSelectorBuildV2254)
+      setTimeout(function(){cdqVerifierMiseAJourLiveV2254(selectorWindow,cdqSelectorBuildV2254,true)},250);
+  });
 }
 
 async function forcerMiseAJour(source) {
-const latest=await lireVersionDistante();
-if(cdqComparerVersions(latest,CDQ_PWA_BUILD)<=0){
-  updateRequested=false;
-  try{replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available:false,latest,current:CDQ_PWA_BUILD,selectorCurrent:'',pwaCurrent:CDQ_PWA_BUILD,backendCurrent:backendBuild});}catch(e){}
-  return;
-}
-updateRequested=true;
-try{sessionStorage.setItem('cdq_update_target_v88',latest);}catch(e){}
-
-let controllerChanged=false;
-const controllerPromise=new Promise(resolve=>{
-  const done=()=>{controllerChanged=true;resolve(true);};
-  navigator.serviceWorker.addEventListener('controllerchange',done,{once:true});
-  setTimeout(()=>resolve(false),3500);
-});
-
-if('serviceWorker' in navigator){
-  try{
-    const reg=swRegistration || await navigator.serviceWorker.getRegistration();
-    if(reg){
-      await reg.update();
-      if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
-    }
-  }catch(e){}
-}
-
-// One outer reload only. Never ask the Selector iframe to reload itself.
-await controllerPromise;
-if(!controllerChanged)cdqReloadOuterOnceV88();
+  const selector=String(cdqSelectorBuildV2254||'');
+  const latest=await cdqLireDernierBundleV2254();
+  if(!latest.build || !selector || cdqComparerVersions(latest.build,selector)<=0){
+    updateRequested=false;
+    try{replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available:false,latest:'',current:selector||CDQ_PWA_BUILD,selectorCurrent:selector,pwaCurrent:CDQ_PWA_BUILD,backendCurrent:backendBuild});}catch(e){}
+    return;
+  }
+  const live=await cdqVerifierProductionV2254(latest.build,10000);
+  if(!live.ok){
+    try{replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available:false,latest:'',current:selector,selectorCurrent:selector,pwaCurrent:CDQ_PWA_BUILD,backendCurrent:live.build||backendBuild});}catch(e){}
+    return;
+  }
+  updateRequested=true;
+  try{sessionStorage.setItem('cdq_update_target_v88',latest.build);}catch(e){}
+  if('serviceWorker' in navigator){
+    try{
+      const reg=swRegistration || await navigator.serviceWorker.getRegistration();
+      if(reg){
+        await reg.update();
+        if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+      }
+    }catch(e){}
+  }
+  cdqReloadOuterOnceV88();
 }
 
 
@@ -1206,6 +1284,9 @@ if (selectorWindow && selectorWindow !== event.source) return;
 selectorWindow = event.source;
 selectorOrigin = event.origin;
 selectorReady = true;
+if(data.build)cdqSelectorBuildV2254=String(data.build);
+cdqDemarrerSurveillanceMiseAJourV2254();
+if(cdqSelectorBuildV2254)setTimeout(function(){cdqVerifierMiseAJourLiveV2254(selectorWindow,cdqSelectorBuildV2254,true)},1200);
 clearTimeout(loadingTimer);
 clearTimeout(slowLoadingTimer);
 loadHelp.style.display = 'none';
