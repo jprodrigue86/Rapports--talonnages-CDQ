@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.65-client-drive-source-clean",
+  "version": "2026.09.19-v22.66-drive-pdf-settings-stable",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.65-client-drive-source-clean",
-  "backend_version": "2026.09.19-v22.65-client-drive-source-clean",
+  "selector_version": "2026.09.19-v22.66-drive-pdf-settings-stable",
+  "backend_version": "2026.09.19-v22.66-drive-pdf-settings-stable",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -147,7 +147,10 @@
     "client-drive-pdf-source-of-truth",
     "remove-template-client-precache",
     "remove-obsolete-pdf-interceptors",
-    "android-preopen-drive-window"
+    "android-preopen-drive-window",
+    "online-pdf-direct-drive-v2266",
+    "settings-touch-bridge-v2266",
+    "no-online-pdf-rebuild"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
