@@ -1,120 +1,140 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.31",
-  "build": "2026.09.18-v22.31-pc-stable-mur-16x9",
-  "title": "Balance CDQ V22.31 — PC stable + mur musique 16:9",
+  "version": "V22.33",
+  "build": "2026.09.18-v22.33-pc-mur-android-stable",
+  "title": "Balance CDQ V22.33 — PC mur choisi + affichage stable",
   "requiresBuild": [
-    "2026.09.18-v22.24-pc-nettoyage",
-    "2026.09.18-v22.25-pc-ajustements-complets",
     "2026.09.18-v22.26-script-manager-final",
     "2026.09.18-v22.27-mur-cadre-gauche",
     "2026.09.18-v22.28-mur-cadre-gauche-robuste",
     "2026.09.18-v22.29-mur-cadre-gauche-sans-id",
     "2026.09.18-v22.30-pc-bas-gauche-icone-mur",
-    "2026.09.18-v22.30-pc-bas-gauche-mur-fixe"
+    "2026.09.18-v22.30-pc-bas-gauche-mur-fixe",
+    "2026.09.18-v22.31-pc-stable-mur-16x9",
+    "2026.09.18-v22.32-pc-mur-musique-stable"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build_any",
       "from": [
-        "2026.09.18-v22.24-pc-nettoyage",
-        "2026.09.18-v22.25-pc-ajustements-complets",
         "2026.09.18-v22.26-script-manager-final",
         "2026.09.18-v22.27-mur-cadre-gauche",
         "2026.09.18-v22.28-mur-cadre-gauche-robuste",
         "2026.09.18-v22.29-mur-cadre-gauche-sans-id",
         "2026.09.18-v22.30-pc-bas-gauche-icone-mur",
-        "2026.09.18-v22.30-pc-bas-gauche-mur-fixe"
+        "2026.09.18-v22.30-pc-bas-gauche-mur-fixe",
+        "2026.09.18-v22.31-pc-stable-mur-16x9",
+        "2026.09.18-v22.32-pc-mur-musique-stable"
       ],
-      "to": "2026.09.18-v22.31-pc-stable-mur-16x9"
+      "to": "2026.09.18-v22.33-pc-mur-android-stable"
     },
     {
       "file": "Code.gs",
       "op": "replace_build_any",
       "from": [
-        "2026.09.18-v22.24-pc-nettoyage",
-        "2026.09.18-v22.25-pc-ajustements-complets",
         "2026.09.18-v22.26-script-manager-final",
         "2026.09.18-v22.27-mur-cadre-gauche",
         "2026.09.18-v22.28-mur-cadre-gauche-robuste",
         "2026.09.18-v22.29-mur-cadre-gauche-sans-id",
         "2026.09.18-v22.30-pc-bas-gauche-icone-mur",
-        "2026.09.18-v22.30-pc-bas-gauche-mur-fixe"
+        "2026.09.18-v22.30-pc-bas-gauche-mur-fixe",
+        "2026.09.18-v22.31-pc-stable-mur-16x9",
+        "2026.09.18-v22.32-pc-mur-musique-stable"
       ],
-      "to": "2026.09.18-v22.31-pc-stable-mur-16x9"
+      "to": "2026.09.18-v22.33-pc-mur-android-stable"
     },
     {
       "file": "Selector.html",
       "op": "remove_style_id_if_present",
-      "id": "cdqPcV2225DirectCss"
+      "id": "cdqPcV2231StableCss"
     },
     {
       "file": "Selector.html",
       "op": "remove_script_id_if_present",
-      "id": "cdqPcV2225DirectJs"
+      "id": "cdqPcV2231StableJs"
     },
     {
       "file": "Selector.html",
       "op": "remove_style_id_if_present",
-      "id": "cdqPcV2227WallSidebarFix"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqPcV2228WallSidebarFix"
+      "id": "cdqPcV2232PcFixes"
     },
     {
       "file": "Selector.html",
       "op": "remove_script_id_if_present",
-      "id": "cdqPcV2228VersionFix"
+      "id": "cdqPcV2232PcFixesJs"
     },
     {
       "file": "Selector.html",
       "op": "remove_style_id_if_present",
-      "id": "cdqPcV2229WallSidebarFix"
+      "id": "cdqPcV2233StablePcFixes"
     },
     {
       "file": "Selector.html",
       "op": "remove_script_id_if_present",
-      "id": "cdqPcV2229VersionFix"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqPcV2230PcFixes"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqPcV2230PcFixesJs"
+      "id": "cdqPcV2233StablePcFixesJs"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "const pad=6;",
-      "replacement": "const pad=24;",
+      "search": "const left=Math.max(0,Math.round((v.w-fittedW)/2));",
+      "replacement": "const left=0;",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "r.dataset.build='v22.26-script-manager-final';",
-      "replacement": "r.dataset.build='v22.31-pc-stable-mur-16x9';",
+      "search": "if(Date.now()-st.lastClientsSync>45000)loadClients(false)",
+      "replacement": "if(Date.now()-st.lastClientsSync>180000)loadClients(false)",
+      "expected": 2
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "if(Date.now()-st.lastClientsSync>60000)loadClients(true);",
+      "replacement": "if(Date.now()-st.lastClientsSync>180000)loadClients(true);",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "<span>V22.26</span>",
-      "replacement": "<span>V22.31</span>",
+      "search": "},15000);window.addEventListener('load',()=>setTimeout(wait,250));if(document.readyState==='complete')setTimeout(wait,250);",
+      "replacement": "},60000);window.addEventListener('load',()=>setTimeout(wait,250));if(document.readyState==='complete')setTimeout(wait,250);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "async function loadClients(force){\n  if(!force&&!st.clients.length){\n    if(pc16RestoreGlobalCache())renderAll();\n  }\n  try{\n    let clients;\n    try{clients=await gs('obtenirDossiersClientsPCLeger',[!!force])}\n    catch(_){clients=await gs('obtenirDossiersClients',[!!force])}\n    if(Array.isArray(clients)){st.clients=clients;st.lastClientsSync=Date.now();renderAll();pc16SaveGlobalCache()}\n    const ids=st.clients.map(c=>c.id);\n    const jobs=[\n      gs('obtenirResumesConformiteClientsCDQ',[ids]).catch(()=>null),\n      gs('obtenirRapportsRecentsPC',[40,!!force]).catch(()=>null)\n    ];\n    const result=await Promise.all(jobs);\n    if(result[0])st.summaries=result[0];\n    if(Array.isArray(result[1]))st.recent=result[1];\n    if(!st.selected&&st.recent.length)st.selected=st.recent[0];\n    st.lastClientsSync=Date.now();pc16SaveGlobalCache();renderAll();\n  }catch(e){toast(e&&e.message||e,true)}\n}",
+      "replacement": "async function loadClients(force){\n  if(!force&&!st.clients.length){\n    if(pc16RestoreGlobalCache())renderAll();\n  }\n  try{\n    let changed=false,clients;\n    try{clients=await gs('obtenirDossiersClientsPCLeger',[!!force])}\n    catch(_){clients=await gs('obtenirDossiersClients',[!!force])}\n    if(Array.isArray(clients)){\n      const a=JSON.stringify((st.clients||[]).map(c=>[c.id,c.nom,c.dateModification||'']));\n      const b=JSON.stringify(clients.map(c=>[c.id,c.nom,c.dateModification||'']));\n      if(a!==b){st.clients=clients;changed=true}\n      st.lastClientsSync=Date.now();\n    }\n    const ids=st.clients.map(c=>c.id);\n    const jobs=[\n      gs('obtenirResumesConformiteClientsCDQ',[ids]).catch(()=>null),\n      gs('obtenirRapportsRecentsPC',[40,!!force]).catch(()=>null)\n    ];\n    const result=await Promise.all(jobs);\n    if(result[0]){\n      if(JSON.stringify(st.summaries||{})!==JSON.stringify(result[0]))changed=true;\n      st.summaries=result[0];\n    }\n    if(Array.isArray(result[1])){\n      const a=JSON.stringify((st.recent||[]).map(f=>[f.id,f.nom,f.dateModification||'',f.typeBalance||'']));\n      const b=JSON.stringify(result[1].map(f=>[f.id,f.nom,f.dateModification||'',f.typeBalance||'']));\n      if(a!==b)changed=true;\n      st.recent=result[1];\n    }\n    if(!st.selected&&st.recent.length)st.selected=st.recent[0];\n    st.lastClientsSync=Date.now();pc16SaveGlobalCache();\n    if(changed)renderAll();\n  }catch(e){toast(e&&e.message||e,true)}\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function renderKpis(){\n  const x=$('#pc16Kpis');if(!x)return;\n  const s=stats(),total=Math.max(1,s.ok+s.nc+s.unk),pct=Math.round(s.ok/total*100),types=new Set(st.recent.map(f=>f.typeBalance).filter(Boolean));\n  const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  x.innerHTML=`<div class=\"pc16-kpi green\"><span class=\"ico\">✓</span><div><span class=\"lab\">Conformité globale</span><strong>${pct}%</strong><em>${s.ok} conformes</em></div></div>\n  <div class=\"pc16-kpi red\" data-follow=\"nonconformities\"><span class=\"ico\">⚠</span><div><span class=\"lab\">Non-conformités actives</span><strong>${nc}</strong><em>Par client · historique</em></div></div>\n  <div class=\"pc16-kpi yellow\" data-follow=\"watchlist\"><span class=\"ico\">👥</span><div><span class=\"lab\">Clients à surveiller</span><strong>${watch}</strong><em>${Number(t.surveillancesActives||0)} suivis actifs</em></div></div>\n  <div class=\"pc16-kpi blue\"><span class=\"ico\">⚖</span><div><span class=\"lab\">Types de balances</span><strong>${Math.max(types.size,4)}</strong><em>Vue générale</em></div></div>\n  <div class=\"pc16-kpi cyan\" data-follow=\"clients\"><span class=\"ico\">🏢</span><div><span class=\"lab\">Clients chargés</span><strong>${st.clients.length||0}</strong><em>Ouvrir la liste</em></div></div>`;\n  $$('[data-follow]',x).forEach(k=>k.onclick=()=>show(k.dataset.follow));\n}",
+      "replacement": "function renderKpis(){\n  const x=$('#pc16Kpis');if(!x)return;\n  const s=stats(),total=Math.max(1,s.ok+s.nc+s.unk),pct=Math.round(s.ok/total*100),types=new Set(st.recent.map(f=>f.typeBalance).filter(Boolean));\n  const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  const html=`<div class=\"pc16-kpi green\"><span class=\"ico\">✓</span><div><span class=\"lab\">Conformité globale</span><strong>${pct}%</strong><em>${s.ok} conformes</em></div></div>\n  <div class=\"pc16-kpi red\" data-follow=\"nonconformities\"><span class=\"ico\">⚠</span><div><span class=\"lab\">Non-conformités actives</span><strong>${nc}</strong><em>Par client · historique</em></div></div>\n  <div class=\"pc16-kpi yellow\" data-follow=\"watchlist\"><span class=\"ico\">👥</span><div><span class=\"lab\">Clients à surveiller</span><strong>${watch}</strong><em>${Number(t.surveillancesActives||0)} suivis actifs</em></div></div>\n  <div class=\"pc16-kpi blue\"><span class=\"ico\">⚖</span><div><span class=\"lab\">Types de balances</span><strong>${Math.max(types.size,4)}</strong><em>Vue générale</em></div></div>\n  <div class=\"pc16-kpi cyan\" data-follow=\"clients\"><span class=\"ico\">🏢</span><div><span class=\"lab\">Clients chargés</span><strong>${st.clients.length||0}</strong><em>Ouvrir la liste</em></div></div>`;\n  if(x.dataset.kpiHtml===html)return;\n  x.dataset.kpiHtml=html;\n  x.innerHTML=html;\n  $$('[data-follow]',x).forEach(k=>k.onclick=()=>show(k.dataset.follow));\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.31-pc-stable-mur-16x9';",
+      "replacement": "r.dataset.build='v22.33-pc-mur-android-stable';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.31</span>",
+      "replacement": "<span>V22.33</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqPcV2231StableCss\">\n/* V22.31 — PC stable: bas visible, gauche complet, client stable, mur 16:9 dense */\nhtml.windows #cdqPcV16 .pc16-body{\n  grid-template-columns:190px minmax(0,1fr)!important;\n  gap:8px!important;\n}\nhtml.windows #cdqPcV16 .pc16-sidebar{\n  width:auto!important;\n  min-width:190px!important;\n  height:732px!important;\n  margin:0!important;\n  padding:8px 10px 10px!important;\n  border:1px solid #1e5874!important;\n  border-radius:7px!important;\n  background:linear-gradient(180deg,#061622 0%,#04131d 70%,#05141f 100%)!important;\n  box-shadow:inset 0 0 20px rgba(0,0,0,.38),0 0 0 1px rgba(20,133,195,.08)!important;\n  overflow:hidden!important;\n}\nhtml.windows #cdqPcV16 .pc16-center{height:732px!important;min-width:0!important;}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"],\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"] *{\n  animation:none!important;\n  transition:none!important;\n}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"] .ico{\n  font-size:31px!important;\n  line-height:1!important;\n  filter:none!important;\n  text-shadow:none!important;\n}\nhtml.pc16-startup-lock #accessOverlay{\n  background:#030507!important;\n  overflow:hidden!important;\n  isolation:isolate!important;\n}\nhtml.pc16-startup-lock #accessOverlay .cdq-music-wall-v2231{\n  position:absolute!important;\n  left:50%!important;top:50%!important;\n  width:max(100vw,177.778vh)!important;\n  height:max(56.25vw,100vh)!important;\n  transform:translate(-50%,-50%)!important;\n  z-index:0!important;\n  display:grid!important;\n  grid-template-columns:repeat(8,minmax(0,1fr))!important;\n  align-content:space-evenly!important;\n  gap:0!important;\n  padding:3.2vh 2vw!important;\n  overflow:hidden!important;\n  background:\n    radial-gradient(circle at 50% 50%,rgba(135,20,24,.36) 0 9%,rgba(42,8,10,.27) 22%,transparent 47%),\n    linear-gradient(180deg,#030405,#090405 52%,#020304)!important;\n  box-shadow:inset 0 0 13vw rgba(0,0,0,.94)!important;\n}\nhtml.pc16-startup-lock #accessOverlay .cdq-music-wall-v2231::after{\n  content:\"BALANCE  CDQ\"!important;\n  position:absolute!important;\n  left:50%!important;top:51%!important;\n  transform:translate(-50%,-50%)!important;\n  color:rgba(32,198,231,.16)!important;\n  font:900 clamp(52px,7vw,126px)/.9 Impact,\"Arial Black\",sans-serif!important;\n  letter-spacing:.02em!important;\n  white-space:nowrap!important;\n}\nhtml.pc16-startup-lock #accessOverlay .cdq-music-wall-v2231 span{\n  display:block!important;\n  padding:.15em .35em!important;\n  color:#d7dbde!important;\n  font:900 clamp(13px,1.25vw,25px)/.92 Impact,\"Arial Black\",Arial,sans-serif!important;\n  text-align:center!important;\n  text-transform:uppercase!important;\n  white-space:nowrap!important;\n  overflow:hidden!important;\n  text-overflow:clip!important;\n  text-shadow:0 2px 6px #000,0 0 9px rgba(255,255,255,.08)!important;\n  opacity:.9!important;\n}\nhtml.pc16-startup-lock #accessOverlay .cdq-music-wall-v2231 span:nth-child(7n+1),\nhtml.pc16-startup-lock #accessOverlay .cdq-music-wall-v2231 span:nth-child(11n+3){\n  color:#ce2b32!important;\n}\nhtml.pc16-startup-lock #accessOverlay .cdq-music-wall-v2231 span:nth-child(9n+2){\n  color:#d4b16b!important;\n}\nhtml.pc16-startup-lock #accessOverlay .access-card{\n  position:relative!important;\n  z-index:4!important;\n}\n</style>\n<script id=\"cdqPcV2231StableJs\">\n(function(){\n\"use strict\";\nvar bands=[\"METALLICA\",\"SLAYER\",\"MEGADETH\",\"IRON MAIDEN\",\"JUDAS PRIEST\",\"BLACK SABBATH\",\"PANTERA\",\"MOTÖRHEAD\",\"AC/DC\",\"SLIPKNOT\",\"KORN\",\"LINKIN PARK\",\"SYSTEM OF A DOWN\",\"DISTURBED\",\"TOOL\",\"DEFTONES\",\"ALICE IN CHAINS\",\"SEPULTURA\",\"FEAR FACTORY\",\"STATIC-X\",\"MARILYN MANSON\",\"RAMMSTEIN\",\"GOJIRA\",\"MESHUGGAH\",\"LAMB OF GOD\",\"CANNIBAL CORPSE\",\"DEICIDE\",\"OBITUARY\",\"DYING FETUS\",\"SUFFOCATION\",\"NAPALM DEATH\",\"CARCASS\",\"AMON AMARTH\",\"IN FLAMES\",\"CHILDREN OF BODOM\",\"ARCH ENEMY\",\"BEHEMOTH\",\"DIMMU BORGIR\",\"CRADLE OF FILTH\",\"MAYHEM\",\"BURZUM\",\"LORNA SHORE\",\"WHITECHAPEL\",\"THE BLACK DAHLIA MURDER\",\"DESPISED ICON\",\"TRIVIUM\",\"KILLSWITCH ENGAGE\",\"AS I LAY DYING\",\"PARKWAY DRIVE\",\"AUGUST BURNS RED\",\"BORN OF OSIRIS\",\"VEIL OF MAYA\",\"PERIPHERY\",\"ERRA\",\"TESSERACT\",\"MACHINE HEAD\",\"SOULFLY\",\"TESTAMENT\",\"EXODUS\",\"OVERKILL\",\"KREATOR\",\"SODOM\",\"DESTRUCTION\",\"ANTHRAX\",\"MASTODON\",\"DREAM THEATER\",\"OPETH\",\"TYPE O NEGATIVE\",\"ALL THAT REMAINS\",\"HELLYEAH\",\"SOILWORK\",\"HAMMERFALL\",\"DARK TRANQUILLITY\",\"SUICIDAL TENDENCIES\",\"ASKING ALEXANDRIA\",\"BRING ME THE HORIZON\",\"FALLING IN REVERSE\",\"MOTIONLESS IN WHITE\",\"BAD OMENS\"];\nfunction installWall(){\n  var overlay=document.getElementById(\"accessOverlay\");\n  if(!overlay||overlay.querySelector(\".cdq-music-wall-v2231\"))return;\n  var wall=document.createElement(\"div\");\n  wall.className=\"cdq-music-wall-v2231\";\n  wall.setAttribute(\"aria-hidden\",\"true\");\n  wall.innerHTML=bands.map(function(x){return \"<span>\"+x+\"</span>\";}).join(\"\");\n  overlay.insertBefore(wall,overlay.firstChild);\n}\nfunction fixPc(){\n  var root=document.getElementById(\"cdqPcV16\");\n  if(!root)return false;\n  root.dataset.build=\"v22.31-pc-stable-mur-16x9\";\n  var ver=root.querySelector(\".pc16-side-meta span\");\n  if(ver)ver.textContent=\"V22.31\";\n  var settings=root.querySelector('.pc16-nav button[data-view=\"settings\"]');\n  if(settings){\n    settings.innerHTML='<span class=\"ico\">⚙</span>Outils & paramètres';\n    settings.title=\"Outils et paramètres\";\n  }\n  return true;\n}\ninstallWall();\nif(!fixPc()){\n  var obs=new MutationObserver(function(){\n    installWall();\n    if(fixPc())obs.disconnect();\n  });\n  obs.observe(document.documentElement,{childList:true,subtree:true});\n  setTimeout(function(){installWall();fixPc();},500);\n}\ndocument.addEventListener(\"click\",function(e){\n  var root=document.getElementById(\"cdqPcV16\");\n  if(!root)return;\n  var t=e.target.closest(\"[data-setting],[data-tool]\");\n  if(!t)return;\n  var a=t.dataset.setting||t.dataset.tool||\"\";\n  if(a===\"display\"&&typeof window.ouvrirReglagesAffichage===\"function\"){\n    e.preventDefault();e.stopImmediatePropagation();window.ouvrirReglagesAffichage();\n  }else if(a===\"users\"&&typeof window.ouvrirGestionUtilisateurs===\"function\"){\n    e.preventDefault();e.stopImmediatePropagation();window.ouvrirGestionUtilisateurs();\n  }else if(a===\"inventory\"&&typeof window.ouvrirInventaireCDQ===\"function\"){\n    e.preventDefault();e.stopImmediatePropagation();window.ouvrirInventaireCDQ();\n  }\n},true);\n})();\n</script>\n"
+      "text": "\n<style id=\"cdqPcV2233StablePcFixes\">\nhtml.pc16-startup-lock,\nhtml.pc16-startup-lock body,\nhtml.pc16-startup-lock #accessOverlay{\n  background:#030507 url(\"https://jprodrigue86.github.io/Rapports--talonnages-CDQ/assets/music-wall-pc-chosen-v2233.webp?v=20260918-v2233\") center center / cover no-repeat fixed!important;\n}\nhtml.windows #cdqPcV16{background:#04131d!important;}\nhtml.windows #cdqPcV16 .pc16-body{\n  top:124px!important;\n  height:706px!important;\n  grid-template-columns:214px minmax(0,1fr)!important;\n  gap:8px!important;\n  padding-left:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-sidebar,\nhtml.windows #cdqPcV16 .pc16-center{height:706px!important;}\nhtml.windows #cdqPcV16 .pc16-sidebar{\n  min-width:214px!important;\n  width:auto!important;\n  margin:0!important;\n  padding:8px 10px 10px!important;\n  border:1px solid #1e5874!important;\n  border-left:0!important;\n  border-radius:0 7px 7px 0!important;\n  background:linear-gradient(180deg,#061622 0%,#04131d 70%,#05141f 100%)!important;\n  box-shadow:inset 0 0 20px rgba(0,0,0,.38)!important;\n  overflow:hidden!important;\n}\nhtml.windows #cdqPcV16 .pc16-center{\n  grid-template-rows:90px minmax(0,1fr)!important;\n  padding:16px 0 6px!important;\n}\nhtml.windows #cdqPcV16 .pc16-main{grid-template-rows:72px minmax(0,1fr) 34px!important;}\nhtml.windows #cdqPcV16 .pc16-table-wrap{padding-bottom:2px!important;}\nhtml.windows #cdqPcV16 .pc16-shortcuts{bottom:84px!important;}\nhtml.windows #cdqPcV16 .pc16-side-status{left:12px!important;right:12px!important;bottom:8px!important;}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"],\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"] *{\n  animation:none!important;\n  transition:none!important;\n  filter:none!important;\n  text-shadow:none!important;\n}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"]{--c:#20c8e8!important;}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"] .ico{font-size:31px!important;opacity:1!important;}\n</style>\n<script id=\"cdqPcV2233StablePcFixesJs\">\n(function(){\n  'use strict';\n  function applyOnce(){\n    var root=document.getElementById('cdqPcV16');\n    if(!root)return false;\n    root.dataset.build='v22.33-pc-mur-android-stable';\n    var v=root.querySelector('.pc16-side-meta span');\n    if(v)v.textContent='V22.33';\n    return true;\n  }\n  if(document.readyState==='loading'){\n    document.addEventListener('DOMContentLoaded',function(){setTimeout(applyOnce,60);},{once:true});\n  }else setTimeout(applyOnce,60);\n  window.addEventListener('load',function(){setTimeout(applyOnce,180);},{once:true});\n})();\n</script>\n"
     }
   ],
   "audit": {
@@ -122,13 +142,12 @@
     "robustPatch": true,
     "scriptManagerRequired": "V28",
     "notes": [
-      "Accepte les bases V22.24 à V22.30",
-      "Supprime les anciens correctifs PC qui entraient en conflit",
-      "Auto-fit avec marge pour garder le bas visible",
-      "Panneau gauche complet",
-      "Clients chargés sans remplacement périodique donc sans flash",
-      "Mur musique PC vectoriel 16:9 avec plusieurs groupes",
-      "Aucun projectScriptId dans le package"
+      "Mur musique PC choisi, style Android en 16:9",
+      "KPI Clients chargés ne remplace plus le DOM si les valeurs sont inchangées",
+      "Actualisation clients sans double render si aucune donnée ne change",
+      "Polling PC ralenti pour éviter les flashs",
+      "Zone gauche comblée et interface ancrée à gauche",
+      "Bas de l'application conservé visible"
     ]
   }
 }
