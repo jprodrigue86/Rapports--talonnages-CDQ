@@ -1,0 +1,48 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.88",
+  "build": "2026.09.19-v22.88-restore-native-drive-account-path",
+  "title": "Balance CDQ V22.88 — retour au chemin Drive natif V22.76",
+  "requiresBuild": [
+    "2026.09.19-v22.87-native-account-picker-pdf"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.87-native-account-picker-pdf",
+      "to": "2026.09.19-v22.88-restore-native-drive-account-path"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.87-native-account-picker-pdf",
+      "to": "2026.09.19-v22.88-restore-native-drive-account-path"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "function cdqPdfDriveViewUrlV2287(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]+$/.test(id))throw new Error('Identifiant PDF invalide.');\n  return 'https://drive.google.com/file/d/'+id+'/view?usp=drivesdk';\n}\n\nfunction cdqPdfDriveDownloadIntentV2287(id){\n  id=String(id||'');\n  const fallback=cdqPdfDriveViewUrlV2287(id);\n\n  // Important : le compte Google doit être choisi par l'application Drive,\n  // exactement comme Sheets choisit son compte via l'application Sheets.\n  // On cible donc le package Google Drive et non la connexion Web GSI.\n  const direct='intent://drive.google.com/uc?export=download&id='+encodeURIComponent(id)+\n    '#Intent;scheme=https;package=com.google.android.apps.docs;'+\n    'action=android.intent.action.VIEW;type=application/pdf;'+\n    'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n\n  return direct;\n}\n\nfunction cdqPdfMarkOpenedV2287(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction cdqOpenPdfNativeV2287(id){\n  const pref=typeof cdqPdfReaderPreference==='function'\n    ? cdqPdfReaderPreference()\n    : 'ask';\n\n  // Pour l'instant on valide d'abord le mode Demander.\n  // Les autres préférences restent sur le chemin Drive stable.\n  if(pref!=='ask'){\n    const a=document.createElement('a');\n    a.href=cdqPdfDriveViewUrlV2287(id);\n    a.target='_blank';\n    a.rel='noopener';\n    document.body.appendChild(a);\n    a.click();\n    a.remove();\n    cdqPdfMarkOpenedV2287(id);\n    return;\n  }\n\n  cdqPdfMarkOpenedV2287(id);\n\n  const a=document.createElement('a');\n  a.href=cdqPdfDriveDownloadIntentV2287(id);\n  a.target='_blank';\n  a.rel='noopener';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n}\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  // Google Sheets : chemin d'origine inchangé.\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      cdqOpenPdfNativeV2287(id);\n      return;\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n\n  return cdqV19OldModify(id);\n};",
+      "replacement": "function cdqMarquerPdfOuvertV2275(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction cdqPdfDriveUrlV2275(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]+$/.test(id))throw new Error('Identifiant PDF invalide.');\n  return 'https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view?usp=drivesdk';\n}\n\nfunction cdqPdfDriveIntentV2275(id){\n  const drive=cdqPdfDriveUrlV2275(id);\n  if(!/Android/i.test(navigator.userAgent||''))return drive;\n  return 'intent://drive.google.com/file/d/'+encodeURIComponent(String(id||''))+\n    '/view#Intent;scheme=https;package=com.google.android.apps.docs;'+\n    'S.browser_fallback_url='+encodeURIComponent(drive)+';end';\n}\n\nfunction cdqOuvrirPdfCommeSheetV2275(id){\n  const pref=cdqPdfReaderPreference();\n\n  // Le lecteur CDQ reste volontairement interne.\n  if(pref==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n\n  // Même principe que Google Sheets : l'intent est lancé DIRECTEMENT\n  // pendant le geste utilisateur, sans Apps Script asynchrone, sans\n  // window.open tardif et sans page about:blank.\n  window.location.href=cdqPdfDriveIntentV2275(id);\n  return true;\n}\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    return cdqOuvrirPdfCommeSheetV2275(id);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n\n  return cdqV19OldModify(id);\n};\n\n// Filet de sécurité Android : certains anciens gestionnaires de swipe\n// consomment le click synthétique après pointerup. On déclenche donc le PDF\n// au pointerup, pendant le vrai geste, puis on supprime seulement le click\n// qui suit afin d'éviter une double ouverture.\n(function(){\n  if(!/Android/i.test(navigator.userAgent||''))return;\n\n  let tap=null;\n\n  document.addEventListener('pointerdown',function(e){\n    if(e.target&&e.target.closest&&e.target.closest('button'))return;\n    const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n    if(!row)return;\n    const box=row.querySelector('.file-checkbox[data-file-id]');\n    if(!box)return;\n    const id=String(box.dataset.fileId||'');\n    const meta=cdqDocumentMeta(id);\n    if(!meta||meta.type!=='PDF')return;\n    tap={row:row,id:id,pointerId:e.pointerId,x:e.clientX,y:e.clientY,moved:false};\n  },true);\n\n  document.addEventListener('pointermove',function(e){\n    if(!tap||tap.pointerId!==e.pointerId)return;\n    if(Math.abs(e.clientX-tap.x)>18||Math.abs(e.clientY-tap.y)>18)tap.moved=true;\n  },true);\n\n  document.addEventListener('pointercancel',function(e){\n    if(tap&&tap.pointerId===e.pointerId)tap=null;\n  },true);\n\n  document.addEventListener('pointerup',function(e){\n    if(!tap||tap.pointerId!==e.pointerId)return;\n    const t=tap;tap=null;\n\n    if(t.moved)return;\n    if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return;\n    if(e.target&&e.target.closest&&e.target.closest('button'))return;\n\n    t.row.dataset.cdqPdfOpenedV2275='1';\n    try{\n      cdqOuvrirPdfCommeSheetV2275(t.id);\n    }catch(err){\n      try{afficherErreur(err);}catch(_){}\n    }\n\n    setTimeout(function(){\n      try{delete t.row.dataset.cdqPdfOpenedV2275;}catch(_){}\n    },800);\n  },true);\n\n  document.addEventListener('click',function(e){\n    const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n    if(!row||row.dataset.cdqPdfOpenedV2275!=='1')return;\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    delete row.dataset.cdqPdfOpenedV2275;\n  },true);\n})();",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V32",
+    "scope": "Correction du premier écran d'ouverture PDF uniquement",
+    "diagnosis": [
+      "V22.87 utilisait drive.google.com/uc?export=download&id=..., ce que l'application Drive ouvrait comme une ressource appelée uc.",
+      "La page observée à gauche vient directement de cette URL incorrecte.",
+      "V22.76 utilisait le vrai chemin Drive /file/d/<id>/view et avait été confirmé comme ouvrant correctement le PDF."
+    ],
+    "restored": [
+      "Intent direct vers com.google.android.apps.docs.",
+      "URL /file/d/<id>/view?usp=drivesdk.",
+      "Aucun endpoint /uc.",
+      "Aucun OAuth Web spécifique PDF.",
+      "Aucune deuxième application CDQ.",
+      "Google Sheets inchangés."
+    ],
+    "expected": "Au toucher du PDF, Drive doit traiter le vrai fichier et, si un choix de compte est nécessaire, afficher son sélecteur Android natif."
+  }
+}
