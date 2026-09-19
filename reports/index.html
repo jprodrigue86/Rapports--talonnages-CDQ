@@ -324,12 +324,16 @@ moins de groupes mais des noms plus lisibles.
 ===================================================== */
 .music-wall-pc{display:none}
 @media (min-width:900px) and (min-aspect-ratio:4/3){
-  .music-wall-image{display:none!important}
+  .music-wall-image{
+    display:block!important;
+    background-image:url("../assets/music-wall-pc-chosen-v2233.webp?v=20260918-pc37")!important;
+    background-size:cover!important;
+    background-position:center center!important;
+    background-repeat:no-repeat!important;
+    filter:brightness(.64) contrast(1.08) saturate(.92)!important;
+  }
   .music-wall-pc{display:none!important}
   #loading{background:#000!important}
-  #loading.pc-frame-ready{background:transparent!important}
-  #loading.pc-frame-ready::before,
-  #loading.pc-frame-ready::after{opacity:0!important}
   .music-wall-pc-unused{
     position:absolute;inset:0;z-index:-3;display:grid;
     grid-template-columns:repeat(6,minmax(0,1fr));
@@ -386,7 +390,7 @@ moins de groupes mais des noms plus lisibles.
 <iframe
 id="app"
 title="Rapports D’étalonnages"
-src="https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec?cdq_boot=1"
+src="about:blank"
 loading="eager"
 fetchpriority="high"
 allow="clipboard-read; clipboard-write"
@@ -427,7 +431,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v22.18-audit-stable';
+const CDQ_PWA_BUILD = '2026.09.18-v22.37-pc-reports-shell-fix';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -469,6 +473,12 @@ const loading = document.getElementById('loading');
 const loadHelp = document.getElementById('load-help');
 
 const APP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
+const CDQ_PC_BOOT_NONCE = Date.now() + '-' + Math.random().toString(36).slice(2);
+function cdqFreshAppUrl(reason='startup'){
+  const sep=APP_URL.includes('?')?'&':'?';
+  return APP_URL+sep+'cdq_boot=1&cdq_pc=1&cdq_reason='+encodeURIComponent(reason)+
+    '&cdq_live='+encodeURIComponent(CDQ_PC_BOOT_NONCE)+'&ts='+Date.now();
+}
 const MIN_LOADING_MS = 400;
 let loadingShownAt = performance.now();
 let selectorReady = false;
@@ -507,7 +517,8 @@ throw new Error('Le déverrouillage de l’appareil n’a pas été confirmé.')
 let loadingTimer = null;
 let hideLoadingTimer = null;
 let loadGeneration = 0;
-document.getElementById('open-direct').href = APP_URL;
+document.getElementById('open-direct').href = cdqFreshAppUrl('direct');
+app.src = cdqFreshAppUrl('startup');
 
 let cdqGoogleChallengeV42 = null;
 let cdqGoogleRenderingV42 = false;
@@ -806,7 +817,7 @@ if (selectorAwaitingAccess) {
 clearTimeout(hideLoadingTimer);
 loading.style.display = 'grid';
 const pcOneWall=window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches;
-if(pcOneWall){app.style.visibility='visible';loading.classList.add('pc-frame-ready');}
+if(pcOneWall){app.style.visibility='hidden';loading.classList.remove('pc-frame-ready');}
 // Dernier secours si le Selector cesse complètement de répondre.
 if (!wasPending) accessWaitTimer = setTimeout(() => {
 if (!selectorAwaitingAccess) return;
@@ -846,14 +857,16 @@ if(!app.src || app.src === 'about:blank')return;
 iframeLoaded = true;
 const pcOneWall=window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches;
 if(pcOneWall){
-  app.style.visibility='visible';
-  loading.classList.add('pc-frame-ready');
+  app.style.visibility='hidden';
+  loading.classList.remove('pc-frame-ready');
 }
 // V21.95 : le rendu de l'application ne dépend plus exclusivement du postMessage.
 // Sur certains Android/PWA, le Selector est chargé mais CDQ_SELECTOR_READY peut se perdre.
 // Après un très court délai, montrer l'iframe chargée au lieu de bloquer l'utilisateur.
 setTimeout(()=>{
   if(!iframeLoaded || selectorReady)return;
+  const pc=window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches;
+  if(pc)return;
   clearTimeout(loadingTimer);
   clearTimeout(slowLoadingTimer);
   clearTimeout(hideLoadingTimer);
@@ -882,8 +895,7 @@ clearTimeout(hideLoadingTimer);
 armLoadingTimeout();
 if(loadHelp) loadHelp.style.display = 'none';
 afficherMurChargement();
-const separator = APP_URL.indexOf('?') === -1 ? '?' : '&';
-app.src = APP_URL + separator + 'cdq_retry=' + Date.now();
+app.src = cdqFreshAppUrl('retry');
 }
 
 async function lireVersionDistante() {
