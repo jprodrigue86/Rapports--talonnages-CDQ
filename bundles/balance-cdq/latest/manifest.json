@@ -1,79 +1,65 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.42",
-  "build": "2026.09.18-v22.42-pc-version-label-fix",
-  "title": "Balance CDQ V22.42 — correction numéro PC",
+  "version": "V22.43",
+  "build": "2026.09.18-v22.43-pc-left-edge-full",
+  "title": "Balance CDQ V22.43 — supprimer bande gauche PC",
   "requiresBuild": [
-    "2026.09.18-v22.40-pc-no-flash-core",
-    "2026.09.18-v22.41-pc-syntax-recovery"
+    "2026.09.18-v22.42-pc-version-label-fix"
   ],
   "patches": [
     {
       "file": "Selector.html",
-      "op": "replace_build_any",
-      "from": [
-        "2026.09.18-v22.40-pc-no-flash-core",
-        "2026.09.18-v22.41-pc-syntax-recovery"
-      ],
-      "to": "2026.09.18-v22.42-pc-version-label-fix"
+      "op": "replace_build",
+      "from": "2026.09.18-v22.42-pc-version-label-fix",
+      "to": "2026.09.18-v22.43-pc-left-edge-full"
     },
     {
       "file": "Code.gs",
-      "op": "replace_build_any",
-      "from": [
-        "2026.09.18-v22.40-pc-no-flash-core",
-        "2026.09.18-v22.41-pc-syntax-recovery"
-      ],
-      "to": "2026.09.18-v22.42-pc-version-label-fix"
+      "op": "replace_build",
+      "from": "2026.09.18-v22.42-pc-version-label-fix",
+      "to": "2026.09.18-v22.43-pc-left-edge-full"
     },
     {
       "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.26</span></div>",
-      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
+      "op": "replace_literal",
+      "search": "r.style.setProperty('left',v.ox+'px','important');",
+      "replacement": "r.style.setProperty('left','0px','important');",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.36</span></div>",
-      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
+      "search": "ox:Number(vv&&vv.offsetLeft)||0,",
+      "replacement": "ox:0,",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.40</span></div>",
-      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.41</span></div>",
-      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
+      "search": "<span>V22.42</span>",
+      "replacement": "<span>V22.43</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "remove_style_id_if_present",
-      "id": "cdqPcV2242VersionLabelCss"
+      "id": "cdqPcV2243LeftEdgeCss"
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqPcV2242VersionLabelCss\">\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child{\n  font-size:0!important;\n  line-height:1!important;\n}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child::after{\n  content:\"V22.42\";\n  font-size:9px!important;\n  font-weight:800!important;\n  color:#dbe8ee!important;\n  white-space:nowrap!important;\n}\n</style>\n"
+      "text": "\n<style id=\"cdqPcV2243LeftEdgeCss\">\nhtml.windows #cdqPcV16{\n  left:0!important;\n  margin-left:0!important;\n  padding-left:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-stage{\n  left:0!important;\n  margin-left:0!important;\n}\n</style>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
     "microCorrection": true,
     "notes": [
-      "Aucune modification du comportement anti-flash",
-      "Aucune modification de mise en page",
-      "Corrige uniquement le numéro de version affiché dans la barre latérale PC",
-      "CSS de secours masque un ancien V22.26 résiduel"
+      "Conserve le correctif anti-flash V22.42",
+      "Supprime uniquement le décalage horizontal gauche du shell PC",
+      "Force l'application PC à partir du bord gauche de la fenêtre",
+      "Aucun changement aux données, KPI, menus ou chargement"
     ]
   }
 }
