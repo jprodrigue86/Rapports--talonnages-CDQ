@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V28';
+const APP_VERSION = 'V29';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -549,14 +549,31 @@ async function readProject(id, save = true) {
   S.sel = '';
   scriptIdInput.value = id;
   if (save) LS.setItem('cdqsm_script_id', id);
-  projectMeta.innerHTML = `<b>${esc(meta.title || 'Projet Apps Script')}</b><br>Script ID : <code>${esc(id)}</code>`;
+  const sourceBuild=detectBuildLabel(S.files)||'version non détectée';
+  projectMeta.innerHTML = `<b>${esc(meta.title || 'Projet Apps Script')}</b><br>Script ID : <code>${esc(id)}</code><br>Code source lu : <code>${esc(sourceBuild)}</code>`;
   badge('projectBadge', 'Projet : ' + (meta.title || 'chargé'), 'ok');
   renderFiles();
   renderDiff();
   renderDeployments(deps);
   updateQuickUi();
-  stat(`${S.files.length} fichier(s) chargé(s).`, 'ok');
+  stat(`${S.files.length} fichier(s) chargé(s) • ${sourceBuild}.`, 'ok');
   if(S.bundleUrl)await maybeImportBundleV24();
+  else if(isProductionProject()){
+    setTimeout(async()=>{
+      try{
+        const live=await verifyProductionWebAppReadyV23('',18000);
+        const liveBuild=live.selectorBuild||live.build||'version non annoncée';
+        const dep=productionDeployment();
+        const depVersion=Number(dep?.deploymentConfig?.versionNumber||0);
+        projectMeta.innerHTML += `<br>Production servie : <code>${esc(liveBuild)}</code>${depVersion?' • Apps Script v'+depVersion:''}`;
+        if(compareBuildLabels(liveBuild,sourceBuild)!==0){
+          setQuickResult('DIAGNOSTIC : le code source et la production servie ne correspondent pas. Source '+sourceBuild+' • production '+liveBuild+'.','err');
+        }
+      }catch(e){
+        projectMeta.innerHTML += '<br>Production servie : <code>vérification impossible</code>';
+      }
+    },250);
+  }
 }
 
 async function loadSelectedProject() {
@@ -1818,7 +1835,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=28').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=29').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
