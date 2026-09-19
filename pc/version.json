@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.60-android-direct-touch-pdf",
+  "version": "2026.09.19-v22.61-pdf-global-open-fix",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.60-android-direct-touch-pdf",
-  "backend_version": "2026.09.19-v22.60-android-direct-touch-pdf",
+  "selector_version": "2026.09.19-v22.61-pdf-global-open-fix",
+  "backend_version": "2026.09.19-v22.61-pdf-global-open-fix",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -142,7 +142,9 @@
     "ui-no-background-pdf-freeze",
     "android-direct-pointer-settings",
     "pdf-1mb-chunks-two-workers",
-    "direct-pdf-row-tap"
+    "direct-pdf-row-tap",
+    "pdf-global-open-export",
+    "android-pdf-direct-fallback"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
