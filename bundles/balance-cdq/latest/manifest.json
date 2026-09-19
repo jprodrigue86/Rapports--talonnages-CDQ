@@ -1,67 +1,79 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.41",
-  "build": "2026.09.18-v22.41-pc-syntax-recovery",
-  "title": "Balance CDQ V22.41 — récupération syntaxe PC",
+  "version": "V22.42",
+  "build": "2026.09.18-v22.42-pc-version-label-fix",
+  "title": "Balance CDQ V22.42 — correction numéro PC",
   "requiresBuild": [
-    "2026.09.18-v22.40-pc-no-flash-core"
+    "2026.09.18-v22.40-pc-no-flash-core",
+    "2026.09.18-v22.41-pc-syntax-recovery"
   ],
   "patches": [
     {
       "file": "Selector.html",
-      "op": "replace_build",
-      "from": "2026.09.18-v22.40-pc-no-flash-core",
-      "to": "2026.09.18-v22.41-pc-syntax-recovery"
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.18-v22.40-pc-no-flash-core",
+        "2026.09.18-v22.41-pc-syntax-recovery"
+      ],
+      "to": "2026.09.18-v22.42-pc-version-label-fix"
     },
     {
       "file": "Code.gs",
-      "op": "replace_build",
-      "from": "2026.09.18-v22.40-pc-no-flash-core",
-      "to": "2026.09.18-v22.41-pc-syntax-recovery"
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.18-v22.40-pc-no-flash-core",
+        "2026.09.18-v22.41-pc-syntax-recovery"
+      ],
+      "to": "2026.09.18-v22.42-pc-version-label-fix"
     },
     {
       "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\\n  const pc16KpiKeyV2240=[pct,s.ok,nc,watch,Number(t.surveillancesActives||0),Math.max(types.size,4),st.clients.length||0].join('|');\\n  if(x.dataset.kpiKeyV2240===pc16KpiKeyV2240)return;\\n  x.dataset.kpiKeyV2240=pc16KpiKeyV2240;",
-      "replacement": "const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  const pc16KpiKeyV2240=[pct,s.ok,nc,watch,Number(t.surveillancesActives||0),Math.max(types.size,4),st.clients.length||0].join('|');\n  if(x.dataset.kpiKeyV2240===pc16KpiKeyV2240)return;\n  x.dataset.kpiKeyV2240=pc16KpiKeyV2240;",
+      "op": "replace_literal_if_present",
+      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.26</span></div>",
+      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "<span>V22.40</span>",
-      "replacement": "<span>V22.41</span>",
+      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.36</span></div>",
+      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "v.textContent='V22.40';",
-      "replacement": "v.textContent='V22.41';",
+      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.40</span></div>",
+      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "r.dataset.build='v22.40-pc-no-flash-core';",
-      "replacement": "r.dataset.build='v22.41-pc-syntax-recovery';",
+      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.41</span></div>",
+      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
       "expected": 1
     },
     {
       "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "root.dataset.build='v22.40-pc-no-flash-core';",
-      "replacement": "root.dataset.build='v22.41-pc-syntax-recovery';",
-      "expected": 1
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2242VersionLabelCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqPcV2242VersionLabelCss\">\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child{\n  font-size:0!important;\n  line-height:1!important;\n}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child::after{\n  content:\"V22.42\";\n  font-size:9px!important;\n  font-weight:800!important;\n  color:#dbe8ee!important;\n  white-space:nowrap!important;\n}\n</style>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
-    "recovery": true,
+    "microCorrection": true,
     "notes": [
-      "Corrige les caractères \\\\n littéraux injectés par V22.40",
-      "Restaure un JavaScript Selector syntaxiquement valide",
-      "Aucun autre changement fonctionnel dans cette récupération"
+      "Aucune modification du comportement anti-flash",
+      "Aucune modification de mise en page",
+      "Corrige uniquement le numéro de version affiché dans la barre latérale PC",
+      "CSS de secours masque un ancien V22.26 résiduel"
     ]
   }
 }
