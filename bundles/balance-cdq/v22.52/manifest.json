@@ -1,0 +1,96 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.52",
+  "build": "2026.09.19-v22.52-pdf-open-32mb",
+  "title": "Balance CDQ V22.52 — ouverture PDF 32 Mo",
+  "requiresBuild": [
+    "2026.09.19-v22.50-global-progress",
+    "2026.09.19-v22.51-progress-nonblocking"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.50-global-progress",
+        "2026.09.19-v22.51-progress-nonblocking"
+      ],
+      "to": "2026.09.19-v22.52-pdf-open-32mb"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.50-global-progress",
+        "2026.09.19-v22.51-progress-nonblocking"
+      ],
+      "to": "2026.09.19-v22.52-pdf-open-32mb"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "const CDQ_DOCUMENT_MAX_BYTES=15*1024*1024;",
+      "replacement": "const CDQ_DOCUMENT_MAX_BYTES=32*1024*1024;",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "Choisissez le PDF rempli, de 15 Mo maximum.",
+      "replacement": "Choisissez le PDF rempli, de 32 Mo maximum.",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "Ce PDF dépasse la limite de 15 Mo pour la copie hors ligne.",
+      "replacement": "Ce PDF dépasse la limite de 32 Mo pour la copie hors ligne.",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "data.blob.size<=15*1024*1024",
+      "replacement": "data.blob.size<=32*1024*1024",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "meta.taille>15*1024*1024",
+      "replacement": "meta.taille>32*1024*1024",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "content:\"V22.51\";",
+      "replacement": "content:\"V22.52\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "meta.textContent='V22.51';",
+      "replacement": "meta.textContent='V22.52';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "root.dataset.build='v22.51-progress-nonblocking';",
+      "replacement": "root.dataset.build='v22.52-pdf-open-32mb';",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "notes": [
+      "Corrige le chemin d'ouverture des PDF de plus de 15 Mo",
+      "Tous les garde-fous de lecture/import PDF passent à 32 Mo",
+      "La coque PWA utilise un nouveau fichier offline-templates-v2252.mjs hors de l'ancien cache",
+      "Le PDF Balance de Plancher 22,6 Mo peut s'ouvrir sans l'erreur 15 Mo",
+      "La copie, la progression et les autres fonctions V22.51 sont conservées"
+    ]
+  }
+}
