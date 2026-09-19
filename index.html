@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.19-v22.70-native-pdf-bridge';
+const CDQ_PWA_BUILD = '2026.09.19-v22.72-account-direct-pdf-intent';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1131,154 +1131,130 @@ function cdqHandleDisplayPrefsV2215(data,source){
 
 
 // =====================================================
-// V22.70 — PDF ANDROID VIA PONT NATIF
-// Aucun téléchargement PDF dans la PWA.
+// V22.72 — PDF ANDROID : COMPTE GOOGLE → LECTEUR PDF
+// Aucun pont APK. Aucun onglet Drive. Aucun téléchargement
+// ou reconstruction dans la PWA.
 // =====================================================
-let cdqPdfNativeStateV2270=null;
-let cdqPdfNativeTokenClientV2270=null;
-const CDQ_DRIVE_SCOPE_V2270='https://www.googleapis.com/auth/drive.readonly';
-const CDQ_PDF_BRIDGE_PACKAGE_V2270='ca.balancecdq.pdfbridge';
-const CDQ_PDF_BRIDGE_FALLBACK_V2270='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/pdf-bridge.html';
+let cdqPdfAccountStateV2272=null;
+let cdqPdfTokenClientV2272=null;
+const CDQ_DRIVE_SCOPE_V2272='https://www.googleapis.com/auth/drive.readonly';
 
-function cdqPdfNativeReaderLabelV2270(v){
-  v=String(v||'ask');
-  if(v==='ilovepdf')return 'iLovePDF';
-  if(v==='acrobat')return 'Adobe Acrobat';
-  if(v==='cdq')return 'Lecteur CDQ';
-  return 'lecteur PDF';
+function cdqPdfReaderPackageV2272(reader){
+  reader=String(reader||'ask').toLowerCase();
+  if(reader==='ilovepdf')return 'com.ilovepdf.www';
+  if(reader==='acrobat')return 'com.adobe.reader';
+  return '';
 }
 
-function cdqPdfNativeEnsureUiV2270(){
-  let ov=document.getElementById('cdq-pdf-native-v2270');
-  if(ov)return ov;
-  ov=document.createElement('div');
-  ov.id='cdq-pdf-native-v2270';
-  ov.style.cssText='position:fixed;inset:0;z-index:100700;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,10,18,.66);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)';
-  ov.innerHTML=
-    '<div style="width:min(430px,100%);border:1px solid #168dc2;border-radius:18px;background:#071a29;color:#f4fbff;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:18px">'+
-      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'+
-        '<div style="width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#12344b;font-size:21px;font-weight:900">G</div>'+
-        '<div style="min-width:0;flex:1"><strong id="cdqPdfNativeTitleV2270" style="display:block;font-size:19px">Ouvrir le PDF</strong><small id="cdqPdfNativeSubV2270" style="display:block;margin-top:3px;color:#a9c4d3">Choisissez votre compte Google.</small></div>'+
-        '<button id="cdqPdfNativeCloseV2270" type="button" style="width:40px;height:40px;border-radius:10px;border:1px solid #31556c;background:#10283b;color:#fff;font-size:24px">×</button>'+
-      '</div>'+
-      '<button id="cdqPdfNativeAccountV2270" type="button" style="width:100%;min-height:52px;border:1px solid #4d7188;border-radius:12px;background:#fff;color:#1f2937;font-weight:850;font-size:15px">G&nbsp;&nbsp; Choisir un compte Google</button>'+
-      '<div id="cdqPdfNativeStatusV2270" style="margin-top:12px;color:#9eb8c8;font-size:13px;line-height:1.45"></div>'+
-      '<button id="cdqPdfNativeOpenV2270" type="button" style="display:none;width:100%;min-height:50px;margin-top:14px;border:0;border-radius:12px;background:#199fe0;color:#fff;font-weight:900;font-size:15px">Ouvrir le PDF</button>'+
-    '</div>';
-  document.body.appendChild(ov);
-  ov.querySelector('#cdqPdfNativeCloseV2270').onclick=function(){
-    cdqPdfNativeStateV2270=null;
-    ov.style.display='none';
-  };
-  ov.querySelector('#cdqPdfNativeAccountV2270').onclick=cdqPdfNativeChooseAccountV2270;
-  ov.querySelector('#cdqPdfNativeOpenV2270').onclick=function(){
-    if(cdqPdfNativeStateV2270&&cdqPdfNativeStateV2270.token)cdqPdfNativeLaunchBridgeV2270();
-  };
-  return ov;
+function cdqPdfReplyErrorV2272(message){
+  const st=cdqPdfAccountStateV2272;
+  if(st&&st.source)replyToSelector(st.source,{
+    type:'CDQ_PDF_ACCOUNT_ERROR_V2272',
+    requestId:st.requestId,
+    message:String(message||'Impossible d’ouvrir le PDF.')
+  });
+  cdqPdfAccountStateV2272=null;
 }
 
-function cdqPdfNativeBuildIntentV2270(st){
-  function E(v){return encodeURIComponent(String(v==null?'':v));}
-  return 'intent://open#Intent;scheme=cdqpdf;package='+CDQ_PDF_BRIDGE_PACKAGE_V2270+';'+
-    'S.fileId='+E(st.fileId)+';'+
-    'S.fileName='+E(st.name)+';'+
-    'S.reader='+E(st.reader)+';'+
-    'S.accessToken='+E(st.token)+';'+
-    'S.version='+E(st.version)+';'+
-    'S.browser_fallback_url='+E(CDQ_PDF_BRIDGE_FALLBACK_V2270)+';end';
+function cdqPdfMediaUrlV2272(st,token){
+  const u=new URL('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(st.fileId));
+  u.searchParams.set('alt','media');
+  u.searchParams.set('supportsAllDrives','true');
+  u.searchParams.set('access_token',String(token||''));
+  return u;
 }
 
-function cdqPdfNativeLaunchBridgeV2270(){
-  const st=cdqPdfNativeStateV2270;
-  if(!st||!st.token)return;
-  const ov=cdqPdfNativeEnsureUiV2270();
-  ov.querySelector('#cdqPdfNativeTitleV2270').textContent='Ouverture du PDF';
-  ov.querySelector('#cdqPdfNativeSubV2270').textContent='Transmission sécurisée à '+cdqPdfNativeReaderLabelV2270(st.reader)+'…';
-  ov.querySelector('#cdqPdfNativeStatusV2270').textContent='Le PDF sera téléchargé directement par Android puis ouvert dans le lecteur choisi.';
-  ov.querySelector('#cdqPdfNativeOpenV2270').style.display='none';
-  const intentUrl=cdqPdfNativeBuildIntentV2270(st);
-  try{
-    window.location.href=intentUrl;
-  }catch(e){
-    ov.querySelector('#cdqPdfNativeStatusV2270').textContent='Touchez « Ouvrir le PDF » pour continuer.';
-    const b=ov.querySelector('#cdqPdfNativeOpenV2270');
-    b.style.display='block';
-    b.textContent='Ouvrir le PDF';
-  }
-  setTimeout(function(){
-    if(cdqPdfNativeStateV2270===st){
-      const b=ov.querySelector('#cdqPdfNativeOpenV2270');
-      b.style.display='block';
-      b.textContent='Ouvrir le PDF';
-    }
-  },1200);
+function cdqPdfIntentUrlV2272(st,token){
+  const media=cdqPdfMediaUrlV2272(st,token);
+  const pkg=cdqPdfReaderPackageV2272(st.reader);
+  let intent='intent://'+media.host+media.pathname+media.search+
+    '#Intent;scheme=https;action=android.intent.action.VIEW;type=application/pdf;';
+  if(pkg)intent+='package='+pkg+';';
+  intent+='end';
+  return intent;
 }
 
-function cdqPdfNativeChooseAccountV2270(){
-  const st=cdqPdfNativeStateV2270;
-  if(!st)return;
-  const clientId=String((globalThis.CDQ_GOOGLE_AUTH_CONFIG||{}).clientId||'');
-  const ov=cdqPdfNativeEnsureUiV2270();
-  const account=ov.querySelector('#cdqPdfNativeAccountV2270');
-  if(!clientId){
-    ov.querySelector('#cdqPdfNativeStatusV2270').textContent='Configuration Google incomplète.';
-    return;
-  }
-  if(!(window.google&&google.accounts&&google.accounts.oauth2)){
-    ov.querySelector('#cdqPdfNativeStatusV2270').textContent='Google n’est pas encore prêt. Réessayez dans un instant.';
-    return;
-  }
-
-  account.disabled=true;
-  account.textContent='Ouverture de Google…';
-  ov.querySelector('#cdqPdfNativeStatusV2270').textContent='';
-
-  cdqPdfNativeTokenClientV2270=google.accounts.oauth2.initTokenClient({
-    client_id:clientId,
-    scope:CDQ_DRIVE_SCOPE_V2270,
-    include_granted_scopes:true,
-    prompt:'select_account',
-    callback:function(resp){
-      account.disabled=false;
-      account.textContent='G  Choisir un autre compte Google';
-      if(!resp||resp.error||!resp.access_token){
-        ov.querySelector('#cdqPdfNativeStatusV2270').textContent=
-          resp&&resp.error_description?resp.error_description:'Google n’a pas fourni l’autorisation Drive.';
+async function cdqPdfWaitGoogleOAuthV2272(timeoutMs=12000){
+  const started=Date.now();
+  return new Promise((resolve,reject)=>{
+    (function check(){
+      if(window.google&&google.accounts&&google.accounts.oauth2){
+        resolve(google.accounts.oauth2);return;
+      }
+      if(Date.now()-started>=timeoutMs){
+        reject(new Error('Le sélecteur de compte Google ne répond pas.'));
         return;
       }
-      st.token=String(resp.access_token);
-      ov.querySelector('#cdqPdfNativeStatusV2270').textContent='Compte confirmé. Ouverture de '+cdqPdfNativeReaderLabelV2270(st.reader)+'…';
-      cdqPdfNativeLaunchBridgeV2270();
-    },
-    error_callback:function(err){
-      account.disabled=false;
-      account.textContent='G  Choisir un compte Google';
-      ov.querySelector('#cdqPdfNativeStatusV2270').textContent=
-        err&&err.type==='popup_closed'?'Le choix du compte a été annulé.':'Impossible d’ouvrir le choix du compte Google.';
-    }
+      setTimeout(check,100);
+    })();
   });
-  cdqPdfNativeTokenClientV2270.requestAccessToken({prompt:'select_account'});
 }
 
-function cdqPdfNativeRequestV2270(data,source){
-  if(!data||!data.fileId)return;
-  const ov=cdqPdfNativeEnsureUiV2270();
-  cdqPdfNativeStateV2270={
+async function cdqPdfAccountOpenV2272(data,source){
+  if(!data||!/^[A-Za-z0-9_-]{10,200}$/.test(String(data.fileId||'')))return;
+
+  cdqPdfAccountStateV2272={
     requestId:String(data.requestId||'pdf-'+Date.now()),
-    source:source,
+    source,
     fileId:String(data.fileId),
     name:String(data.name||'Rapport.pdf'),
     reader:String(data.reader||'ask'),
-    version:String(data.version||''),
-    token:''
+    version:String(data.version||'')
   };
-  ov.style.display='flex';
-  ov.querySelector('#cdqPdfNativeTitleV2270').textContent='Ouvrir le PDF';
-  ov.querySelector('#cdqPdfNativeSubV2270').textContent=cdqPdfNativeStateV2270.name;
-  ov.querySelector('#cdqPdfNativeStatusV2270').textContent='Lecteur : '+cdqPdfNativeReaderLabelV2270(cdqPdfNativeStateV2270.reader);
-  const account=ov.querySelector('#cdqPdfNativeAccountV2270');
-  account.disabled=false;account.textContent='G  Choisir un compte Google';
-  ov.querySelector('#cdqPdfNativeOpenV2270').style.display='none';
+
+  const clientId=String((globalThis.CDQ_GOOGLE_AUTH_CONFIG||{}).clientId||'');
+  if(!clientId){
+    cdqPdfReplyErrorV2272('Configuration Google incomplète.');
+    return;
+  }
+
+  try{
+    const oauth=await cdqPdfWaitGoogleOAuthV2272();
+    const expected=cdqPdfAccountStateV2272;
+    if(!expected)return;
+
+    cdqPdfTokenClientV2272=oauth.initTokenClient({
+      client_id:clientId,
+      scope:CDQ_DRIVE_SCOPE_V2272,
+      include_granted_scopes:true,
+      prompt:'select_account',
+      callback:function(resp){
+        const st=cdqPdfAccountStateV2272;
+        if(!st||st!==expected)return;
+        if(!resp||resp.error||!resp.access_token){
+          cdqPdfReplyErrorV2272(
+            resp&&resp.error_description
+              ? resp.error_description
+              : 'Le choix du compte Google a été annulé.'
+          );
+          return;
+        }
+
+        const intentUrl=cdqPdfIntentUrlV2272(st,String(resp.access_token));
+        cdqPdfAccountStateV2272=null;
+
+        // Navigation dans LA MÊME PWA. Android intercepte intent:// et
+        // ouvre le lecteur PDF; aucun about:blank / onglet gris n'est créé.
+        try{
+          window.location.assign(intentUrl);
+        }catch(e){
+          cdqPdfReplyErrorV2272('Android n’a pas pu ouvrir le lecteur PDF.');
+        }
+      },
+      error_callback:function(err){
+        cdqPdfReplyErrorV2272(
+          err&&err.type==='popup_closed'
+            ? 'Le choix du compte Google a été annulé.'
+            : 'Impossible d’ouvrir le sélecteur de compte Google.'
+        );
+      }
+    });
+
+    // Le même sélecteur de compte Google est demandé immédiatement.
+    cdqPdfTokenClientV2272.requestAccessToken({prompt:'select_account'});
+  }catch(e){
+    cdqPdfReplyErrorV2272(e&&e.message?e.message:String(e));
+  }
 }
 
 window.addEventListener('message', event => {
@@ -1318,7 +1294,7 @@ if(data.type==='CDQ_GOOGLE_AUTH_ERROR'){
   document.getElementById('load-message').textContent=String(data.message||'La connexion Google a échoué. Réessayez.');
 }
 if(data.type==='CDQ_GOOGLE_AUTH_HIDE')masquerConnexionGoogleV42();
-if(data.type==='CDQ_PDF_NATIVE_REQUEST_V2270'){cdqPdfNativeRequestV2270(data,event.source);return;}
+if(data.type==='CDQ_PDF_ACCOUNT_OPEN_V2272'){cdqPdfAccountOpenV2272(data,event.source);return;}
 if(String(data.type||'').startsWith('CDQ_OFFLINE_'))cdqOffline.then(controller=>controller.handle(data));
 if(data.type==='CDQ_ACCESS_STATE' && data.state!=='ready')cdqOffline.then(controller=>controller.lock());
 if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready'))replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
