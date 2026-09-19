@@ -1,8 +1,8 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.34",
-  "build": "2026.09.18-v22.34-source-visible-deploy-fix",
-  "title": "Balance CDQ V22.34 — déploiement vérifiable + PC stable",
+  "version": "V22.36",
+  "build": "2026.09.18-v22.36-pc-recovery-stable",
+  "title": "Balance CDQ V22.36 — récupération PC stable",
   "requiresBuild": [
     "2026.09.18-v22.26-script-manager-final",
     "2026.09.18-v22.27-mur-cadre-gauche",
@@ -12,7 +12,8 @@
     "2026.09.18-v22.30-pc-bas-gauche-mur-fixe",
     "2026.09.18-v22.31-pc-stable-mur-16x9",
     "2026.09.18-v22.32-pc-mur-musique-stable",
-    "2026.09.18-v22.33-pc-mur-android-stable"
+    "2026.09.18-v22.33-pc-mur-android-stable",
+    "2026.09.18-v22.34-source-visible-deploy-fix"
   ],
   "patches": [
     {
@@ -27,9 +28,10 @@
         "2026.09.18-v22.30-pc-bas-gauche-mur-fixe",
         "2026.09.18-v22.31-pc-stable-mur-16x9",
         "2026.09.18-v22.32-pc-mur-musique-stable",
-        "2026.09.18-v22.33-pc-mur-android-stable"
+        "2026.09.18-v22.33-pc-mur-android-stable",
+        "2026.09.18-v22.34-source-visible-deploy-fix"
       ],
-      "to": "2026.09.18-v22.34-source-visible-deploy-fix"
+      "to": "2026.09.18-v22.36-pc-recovery-stable"
     },
     {
       "file": "Code.gs",
@@ -43,9 +45,10 @@
         "2026.09.18-v22.30-pc-bas-gauche-mur-fixe",
         "2026.09.18-v22.31-pc-stable-mur-16x9",
         "2026.09.18-v22.32-pc-mur-musique-stable",
-        "2026.09.18-v22.33-pc-mur-android-stable"
+        "2026.09.18-v22.33-pc-mur-android-stable",
+        "2026.09.18-v22.34-source-visible-deploy-fix"
       ],
-      "to": "2026.09.18-v22.34-source-visible-deploy-fix"
+      "to": "2026.09.18-v22.36-pc-recovery-stable"
     },
     {
       "file": "Selector.html",
@@ -114,16 +117,33 @@
     },
     {
       "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2234StableCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqPcV2234StableJs"
+    },
+    {
+      "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "const pad=6;",
-      "replacement": "const pad=24;",
+      "search": "let pc16FitPollV21_65=setInterval(function(){if(document.visibilityState==='visible'){pc16WatchWindowV21_65();scaleStage()}},350);",
+      "replacement": "setTimeout(function(){if(document.visibilityState==='visible'){pc16WatchWindowV21_65();scaleStage()}},900);",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "const left=Math.max(0,Math.round((v.w-fittedW)/2));",
-      "replacement": "const left=0;",
+      "search": "async function loadClients(force){\n  if(!force&&!st.clients.length){\n    if(pc16RestoreGlobalCache())renderAll();\n  }\n  try{\n    let clients;\n    try{clients=await gs('obtenirDossiersClientsPCLeger',[!!force])}\n    catch(_){clients=await gs('obtenirDossiersClients',[!!force])}\n    if(Array.isArray(clients)){st.clients=clients;st.lastClientsSync=Date.now();renderAll();pc16SaveGlobalCache()}\n    const ids=st.clients.map(c=>c.id);\n    const jobs=[\n      gs('obtenirResumesConformiteClientsCDQ',[ids]).catch(()=>null),\n      gs('obtenirRapportsRecentsPC',[40,!!force]).catch(()=>null)\n    ];\n    const result=await Promise.all(jobs);\n    if(result[0])st.summaries=result[0];\n    if(Array.isArray(result[1]))st.recent=result[1];\n    if(!st.selected&&st.recent.length)st.selected=st.recent[0];\n    st.lastClientsSync=Date.now();pc16SaveGlobalCache();renderAll();\n  }catch(e){toast(e&&e.message||e,true)}\n}",
+      "replacement": "async function loadClients(force){\n  if(!force&&!st.clients.length){\n    if(pc16RestoreGlobalCache())renderAll();\n  }\n  try{\n    let changed=false,clients;\n    try{clients=await gs('obtenirDossiersClientsPCLeger',[!!force])}\n    catch(_){clients=await gs('obtenirDossiersClients',[!!force])}\n    if(Array.isArray(clients)){\n      const a=JSON.stringify((st.clients||[]).map(c=>[c.id,c.nom,c.dateModification||'']));\n      const b=JSON.stringify(clients.map(c=>[c.id,c.nom,c.dateModification||'']));\n      if(a!==b){st.clients=clients;changed=true}\n      st.lastClientsSync=Date.now();\n    }\n    const ids=st.clients.map(c=>c.id);\n    const jobs=[\n      gs('obtenirResumesConformiteClientsCDQ',[ids]).catch(()=>null),\n      gs('obtenirRapportsRecentsPC',[40,!!force]).catch(()=>null)\n    ];\n    const result=await Promise.all(jobs);\n    if(result[0]){\n      if(JSON.stringify(st.summaries||{})!==JSON.stringify(result[0]))changed=true;\n      st.summaries=result[0];\n    }\n    if(Array.isArray(result[1])){\n      const a=JSON.stringify((st.recent||[]).map(f=>[f.id,f.nom,f.dateModification||'',f.typeBalance||'']));\n      const b=JSON.stringify(result[1].map(f=>[f.id,f.nom,f.dateModification||'',f.typeBalance||'']));\n      if(a!==b)changed=true;\n      st.recent=result[1];\n    }\n    if(!st.selected&&st.recent.length)st.selected=st.recent[0];\n    st.lastClientsSync=Date.now();\n    pc16SaveGlobalCache();\n    if(changed)renderAll();\n  }catch(e){toast(e&&e.message||e,true)}\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function renderKpis(){\n  const x=$('#pc16Kpis');if(!x)return;\n  const s=stats(),total=Math.max(1,s.ok+s.nc+s.unk),pct=Math.round(s.ok/total*100),types=new Set(st.recent.map(f=>f.typeBalance).filter(Boolean));\n  const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  x.innerHTML=`<div class=\"pc16-kpi green\"><span class=\"ico\">✓</span><div><span class=\"lab\">Conformité globale</span><strong>${pct}%</strong><em>${s.ok} conformes</em></div></div>\n  <div class=\"pc16-kpi red\" data-follow=\"nonconformities\"><span class=\"ico\">⚠</span><div><span class=\"lab\">Non-conformités actives</span><strong>${nc}</strong><em>Par client · historique</em></div></div>\n  <div class=\"pc16-kpi yellow\" data-follow=\"watchlist\"><span class=\"ico\">👥</span><div><span class=\"lab\">Clients à surveiller</span><strong>${watch}</strong><em>${Number(t.surveillancesActives||0)} suivis actifs</em></div></div>\n  <div class=\"pc16-kpi blue\"><span class=\"ico\">⚖</span><div><span class=\"lab\">Types de balances</span><strong>${Math.max(types.size,4)}</strong><em>Vue générale</em></div></div>\n  <div class=\"pc16-kpi cyan\" data-follow=\"clients\"><span class=\"ico\">🏢</span><div><span class=\"lab\">Clients chargés</span><strong>${st.clients.length||0}</strong><em>Ouvrir la liste</em></div></div>`;\n  $$('[data-follow]',x).forEach(k=>k.onclick=()=>show(k.dataset.follow));\n}",
+      "replacement": "function renderKpis(){\n  const x=$('#pc16Kpis');if(!x)return;\n  const s=stats(),total=Math.max(1,s.ok+s.nc+s.unk),pct=Math.round(s.ok/total*100),types=new Set(st.recent.map(f=>f.typeBalance).filter(Boolean));\n  const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  const html=`<div class=\"pc16-kpi green\"><span class=\"ico\">✓</span><div><span class=\"lab\">Conformité globale</span><strong>${pct}%</strong><em>${s.ok} conformes</em></div></div>\n  <div class=\"pc16-kpi red\" data-follow=\"nonconformities\"><span class=\"ico\">⚠</span><div><span class=\"lab\">Non-conformités actives</span><strong>${nc}</strong><em>Par client · historique</em></div></div>\n  <div class=\"pc16-kpi yellow\" data-follow=\"watchlist\"><span class=\"ico\">👥</span><div><span class=\"lab\">Clients à surveiller</span><strong>${watch}</strong><em>${Number(t.surveillancesActives||0)} suivis actifs</em></div></div>\n  <div class=\"pc16-kpi blue\"><span class=\"ico\">⚖</span><div><span class=\"lab\">Types de balances</span><strong>${Math.max(types.size,4)}</strong><em>Vue générale</em></div></div>\n  <div class=\"pc16-kpi cyan\" data-follow=\"clients\"><span class=\"ico\">🏢</span><div><span class=\"lab\">Clients chargés</span><strong>${st.clients.length||0}</strong><em>Ouvrir la liste</em></div></div>`;\n  if(x.dataset.kpiHtml===html)return;\n  x.dataset.kpiHtml=html;\n  x.innerHTML=html;\n  $$('[data-follow]',x).forEach(k=>k.onclick=()=>show(k.dataset.follow));\n}",
       "expected": 1
     },
     {
@@ -150,154 +170,155 @@
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "async function loadClients(force){\n  if(!force&&!st.clients.length){\n    if(pc16RestoreGlobalCache())renderAll();\n  }\n  try{\n    let clients;\n    try{clients=await gs('obtenirDossiersClientsPCLeger',[!!force])}\n    catch(_){clients=await gs('obtenirDossiersClients',[!!force])}\n    if(Array.isArray(clients)){st.clients=clients;st.lastClientsSync=Date.now();renderAll();pc16SaveGlobalCache()}\n    const ids=st.clients.map(c=>c.id);\n    const jobs=[\n      gs('obtenirResumesConformiteClientsCDQ',[ids]).catch(()=>null),\n      gs('obtenirRapportsRecentsPC',[40,!!force]).catch(()=>null)\n    ];\n    const result=await Promise.all(jobs);\n    if(result[0])st.summaries=result[0];\n    if(Array.isArray(result[1]))st.recent=result[1];\n    if(!st.selected&&st.recent.length)st.selected=st.recent[0];\n    st.lastClientsSync=Date.now();pc16SaveGlobalCache();renderAll();\n  }catch(e){toast(e&&e.message||e,true)}\n}",
-      "replacement": "async function loadClients(force){\n  if(!force&&!st.clients.length){\n    if(pc16RestoreGlobalCache())renderAll();\n  }\n  try{\n    let changed=false,clients;\n    try{clients=await gs('obtenirDossiersClientsPCLeger',[!!force])}\n    catch(_){clients=await gs('obtenirDossiersClients',[!!force])}\n    if(Array.isArray(clients)){\n      const a=JSON.stringify((st.clients||[]).map(c=>[c.id,c.nom,c.dateModification||'']));\n      const b=JSON.stringify(clients.map(c=>[c.id,c.nom,c.dateModification||'']));\n      if(a!==b){st.clients=clients;changed=true}\n      st.lastClientsSync=Date.now();\n    }\n    const ids=st.clients.map(c=>c.id);\n    const jobs=[\n      gs('obtenirResumesConformiteClientsCDQ',[ids]).catch(()=>null),\n      gs('obtenirRapportsRecentsPC',[40,!!force]).catch(()=>null)\n    ];\n    const result=await Promise.all(jobs);\n    if(result[0]){\n      if(JSON.stringify(st.summaries||{})!==JSON.stringify(result[0]))changed=true;\n      st.summaries=result[0];\n    }\n    if(Array.isArray(result[1])){\n      const a=JSON.stringify((st.recent||[]).map(f=>[f.id,f.nom,f.dateModification||'',f.typeBalance||'']));\n      const b=JSON.stringify(result[1].map(f=>[f.id,f.nom,f.dateModification||'',f.typeBalance||'']));\n      if(a!==b)changed=true;\n      st.recent=result[1];\n    }\n    if(!st.selected&&st.recent.length)st.selected=st.recent[0];\n    st.lastClientsSync=Date.now();pc16SaveGlobalCache();\n    if(changed)renderAll();\n  }catch(e){toast(e&&e.message||e,true)}\n}",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "function renderKpis(){\n  const x=$('#pc16Kpis');if(!x)return;\n  const s=stats(),total=Math.max(1,s.ok+s.nc+s.unk),pct=Math.round(s.ok/total*100),types=new Set(st.recent.map(f=>f.typeBalance).filter(Boolean));\n  const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  x.innerHTML=`<div class=\"pc16-kpi green\"><span class=\"ico\">✓</span><div><span class=\"lab\">Conformité globale</span><strong>${pct}%</strong><em>${s.ok} conformes</em></div></div>\n  <div class=\"pc16-kpi red\" data-follow=\"nonconformities\"><span class=\"ico\">⚠</span><div><span class=\"lab\">Non-conformités actives</span><strong>${nc}</strong><em>Par client · historique</em></div></div>\n  <div class=\"pc16-kpi yellow\" data-follow=\"watchlist\"><span class=\"ico\">👥</span><div><span class=\"lab\">Clients à surveiller</span><strong>${watch}</strong><em>${Number(t.surveillancesActives||0)} suivis actifs</em></div></div>\n  <div class=\"pc16-kpi blue\"><span class=\"ico\">⚖</span><div><span class=\"lab\">Types de balances</span><strong>${Math.max(types.size,4)}</strong><em>Vue générale</em></div></div>\n  <div class=\"pc16-kpi cyan\" data-follow=\"clients\"><span class=\"ico\">🏢</span><div><span class=\"lab\">Clients chargés</span><strong>${st.clients.length||0}</strong><em>Ouvrir la liste</em></div></div>`;\n  $$('[data-follow]',x).forEach(k=>k.onclick=()=>show(k.dataset.follow));\n}",
-      "replacement": "function renderKpis(){\n  const x=$('#pc16Kpis');if(!x)return;\n  const s=stats(),total=Math.max(1,s.ok+s.nc+s.unk),pct=Math.round(s.ok/total*100),types=new Set(st.recent.map(f=>f.typeBalance).filter(Boolean));\n  const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  const html=`<div class=\"pc16-kpi green\"><span class=\"ico\">✓</span><div><span class=\"lab\">Conformité globale</span><strong>${pct}%</strong><em>${s.ok} conformes</em></div></div>\n  <div class=\"pc16-kpi red\" data-follow=\"nonconformities\"><span class=\"ico\">⚠</span><div><span class=\"lab\">Non-conformités actives</span><strong>${nc}</strong><em>Par client · historique</em></div></div>\n  <div class=\"pc16-kpi yellow\" data-follow=\"watchlist\"><span class=\"ico\">👥</span><div><span class=\"lab\">Clients à surveiller</span><strong>${watch}</strong><em>${Number(t.surveillancesActives||0)} suivis actifs</em></div></div>\n  <div class=\"pc16-kpi blue\"><span class=\"ico\">⚖</span><div><span class=\"lab\">Types de balances</span><strong>${Math.max(types.size,4)}</strong><em>Vue générale</em></div></div>\n  <div class=\"pc16-kpi cyan\" data-follow=\"clients\"><span class=\"ico\">🏢</span><div><span class=\"lab\">Clients chargés</span><strong>${st.clients.length||0}</strong><em>Ouvrir la liste</em></div></div>`;\n  if(x.dataset.kpiHtml===html)return;\n  x.dataset.kpiHtml=html;\n  x.innerHTML=html;\n  $$('[data-follow]',x).forEach(k=>k.onclick=()=>show(k.dataset.follow));\n}",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
       "search": "<span>V22.26</span>",
-      "replacement": "<span>V22.34</span>",
+      "replacement": "<span>V22.36</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "<span>V22.27</span>",
-      "replacement": "<span>V22.34</span>",
+      "replacement": "<span>V22.36</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "<span>V22.28</span>",
-      "replacement": "<span>V22.34</span>",
+      "replacement": "<span>V22.36</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "<span>V22.29</span>",
-      "replacement": "<span>V22.34</span>",
+      "replacement": "<span>V22.36</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "<span>V22.30</span>",
-      "replacement": "<span>V22.34</span>",
+      "replacement": "<span>V22.36</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "<span>V22.31</span>",
-      "replacement": "<span>V22.34</span>",
+      "replacement": "<span>V22.36</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "<span>V22.32</span>",
-      "replacement": "<span>V22.34</span>",
+      "replacement": "<span>V22.36</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "<span>V22.33</span>",
-      "replacement": "<span>V22.34</span>",
+      "replacement": "<span>V22.36</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.34</span>",
+      "replacement": "<span>V22.36</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "r.dataset.build='v22.26-script-manager-final';",
-      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "r.dataset.build='v22.27-mur-cadre-gauche';",
-      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "r.dataset.build='v22.28-mur-cadre-gauche-robuste';",
-      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "r.dataset.build='v22.29-mur-cadre-gauche-sans-id';",
-      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "r.dataset.build='v22.30-pc-bas-gauche-icone-mur';",
-      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "r.dataset.build='v22.30-pc-bas-gauche-mur-fixe';",
-      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "r.dataset.build='v22.31-pc-stable-mur-16x9';",
-      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "r.dataset.build='v22.32-pc-mur-musique-stable';",
-      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "r.dataset.build='v22.33-pc-mur-android-stable';",
-      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "replacement": "r.dataset.build='v22.36-pc-recovery-stable';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqPcV2234StableCss\">\nhtml.pc16-startup-lock,\nhtml.pc16-startup-lock body,\nhtml.pc16-startup-lock #accessOverlay{\n  background:#030507 url(\"https://jprodrigue86.github.io/Rapports--talonnages-CDQ/assets/music-wall-pc-chosen-v2233.webp?v=20260918-v2234\") center center / cover no-repeat fixed!important;\n}\nhtml.windows #cdqPcV16{background:#04131d!important;}\nhtml.windows #cdqPcV16 .pc16-body{\n  top:124px!important;\n  height:706px!important;\n  grid-template-columns:214px minmax(0,1fr)!important;\n  gap:8px!important;\n  padding-left:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-sidebar,\nhtml.windows #cdqPcV16 .pc16-center{height:706px!important;}\nhtml.windows #cdqPcV16 .pc16-sidebar{\n  min-width:214px!important;width:auto!important;margin:0!important;padding:8px 10px 10px!important;\n  border:1px solid #1e5874!important;border-left:0!important;border-radius:0 7px 7px 0!important;\n  background:linear-gradient(180deg,#061622 0%,#04131d 70%,#05141f 100%)!important;\n  box-shadow:inset 0 0 20px rgba(0,0,0,.38)!important;overflow:hidden!important;\n}\nhtml.windows #cdqPcV16 .pc16-center{grid-template-rows:90px minmax(0,1fr)!important;padding:16px 0 6px!important;}\nhtml.windows #cdqPcV16 .pc16-main{grid-template-rows:72px minmax(0,1fr) 34px!important;}\nhtml.windows #cdqPcV16 .pc16-table-wrap{padding-bottom:2px!important;}\nhtml.windows #cdqPcV16 .pc16-shortcuts{bottom:84px!important;}\nhtml.windows #cdqPcV16 .pc16-side-status{left:12px!important;right:12px!important;bottom:8px!important;}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"],\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"] *{\n  animation:none!important;transition:none!important;filter:none!important;text-shadow:none!important;\n}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"]{--c:#20c8e8!important;}\n</style>\n<script id=\"cdqPcV2234StableJs\">\n(function(){\n  'use strict';\n  function stamp(){\n    var root=document.getElementById('cdqPcV16'); if(!root)return false;\n    root.dataset.build='v22.34-source-visible-deploy-fix';\n    var v=root.querySelector('.pc16-side-meta span'); if(v)v.textContent='V22.34';\n    return true;\n  }\n  var tries=0,t=setInterval(function(){tries++;if(stamp()||tries>40)clearInterval(t);},250);\n})();\n</script>\n"
+      "text": "\n<style id=\"cdqPcV2236RecoveryCss\">\nhtml.pc16-startup-lock,\nhtml.pc16-startup-lock body,\nhtml.pc16-startup-lock #accessOverlay{\n  background:#030507 url(\"https://jprodrigue86.github.io/Rapports--talonnages-CDQ/assets/music-wall-pc-chosen-v2233.webp?v=20260918-v2236\") center center / cover no-repeat fixed!important;\n}\nhtml.windows #cdqPcV16{background:#04131d!important;}\nhtml.windows #cdqPcV16 .pc16-body{\n  top:124px!important;height:706px!important;\n  grid-template-columns:214px minmax(0,1fr)!important;\n  gap:8px!important;padding-left:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-sidebar,\nhtml.windows #cdqPcV16 .pc16-center{height:706px!important;}\nhtml.windows #cdqPcV16 .pc16-sidebar{\n  min-width:214px!important;width:auto!important;margin:0!important;padding:8px 10px 10px!important;\n  border:1px solid #1e5874!important;border-left:0!important;border-radius:0 7px 7px 0!important;\n  background:linear-gradient(180deg,#061622 0%,#04131d 70%,#05141f 100%)!important;\n  box-shadow:inset 0 0 20px rgba(0,0,0,.38)!important;overflow:hidden!important;\n}\nhtml.windows #cdqPcV16 .pc16-center{\n  grid-template-rows:90px minmax(0,1fr)!important;padding:16px 0 6px!important;\n}\nhtml.windows #cdqPcV16 .pc16-main{grid-template-rows:72px minmax(0,1fr) 34px!important;}\nhtml.windows #cdqPcV16 .pc16-table-wrap{padding-bottom:2px!important;}\nhtml.windows #cdqPcV16 .pc16-shortcuts{bottom:84px!important;}\nhtml.windows #cdqPcV16 .pc16-side-status{left:12px!important;right:12px!important;bottom:8px!important;}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"],\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"] *{\n  animation:none!important;transition:none!important;filter:none!important;text-shadow:none!important;\n}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"]{--c:#20c8e8!important;}\n</style>\n<script id=\"cdqPcV2236RecoveryJs\">\n(function(){\n  'use strict';\n  function stamp(){\n    var root=document.getElementById('cdqPcV16');if(!root)return false;\n    root.dataset.build='v22.36-pc-recovery-stable';\n    var v=root.querySelector('.pc16-side-meta span');if(v)v.textContent='V22.36';\n    return true;\n  }\n  var n=0,t=setInterval(function(){n++;if(stamp()||n>20)clearInterval(t);},250);\n})();\n</script>\n"
     }
   ],
   "audit": {
     "syntaxChecked": true,
     "robustPatch": true,
-    "scriptManagerRequired": "V29",
+    "scriptManagerRequired": "V30",
     "notes": [
-      "Numéro V22.34 écrit directement dans le shell PC",
-      "Compatible avec les bases V22.26 à V22.33",
-      "Mur musique PC choisi conservé",
-      "Flash Clients chargés supprimé côté rendu/polling",
-      "Interface ancrée à gauche et bas visible",
-      "Script Manager V29 affiche code source lu et production réellement servie"
+      "Sortie directe de V22.26 sans rollback automatique",
+      "Mur musical choisi restauré derrière le NIP",
+      "Polling d'échelle 350 ms supprimé",
+      "Clients chargés ne reconstruit plus le DOM si inchangé",
+      "Synchronisation clients ralentie",
+      "Version V22.36 écrite dans le shell PC",
+      "Côté gauche comblé et bas visible"
     ]
   }
 }
