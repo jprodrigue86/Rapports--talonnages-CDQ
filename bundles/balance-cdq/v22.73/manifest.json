@@ -1,0 +1,56 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.73",
+  "build": "2026.09.19-v22.73-sheets-native-account-flow",
+  "title": "Balance CDQ V22.73 — PDF Android comme Google Sheets",
+  "requiresBuild": [
+    "2026.09.19-v22.72-account-direct-pdf-intent",
+    "2026.09.19-v22.71-direct-pdf-no-bridge",
+    "2026.09.19-v22.70-native-pdf-bridge",
+    "2026.09.19-v22.69-direct-drive-stream"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.72-account-direct-pdf-intent",
+        "2026.09.19-v22.71-direct-pdf-no-bridge",
+        "2026.09.19-v22.70-native-pdf-bridge",
+        "2026.09.19-v22.69-direct-drive-stream"
+      ],
+      "to": "2026.09.19-v22.73-sheets-native-account-flow"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.72-account-direct-pdf-intent",
+        "2026.09.19-v22.71-direct-pdf-no-bridge",
+        "2026.09.19-v22.70-native-pdf-bridge",
+        "2026.09.19-v22.69-direct-drive-stream"
+      ],
+      "to": "2026.09.19-v22.73-sheets-native-account-flow"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqMarquerPdfOuvertV2272(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nwindow.addEventListener('message',function(e){\n  if(!cdqFromPwa(e))return;\n  const d=e.data||{};\n  if(d.type==='CDQ_PDF_ACCOUNT_ERROR_V2272'){\n    afficherMessage(String(d.message||'Impossible d’ouvrir le PDF.'),false);\n  }\n});\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      const reader=cdqPdfReaderPreference();\n\n      if(reader==='cdq'){\n        return cdqOpenPdf(id).catch(afficherErreur);\n      }\n\n      cdqMarquerPdfOuvertV2272(id);\n      cdqPostToPwa({\n        type:'CDQ_PDF_ACCOUNT_OPEN_V2272',\n        requestId:'pdf-'+crypto.randomUUID(),\n        fileId:String(id),\n        name:String((meta&&meta.nom)||'Rapport.pdf'),\n        reader:String(reader||'ask'),\n        version:String((meta&&meta.dateModification)||'')\n      });\n      afficherMessage('Sélectionnez le compte Google.',true);\n      return;\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "replacement": "function cdqMarquerPdfOuvertV2273(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction cdqPdfAndroidIntentV2273(id,meta,reader){\n  const fileId=encodeURIComponent(String(id||''));\n  const name=encodeURIComponent(String((meta&&meta.nom)||'Rapport.pdf'));\n  const pref=encodeURIComponent(String(reader||'ask'));\n  const fallback='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/balance-cdq-android.html';\n  return 'intent://open?fileId='+fileId+'&name='+name+'&reader='+pref+\n    '#Intent;scheme=cdqpdf;package=ca.balancecdq.android;S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n}\n\nfunction cdqOuvrirPdfCommeSheetsV2273(id,meta){\n  const reader=cdqPdfReaderPreference();\n\n  if(reader==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2273(id);\n\n  // Navigation native déclenchée directement dans le tap utilisateur.\n  // Balance CDQ Android affiche le vrai sélecteur de compte Google,\n  // puis transmet le PDF au lecteur Android choisi.\n  const a=document.createElement('a');\n  a.href=cdqPdfAndroidIntentV2273(id,meta,reader);\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n  return true;\n}\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      return cdqOuvrirPdfCommeSheetsV2273(id,meta);\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "androidAppRequired": "Balance CDQ Android 22.73",
+    "flow": [
+      "Toucher PDF déclenche immédiatement Balance CDQ Android dans le même geste utilisateur.",
+      "Google Identity AuthorizationClient affiche le sélecteur natif de compte avec SELECT_ACCOUNT.",
+      "Après OK, le vrai fichier Drive est exposé à Android comme application/pdf via un ContentProvider en streaming.",
+      "Si iLovePDF/Acrobat est mémorisé, ouverture directe du package.",
+      "Sinon Android affiche le choix d'application PDF.",
+      "Aucune page Drive, aucun about:blank, aucun écran gris, aucune reconstruction du PDF.",
+      "Google Sheets inchangés."
+    ]
+  }
+}
