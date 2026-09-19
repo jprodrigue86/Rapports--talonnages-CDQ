@@ -1,0 +1,145 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.65",
+  "build": "2026.09.19-v22.65-client-drive-source-clean",
+  "title": "Balance CDQ V22.65 — PDF client Drive, code nettoyé",
+  "requiresBuild": [
+    "2026.09.19-v22.64-pdf-engine-self-contained"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.64-pdf-engine-self-contained",
+      "to": "2026.09.19-v22.65-client-drive-source-clean"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.64-pdf-engine-self-contained",
+      "to": "2026.09.19-v22.65-client-drive-source-clean"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "    // Tap normal : les PDF utilisent directement le lecteur CDQ/PDF.\n    if(String(fichier.type||'').toUpperCase()==='PDF' && typeof window.cdqOpenPdf==='function'){\n      window.cdqOpenPdf(fichier.id).catch(function(){});\n      return;\n    }\n    modifierFichier(fichier.id);",
+      "replacement": "    // Tap normal : ouvre toujours le VRAI fichier du dossier client.\n    // Le template intégré ne sert qu'à la création.\n    modifierFichier(fichier.id);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "    try{\n      if(typeof window.cdqPreparerCopiePdfImmediatement === \"function\"){\n        Promise.resolve(window.cdqPreparerCopiePdfImmediatement(resultat,idClient))\n          .catch(function(cacheError){console.error(\"Préparation locale de la copie PDF:\",cacheError);});\n      }\n    }catch(cacheError){\n      console.error(\"Préparation locale de la copie PDF:\",cacheError);\n    }",
+      "replacement": "    // V22.65 : aucun lien avec le template après la création.\n    // Le nouveau PDF Drive du client devient immédiatement la source officielle.",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "// V22.62 — rendre tout le chemin PDF accessible aux gestionnaires Android externes.\nwindow.cdqLoadPdfRecord=cdqLoadPdfRecord;\nwindow.cdqOpenPdfInternal=cdqOpenPdfInternal;\nwindow.cdqPdfReaderPreference=cdqPdfReaderPreference;\nwindow.cdqShowPdfReaderChoice=cdqShowPdfReaderChoice;\nwindow.cdqSetPdfReaderPreference=cdqSetPdfReaderPreference;\n\nasync function cdqOpenPdf(id){\n  afficherMessage('Préparation du PDF…',true);\n  try{\n    const rec=await window.cdqLoadPdfRecord(id);\n    if(window.cdqPdfReaderPreference()==='cdq'){\n      await window.cdqOpenPdfInternal(id,rec);\n    }else{\n      window.cdqShowPdfReaderChoice(id,rec);\n    }\n    return true;\n  }\n  catch(e){\n    afficherErreur(e);\n    throw e;\n  }\n}\nwindow.cdqOpenPdf=cdqOpenPdf;",
+      "replacement": "async function cdqOpenPdf(id){\n  afficherMessage('Préparation du PDF…',true);\n  try{\n    const rec=await cdqLoadPdfRecord(id);\n    if(cdqPdfReaderPreference()==='cdq')await cdqOpenPdfInternal(id,rec);\n    else cdqShowPdfReaderChoice(id,rec);\n    return true;\n  }catch(e){\n    afficherErreur(e);\n    throw e;\n  }\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "async function cdqLoadPdfRecord(id){\n  let rec=await window.cdqEnsurePdf(id,false);\n\n  let pending=null;\n  try{\n    const queue=await Promise.race([\n      cdqV19QueueGet(),\n      new Promise(function(resolve){setTimeout(function(){resolve([]);},800);})\n    ]);\n    pending=(Array.isArray(queue)?queue:[]).find(a=>a.kind==='pdf-import'&&a.targetId===id)||null;\n  }catch(_){pending=null;}\n\n  if(pending)rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n\n  // Les gros PDF haute qualité ne sont plus entièrement réécrits avant ouverture.\n  if(rec&&rec.blob instanceof Blob&&rec.blob.size<=8*1024*1024){\n    rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  }\n\n  if(!pending){\n    Promise.resolve(cdqV19PutRecord('document-pdf',id,rec)).catch(function(){});\n  }\n  return rec;\n}",
+      "replacement": "async function cdqLoadPdfRecord(id){\n  let rec=await cdqEnsurePdf(id,false);\n  const pending=(await cdqV19QueueGet()).find(a=>a.kind==='pdf-import'&&a.targetId===id);\n  if(pending)rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n  // Les gros PDF ne sont jamais reconstruits avec PDF-Lib avant ouverture.\n  if(rec&&rec.blob instanceof Blob&&rec.blob.size<=8*1024*1024){\n    rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  }\n  return rec;\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "  try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n}\nwindow.cdqEnsurePdf=cdqEnsurePdf;\nfunction cdqDownloadPdf(rec){",
+      "replacement": "  try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n}\nfunction cdqDownloadPdf(rec){",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "function preparerFenetreFichierIOS(){\n  if(!estIOSInterface()) return null;",
+      "replacement": "function preparerFenetreFichierIOS(){\n  // Préouvrir aussi sur Android pendant le geste utilisateur.\n  // Cela évite qu'un window.open asynchrone soit bloqué après la réponse Apps Script.\n  if(!(estIOSInterface() || /Android/i.test(navigator.userAgent || \"\"))) return null;",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "        afficherMessage(\"Safari a bloqué l’ouverture du fichier. Touchez de nouveau le fichier pour réessayer.\",false);",
+      "replacement": "        afficherMessage(\"L’ouverture du fichier a été bloquée. Touchez de nouveau le fichier pour réessayer.\",false);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2250GlobalProgressCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2250GlobalProgressJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2251GlobalProgressCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2251GlobalProgressJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2255MajorProgressCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2255MajorProgressJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2259MobileInteractionCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2259MobileInteractionJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2260AndroidDirectCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2260AndroidDirectJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "async function cdqV2130PreparerCopiePdfImmediatement(resultat,idClient){\n  resultat=resultat||{};\n  const id=String(resultat.id||\"\");\n  if(!/^[\\w-]+$/.test(id))return false;\n\n  const modeleId=cdqModeleIntermediaireId(resultat.modeleId);\n  function correspond(rec){\n    return !!(rec && rec.revision===CDQ_TEMPLATE_REVISION && rec.blob instanceof Blob && rec.blob.size>0 &&\n      rec.templateType===modeleId && rec.blob.size===Number(resultat.taille) &&\n      String(rec.templateId)===String(resultat.templateId) &&\n      Number(rec.modifieLe)===Number(resultat.templateModifieLe));\n  }\n  let modele=await cdqV2112GetCachedTemplate(modeleId);\n  if(!correspond(modele)){\n    if(navigator.onLine)await cdqV2112EnsureTemplateOfflineCached(false,modeleId);\n    modele=await cdqV2112GetCachedTemplate(modeleId);\n  }\n  // Si le maître a changé après la copie, le lecteur chargera le vrai PDF Drive.\n  if(!correspond(modele))return false;\n\n  const blobTechnicien=(modele.blob instanceof Blob && modele.blob.size<=8*1024*1024)\n    ? await cdqPersonnaliserBlobTechnicienPdf(modele.blob)\n    : modele.blob;\n  const techKey=String(cdqTechniciensVersion||\"cache\")+\"|\"+String(utilisateurCourantEmail||\"\").toLowerCase()+\"|\"+String(utilisateurCourantNomRapport||\"\");\n  await cdqV19PutRecord(\"document-pdf\",id,{\n    id:id,nom:String(resultat.nom||modele.nom||\"Balance intermédiaire.pdf\"),clientId:String(resultat.clientId||idClient||compagnieSelectionnee||\"\"),type:\"PDF\",\n    taille:Number(blobTechnicien.size),revision:String(resultat.revision||(\"copie-locale-\"+Date.now())),chunks:Math.ceil(blobTechnicien.size/(1024*1024)),blob:blobTechnicien,\n    instantCopy:true,localReadyUntil:Date.now()+(12*60*60*1000),cachedAt:Date.now(),cdqTechVersion:(blobTechnicien===modele.blob?\"\":techKey)\n  });\n  return true;\n}\n\nwindow.cdqPreparerCopiePdfImmediatement=cdqV2130PreparerCopiePdfImmediatement;",
+      "replacement": "/* V22.65 : ancien pont template → cache client supprimé. */",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "architecture": {
+      "creation": "Le modèle intégré sert uniquement à créer une nouvelle copie dans le dossier client.",
+      "sourceOfTruth": "Après création, le nouvel ID Drive du PDF client est l'unique source officielle.",
+      "opening": "Un tap normal ouvre le fichier Drive du client via ouvrirFichierPourModification / ouvrirFichierLectureSeule.",
+      "offline": "Le moteur PDF local reste réservé au mode hors ligne ou aux usages explicites."
+    },
+    "cleanup": [
+      "Suppression des anciens interceptors de tap PDF V22.59/V22.60.",
+      "Suppression des anciens moteurs de progression V22.50/V22.51/V22.55.",
+      "Suppression du pré-cache automatique construit à partir du template après la copie.",
+      "Suppression des exports globaux PDF ajoutés uniquement pour les anciens correctifs.",
+      "Un seul gestionnaire normal de tap de ligne reste actif."
+    ]
+  }
+}
