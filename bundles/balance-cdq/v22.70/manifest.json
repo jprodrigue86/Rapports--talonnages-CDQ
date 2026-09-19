@@ -1,0 +1,40 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.70",
+  "build": "2026.09.19-v22.70-native-pdf-bridge",
+  "title": "Balance CDQ V22.70 — pont Android PDF natif",
+  "requiresBuild": [
+    "2026.09.19-v22.69-direct-drive-stream"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.69-direct-drive-stream",
+      "to": "2026.09.19-v22.70-native-pdf-bridge"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.69-direct-drive-stream",
+      "to": "2026.09.19-v22.70-native-pdf-bridge"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "function cdqMarquerPdfOuvertV2269(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nwindow.addEventListener('message',function(e){\n  if(!cdqFromPwa(e))return;\n  const d=e.data||{};\n\n  if(d.type==='CDQ_PDF_OPEN_INTERNAL_V2269'){\n    if(!(d.blob instanceof Blob)||!d.fileId)return;\n    const rec={\n      id:String(d.fileId),\n      nom:String(d.name||'Rapport.pdf'),\n      blob:d.blob,\n      taille:d.blob.size\n    };\n    cdqOpenPdfInternal(String(d.fileId),rec).catch(afficherErreur);\n    return;\n  }\n});\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      cdqMarquerPdfOuvertV2269(id);\n      cdqPostToPwa({\n        type:'CDQ_PDF_OPEN_REQUEST_V2269',\n        requestId:'pdf-'+crypto.randomUUID(),\n        fileId:String(id),\n        name:String((meta&&meta.nom)||'Rapport.pdf'),\n        reader:cdqPdfReaderPreference(),\n        readOnly:String(utilisateurCourantRole||'')==='lecture'\n      });\n      afficherMessage('Choisissez le compte Google pour ouvrir le PDF.',true);\n      return;\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "replacement": "function cdqMarquerPdfOuvertV2270(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      const reader=cdqPdfReaderPreference();\n\n      // Le lecteur CDQ reste interne.\n      if(reader==='cdq'){\n        return cdqOpenPdf(id).catch(afficherErreur);\n      }\n\n      cdqMarquerPdfOuvertV2270(id);\n      cdqPostToPwa({\n        type:'CDQ_PDF_NATIVE_REQUEST_V2270',\n        requestId:'pdf-'+crypto.randomUUID(),\n        fileId:String(id),\n        name:String((meta&&meta.nom)||'Rapport.pdf'),\n        reader:String(reader||'ask'),\n        version:String((meta&&meta.dateModification)||'')\n      });\n      afficherMessage('Choisissez le compte Google pour ouvrir le PDF.',true);\n      return;\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "architecture": [
+      "Aucun téléchargement PDF dans la PWA pour iLovePDF/Acrobat.",
+      "Aucun menu de partage Web Share.",
+      "La PWA demande seulement le compte Google puis lance le pont Android explicite.",
+      "Le pont Android télécharge/cache le vrai fichier Drive et l'ouvre directement dans l'application choisie.",
+      "Lecteur CDQ et mode hors ligne restent inchangés."
+    ]
+  }
+}
