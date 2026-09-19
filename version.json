@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.83-pdf-ask-android-chooser",
+  "version": "2026.09.19-v22.84-pdf-ask-real-file-chooser",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.83-pdf-ask-android-chooser",
-  "backend_version": "2026.09.19-v22.83-pdf-ask-android-chooser",
+  "selector_version": "2026.09.19-v22.84-pdf-ask-real-file-chooser",
+  "backend_version": "2026.09.19-v22.84-pdf-ask-real-file-chooser",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -194,7 +194,9 @@
     "pdf-native-drive-path-like-sheets-v2282",
     "pdf-no-custom-oauth-v2282",
     "pdf-no-postmessage-v2282",
-    "pdf-ask-android-chooser-v2283"
+    "pdf-ask-android-chooser-v2283",
+    "pdf-ask-existing-google-account-flow-v2284",
+    "pdf-real-file-web-share-v2284"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -207,5 +209,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.19-v22.83-pdf-ask-android-chooser"
+  "pwa_version": "2026.09.19-v22.84-pdf-ask-real-file-chooser"
 }
