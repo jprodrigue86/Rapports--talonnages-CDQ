@@ -1,6 +1,6 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE='cdq-reports-independent-v22-18-audit-stable';
-const FORCE_BUILD='2026.09.18-v22.18-audit-stable';
+const CACHE='cdq-reports-independent-v22-37-pc-shell-fix';
+const FORCE_BUILD='2026.09.18-v22.37-pc-reports-shell-fix';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;
@@ -11,7 +11,7 @@ const APP_SHELL=[
   root('reader.html'),root('reader.mjs?v=21.33'),root('reader-interactions.mjs?v=21.33'),
   root('firebase-config.js'),root('google-auth-config.js'),
   root('icons/icon-heavy-v3-192.png'),root('icons/icon-heavy-v3-512.png'),
-  root('assets/music-wall-choice1.webp?v=20260917-fit70')
+  root('assets/music-wall-choice1.webp?v=20260917-fit70'),root('assets/music-wall-pc-chosen-v2233.webp?v=20260918-pc37')
 ];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(c=>c.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
