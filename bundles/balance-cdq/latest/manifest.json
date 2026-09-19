@@ -1,10 +1,10 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.55",
-  "build": "2026.09.19-v22.55-major-progress-pdf-open",
-  "title": "Balance CDQ V22.55 — PDF rapide + progression grosses tâches",
+  "version": "V22.56",
+  "build": "2026.09.19-v22.56-pdf-chunk-fix",
+  "title": "Balance CDQ V22.56 — correction blocs PDF",
   "requiresBuild": [
-    "2026.09.19-v22.53-backend-pdf32mb",
+    "2026.09.19-v22.55-major-progress-pdf-open",
     "2026.09.19-v22.54-live-update-watch"
   ],
   "patches": [
@@ -12,74 +12,71 @@
       "file": "Selector.html",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.53-backend-pdf32mb",
+        "2026.09.19-v22.55-major-progress-pdf-open",
         "2026.09.19-v22.54-live-update-watch"
       ],
-      "to": "2026.09.19-v22.55-major-progress-pdf-open"
+      "to": "2026.09.19-v22.56-pdf-chunk-fix"
     },
     {
       "file": "Code.gs",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.53-backend-pdf32mb",
+        "2026.09.19-v22.55-major-progress-pdf-open",
         "2026.09.19-v22.54-live-update-watch"
       ],
-      "to": "2026.09.19-v22.55-major-progress-pdf-open"
+      "to": "2026.09.19-v22.56-pdf-chunk-fix"
     },
     {
       "file": "Code.gs",
       "op": "replace_literal",
+      "search": "return {id:f.getId(),nom:f.getName(),clientId:cible.client.getId(),type:'PDF',taille:taille,\n    revision:f.getLastUpdated().toISOString(),chunks:Math.ceil(taille/CDQ_DOCUMENT_CHUNK_BYTES_)};",
+      "replacement": "return {id:f.getId(),nom:f.getName(),clientId:cible.client.getId(),type:'PDF',taille:taille,\n    revision:f.getLastUpdated().toISOString(),chunkSize:CDQ_DOCUMENT_CHUNK_BYTES_,chunks:Math.ceil(taille/CDQ_DOCUMENT_CHUNK_BYTES_)};",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "if(meta.taille>CDQ_DOCUMENT_MAX_BYTES||meta.chunks!==Math.ceil(meta.taille/(1024*1024)))throw new Error('Taille PDF invalide.');",
+      "replacement": "const cdqDocumentChunkSize=Math.max(1,Number(meta.chunkSize)||4*1024*1024);\n    if(meta.taille>CDQ_DOCUMENT_MAX_BYTES||meta.chunks!==Math.ceil(meta.taille/cdqDocumentChunkSize))throw new Error('Taille PDF invalide.');",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
       "search": "const CDQ_DOCUMENT_CHUNK_BYTES_ = 1024 * 1024;",
       "replacement": "const CDQ_DOCUMENT_CHUNK_BYTES_ = 4 * 1024 * 1024;",
       "expected": 1
     },
     {
       "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2250GlobalProgressCss"
+      "op": "replace_literal_if_present",
+      "search": "content:\"V22.55\";",
+      "replacement": "content:\"V22.56\";",
+      "expected": 1
     },
     {
       "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2250GlobalProgressJs"
+      "op": "replace_literal_if_present",
+      "search": "meta.textContent='V22.55';",
+      "replacement": "meta.textContent='V22.56';",
+      "expected": 1
     },
     {
       "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2251GlobalProgressCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2251GlobalProgressJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2255MajorProgressCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2255MajorProgressJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "insert_before_literal",
-      "before": "</body>",
-      "text": "\n<style id=\"cdqV2255MajorProgressCss\">\n#cdqMajorProgressV2255{\n  position:fixed;left:50%;\n  bottom:calc(92px + env(safe-area-inset-bottom,0px));\n  transform:translateX(-50%) translateY(14px);\n  width:min(570px,calc(100vw - 24px));\n  z-index:2147483000;opacity:0;visibility:hidden;pointer-events:none;\n  transition:opacity .18s ease,transform .18s ease,visibility .18s;\n  font-family:system-ui,-apple-system,\"Segoe UI\",Roboto,Arial,sans-serif;\n}\n#cdqMajorProgressV2255.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}\n#cdqMajorProgressV2255 .card{\n  padding:12px 14px;border:1px solid rgba(47,205,242,.75);border-radius:14px;\n  background:rgba(5,22,34,.97);color:#f2fbff;box-shadow:0 12px 38px rgba(0,0,0,.42);\n}\n#cdqMajorProgressV2255 .head{display:flex;align-items:center;gap:9px}\n#cdqMajorProgressV2255 .spin{width:17px;height:17px;border-radius:50%;border:2px solid rgba(93,224,255,.25);border-top-color:#5de0ff;animation:cdqMajorSpin2255 .8s linear infinite;flex:0 0 auto}\n#cdqMajorProgressV2255 .title{flex:1;min-width:0;font-size:14px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#cdqMajorProgressV2255 .pct{min-width:48px;text-align:right;font-size:15px;font-weight:900;color:#63e3ff}\n#cdqMajorProgressV2255 .track{height:9px;margin-top:9px;border-radius:999px;overflow:hidden;background:#112d3d;border:1px solid rgba(70,174,213,.26)}\n#cdqMajorProgressV2255 .fill{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#1aa9d6,#53e3ff);transition:width .2s ease}\n#cdqMajorProgressV2255 .detail{margin-top:6px;color:#a9c4d1;font-size:12px}\n#cdqMajorProgressV2255.done .spin{animation:none;background:#47d890;border-color:#47d890}\n#cdqMajorProgressV2255.done .pct{color:#62e8a8}\n#cdqMajorProgressV2255.error .spin{animation:none;background:#ff6673;border-color:#ff6673}\n#cdqMajorProgressV2255.error .pct{color:#ff7d87}\n@keyframes cdqMajorSpin2255{to{transform:rotate(360deg)}}\nhtml.windows #cdqMajorProgressV2255{bottom:22px}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child{font-size:0!important;line-height:1!important}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child::after{\n  content:\"V22.55\";font-size:9px!important;font-weight:800!important;color:#dbe8ee!important;white-space:nowrap!important\n}\n</style>\n<script id=\"cdqV2255MajorProgressJs\">\n(function(){\n  'use strict';\n  let seq=0,current=null;\n\n  function ensure(){\n    let e=document.getElementById('cdqMajorProgressV2255');\n    if(e)return e;\n    e=document.createElement('div');e.id='cdqMajorProgressV2255';e.setAttribute('role','status');e.setAttribute('aria-live','polite');\n    e.innerHTML='<div class=\"card\"><div class=\"head\"><span class=\"spin\"></span><strong class=\"title\">Chargement…</strong><span class=\"pct\">0 %</span></div><div class=\"track\"><div class=\"fill\"></div></div><div class=\"detail\">Veuillez patienter…</div></div>';\n    document.body.appendChild(e);return e;\n  }\n  function render(){\n    if(!current)return;\n    const e=ensure(),p=Math.max(0,Math.min(100,Math.round(current.pct||0)));\n    e.classList.toggle('done',current.state==='done');e.classList.toggle('error',current.state==='error');\n    e.querySelector('.title').textContent=current.title||'Chargement…';\n    e.querySelector('.pct').textContent=current.state==='error'?'—':p+' %';\n    e.querySelector('.fill').style.width=p+'%';\n    e.querySelector('.detail').textContent=current.detail||'Traitement en cours…';\n    if(current.shown)e.classList.add('show');\n  }\n  function clear(s){if(!s)return;clearTimeout(s.showTimer);clearTimeout(s.hideTimer);clearInterval(s.autoTimer)}\n  function start(title,detail,opts){\n    opts=opts||{};if(current)clear(current);\n    const token=++seq;current={token,title,detail,pct:Number(opts.start||3),cap:Number(opts.cap||88),state:'work',shown:false,started:Date.now()};\n    current.showTimer=setTimeout(function(){if(current&&current.token===token){current.shown=true;render()}},Number(opts.delay==null?350:opts.delay));\n    if(opts.auto!==false){\n      current.autoTimer=setInterval(function(){\n        if(!current||current.token!==token||current.state!=='work')return;\n        if(current.pct<current.cap)current.pct=Math.min(current.cap,current.pct+Math.max(1,Math.ceil((current.cap-current.pct)*.08)));\n        const s=Math.floor((Date.now()-current.started)/1000);\n        if(s>=12)current.detail=String(detail||'Traitement en cours…')+' · '+s+' s';\n        render();\n      },500);\n    }\n    render();return token;\n  }\n  function update(token,pct,title,detail){\n    if(!current||current.token!==token)return false;\n    if(Number.isFinite(Number(pct)))current.pct=Math.max(current.pct,Math.min(99,Number(pct)));\n    if(title)current.title=title;if(detail)current.detail=detail;render();return true;\n  }\n  function finish(token,title){\n    if(!current||current.token!==token)return false;clear(current);\n    current.pct=100;current.state='done';current.title=title||'Terminé';current.detail='Opération terminée.';current.shown=true;render();\n    current.hideTimer=setTimeout(function(){const e=ensure();e.classList.remove('show');setTimeout(function(){if(current&&current.token===token){clear(current);current=null}},220)},650);\n    return true;\n  }\n  function fail(token,msg){\n    if(!current||current.token!==token)return false;clear(current);\n    current.state='error';current.title='Erreur';current.detail=String(msg||'Opération impossible.');current.shown=true;render();\n    current.hideTimer=setTimeout(function(){const e=ensure();e.classList.remove('show');setTimeout(function(){if(current&&current.token===token){clear(current);current=null}},220)},2200);\n    return true;\n  }\n  window.cdqMajorProgressStartV2255=start;\n  window.cdqMajorProgressUpdateV2255=update;\n  window.cdqMajorProgressFinishV2255=finish;\n  window.cdqMajorProgressFailV2255=fail;\n\n  // Remplace uniquement le téléchargement/préparation des gros PDF.\n  try{\n    cdqEnsurePdf=async function(id,refresh){\n      if(cdqDocumentDownloads.has(id))return cdqDocumentDownloads.get(id);\n      const token=(window.__cdqPdfProgressTokenV2255||0);\n      const op=(async function(){\n        const old=await cdqV19GetRecord('document-pdf',id);\n        if(!navigator.onLine){\n          if(old&&old.blob)return old;\n          throw new Error('Ce PDF n’a pas été préparé. Reconnectez Internet et ouvrez-le une fois.');\n        }\n        if(!refresh&&old&&old.blob&&old.instantCopy&&Number(old.localReadyUntil||0)>Date.now())return old;\n\n        if(token)update(token,8,null,'Lecture des informations du PDF…');\n        let meta;\n        try{meta=await cdqV19Gs('obtenirMetaDocumentPdfCDQ',[id]);}\n        catch(e){if(old&&old.blob&&!refresh)return Object.assign({},old,{stale:true});throw e;}\n\n        if(old&&old.blob&&old.revision===meta.revision&&old.blob.size===meta.taille)return old;\n        if(!meta||!Number.isInteger(Number(meta.chunks))||Number(meta.chunks)<1||Number(meta.chunks)>64||Number(meta.taille)>CDQ_DOCUMENT_MAX_BYTES)\n          throw new Error('Taille PDF invalide.');\n\n        const total=Number(meta.chunks),parts=new Array(total);\n        let done=0,next=0;\n        const workers=Math.min(3,total);\n        if(token)update(token,12,null,'Téléchargement du PDF · 0 / '+total+' blocs');\n\n        async function worker(){\n          while(true){\n            const i=next++;if(i>=total)return;\n            const part=await cdqV19Gs('obtenirChunkDocumentPdfCDQ',[id,meta.revision,i]);\n            if(part.revision!==meta.revision)throw new Error('Le PDF a changé pendant la préparation. Réessayez.');\n            parts[i]=cdqV2112Base64ToBytes(part.base64);\n            done++;\n            if(token){\n              const pct=12+Math.round((done/total)*72);\n              update(token,pct,null,'Téléchargement du PDF · '+done+' / '+total+' blocs');\n            }\n          }\n        }\n        await Promise.all(Array.from({length:workers},worker));\n\n        if(token)update(token,87,null,'Assemblage et vérification du PDF…');\n        const blob=new Blob(parts,{type:'application/pdf'});\n        if(blob.size!==meta.taille||(await blob.slice(0,5).text())!=='%PDF-')throw new Error('Copie PDF incomplète. Réessayez.');\n        const rec=Object.assign({},meta,{blob:blob});\n        await cdqV19PutRecord('document-pdf',id,rec);\n        if(token)update(token,91,null,'Préparation des champs du rapport…');\n        return rec;\n      })();\n      cdqDocumentDownloads.set(id,op);\n      try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n    };\n  }catch(e){}\n\n  // Barre dédiée uniquement quand l'utilisateur ouvre un PDF.\n  try{\n    const originalOpen=cdqOpenPdf;\n    cdqOpenPdf=async function(id){\n      const token=start('Préparation du PDF','Chargement du rapport…',{start:4,delay:300,cap:90,auto:false});\n      window.__cdqPdfProgressTokenV2255=token;\n      try{\n        const rec=await cdqLoadPdfRecord(id);\n        update(token,96,'Préparation du PDF','Ouverture du lecteur…');\n        if(cdqPdfReaderPreference()==='cdq')await cdqOpenPdfInternal(id,rec);\n        else cdqShowPdfReaderChoice(id,rec);\n        finish(token,'PDF prêt');\n      }catch(e){\n        fail(token,e&&e.message?e.message:String(e||'Erreur'));\n        afficherErreur(e);\n      }finally{\n        if(window.__cdqPdfProgressTokenV2255===token)window.__cdqPdfProgressTokenV2255=0;\n      }\n    };\n  }catch(e){}\n\n  // Barre dédiée uniquement à la création d'un nouveau PDF.\n  try{\n    const originalCopy=confirmerCopie;\n    confirmerCopie=async function(){\n      const token=start('Copie du PDF','Création du rapport dans le dossier client…',{start:6,delay:300,cap:86,auto:true});\n      try{\n        const r=await originalCopy.apply(this,arguments);\n        const s=document.getElementById('copyModalStatus');\n        if(s&&s.classList.contains('error'))fail(token,s.textContent||'La copie a échoué.');\n        else finish(token,'PDF copié');\n        return r;\n      }catch(e){\n        fail(token,e&&e.message?e.message:String(e||'Erreur'));throw e;\n      }\n    };\n  }catch(e){}\n\n  // Version PC.\n  function stamp(){\n    const root=document.getElementById('cdqPcV16');if(!root)return;\n    root.dataset.build='v22.55-major-progress-pdf-open';\n    const meta=root.querySelector('.pc16-side-meta span:last-child');if(meta)meta.textContent='V22.55';\n  }\n  setTimeout(stamp,300);\n})();\n</script>\n"
+      "op": "replace_literal_if_present",
+      "search": "root.dataset.build='v22.55-major-progress-pdf-open';",
+      "replacement": "root.dataset.build='v22.56-pdf-chunk-fix';",
+      "expected": 1
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
     "notes": [
-      "Supprime la progression globale des petites actualisations et tâches de fond",
-      "Conserve une barre uniquement pour les grosses tâches : copie et préparation/ouverture d'un PDF",
-      "La préparation d'un PDF affiche une progression réelle par blocs reçus",
-      "Télécharge jusqu'à 3 blocs PDF en parallèle",
-      "Augmente les blocs serveur de 1 Mo à 4 Mo : un PDF de 22,6 Mo passe d'environ 23 appels à environ 6",
-      "Le lecteur s'ouvre après assemblage et validation du PDF",
-      "L'envoi courriel conserve sa progression serveur existante"
+      "Corrige l'erreur Taille PDF invalide à l'ouverture de Balance de Plancher.pdf",
+      "Le backend annonce maintenant chunkSize avec les métadonnées PDF",
+      "Le Selector calcule le nombre de blocs avec la taille réellement annoncée",
+      "Compatible avec les blocs 4 Mo introduits pour accélérer les PDF de 22,6 Mo",
+      "Conserve la progression limitée aux grosses tâches et le téléchargement parallèle V22.55"
     ]
   }
 }
