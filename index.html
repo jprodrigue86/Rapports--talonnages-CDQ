@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.19-v22.80-restore-v2268-pdf-flow';
+const CDQ_PWA_BUILD = '2026.09.19-v22.81-complete-v2268-pdf-flow';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1188,6 +1188,30 @@ function cdqPdfUiShowProgressV2268(pct,detail){
   ov.querySelector('#cdqPdfProgressFillV2268').style.width=Math.max(0,Math.min(100,Number(pct)||0))+'%';
 }
 
+function cdqPdfWaitV2281(data,source){
+  const ov=cdqPdfEnsureUiV2268();
+  const requestId=String(data.requestId||'');
+  cdqPdfUiStateV2268={
+    requestId:requestId,
+    source:source,
+    name:String(data.name||'Rapport.pdf'),
+    reader:String(data.reader||'ask'),
+    blob:null,
+    email:''
+  };
+
+  ov.style.display='flex';
+  ov.querySelector('#cdqPdfUiTitleV2268').textContent='Choisir le compte Google';
+  ov.querySelector('#cdqPdfUiSubV2268').textContent=String(data.name||'Rapport PDF');
+  ov.querySelector('#cdqPdfProgressWrapV2268').style.display='none';
+  ov.querySelector('#cdqPdfReadyV2268').style.display='none';
+  ov.querySelector('#cdqPdfOpenButtonV2268').style.display='none';
+
+  const box=ov.querySelector('#cdqPdfGoogleButtonV2268');
+  box.style.display='grid';
+  box.innerHTML='<div style="padding:12px 8px;color:#b9ceda;text-align:center">Préparation du choix du compte Google…</div>';
+}
+
 async function cdqPdfAccountRequiredV2268(data,source){
   const ov=cdqPdfEnsureUiV2268();
   const requestId=String(data.requestId||'');
@@ -1375,6 +1399,7 @@ if(data.type==='CDQ_GOOGLE_AUTH_ERROR'){
   document.getElementById('load-message').textContent=String(data.message||'La connexion Google a échoué. Réessayez.');
 }
 if(data.type==='CDQ_GOOGLE_AUTH_HIDE')masquerConnexionGoogleV42();
+if(data.type==='CDQ_PDF_ACCOUNT_WAIT_V2281'){cdqPdfWaitV2281(data,event.source);return;}
 if(data.type==='CDQ_PDF_ERROR_V2268'){cdqPdfErrorV2268(data);return;}
 if(data.type==='CDQ_PDF_READY_V2268'){cdqPdfReadyV2268(data,event.source);return;}
 if(data.type==='CDQ_PDF_PROGRESS_V2268'){cdqPdfProgressV2268(data);return;}
