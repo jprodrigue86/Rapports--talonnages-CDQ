@@ -1,0 +1,43 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.67",
+  "build": "2026.09.19-v22.67-android-pdf-reader-direct",
+  "title": "Balance CDQ V22.67 — lecteur PDF Android respecté, sans flash blanc",
+  "requiresBuild": [
+    "2026.09.19-v22.66-drive-pdf-settings-stable"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.66-drive-pdf-settings-stable",
+      "to": "2026.09.19-v22.67-android-pdf-reader-direct"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.66-drive-pdf-settings-stable",
+      "to": "2026.09.19-v22.67-android-pdf-reader-direct"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "const cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    // EN LIGNE : le fichier Drive du client est la source officielle.\n    // Aucun template, aucun découpage, aucune reconstruction PDF-Lib.\n    if(navigator.onLine!==false){\n      return cdqV19OldModify(id);\n    }\n\n    // HORS LIGNE seulement : utiliser le moteur PDF local préparé explicitement.\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "replacement": "function cdqPdfDriveUrlV2267(id){\n  return 'https://drive.google.com/file/d/'+encodeURIComponent(String(id||''))+'/view';\n}\n\nfunction cdqPdfIntentV2267(id,packageName){\n  const fileId=encodeURIComponent(String(id||''));\n  const driveUrl=cdqPdfDriveUrlV2267(id);\n  let intent='intent://drive.google.com/file/d/'+fileId+'/view#Intent;scheme=https;action=android.intent.action.VIEW;type=application/pdf;';\n  if(packageName)intent+='package='+packageName+';';\n  intent+='S.browser_fallback_url='+encodeURIComponent(driveUrl)+';end';\n  return intent;\n}\n\nfunction cdqMarquerPdfOuvertV2267(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    let ancienneDate='';\n    const checkbox=document.querySelector('.file-checkbox[data-file-id=\"'+String(id).replace(/[^\\w-]/g,'')+'\"]');\n    const ligne=checkbox&&checkbox.closest('.file-row');\n    if(ligne)ancienneDate=ligne.dataset.modification||'';\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',ancienneDate);\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction cdqOuvrirPdfAndroidV2267(id){\n  const pref=cdqPdfReaderPreference();\n  cdqMarquerPdfOuvertV2267(id);\n  afficherMessage('Préparation du PDF…',true);\n\n  // Le lecteur CDQ reste le seul choix qui charge volontairement le PDF dans l'application.\n  if(pref==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  let target;\n  if(pref==='ilovepdf'){\n    target=cdqPdfIntentV2267(id,'com.ilovepdf.www');\n  }else if(pref==='acrobat'){\n    target=cdqPdfIntentV2267(id,'com.adobe.reader');\n  }else{\n    // \"Demander\" : intent PDF sans package pour laisser Android proposer les apps compatibles.\n    target=cdqPdfIntentV2267(id,'');\n  }\n\n  // Ouverture DIRECTE pendant le toucher : pas de fenêtre about:blank intermédiaire.\n  const opened=window.open(target,'_blank','noopener');\n  if(!opened){\n    try{window.location.href=target;}catch(_){\n      window.open(cdqPdfDriveUrlV2267(id),'_blank','noopener');\n    }\n  }\n  return true;\n}\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false){\n      if(/Android/i.test(navigator.userAgent||'')){\n        return cdqOuvrirPdfAndroidV2267(id);\n      }\n      return cdqV19OldModify(id);\n    }\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "scope": "Android PDF online only",
+    "fixes": [
+      "Supprime la fenêtre about:blank pour les PDF Android en ouvrant directement la cible pendant le toucher.",
+      "Lit réellement cdqPdfReaderPreferenceV1 avant l'ouverture.",
+      "iLovePDF cible le package Android com.ilovepdf.www.",
+      "Acrobat cible le package Android com.adobe.reader.",
+      "Demander utilise un intent PDF générique avec fallback Drive.",
+      "Lecteur CDQ conserve le lecteur interne existant.",
+      "PC, copie de template, hors ligne, Affichage et Gestes ne sont pas modifiés."
+    ]
+  }
+}
