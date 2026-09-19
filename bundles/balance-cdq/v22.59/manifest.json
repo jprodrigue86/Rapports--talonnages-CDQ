@@ -1,0 +1,106 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.59",
+  "build": "2026.09.19-v22.59-mobile-interaction-fix",
+  "title": "Balance CDQ V22.59 — interactions Android débloquées",
+  "requiresBuild": [
+    "2026.09.19-v22.58-lazy-heavy-work",
+    "2026.09.19-v22.57-large-pdf-open-fast"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.58-lazy-heavy-work",
+        "2026.09.19-v22.57-large-pdf-open-fast"
+      ],
+      "to": "2026.09.19-v22.59-mobile-interaction-fix"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.58-lazy-heavy-work",
+        "2026.09.19-v22.57-large-pdf-open-fast"
+      ],
+      "to": "2026.09.19-v22.59-mobile-interaction-fix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "try{\n  new MutationObserver(function(){\n    clearTimeout(window.__cdqV2204MutationTimer);\n    window.__cdqV2204MutationTimer=setTimeout(refreshV2204,40);\n  }).observe(document.body,{childList:true,subtree:true});\n}catch(e){}",
+      "replacement": "/* V22.59 : observateur global V22.04 supprimé — il s’auto-déclenchait. */",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "try{\n  new MutationObserver(function(){\n    clearTimeout(window.__cdqV2206Mutation);\n    window.__cdqV2206Mutation=setTimeout(cdqRefreshV2206,60);\n  }).observe(document.body,{childList:true,subtree:true});\n}catch(e){}",
+      "replacement": "/* V22.59 : observateur global V22.06 supprimé — il s’auto-déclenchait. */",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "try{\n  new MutationObserver(function(){\n    clearTimeout(window.__cdqV2207CrispTimer);\n    window.__cdqV2207CrispTimer=setTimeout(refresh,80);\n  }).observe(document.body,{childList:true,subtree:true});\n}catch(e){}",
+      "replacement": "/* V22.59 : observateur global V22.07 supprimé — il s’auto-déclenchait. */",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "try{\n  new MutationObserver(scheduleFixV2210).observe(document.body,{\n    childList:true,subtree:true,characterData:true,\n    attributes:true,attributeFilter:[\"style\",\"class\"]\n  });\n}catch(e){}",
+      "replacement": "try{\n  [document.getElementById(\"clientInfoBar\"),document.getElementById(\"filesContainer\")].filter(Boolean).forEach(function(target){\n    new MutationObserver(scheduleFixV2210).observe(target,{\n      childList:true,subtree:true,characterData:true\n    });\n  });\n}catch(e){}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2259MobileInteractionCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2259MobileInteractionJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqV2259MobileInteractionCss\">\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204,\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204 *{\n  pointer-events:auto!important;\n}\n</style>\n<script id=\"cdqV2259MobileInteractionJs\">\n(function(){\n  'use strict';\n\n  function inDisplay(btn){\n    return !!btn.closest('#cdqInlineDisplayPanelV2204,#cdqDisplayModal');\n  }\n  function setActive(btn,selector){\n    const root=btn.closest('#cdqInlineDisplayPanelV2204,#cdqDisplayModal')||document;\n    root.querySelectorAll(selector).forEach(function(x){x.classList.toggle('active',x===btn);});\n  }\n\n  document.addEventListener('click',function(e){\n    const btn=e.target&&e.target.closest?e.target.closest('button[data-long],button[data-swipe],button[data-pdf-reader]'):null;\n    if(!btn||!inDisplay(btn))return;\n\n    // Gestion directe : ne dépend plus des handlers reconstruits/déplacés du modal.\n    e.preventDefault();\n    e.stopImmediatePropagation();\n\n    if(btn.dataset.long){\n      try{if(typeof cdqSetLongPress==='function')cdqSetLongPress(btn.dataset.long);else localStorage.setItem('cdqLongPressMs',String(btn.dataset.long));}catch(_){}\n      setActive(btn,'button[data-long]');\n      return;\n    }\n    if(btn.dataset.swipe){\n      try{if(typeof cdqSetSwipeSensitivity==='function')cdqSetSwipeSensitivity(btn.dataset.swipe);else localStorage.setItem('cdqSwipeSensitivity',String(btn.dataset.swipe));}catch(_){}\n      setActive(btn,'button[data-swipe]');\n      return;\n    }\n    if(btn.dataset.pdfReader){\n      try{\n        localStorage.setItem('cdqPdfReaderPreferenceV1',String(btn.dataset.pdfReader));\n        if(typeof cdqScheduleSavePreferencesV72==='function')cdqScheduleSavePreferencesV72();\n        if(typeof afficherMessage==='function')afficherMessage('Lecteur PDF par défaut enregistré.',true);\n      }catch(_){}\n      setActive(btn,'button[data-pdf-reader]');\n    }\n  },true);\n\n  // Si un ancien refresh visuel tente de repartir, ne pas le laisser monopoliser Android.\n  try{\n    clearTimeout(window.__cdqV2204MutationTimer);\n    clearTimeout(window.__cdqV2206Mutation);\n    clearTimeout(window.__cdqV2207CrispTimer);\n    clearTimeout(window.__cdqFixEmptyZonesTimerV2210);\n  }catch(_){}\n\n  // Version PC visible.\n  setTimeout(function(){\n    const root=document.getElementById('cdqPcV16');\n    if(root){\n      root.dataset.build='v22.59-mobile-interaction-fix';\n      const meta=root.querySelector('.pc16-side-meta span:last-child');\n      if(meta)meta.textContent='V22.59';\n    }\n  },250);\n})();\n</script>\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "content:\"V22.58\";",
+      "replacement": "content:\"V22.59\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "meta.textContent='V22.58';",
+      "replacement": "meta.textContent='V22.59';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "root.dataset.build='v22.58-lazy-heavy-work';",
+      "replacement": "root.dataset.build='v22.59-mobile-interaction-fix';",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "notes": [
+      "Supprime trois MutationObserver globaux qui se redéclenchaient en modifiant eux-mêmes le DOM",
+      "Le contrôle des zones vides n'observe plus les attributs style/class qu'il modifie lui-même",
+      "Ajoute un gestionnaire direct de secours pour Gestes et Lecteur PDF dans Affichage",
+      "Réduit fortement le travail DOM permanent sur Android",
+      "Le clic PDF retrouve le thread principal disponible pour lancer la préparation/lecture",
+      "Conserve les corrections PDF 32 Mo et les gros travaux à la demande"
+    ]
+  }
+}
