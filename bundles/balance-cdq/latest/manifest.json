@@ -1,65 +1,61 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.43",
-  "build": "2026.09.18-v22.43-pc-left-edge-full",
-  "title": "Balance CDQ V22.43 — supprimer bande gauche PC",
+  "version": "V22.44",
+  "build": "2026.09.18-v22.44-pc-update-banner",
+  "title": "Balance CDQ V22.44 — signal visuel de mise à jour PC",
   "requiresBuild": [
-    "2026.09.18-v22.42-pc-version-label-fix"
+    "2026.09.18-v22.43-pc-left-edge-full"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.18-v22.42-pc-version-label-fix",
-      "to": "2026.09.18-v22.43-pc-left-edge-full"
+      "from": "2026.09.18-v22.43-pc-left-edge-full",
+      "to": "2026.09.18-v22.44-pc-update-banner"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.18-v22.42-pc-version-label-fix",
-      "to": "2026.09.18-v22.43-pc-left-edge-full"
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "r.style.setProperty('left',v.ox+'px','important');",
-      "replacement": "r.style.setProperty('left','0px','important');",
-      "expected": 1
+      "from": "2026.09.18-v22.43-pc-left-edge-full",
+      "to": "2026.09.18-v22.44-pc-update-banner"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "ox:Number(vv&&vv.offsetLeft)||0,",
-      "replacement": "ox:0,",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "<span>V22.42</span>",
-      "replacement": "<span>V22.43</span>",
+      "search": "<span>V22.43</span>",
+      "replacement": "<span>V22.44</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "remove_style_id_if_present",
-      "id": "cdqPcV2243LeftEdgeCss"
+      "id": "cdqPcV2242VersionLabelCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2244UpdateBannerCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqPcV2244UpdateBannerJs"
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqPcV2243LeftEdgeCss\">\nhtml.windows #cdqPcV16{\n  left:0!important;\n  margin-left:0!important;\n  padding-left:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-stage{\n  left:0!important;\n  margin-left:0!important;\n}\n</style>\n"
+      "text": "\n<style id=\"cdqPcV2244UpdateBannerCss\">\nhtml.windows #cdqPcV16 #cdqPcUpdateBannerV2244{\n  display:flex;\n  align-items:center;\n  justify-content:space-between;\n  gap:8px;\n  margin:8px 6px 10px;\n  padding:8px 9px;\n  border:1px solid rgba(43,205,232,.78);\n  border-radius:9px;\n  background:linear-gradient(180deg,rgba(8,52,72,.97),rgba(5,33,47,.97));\n  box-shadow:0 0 0 1px rgba(24,160,195,.16),0 6px 16px rgba(0,0,0,.26);\n}\nhtml.windows #cdqPcV16 #cdqPcUpdateBannerV2244[hidden]{display:none!important;}\nhtml.windows #cdqPcV16 .cdqPcUpdateTextV2244{\n  display:flex;\n  flex-direction:column;\n  min-width:0;\n  line-height:1.05;\n}\nhtml.windows #cdqPcV16 .cdqPcUpdateTextV2244 strong{\n  font-size:10px;\n  color:#eaffff;\n  white-space:nowrap;\n}\nhtml.windows #cdqPcV16 .cdqPcUpdateTextV2244 span{\n  margin-top:3px;\n  font-size:9px;\n  font-weight:800;\n  color:#5ee8ff;\n}\nhtml.windows #cdqPcV16 #cdqPcUpdateBtnV2244{\n  flex:0 0 auto;\n  min-height:28px;\n  padding:5px 8px;\n  border:1px solid #4ce6ff;\n  border-radius:7px;\n  background:#12a9c6;\n  color:#03171f;\n  font-size:9px;\n  font-weight:900;\n  cursor:pointer;\n}\nhtml.windows #cdqPcV16 #cdqPcUpdateBtnV2244:hover{filter:brightness(1.08);}\n</style>\n<script id=\"cdqPcV2244UpdateBannerJs\">\n(function(){\n  'use strict';\n  const BUILD='2026.09.18-v22.44-pc-update-banner';\n  const PARENT_ORIGIN='https://jprodrigue86.github.io';\n  let queryTimer=0;\n\n  function ensure(){\n    const root=document.getElementById('cdqPcV16');\n    if(!root)return false;\n    root.dataset.build='v22.44-pc-update-banner';\n\n    let meta=root.querySelector('.pc16-side-meta');\n    if(!meta)return false;\n\n    let box=document.getElementById('cdqPcUpdateBannerV2244');\n    if(!box){\n      const wrap=document.createElement('div');\n      wrap.innerHTML=`<div id=\"cdqPcUpdateBannerV2244\" hidden>\n  <div class=\"cdqPcUpdateTextV2244\">\n    <strong>Nouvelle mise à jour</strong>\n    <span id=\"cdqPcUpdateVersionV2244\">V22.44</span>\n  </div>\n  <button id=\"cdqPcUpdateBtnV2244\" type=\"button\">Mettre à jour</button>\n</div>`;\n      box=wrap.firstElementChild;\n      meta.parentNode.insertBefore(box,meta);\n\n      const btn=box.querySelector('#cdqPcUpdateBtnV2244');\n      if(btn)btn.addEventListener('click',function(){\n        btn.disabled=true;\n        btn.textContent='Mise à jour…';\n        try{window.parent.postMessage({type:'CDQ_PC_APPLY_UPDATE',build:BUILD},PARENT_ORIGIN)}catch(e){}\n        setTimeout(function(){btn.disabled=false;btn.textContent='Mettre à jour'},6000);\n      });\n    }\n\n    const v=meta.querySelector('span');\n    if(v)v.textContent='V22.44';\n    return true;\n  }\n\n  function ask(){\n    if(!ensure())return;\n    try{\n      window.parent.postMessage({\n        type:'CDQ_PC_UPDATE_QUERY',\n        build:BUILD,\n        version:'V22.44'\n      },PARENT_ORIGIN);\n    }catch(e){}\n  }\n\n  window.addEventListener('message',function(e){\n    if(e.origin!==PARENT_ORIGIN)return;\n    const d=e.data||{};\n    if(d.type!=='CDQ_PC_UPDATE_STATUS')return;\n    const box=document.getElementById('cdqPcUpdateBannerV2244');\n    if(!box)return;\n\n    if(d.available&&d.deployed){\n      const version=document.getElementById('cdqPcUpdateVersionV2244');\n      if(version)version.textContent=String(d.targetVersion||d.liveBuild||'Nouvelle version');\n      box.hidden=false;\n    }else{\n      box.hidden=true;\n    }\n  });\n\n  if(document.readyState==='loading'){\n    document.addEventListener('DOMContentLoaded',function(){setTimeout(ask,250)},{once:true});\n  }else setTimeout(ask,250);\n\n  queryTimer=setInterval(ask,300000);\n  window.addEventListener('beforeunload',function(){clearInterval(queryTimer)},{once:true});\n})();\n</script>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
-    "microCorrection": true,
     "notes": [
-      "Conserve le correctif anti-flash V22.42",
-      "Supprime uniquement le décalage horizontal gauche du shell PC",
-      "Force l'application PC à partir du bord gauche de la fenêtre",
-      "Aucun changement aux données, KPI, menus ou chargement"
+      "Bandeau au-dessus de Balance CDQ uniquement sur PC",
+      "Affiche Nouvelle mise à jour + version seulement quand la nouvelle version est réellement déployée",
+      "Bouton Mettre à jour recharge l'application intérieure sans réinstaller la PWA",
+      "Vérification automatique toutes les 5 minutes",
+      "Conserve les correctifs anti-flash et plein écran gauche"
     ]
   }
 }
