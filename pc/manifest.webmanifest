@@ -3,7 +3,7 @@
   "name": "Balance CDQ PC — Rapports d’étalonnage",
   "short_name": "Balance CDQ PC",
   "description": "Application PC propre Balance CDQ pour les rapports d’étalonnage.",
-  "start_url": "/Rapports--talonnages-CDQ/pc/?installed=1",
+  "start_url": "/Rapports--talonnages-CDQ/pc/?installed=1&shell=2239",
   "scope": "/Rapports--talonnages-CDQ/pc/",
   "display": "standalone",
   "orientation": "any",
