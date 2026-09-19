@@ -1,6 +1,6 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE='cdq-pc-clean-v22-38';
-const FORCE_BUILD='2026.09.18-v22.38-clean-pc-install';
+const CACHE='cdq-pc-clean-v22-39-no-flash';
+const FORCE_BUILD='2026.09.18-v22.39-pc-no-flash-gate';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;
