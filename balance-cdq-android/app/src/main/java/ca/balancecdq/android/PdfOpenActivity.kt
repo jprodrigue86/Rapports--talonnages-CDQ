@@ -197,7 +197,7 @@ class PdfOpenActivity : Activity() {
 
     private fun openReader(session: PdfSession) {
         val uri = Uri.parse(
-            "content://${BuildConfig.APPLICATION_ID}.pdf/session/${session.id}"
+            "content://ca.balancecdq.android.pdf/session/${session.id}"
         )
 
         val base = Intent(Intent.ACTION_VIEW).apply {
