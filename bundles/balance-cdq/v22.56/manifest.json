@@ -1,0 +1,82 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.56",
+  "build": "2026.09.19-v22.56-pdf-chunk-fix",
+  "title": "Balance CDQ V22.56 — correction blocs PDF",
+  "requiresBuild": [
+    "2026.09.19-v22.55-major-progress-pdf-open",
+    "2026.09.19-v22.54-live-update-watch"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.55-major-progress-pdf-open",
+        "2026.09.19-v22.54-live-update-watch"
+      ],
+      "to": "2026.09.19-v22.56-pdf-chunk-fix"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.55-major-progress-pdf-open",
+        "2026.09.19-v22.54-live-update-watch"
+      ],
+      "to": "2026.09.19-v22.56-pdf-chunk-fix"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal",
+      "search": "return {id:f.getId(),nom:f.getName(),clientId:cible.client.getId(),type:'PDF',taille:taille,\n    revision:f.getLastUpdated().toISOString(),chunks:Math.ceil(taille/CDQ_DOCUMENT_CHUNK_BYTES_)};",
+      "replacement": "return {id:f.getId(),nom:f.getName(),clientId:cible.client.getId(),type:'PDF',taille:taille,\n    revision:f.getLastUpdated().toISOString(),chunkSize:CDQ_DOCUMENT_CHUNK_BYTES_,chunks:Math.ceil(taille/CDQ_DOCUMENT_CHUNK_BYTES_)};",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "if(meta.taille>CDQ_DOCUMENT_MAX_BYTES||meta.chunks!==Math.ceil(meta.taille/(1024*1024)))throw new Error('Taille PDF invalide.');",
+      "replacement": "const cdqDocumentChunkSize=Math.max(1,Number(meta.chunkSize)||4*1024*1024);\n    if(meta.taille>CDQ_DOCUMENT_MAX_BYTES||meta.chunks!==Math.ceil(meta.taille/cdqDocumentChunkSize))throw new Error('Taille PDF invalide.');",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "const CDQ_DOCUMENT_CHUNK_BYTES_ = 1024 * 1024;",
+      "replacement": "const CDQ_DOCUMENT_CHUNK_BYTES_ = 4 * 1024 * 1024;",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "content:\"V22.55\";",
+      "replacement": "content:\"V22.56\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "meta.textContent='V22.55';",
+      "replacement": "meta.textContent='V22.56';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "root.dataset.build='v22.55-major-progress-pdf-open';",
+      "replacement": "root.dataset.build='v22.56-pdf-chunk-fix';",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "notes": [
+      "Corrige l'erreur Taille PDF invalide à l'ouverture de Balance de Plancher.pdf",
+      "Le backend annonce maintenant chunkSize avec les métadonnées PDF",
+      "Le Selector calcule le nombre de blocs avec la taille réellement annoncée",
+      "Compatible avec les blocs 4 Mo introduits pour accélérer les PDF de 22,6 Mo",
+      "Conserve la progression limitée aux grosses tâches et le téléchargement parallèle V22.55"
+    ]
+  }
+}
