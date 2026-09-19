@@ -59,7 +59,7 @@
       "op": "replace_literal_if_present",
       "search": "content:\"V22.60\";",
       "replacement": "content:\"V22.61\";",
-      "expected": 1
+      "expected": 2
     },
     {
       "file": "Selector.html",
@@ -83,7 +83,9 @@
       "Expose cdqOpenPdf sur window pour les gestionnaires Android externes",
       "La ligne PDF possède aussi un chemin d'ouverture direct de secours",
       "Expose cdqEnsurePdf pour diagnostic sans changer son moteur local",
-      "Conserve les blocs PDF 1 Mo et les interactions Android directes"
-    ]
+      "Conserve les blocs PDF 1 Mo et les interactions Android directes",
+      "Le remplacement visuel V22.60 → V22.61 accepte les deux occurrences présentes dans le Selector."
+    ],
+    "revision": "robuste-2"
   }
 }
