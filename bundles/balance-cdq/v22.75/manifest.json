@@ -1,0 +1,42 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.75",
+  "build": "2026.09.19-v22.75-pdf-tap-like-sheets",
+  "title": "Balance CDQ V22.75 — tap PDF Android direct comme Google Sheets",
+  "requiresBuild": [
+    "2026.09.19-v22.74-pwa-pdf-stable-reset"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.74-pwa-pdf-stable-reset",
+      "to": "2026.09.19-v22.75-pdf-tap-like-sheets"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.74-pwa-pdf-stable-reset",
+      "to": "2026.09.19-v22.75-pdf-tap-like-sheets"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "function cdqMarquerPdfOuvertV2274(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    // Ne rien changer au parcours Google Sheets existant.\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    cdqMarquerPdfOuvertV2274(id);\n\n    // Retour au moteur PDF éprouvé de Balance CDQ.\n    // Aucun onglet Drive, aucun OAuth secondaire, aucun intent vers une\n    // application CDQ séparée. Le PDF est préparé par le moteur existant,\n    // puis le lecteur/choix PDF configuré dans Affichage est utilisé.\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n\n  return cdqV19OldModify(id);\n};",
+      "replacement": "function cdqMarquerPdfOuvertV2275(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction cdqPdfDriveUrlV2275(id){\n  id=String(id||'');\n  if(!/^[\\\\w-]+$/.test(id))throw new Error('Identifiant PDF invalide.');\n  return 'https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view?usp=drivesdk';\n}\n\nfunction cdqPdfDriveIntentV2275(id){\n  const drive=cdqPdfDriveUrlV2275(id);\n  if(!/Android/i.test(navigator.userAgent||''))return drive;\n  return 'intent://drive.google.com/file/d/'+encodeURIComponent(String(id||''))+\n    '/view#Intent;scheme=https;package=com.google.android.apps.docs;'+\n    'S.browser_fallback_url='+encodeURIComponent(drive)+';end';\n}\n\nfunction cdqOuvrirPdfCommeSheetV2275(id){\n  const pref=cdqPdfReaderPreference();\n\n  // Le lecteur CDQ reste volontairement interne.\n  if(pref==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n\n  // Même principe que Google Sheets : l'intent est lancé DIRECTEMENT\n  // pendant le geste utilisateur, sans Apps Script asynchrone, sans\n  // window.open tardif et sans page about:blank.\n  window.location.href=cdqPdfDriveIntentV2275(id);\n  return true;\n}\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    return cdqOuvrirPdfCommeSheetV2275(id);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n\n  return cdqV19OldModify(id);\n};\n\n// Filet de sécurité Android : certains anciens gestionnaires de swipe\n// consomment le click synthétique après pointerup. On déclenche donc le PDF\n// au pointerup, pendant le vrai geste, puis on supprime seulement le click\n// qui suit afin d'éviter une double ouverture.\n(function(){\n  if(!/Android/i.test(navigator.userAgent||''))return;\n\n  let tap=null;\n\n  document.addEventListener('pointerdown',function(e){\n    if(e.target&&e.target.closest&&e.target.closest('button'))return;\n    const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n    if(!row)return;\n    const box=row.querySelector('.file-checkbox[data-file-id]');\n    if(!box)return;\n    const id=String(box.dataset.fileId||'');\n    const meta=cdqDocumentMeta(id);\n    if(!meta||meta.type!=='PDF')return;\n    tap={row:row,id:id,pointerId:e.pointerId,x:e.clientX,y:e.clientY,moved:false};\n  },true);\n\n  document.addEventListener('pointermove',function(e){\n    if(!tap||tap.pointerId!==e.pointerId)return;\n    if(Math.abs(e.clientX-tap.x)>18||Math.abs(e.clientY-tap.y)>18)tap.moved=true;\n  },true);\n\n  document.addEventListener('pointercancel',function(e){\n    if(tap&&tap.pointerId===e.pointerId)tap=null;\n  },true);\n\n  document.addEventListener('pointerup',function(e){\n    if(!tap||tap.pointerId!==e.pointerId)return;\n    const t=tap;tap=null;\n\n    if(t.moved)return;\n    if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return;\n    if(e.target&&e.target.closest&&e.target.closest('button'))return;\n\n    t.row.dataset.cdqPdfOpenedV2275='1';\n    try{\n      cdqOuvrirPdfCommeSheetV2275(t.id);\n    }catch(err){\n      try{afficherErreur(err);}catch(_){}\n    }\n\n    setTimeout(function(){\n      try{delete t.row.dataset.cdqPdfOpenedV2275;}catch(_){}\n    },800);\n  },true);\n\n  document.addEventListener('click',function(e){\n    const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n    if(!row||row.dataset.cdqPdfOpenedV2275!=='1')return;\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    delete row.dataset.cdqPdfOpenedV2275;\n  },true);\n})();",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "application": "Balance CDQ PWA existante uniquement",
+    "fix": [
+      "Le tap PDF est capté directement au pointerup Android, avant les anciens gestionnaires qui pouvaient avaler le click.",
+      "L'ouverture est lancée dans le même geste utilisateur, comme Google Sheets.",
+      "Le PDF est envoyé au gestionnaire natif Google Drive avec package com.google.android.apps.docs pour provoquer le choix de compte Google.",
+      "Aucun about:blank, aucun window.open asynchrone, aucun pont PDF et aucune deuxième application CDQ.",
+      "Google Sheets et toutes les autres fonctions restent inchangés.",
+      "Le lecteur CDQ reste disponible si explicitement sélectionné."
+    ]
+  }
+}
