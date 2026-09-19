@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v22-67-update-detect-direct';
-const FORCE_BUILD='2026.09.19-v22.67-update-detect-direct';
+const CACHE = 'cdq-installable-v22-68-account-first-pdf';
+const FORCE_BUILD='2026.09.19-v22.68-account-first-pdf-open';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates-v2252.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
