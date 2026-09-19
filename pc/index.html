@@ -489,7 +489,7 @@ let accessWaitTimer = null;
 let selectorWindow = null;
 let selectorOrigin = '';
 let backendBuild = '';
-const cdqOffline = import('./offline-templates.mjs?v=21.39').then(module=>module.createOfflineTemplates({
+const cdqOffline = import('./offline-templates.mjs?v=22.46').then(module=>module.createOfflineTemplates({
 send:data=>replyToSelector(selectorWindow,data),
 openPdf:data=>cdqAfficherPdf(data),
 warmPdf:data=>{
@@ -1284,7 +1284,7 @@ if(window.visualViewport){
 
 // Compatibilité avec un ancien Selector pendant sa mise à jour : aucun partage système.
 function cdqAfficherPdf(data) {
-if (!(data.blob instanceof Blob) || data.blob.type !== 'application/pdf' || !data.blob.size || data.blob.size > 15*1024*1024) return;
+if (!(data.blob instanceof Blob) || data.blob.type !== 'application/pdf' || !data.blob.size || data.blob.size > 32*1024*1024) return;
 if(document.getElementById('legacy-pdf-reader'))return;
 const frame=document.createElement('iframe');frame.id='legacy-pdf-reader';frame.title='PDF CDQ';frame.src='./reader.html';frame.referrerPolicy='origin';
 frame.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:100000;background:#101820';
@@ -1296,7 +1296,7 @@ const message=event.data||{};
 if(message.type==='CDQ_READER_READY')reply({type:'CDQ_READER_OPEN',blob:data.blob,name:String(data.name||'Rapport.pdf'),fileId:data.onSave?String(data.fileId||'local-copy'):'',readOnly:!!data.readOnly});
 if(message.type==='CDQ_READER_CLOSE'){closed=true;window.removeEventListener('message',receive);frame.remove();}
 if(message.type==='CDQ_READER_SAVE' && typeof data.onSave==='function' && !data.readOnly){
-if(!/^save-[\w-]{8,80}$/.test(String(message.requestId||'')) || !(message.blob instanceof Blob) || message.blob.type!=='application/pdf' || !message.blob.size || message.blob.size>15*1024*1024)return;
+if(!/^save-[\w-]{8,80}$/.test(String(message.requestId||'')) || !(message.blob instanceof Blob) || message.blob.type!=='application/pdf' || !message.blob.size || message.blob.size>32*1024*1024)return;
 if(!saves.has(message.requestId))saves.set(message.requestId,Promise.resolve().then(()=>data.onSave(message.blob,message.requestId)));
 saves.get(message.requestId).then(()=>reply({type:'CDQ_READER_SAVED',requestId:message.requestId,ok:true,queued:true}),error=>{
 saves.delete(message.requestId);
