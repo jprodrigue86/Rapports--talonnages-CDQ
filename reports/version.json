@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.62-pdf-scope-selection-fix",
+  "version": "2026.09.19-v22.63-pdf-range-fast",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.62-pdf-scope-selection-fix",
-  "backend_version": "2026.09.19-v22.62-pdf-scope-selection-fix",
+  "selector_version": "2026.09.19-v22.63-pdf-range-fast",
+  "backend_version": "2026.09.19-v22.63-pdf-range-fast",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -138,7 +138,10 @@
     "pdf-global-open-export",
     "android-pdf-direct-fallback",
     "pdf-helper-global-exports",
-    "pdf-pointerup-selection-fix"
+    "pdf-pointerup-selection-fix",
+    "drive-range-pdf-chunks",
+    "android-idb-timeout",
+    "parallel-pdf-chunks"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
