@@ -1,8 +1,8 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.33",
-  "build": "2026.09.18-v22.33-pc-mur-android-stable",
-  "title": "Balance CDQ V22.33 — PC mur choisi + affichage stable",
+  "version": "V22.34",
+  "build": "2026.09.18-v22.34-source-visible-deploy-fix",
+  "title": "Balance CDQ V22.34 — déploiement vérifiable + PC stable",
   "requiresBuild": [
     "2026.09.18-v22.26-script-manager-final",
     "2026.09.18-v22.27-mur-cadre-gauche",
@@ -11,7 +11,8 @@
     "2026.09.18-v22.30-pc-bas-gauche-icone-mur",
     "2026.09.18-v22.30-pc-bas-gauche-mur-fixe",
     "2026.09.18-v22.31-pc-stable-mur-16x9",
-    "2026.09.18-v22.32-pc-mur-musique-stable"
+    "2026.09.18-v22.32-pc-mur-musique-stable",
+    "2026.09.18-v22.33-pc-mur-android-stable"
   ],
   "patches": [
     {
@@ -25,9 +26,10 @@
         "2026.09.18-v22.30-pc-bas-gauche-icone-mur",
         "2026.09.18-v22.30-pc-bas-gauche-mur-fixe",
         "2026.09.18-v22.31-pc-stable-mur-16x9",
-        "2026.09.18-v22.32-pc-mur-musique-stable"
+        "2026.09.18-v22.32-pc-mur-musique-stable",
+        "2026.09.18-v22.33-pc-mur-android-stable"
       ],
-      "to": "2026.09.18-v22.33-pc-mur-android-stable"
+      "to": "2026.09.18-v22.34-source-visible-deploy-fix"
     },
     {
       "file": "Code.gs",
@@ -40,9 +42,45 @@
         "2026.09.18-v22.30-pc-bas-gauche-icone-mur",
         "2026.09.18-v22.30-pc-bas-gauche-mur-fixe",
         "2026.09.18-v22.31-pc-stable-mur-16x9",
-        "2026.09.18-v22.32-pc-mur-musique-stable"
+        "2026.09.18-v22.32-pc-mur-musique-stable",
+        "2026.09.18-v22.33-pc-mur-android-stable"
       ],
-      "to": "2026.09.18-v22.33-pc-mur-android-stable"
+      "to": "2026.09.18-v22.34-source-visible-deploy-fix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2227WallSidebarFix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2228WallSidebarFix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqPcV2228VersionFix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2229WallSidebarFix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqPcV2229VersionFix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2230PcFixes"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqPcV2230PcFixesJs"
     },
     {
       "file": "Selector.html",
@@ -73,6 +111,13 @@
       "file": "Selector.html",
       "op": "remove_script_id_if_present",
       "id": "cdqPcV2233StablePcFixesJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "const pad=6;",
+      "replacement": "const pad=24;",
+      "expected": 1
     },
     {
       "file": "Selector.html",
@@ -119,35 +164,140 @@
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "r.dataset.build='v22.31-pc-stable-mur-16x9';",
-      "replacement": "r.dataset.build='v22.33-pc-mur-android-stable';",
+      "search": "<span>V22.26</span>",
+      "replacement": "<span>V22.34</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.27</span>",
+      "replacement": "<span>V22.34</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.28</span>",
+      "replacement": "<span>V22.34</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.29</span>",
+      "replacement": "<span>V22.34</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.30</span>",
+      "replacement": "<span>V22.34</span>",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
       "search": "<span>V22.31</span>",
-      "replacement": "<span>V22.33</span>",
+      "replacement": "<span>V22.34</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.32</span>",
+      "replacement": "<span>V22.34</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.33</span>",
+      "replacement": "<span>V22.34</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.26-script-manager-final';",
+      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.27-mur-cadre-gauche';",
+      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.28-mur-cadre-gauche-robuste';",
+      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.29-mur-cadre-gauche-sans-id';",
+      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.30-pc-bas-gauche-icone-mur';",
+      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.30-pc-bas-gauche-mur-fixe';",
+      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.31-pc-stable-mur-16x9';",
+      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.32-pc-mur-musique-stable';",
+      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.33-pc-mur-android-stable';",
+      "replacement": "r.dataset.build='v22.34-source-visible-deploy-fix';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqPcV2233StablePcFixes\">\nhtml.pc16-startup-lock,\nhtml.pc16-startup-lock body,\nhtml.pc16-startup-lock #accessOverlay{\n  background:#030507 url(\"https://jprodrigue86.github.io/Rapports--talonnages-CDQ/assets/music-wall-pc-chosen-v2233.webp?v=20260918-v2233\") center center / cover no-repeat fixed!important;\n}\nhtml.windows #cdqPcV16{background:#04131d!important;}\nhtml.windows #cdqPcV16 .pc16-body{\n  top:124px!important;\n  height:706px!important;\n  grid-template-columns:214px minmax(0,1fr)!important;\n  gap:8px!important;\n  padding-left:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-sidebar,\nhtml.windows #cdqPcV16 .pc16-center{height:706px!important;}\nhtml.windows #cdqPcV16 .pc16-sidebar{\n  min-width:214px!important;\n  width:auto!important;\n  margin:0!important;\n  padding:8px 10px 10px!important;\n  border:1px solid #1e5874!important;\n  border-left:0!important;\n  border-radius:0 7px 7px 0!important;\n  background:linear-gradient(180deg,#061622 0%,#04131d 70%,#05141f 100%)!important;\n  box-shadow:inset 0 0 20px rgba(0,0,0,.38)!important;\n  overflow:hidden!important;\n}\nhtml.windows #cdqPcV16 .pc16-center{\n  grid-template-rows:90px minmax(0,1fr)!important;\n  padding:16px 0 6px!important;\n}\nhtml.windows #cdqPcV16 .pc16-main{grid-template-rows:72px minmax(0,1fr) 34px!important;}\nhtml.windows #cdqPcV16 .pc16-table-wrap{padding-bottom:2px!important;}\nhtml.windows #cdqPcV16 .pc16-shortcuts{bottom:84px!important;}\nhtml.windows #cdqPcV16 .pc16-side-status{left:12px!important;right:12px!important;bottom:8px!important;}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"],\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"] *{\n  animation:none!important;\n  transition:none!important;\n  filter:none!important;\n  text-shadow:none!important;\n}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"]{--c:#20c8e8!important;}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"] .ico{font-size:31px!important;opacity:1!important;}\n</style>\n<script id=\"cdqPcV2233StablePcFixesJs\">\n(function(){\n  'use strict';\n  function applyOnce(){\n    var root=document.getElementById('cdqPcV16');\n    if(!root)return false;\n    root.dataset.build='v22.33-pc-mur-android-stable';\n    var v=root.querySelector('.pc16-side-meta span');\n    if(v)v.textContent='V22.33';\n    return true;\n  }\n  if(document.readyState==='loading'){\n    document.addEventListener('DOMContentLoaded',function(){setTimeout(applyOnce,60);},{once:true});\n  }else setTimeout(applyOnce,60);\n  window.addEventListener('load',function(){setTimeout(applyOnce,180);},{once:true});\n})();\n</script>\n"
+      "text": "\n<style id=\"cdqPcV2234StableCss\">\nhtml.pc16-startup-lock,\nhtml.pc16-startup-lock body,\nhtml.pc16-startup-lock #accessOverlay{\n  background:#030507 url(\"https://jprodrigue86.github.io/Rapports--talonnages-CDQ/assets/music-wall-pc-chosen-v2233.webp?v=20260918-v2234\") center center / cover no-repeat fixed!important;\n}\nhtml.windows #cdqPcV16{background:#04131d!important;}\nhtml.windows #cdqPcV16 .pc16-body{\n  top:124px!important;\n  height:706px!important;\n  grid-template-columns:214px minmax(0,1fr)!important;\n  gap:8px!important;\n  padding-left:0!important;\n}\nhtml.windows #cdqPcV16 .pc16-sidebar,\nhtml.windows #cdqPcV16 .pc16-center{height:706px!important;}\nhtml.windows #cdqPcV16 .pc16-sidebar{\n  min-width:214px!important;width:auto!important;margin:0!important;padding:8px 10px 10px!important;\n  border:1px solid #1e5874!important;border-left:0!important;border-radius:0 7px 7px 0!important;\n  background:linear-gradient(180deg,#061622 0%,#04131d 70%,#05141f 100%)!important;\n  box-shadow:inset 0 0 20px rgba(0,0,0,.38)!important;overflow:hidden!important;\n}\nhtml.windows #cdqPcV16 .pc16-center{grid-template-rows:90px minmax(0,1fr)!important;padding:16px 0 6px!important;}\nhtml.windows #cdqPcV16 .pc16-main{grid-template-rows:72px minmax(0,1fr) 34px!important;}\nhtml.windows #cdqPcV16 .pc16-table-wrap{padding-bottom:2px!important;}\nhtml.windows #cdqPcV16 .pc16-shortcuts{bottom:84px!important;}\nhtml.windows #cdqPcV16 .pc16-side-status{left:12px!important;right:12px!important;bottom:8px!important;}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"],\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"] *{\n  animation:none!important;transition:none!important;filter:none!important;text-shadow:none!important;\n}\nhtml.windows #cdqPcV16 .pc16-kpi[data-follow=\"clients\"]{--c:#20c8e8!important;}\n</style>\n<script id=\"cdqPcV2234StableJs\">\n(function(){\n  'use strict';\n  function stamp(){\n    var root=document.getElementById('cdqPcV16'); if(!root)return false;\n    root.dataset.build='v22.34-source-visible-deploy-fix';\n    var v=root.querySelector('.pc16-side-meta span'); if(v)v.textContent='V22.34';\n    return true;\n  }\n  var tries=0,t=setInterval(function(){tries++;if(stamp()||tries>40)clearInterval(t);},250);\n})();\n</script>\n"
     }
   ],
   "audit": {
     "syntaxChecked": true,
     "robustPatch": true,
-    "scriptManagerRequired": "V28",
+    "scriptManagerRequired": "V29",
     "notes": [
-      "Mur musique PC choisi, style Android en 16:9",
-      "KPI Clients chargés ne remplace plus le DOM si les valeurs sont inchangées",
-      "Actualisation clients sans double render si aucune donnée ne change",
-      "Polling PC ralenti pour éviter les flashs",
-      "Zone gauche comblée et interface ancrée à gauche",
-      "Bas de l'application conservé visible"
+      "Numéro V22.34 écrit directement dans le shell PC",
+      "Compatible avec les bases V22.26 à V22.33",
+      "Mur musique PC choisi conservé",
+      "Flash Clients chargés supprimé côté rendu/polling",
+      "Interface ancrée à gauche et bas visible",
+      "Script Manager V29 affiche code source lu et production réellement servie"
     ]
   }
 }
