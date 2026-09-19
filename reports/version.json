@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.64-pdf-engine-self-contained",
+  "version": "2026.09.19-v22.65-client-drive-source-clean",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.64-pdf-engine-self-contained",
-  "backend_version": "2026.09.19-v22.64-pdf-engine-self-contained",
+  "selector_version": "2026.09.19-v22.65-client-drive-source-clean",
+  "backend_version": "2026.09.19-v22.65-client-drive-source-clean",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -143,7 +143,11 @@
     "android-idb-timeout",
     "parallel-pdf-chunks",
     "self-contained-pdf-engine-v2264",
-    "pdf-cache-storage-v2264"
+    "pdf-cache-storage-v2264",
+    "client-drive-pdf-source-of-truth",
+    "remove-template-client-precache",
+    "remove-obsolete-pdf-interceptors",
+    "android-preopen-drive-window"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
