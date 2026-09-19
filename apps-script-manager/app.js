@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V29';
+const APP_VERSION = 'V30';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -1520,7 +1520,11 @@ async function deployNewVersion(targetOverride = null) {
     throw Error('Ce déploiement est en lecture seule. Choisis un déploiement versionné.');
   }
 
-  await updateDeployment(S.id, target, v.versionNumber, desc, cid());
+  const updatedDeployment=await updateDeployment(S.id, target, v.versionNumber, desc, cid());
+  const updatedVersion=Number(updatedDeployment?.deploymentConfig?.versionNumber||0);
+  if(updatedVersion!==Number(v.versionNumber)){
+    throw new Error('Google a accepté la requête, mais le déploiement ne pointe pas vers Apps Script v'+v.versionNumber+'. Version retournée : v'+(updatedVersion||0)+'.');
+  }
 
   let all=[];
   let verifiedDeployment=null;
@@ -1582,26 +1586,19 @@ async function deployNewVersion(targetOverride = null) {
         'ok'
       );
     }catch(healthError){
-      const knownGood=getKnownGoodV23();
-      const rollbackVersion=knownGood>0?knownGood:previousVersion;
-      if(rollbackVersion>0){
-        stat(`Échec du démarrage — retour automatique à Apps Script v${rollbackVersion}…`,'warn');
-        try{
-          await updateDeployment(S.id,target,rollbackVersion,`ROLLBACK automatique — échec santé v${v.versionNumber}`,cid());
-          const rolledConfirmation=await waitForDeploymentVersionV26(target,rollbackVersion,60000);
-          all=rolledConfirmation.all;
-          renderDeployments(all);
-          setQuickResult(
-            `MISE À JOUR REFUSÉE — Balance CDQ n’a pas démarré. Production restaurée automatiquement à Apps Script v${rollbackVersion}.`,
-            'err'
-          );
-          throw new Error(`La nouvelle version n’a pas démarré. Retour automatique réussi vers Apps Script v${rollbackVersion}. Détail : ${healthError.message}`);
-        }catch(rollbackError){
-          if(/Retour automatique réussi/.test(rollbackError.message))throw rollbackError;
-          throw new Error(`La nouvelle version n’a pas démarré ET le rollback doit être vérifié manuellement. ${healthError.message} • ${rollbackError.message}`);
-        }
-      }
-      throw healthError;
+      // V30 : ne jamais annuler automatiquement un déploiement Google confirmé.
+      // Une propagation/cache de l'URL /exec peut être plus lente que l'API de déploiement.
+      // On garde donc la nouvelle version et on affiche un avertissement vérifiable.
+      setQuickResult(
+        `DÉPLOIEMENT GOOGLE CONFIRMÉ ✓ Apps Script v${v.versionNumber}. L’URL de production n’a pas encore confirmé ${sourceBuild||'le nouveau build'} : ${healthError.message}`,
+        'warn'
+      );
+      stat(
+        `DÉPLOIEMENT CONSERVÉ ✓ Apps Script v${v.versionNumber}. Vérification web encore en propagation — aucun rollback automatique.`,
+        'warn'
+      );
+      try{all=await listDeployments(S.id,cid());}catch(_){all=[];}
+      verifiedDeployment=all.find(d=>String(d.deploymentId||'')===String(target))||updatedDeployment||targetDeployment||null;
     }
   }
 
@@ -1835,7 +1832,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=29').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=30').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
