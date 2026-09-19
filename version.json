@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.63-pdf-range-fast",
+  "version": "2026.09.19-v22.64-pdf-engine-self-contained",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.63-pdf-range-fast",
-  "backend_version": "2026.09.19-v22.63-pdf-range-fast",
+  "selector_version": "2026.09.19-v22.64-pdf-engine-self-contained",
+  "backend_version": "2026.09.19-v22.64-pdf-engine-self-contained",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -136,7 +136,9 @@
     "pdf-pointerup-selection-fix",
     "drive-range-pdf-chunks",
     "android-idb-timeout",
-    "parallel-pdf-chunks"
+    "parallel-pdf-chunks",
+    "self-contained-pdf-engine-v2264",
+    "pdf-cache-storage-v2264"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
