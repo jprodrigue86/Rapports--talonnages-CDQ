@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V30';
+const APP_VERSION = 'V32';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -765,44 +765,72 @@ async function sha256HexV24(text){
 
 async function fetchBundleTextV24(url,expectedSha=''){
   const u=bundleUrlFromValueV24(url);
-  const delays=[0,2000,5000,10000,20000];
-  const retryable=new Set([404,408,425,429,500,502,503,504]);
-  let r=null,lastError=null;
-  for(let i=0;i<delays.length;i++){
-    if(delays[i])await new Promise(resolve=>setTimeout(resolve,delays[i]));
-    try{
-      const bust=new URL(u);
-      bust.searchParams.set('cdq_retry',Date.now()+'_'+i);
-      r=await fetch(bust.href,{cache:'no-store',credentials:'omit'});
-      if(r.ok)break;
-      if(!retryable.has(Number(r.status))){
-        throw new Error('Téléchargement package impossible : '+r.status+' '+u);
-      }
-      lastError=new Error('HTTP '+r.status);
-      const wait=i+1<delays.length?Math.round(delays[i+1]/1000):0;
-      setQuickResult(
-        i+1<delays.length
-          ? 'Package encore en publication sur GitHub ('+r.status+'). Nouvelle tentative dans '+wait+' s…'
-          : 'Package toujours indisponible après plusieurs tentatives.',
-        'warn'
-      );
-    }catch(e){
-      lastError=e;
-      if(i===delays.length-1)break;
-      setQuickResult('Connexion au package interrompue. Nouvelle tentative automatique…','warn');
+
+  function rawFallbackUrlV32(pageUrl){
+    const x=new URL(pageUrl);
+    const prefix='/Rapports--talonnages-CDQ/';
+    if(!x.pathname.startsWith(prefix))return '';
+    const relative=x.pathname.slice(prefix.length);
+    return 'https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/'+relative;
+  }
+
+  async function tryFetchV32(target){
+    const bust=new URL(target);
+    bust.searchParams.set('cdq_retry',Date.now());
+    return fetch(bust.href,{cache:'no-store',credentials:'omit'});
+  }
+
+  let r=null;
+  let source=u;
+
+  // 1) GitHub Pages en premier.
+  try{
+    r=await tryFetchV32(u);
+  }catch(_){
+    r=null;
+  }
+
+  // 2) Si Pages n'a pas encore publié le nouveau fichier (404/5xx),
+  // aller immédiatement au fichier brut du dépôt au lieu de boucler.
+  if(!r || !r.ok){
+    const raw=rawFallbackUrlV32(u);
+    if(raw){
+      setQuickResult('Package en cours de publication sur Pages. Chargement direct depuis GitHub…','warn');
+      try{
+        const rr=await tryFetchV32(raw);
+        if(rr.ok){
+          r=rr;
+          source=raw;
+        }
+      }catch(_){}
     }
   }
-  if(!r||!r.ok){
-    throw new Error('Téléchargement package impossible après plusieurs tentatives : '+(r?r.status:(lastError&&lastError.message)||'réseau')+' '+u);
+
+  // 3) Une seule courte relance Pages si le dépôt brut n'est pas encore prêt.
+  if(!r || !r.ok){
+    await new Promise(resolve=>setTimeout(resolve,1500));
+    try{
+      r=await tryFetchV32(u);
+      source=u;
+    }catch(_){
+      r=null;
+    }
   }
+
+  if(!r || !r.ok){
+    throw new Error('Package indisponible pour le moment'+(r?' (HTTP '+r.status+')':'')+'. Fermez puis rouvrez le lien de mise à jour.');
+  }
+
   const text=await r.text();
   if(text.length>3_000_000)throw new Error('Fichier package trop volumineux.');
+
   if(expectedSha){
     const got=await sha256HexV24(text);
     if(got.toLowerCase()!==String(expectedSha).toLowerCase()){
-      throw new Error('Vérification SHA-256 échouée pour '+u.split('/').pop()+'.');
+      throw new Error('Vérification SHA-256 échouée pour '+source.split('/').pop()+'.');
     }
   }
+
   return text;
 }
 
