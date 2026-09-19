@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="Installation propre de Balance CDQ PC.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="../icons/icon-heavy-v3-192.png" type="image/png">
+<title>Installer Balance CDQ PC</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#000;color:#f4f7fa}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#02070d}
+main{max-width:620px;margin:0 auto;padding:34px 20px 52px;text-align:center}
+.logo{width:120px;height:120px;border-radius:26px;margin:14px auto 18px;display:block}
+h1{font-size:30px;line-height:1.15;margin:0 0 10px}
+p{color:#c8d7e3;line-height:1.5}
+.card{margin-top:20px;padding:22px;border:1px solid #304b61;border-radius:18px;background:#0b1925}
+button,a.button{display:block;width:100%;min-height:58px;border:0;border-radius:12px;padding:15px 18px;font-size:17px;font-weight:850;text-decoration:none;cursor:pointer}
+#install{background:#43c98b;color:#061a16}.secondary{margin-top:10px;background:#173a5f;color:#fff}
+.status{margin-top:14px;min-height:30px;color:#9fc0d4}
+.note{font-size:13px;color:#93a8b7;margin-top:14px}
+</style>
+</head>
+<body>
+<main>
+<img class="logo" src="../icons/icon-heavy-v3-192.png" alt="Balance CDQ">
+<h1>Balance CDQ PC</h1>
+<p>Nouvelle installation PC propre. Cette application utilise une nouvelle identité et un nouveau cache; elle ne peut pas reprendre l’ancien service worker bloqué sur V22.26.</p>
+<section class="card">
+<button id="install" type="button">Installer Balance CDQ PC</button>
+<a class="button secondary" href="./?preview=1">Tester avant d’installer</a>
+<div class="status" id="status">Ouvre cette page dans Chrome ou Edge sur le PC.</div>
+<div class="note">Après installation, tu peux retirer l’ancienne application « Balance CDQ / Rapports d’étalonnage ».</div>
+</section>
+</main>
+<script>
+let promptEvent=null;
+const btn=document.getElementById('install'),status=document.getElementById('status');
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();promptEvent=e;status.textContent='Prête à installer.';});
+window.addEventListener('appinstalled',()=>{status.textContent='Balance CDQ PC est installée.';btn.disabled=true;});
+btn.addEventListener('click',async()=>{
+  if(promptEvent){promptEvent.prompt();await promptEvent.userChoice;promptEvent=null;return;}
+  status.textContent='Utilise le menu de Chrome/Edge → Installer Balance CDQ PC.';
+});
+if(matchMedia('(display-mode:standalone)').matches)status.textContent='Balance CDQ PC est ouverte en mode installé.';
+</script>
+</body></html>
