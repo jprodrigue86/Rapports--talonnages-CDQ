@@ -1,30 +1,51 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.52",
-  "build": "2026.09.19-v22.52-pdf-open-32mb",
-  "title": "Balance CDQ V22.52 — ouverture PDF 32 Mo",
+  "version": "V22.53",
+  "build": "2026.09.19-v22.53-backend-pdf32mb",
+  "title": "Balance CDQ V22.53 — limite PDF serveur 32 Mo",
   "requiresBuild": [
-    "2026.09.19-v22.50-global-progress",
-    "2026.09.19-v22.51-progress-nonblocking"
+    "2026.09.19-v22.51-progress-nonblocking",
+    "2026.09.19-v22.52-pdf-open-32mb"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.50-global-progress",
-        "2026.09.19-v22.51-progress-nonblocking"
+        "2026.09.19-v22.51-progress-nonblocking",
+        "2026.09.19-v22.52-pdf-open-32mb"
       ],
-      "to": "2026.09.19-v22.52-pdf-open-32mb"
+      "to": "2026.09.19-v22.53-backend-pdf32mb"
     },
     {
       "file": "Code.gs",
       "op": "replace_build_any",
       "from": [
-        "2026.09.19-v22.50-global-progress",
-        "2026.09.19-v22.51-progress-nonblocking"
+        "2026.09.19-v22.51-progress-nonblocking",
+        "2026.09.19-v22.52-pdf-open-32mb"
       ],
-      "to": "2026.09.19-v22.52-pdf-open-32mb"
+      "to": "2026.09.19-v22.53-backend-pdf32mb"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal",
+      "search": "const CDQ_DOCUMENT_MAX_BYTES_ = 15 * 1024 * 1024;",
+      "replacement": "const CDQ_DOCUMENT_MAX_BYTES_ = 32 * 1024 * 1024;",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal",
+      "search": "Ce PDF dépasse la limite de 15 Mo pour la copie hors ligne.",
+      "replacement": "Ce PDF dépasse la limite de 32 Mo pour la copie hors ligne.",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal",
+      "search": "Choisissez un véritable fichier PDF (15 Mo maximum).",
+      "replacement": "Choisissez un véritable fichier PDF (32 Mo maximum).",
+      "expected": 1
     },
     {
       "file": "Selector.html",
@@ -43,54 +64,33 @@
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "Ce PDF dépasse la limite de 15 Mo pour la copie hors ligne.",
-      "replacement": "Ce PDF dépasse la limite de 32 Mo pour la copie hors ligne.",
+      "search": "content:\"V22.52\";",
+      "replacement": "content:\"V22.53\";",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "data.blob.size<=15*1024*1024",
-      "replacement": "data.blob.size<=32*1024*1024",
+      "search": "meta.textContent='V22.52';",
+      "replacement": "meta.textContent='V22.53';",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "meta.taille>15*1024*1024",
-      "replacement": "meta.taille>32*1024*1024",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "content:\"V22.51\";",
-      "replacement": "content:\"V22.52\";",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "meta.textContent='V22.51';",
-      "replacement": "meta.textContent='V22.52';",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "root.dataset.build='v22.51-progress-nonblocking';",
-      "replacement": "root.dataset.build='v22.52-pdf-open-32mb';",
+      "search": "root.dataset.build='v22.52-pdf-open-32mb';",
+      "replacement": "root.dataset.build='v22.53-backend-pdf32mb';",
       "expected": 1
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
     "notes": [
-      "Corrige le chemin d'ouverture des PDF de plus de 15 Mo",
-      "Tous les garde-fous de lecture/import PDF passent à 32 Mo",
-      "La coque PWA utilise un nouveau fichier offline-templates-v2252.mjs hors de l'ancien cache",
-      "Le PDF Balance de Plancher 22,6 Mo peut s'ouvrir sans l'erreur 15 Mo",
-      "La copie, la progression et les autres fonctions V22.51 sont conservées"
+      "Corrige la vraie limite backend Code.gs de 15 Mo à 32 Mo",
+      "obtenirMetaDocumentPdfCDQ accepte maintenant Balance de Plancher 22,6 Mo",
+      "obtenirChunkDocumentPdfCDQ et enregistrerPdfRempliCDQ utilisent automatiquement la nouvelle limite",
+      "Les messages serveur 15 Mo sont remplacés par 32 Mo",
+      "Les corrections de progression et d'ouverture précédentes sont conservées"
     ]
   }
 }
