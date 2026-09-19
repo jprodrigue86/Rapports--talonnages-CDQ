@@ -3,7 +3,7 @@
   "version": "V22.28",
   "build": "2026.09.18-v22.28-mur-cadre-gauche-robuste",
   "title": "Balance CDQ V22.28 — Mur musical + cadre gauche robuste",
-  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7Nvnq24lp2T4RDV5pfXe8QDlPdf",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
   "requiresBuild": "2026.09.18-v22.26-script-manager-final",
   "patches": [
     {
