@@ -432,7 +432,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.19-v22.57-live-update-probe-fix';
+const CDQ_PWA_BUILD = '2026.09.19-v22.67-update-detect-direct';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1115,12 +1115,11 @@ async function cdqVerifierMiseAJourLiveV2254(source,buildSelector,force){
   cdqLiveUpdateBusyV2254=true;
   try{
     const latest=await cdqLireDernierBundleV2254();
-    if(!latest.build || cdqComparerVersions(latest.build,selector)<=0){
-      try{replyToSelector(cible,{type:'CDQ_UPDATE_STATUS',available:false,latest:'',current:selector,selectorCurrent:selector,pwaCurrent:CDQ_PWA_BUILD,backendCurrent:backendBuild});}catch(e){}
-      return;
-    }
-    const live=await cdqVerifierProductionV2254(latest.build,9000);
-    const available=!!live.ok;
+    const available=!!latest.build && cdqComparerVersions(latest.build,selector)>0;
+
+    // La version PUBLIÉE est la source de vérité pour le centre de mise à jour.
+    // Le probe Apps Script est seulement informatif : il ne peut plus masquer
+    // une mise à jour réelle sur Android si Google bloque l'iframe caché.
     try{
       replyToSelector(cible,{
         type:'CDQ_UPDATE_STATUS',
@@ -1130,9 +1129,15 @@ async function cdqVerifierMiseAJourLiveV2254(source,buildSelector,force){
         current:selector,
         selectorCurrent:selector,
         pwaCurrent:CDQ_PWA_BUILD,
-        backendCurrent:live.build||backendBuild
+        backendCurrent:backendBuild
       });
     }catch(e){}
+
+    if(available){
+      cdqVerifierProductionV2254(latest.build,5000).then(function(live){
+        if(live&&live.build)backendBuild=String(live.build);
+      }).catch(function(){});
+    }
   }finally{
     cdqLiveUpdateBusyV2254=false;
   }
@@ -1168,11 +1173,8 @@ async function forcerMiseAJour(source) {
     try{replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available:false,latest:'',current:selector||CDQ_PWA_BUILD,selectorCurrent:selector,pwaCurrent:CDQ_PWA_BUILD,backendCurrent:backendBuild});}catch(e){}
     return;
   }
-  const live=await cdqVerifierProductionV2254(latest.build,10000);
-  if(!live.ok){
-    try{replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available:false,latest:'',current:selector,selectorCurrent:selector,pwaCurrent:CDQ_PWA_BUILD,backendCurrent:live.build||backendBuild});}catch(e){}
-    return;
-  }
+
+  // Ne plus bloquer le redémarrage sur le probe iframe Apps Script.
   updateRequested=true;
   try{sessionStorage.setItem('cdq_update_target_v88',latest.build);}catch(e){}
   if('serviceWorker' in navigator){
