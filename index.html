@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.19-v22.88-restore-native-drive-account-path';
+const CDQ_PWA_BUILD = '2026.09.19-v22.89-account-then-system-pdf-chooser';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1136,6 +1136,80 @@ function cdqHandleDisplayPrefsV2215(data,source){
 // =====================================================
 
 // V22.82 — l'ouverture PDF ne passe plus par la coque PWA.
+// =====================================================
+// V22.89 — compte Google via le gestionnaire intégré du navigateur,
+// puis retour au Selector pour ouvrir le vrai PDF.
+// =====================================================
+let cdqPdfAccountPromptV2289=null;
+
+async function cdqPromptPdfAccountV2289(data,source){
+  if(!data||!data.challengeId||!data.nonce||!data.clientId)return;
+
+  cdqPdfAccountPromptV2289={
+    requestId:String(data.requestId||''),
+    challengeId:String(data.challengeId||''),
+    source:source
+  };
+
+  try{
+    const gsi=await attendreGoogleIdentityV42();
+    const state=cdqPdfAccountPromptV2289;
+    if(!state)return;
+
+    gsi.initialize({
+      client_id:String(data.clientId||''),
+      callback:function(resp){
+        const current=cdqPdfAccountPromptV2289;
+        if(!current||current.requestId!==state.requestId)return;
+
+        if(!resp||!resp.credential){
+          replyToSelector(source,{
+            type:'CDQ_PDF_ACCOUNT_CANCEL_V2289',
+            requestId:state.requestId
+          });
+          cdqPdfAccountPromptV2289=null;
+          return;
+        }
+
+        replyToSelector(source,{
+          type:'CDQ_PDF_ACCOUNT_CREDENTIAL_V2289',
+          requestId:state.requestId,
+          challengeId:state.challengeId,
+          credential:String(resp.credential)
+        });
+        cdqPdfAccountPromptV2289=null;
+      },
+      nonce:String(data.nonce||''),
+      auto_select:false,
+      cancel_on_tap_outside:false,
+      ux_mode:'popup',
+      context:'use'
+    });
+
+    // Contrairement aux versions précédentes, aucun bouton Google blanc
+    // n'est rendu. prompt() demande directement le compte.
+    gsi.prompt(function(notification){
+      if(!cdqPdfAccountPromptV2289)return;
+      try{
+        if(notification&&notification.isDismissedMoment&&notification.isDismissedMoment()){
+          replyToSelector(source,{
+            type:'CDQ_PDF_ACCOUNT_CANCEL_V2289',
+            requestId:state.requestId
+          });
+          cdqPdfAccountPromptV2289=null;
+        }
+      }catch(_){}
+    });
+  }catch(e){
+    replyToSelector(source,{
+      type:'CDQ_PDF_ACCOUNT_CANCEL_V2289',
+      requestId:String(data.requestId||'')
+    });
+    cdqPdfAccountPromptV2289=null;
+  }
+}
+
+
 window.addEventListener('message', event => {
 const data = event.data || {};
 if (!isSelectorMessage(event)) return;
@@ -1173,6 +1247,7 @@ if(data.type==='CDQ_GOOGLE_AUTH_ERROR'){
   document.getElementById('load-message').textContent=String(data.message||'La connexion Google a échoué. Réessayez.');
 }
 if(data.type==='CDQ_GOOGLE_AUTH_HIDE')masquerConnexionGoogleV42();
+if(data.type==='CDQ_PDF_ACCOUNT_PROMPT_V2289'){cdqPromptPdfAccountV2289(data,event.source);return;}
 if(String(data.type||'').startsWith('CDQ_OFFLINE_'))cdqOffline.then(controller=>controller.handle(data));
 if(data.type==='CDQ_ACCESS_STATE' && data.state!=='ready')cdqOffline.then(controller=>controller.lock());
 if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready'))replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
