@@ -1,0 +1,18 @@
+<resources>
+    <style name="Theme.BalanceCDQ" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowBackground">#050C14</item>
+        <item name="android:navigationBarColor">#050C14</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:colorAccent">#25B8F3</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.BalanceCDQ.Transparent" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:colorAccent">#25B8F3</item>
+    </style>
+</resources>
