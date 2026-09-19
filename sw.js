@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v22-54-live-update-watch';
-const FORCE_BUILD='2026.09.19-v22.54-live-update-watch';
+const CACHE = 'cdq-installable-v22-57-live-update-fix';
+const FORCE_BUILD='2026.09.19-v22.57-live-update-probe-fix';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates-v2252.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
