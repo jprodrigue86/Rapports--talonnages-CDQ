@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.77-pdf-reader-preference",
+  "version": "2026.09.19-v22.78-pdf-real-file-share",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.77-pdf-reader-preference",
-  "backend_version": "2026.09.19-v22.77-pdf-reader-preference",
+  "selector_version": "2026.09.19-v22.78-pdf-real-file-share",
+  "backend_version": "2026.09.19-v22.78-pdf-real-file-share",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -179,7 +179,11 @@
     "pdf-no-async-popup-v2275",
     "pdf-drive-id-validation-v2276",
     "pdf-reader-preference-v2277",
-    "pdf-android-chooser-v2277"
+    "pdf-android-chooser-v2277",
+    "pdf-google-account-chooser-v2278",
+    "pdf-drive-api-real-file-v2278",
+    "pdf-web-share-chooser-v2278",
+    "pdf-no-play-store-package-force-v2278"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -192,5 +196,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.19-v22.77-pdf-reader-preference"
+  "pwa_version": "2026.09.19-v22.78-pdf-real-file-share"
 }
