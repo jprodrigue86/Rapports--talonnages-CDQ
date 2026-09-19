@@ -1,145 +1,69 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.65",
-  "build": "2026.09.19-v22.65-client-drive-source-clean",
-  "title": "Balance CDQ V22.65 — PDF client Drive, code nettoyé",
+  "version": "V22.66",
+  "build": "2026.09.19-v22.66-drive-pdf-settings-stable",
+  "title": "Balance CDQ V22.66 — PDF Drive direct + Affichage stable",
   "requiresBuild": [
-    "2026.09.19-v22.64-pdf-engine-self-contained"
+    "2026.09.19-v22.65-client-drive-source-clean"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.19-v22.64-pdf-engine-self-contained",
-      "to": "2026.09.19-v22.65-client-drive-source-clean"
+      "from": "2026.09.19-v22.65-client-drive-source-clean",
+      "to": "2026.09.19-v22.66-drive-pdf-settings-stable"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.19-v22.64-pdf-engine-self-contained",
-      "to": "2026.09.19-v22.65-client-drive-source-clean"
+      "from": "2026.09.19-v22.65-client-drive-source-clean",
+      "to": "2026.09.19-v22.66-drive-pdf-settings-stable"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
-      "search": "    // Tap normal : les PDF utilisent directement le lecteur CDQ/PDF.\n    if(String(fichier.type||'').toUpperCase()==='PDF' && typeof window.cdqOpenPdf==='function'){\n      window.cdqOpenPdf(fichier.id).catch(function(){});\n      return;\n    }\n    modifierFichier(fichier.id);",
-      "replacement": "    // Tap normal : ouvre toujours le VRAI fichier du dossier client.\n    // Le template intégré ne sert qu'à la création.\n    modifierFichier(fichier.id);",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "    try{\n      if(typeof window.cdqPreparerCopiePdfImmediatement === \"function\"){\n        Promise.resolve(window.cdqPreparerCopiePdfImmediatement(resultat,idClient))\n          .catch(function(cacheError){console.error(\"Préparation locale de la copie PDF:\",cacheError);});\n      }\n    }catch(cacheError){\n      console.error(\"Préparation locale de la copie PDF:\",cacheError);\n    }",
-      "replacement": "    // V22.65 : aucun lien avec le template après la création.\n    // Le nouveau PDF Drive du client devient immédiatement la source officielle.",
+      "search": "const cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n  if(meta&&meta.type==='PDF')return cdqOpenPdf(id).catch(afficherErreur);\n  if(!navigator.onLine){afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);return;}\n  return cdqV19OldModify(id);\n};",
+      "replacement": "const cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    // EN LIGNE : le fichier Drive du client est la source officielle.\n    // Aucun template, aucun découpage, aucune reconstruction PDF-Lib.\n    if(navigator.onLine!==false){\n      return cdqV19OldModify(id);\n    }\n\n    // HORS LIGNE seulement : utiliser le moteur PDF local préparé explicitement.\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal",
-      "search": "// V22.62 — rendre tout le chemin PDF accessible aux gestionnaires Android externes.\nwindow.cdqLoadPdfRecord=cdqLoadPdfRecord;\nwindow.cdqOpenPdfInternal=cdqOpenPdfInternal;\nwindow.cdqPdfReaderPreference=cdqPdfReaderPreference;\nwindow.cdqShowPdfReaderChoice=cdqShowPdfReaderChoice;\nwindow.cdqSetPdfReaderPreference=cdqSetPdfReaderPreference;\n\nasync function cdqOpenPdf(id){\n  afficherMessage('Préparation du PDF…',true);\n  try{\n    const rec=await window.cdqLoadPdfRecord(id);\n    if(window.cdqPdfReaderPreference()==='cdq'){\n      await window.cdqOpenPdfInternal(id,rec);\n    }else{\n      window.cdqShowPdfReaderChoice(id,rec);\n    }\n    return true;\n  }\n  catch(e){\n    afficherErreur(e);\n    throw e;\n  }\n}\nwindow.cdqOpenPdf=cdqOpenPdf;",
-      "replacement": "async function cdqOpenPdf(id){\n  afficherMessage('Préparation du PDF…',true);\n  try{\n    const rec=await cdqLoadPdfRecord(id);\n    if(cdqPdfReaderPreference()==='cdq')await cdqOpenPdfInternal(id,rec);\n    else cdqShowPdfReaderChoice(id,rec);\n    return true;\n  }catch(e){\n    afficherErreur(e);\n    throw e;\n  }\n}",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "async function cdqLoadPdfRecord(id){\n  let rec=await window.cdqEnsurePdf(id,false);\n\n  let pending=null;\n  try{\n    const queue=await Promise.race([\n      cdqV19QueueGet(),\n      new Promise(function(resolve){setTimeout(function(){resolve([]);},800);})\n    ]);\n    pending=(Array.isArray(queue)?queue:[]).find(a=>a.kind==='pdf-import'&&a.targetId===id)||null;\n  }catch(_){pending=null;}\n\n  if(pending)rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n\n  // Les gros PDF haute qualité ne sont plus entièrement réécrits avant ouverture.\n  if(rec&&rec.blob instanceof Blob&&rec.blob.size<=8*1024*1024){\n    rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  }\n\n  if(!pending){\n    Promise.resolve(cdqV19PutRecord('document-pdf',id,rec)).catch(function(){});\n  }\n  return rec;\n}",
-      "replacement": "async function cdqLoadPdfRecord(id){\n  let rec=await cdqEnsurePdf(id,false);\n  const pending=(await cdqV19QueueGet()).find(a=>a.kind==='pdf-import'&&a.targetId===id);\n  if(pending)rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n  // Les gros PDF ne sont jamais reconstruits avec PDF-Lib avant ouverture.\n  if(rec&&rec.blob instanceof Blob&&rec.blob.size<=8*1024*1024){\n    rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  }\n  return rec;\n}",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "  try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n}\nwindow.cdqEnsurePdf=cdqEnsurePdf;\nfunction cdqDownloadPdf(rec){",
-      "replacement": "  try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n}\nfunction cdqDownloadPdf(rec){",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal",
-      "search": "function preparerFenetreFichierIOS(){\n  if(!estIOSInterface()) return null;",
-      "replacement": "function preparerFenetreFichierIOS(){\n  // Préouvrir aussi sur Android pendant le geste utilisateur.\n  // Cela évite qu'un window.open asynchrone soit bloqué après la réponse Apps Script.\n  if(!(estIOSInterface() || /Android/i.test(navigator.userAgent || \"\"))) return null;",
-      "expected": 1
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "        afficherMessage(\"Safari a bloqué l’ouverture du fichier. Touchez de nouveau le fichier pour réessayer.\",false);",
-      "replacement": "        afficherMessage(\"L’ouverture du fichier a été bloquée. Touchez de nouveau le fichier pour réessayer.\",false);",
+      "search": "  // Expose uniquement les commandes utilisées par les éléments créés dynamiquement.\n  window.ouvrirReglagesAffichage=cdqOpenDisplaySettings;\n})();",
+      "replacement": "  // Commandes utilisées par les éléments créés dynamiquement.\n  window.ouvrirReglagesAffichage=cdqOpenDisplaySettings;\n\n  // V22.66 — pont stable pour le panneau Affichage déplacé hors de sa modale.\n  window.cdqDisplaySetLongPressV2266=cdqSetLongPress;\n  window.cdqDisplaySetSwipeV2266=cdqSetSwipeSensitivity;\n  window.cdqDisplayApplyGeneralScaleV2266=cdqApplyGeneralScaleV89;\n  window.cdqDisplayApplyTextScaleV2266=cdqApplyTextScaleV89;\n  window.cdqDisplayApplyIconScaleV2266=cdqApplyIconScaleV89;\n  window.cdqDisplaySaveV2266=cdqScheduleSavePreferencesV72;\n})();",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "remove_style_id_if_present",
-      "id": "cdqV2250GlobalProgressCss"
+      "id": "cdqV2266SettingsTouchCss"
     },
     {
       "file": "Selector.html",
       "op": "remove_script_id_if_present",
-      "id": "cdqV2250GlobalProgressJs"
+      "id": "cdqV2266SettingsTouchJs"
     },
     {
       "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2251GlobalProgressCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2251GlobalProgressJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2255MajorProgressCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2255MajorProgressJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2259MobileInteractionCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2259MobileInteractionJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2260AndroidDirectCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2260AndroidDirectJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "async function cdqV2130PreparerCopiePdfImmediatement(resultat,idClient){\n  resultat=resultat||{};\n  const id=String(resultat.id||\"\");\n  if(!/^[\\w-]+$/.test(id))return false;\n\n  const modeleId=cdqModeleIntermediaireId(resultat.modeleId);\n  function correspond(rec){\n    return !!(rec && rec.revision===CDQ_TEMPLATE_REVISION && rec.blob instanceof Blob && rec.blob.size>0 &&\n      rec.templateType===modeleId && rec.blob.size===Number(resultat.taille) &&\n      String(rec.templateId)===String(resultat.templateId) &&\n      Number(rec.modifieLe)===Number(resultat.templateModifieLe));\n  }\n  let modele=await cdqV2112GetCachedTemplate(modeleId);\n  if(!correspond(modele)){\n    if(navigator.onLine)await cdqV2112EnsureTemplateOfflineCached(false,modeleId);\n    modele=await cdqV2112GetCachedTemplate(modeleId);\n  }\n  // Si le maître a changé après la copie, le lecteur chargera le vrai PDF Drive.\n  if(!correspond(modele))return false;\n\n  const blobTechnicien=(modele.blob instanceof Blob && modele.blob.size<=8*1024*1024)\n    ? await cdqPersonnaliserBlobTechnicienPdf(modele.blob)\n    : modele.blob;\n  const techKey=String(cdqTechniciensVersion||\"cache\")+\"|\"+String(utilisateurCourantEmail||\"\").toLowerCase()+\"|\"+String(utilisateurCourantNomRapport||\"\");\n  await cdqV19PutRecord(\"document-pdf\",id,{\n    id:id,nom:String(resultat.nom||modele.nom||\"Balance intermédiaire.pdf\"),clientId:String(resultat.clientId||idClient||compagnieSelectionnee||\"\"),type:\"PDF\",\n    taille:Number(blobTechnicien.size),revision:String(resultat.revision||(\"copie-locale-\"+Date.now())),chunks:Math.ceil(blobTechnicien.size/(1024*1024)),blob:blobTechnicien,\n    instantCopy:true,localReadyUntil:Date.now()+(12*60*60*1000),cachedAt:Date.now(),cdqTechVersion:(blobTechnicien===modele.blob?\"\":techKey)\n  });\n  return true;\n}\n\nwindow.cdqPreparerCopiePdfImmediatement=cdqV2130PreparerCopiePdfImmediatement;",
-      "replacement": "/* V22.65 : ancien pont template → cache client supprimé. */",
-      "expected": 1
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqV2266SettingsTouchCss\">\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204.open{\n  position:relative!important;\n  z-index:40!important;\n  pointer-events:auto!important;\n  touch-action:pan-y!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204.open .cdq-display-options,\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204.open .cdq-display-group,\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204.open .cdq-setting-buttons{\n  pointer-events:auto!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204.open button{\n  pointer-events:auto!important;\n  touch-action:manipulation!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqInlineDisplayPanelV2204.open input[type=\"range\"]{\n  pointer-events:auto!important;\n  touch-action:pan-x!important;\n}\n</style>\n<script id=\"cdqV2266SettingsTouchJs\">\n(function(){\n  'use strict';\n  let swallowClickUntil=0;\n\n  function panelOf(el){\n    return el&&el.closest?el.closest('#cdqInlineDisplayPanelV2204.open'):null;\n  }\n  function markActive(btn,selector){\n    const panel=panelOf(btn);\n    if(!panel)return;\n    panel.querySelectorAll(selector).forEach(function(x){\n      x.classList.toggle('active',x===btn);\n    });\n  }\n  function save(){\n    try{\n      if(typeof window.cdqDisplaySaveV2266==='function')window.cdqDisplaySaveV2266();\n    }catch(_){}\n  }\n\n  // Un seul gestionnaire tactile pour les boutons qui posaient problème.\n  document.addEventListener('pointerup',function(e){\n    const btn=e.target&&e.target.closest\n      ? e.target.closest('#cdqInlineDisplayPanelV2204.open button[data-long],#cdqInlineDisplayPanelV2204.open button[data-swipe],#cdqInlineDisplayPanelV2204.open button[data-pdf-reader]')\n      : null;\n    if(!btn)return;\n\n    swallowClickUntil=Date.now()+700;\n\n    try{\n      if(btn.dataset.long){\n        const value=String(btn.dataset.long);\n        if(typeof window.cdqDisplaySetLongPressV2266==='function')window.cdqDisplaySetLongPressV2266(value);\n        else localStorage.setItem('cdqLongPressMs',value);\n        markActive(btn,'button[data-long]');\n        save();\n        return;\n      }\n\n      if(btn.dataset.swipe){\n        const value=String(btn.dataset.swipe);\n        if(typeof window.cdqDisplaySetSwipeV2266==='function')window.cdqDisplaySetSwipeV2266(value);\n        else localStorage.setItem('cdqSwipeSensitivity',value);\n        markActive(btn,'button[data-swipe]');\n        save();\n        return;\n      }\n\n      if(btn.dataset.pdfReader){\n        const value=String(btn.dataset.pdfReader);\n        localStorage.setItem('cdqPdfReaderPreferenceV1',value);\n        markActive(btn,'button[data-pdf-reader]');\n        save();\n        try{afficherMessage('Lecteur PDF par défaut enregistré.',true);}catch(_){}\n      }\n    }finally{\n      e.preventDefault();\n      e.stopImmediatePropagation();\n    }\n  },true);\n\n  // Évite que le click synthétique Android rejoue l'ancien onclick après pointerup.\n  document.addEventListener('click',function(e){\n    if(Date.now()>swallowClickUntil)return;\n    const btn=e.target&&e.target.closest\n      ? e.target.closest('#cdqInlineDisplayPanelV2204.open button[data-long],#cdqInlineDisplayPanelV2204.open button[data-swipe],#cdqInlineDisplayPanelV2204.open button[data-pdf-reader]')\n      : null;\n    if(!btn)return;\n    e.preventDefault();\n    e.stopImmediatePropagation();\n  },true);\n\n  function updateRange(x,commit){\n    if(!x||!panelOf(x))return;\n    const v=Math.max(0,Math.min(100,Math.round(Number(x.value)||0)));\n    try{\n      if(x.id==='cdqGeneralScaleRange'){\n        const lab=document.getElementById('cdqGeneralScaleValue');\n        if(lab)lab.textContent=v+' / 100';\n        if(commit&&typeof window.cdqDisplayApplyGeneralScaleV2266==='function')\n          window.cdqDisplayApplyGeneralScaleV2266(v,true);\n      }else if(x.id==='cdqTextScaleRange'){\n        const lab=document.getElementById('cdqTextScaleValue');\n        if(lab)lab.textContent=v+' / 100';\n        if(typeof window.cdqDisplayApplyTextScaleV2266==='function')\n          window.cdqDisplayApplyTextScaleV2266(v,true);\n      }else if(x.id==='cdqIconScaleRange'){\n        const lab=document.getElementById('cdqIconScaleValue');\n        if(lab)lab.textContent=v+' / 100';\n        if(typeof window.cdqDisplayApplyIconScaleV2266==='function')\n          window.cdqDisplayApplyIconScaleV2266(v,true);\n      }else return;\n      if(commit)save();\n    }catch(_){}\n  }\n\n  document.addEventListener('input',function(e){\n    if(e.target&&e.target.matches&&e.target.matches('#cdqInlineDisplayPanelV2204.open input[type=\"range\"]'))\n      updateRange(e.target,false);\n  },true);\n\n  document.addEventListener('change',function(e){\n    if(e.target&&e.target.matches&&e.target.matches('#cdqInlineDisplayPanelV2204.open input[type=\"range\"]'))\n      updateRange(e.target,true);\n  },true);\n})();\n</script>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V30",
-    "architecture": {
-      "creation": "Le modèle intégré sert uniquement à créer une nouvelle copie dans le dossier client.",
-      "sourceOfTruth": "Après création, le nouvel ID Drive du PDF client est l'unique source officielle.",
-      "opening": "Un tap normal ouvre le fichier Drive du client via ouvrirFichierPourModification / ouvrirFichierLectureSeule.",
-      "offline": "Le moteur PDF local reste réservé au mode hors ligne ou aux usages explicites."
-    },
-    "cleanup": [
-      "Suppression des anciens interceptors de tap PDF V22.59/V22.60.",
-      "Suppression des anciens moteurs de progression V22.50/V22.51/V22.55.",
-      "Suppression du pré-cache automatique construit à partir du template après la copie.",
-      "Suppression des exports globaux PDF ajoutés uniquement pour les anciens correctifs.",
-      "Un seul gestionnaire normal de tap de ligne reste actif."
-    ]
+    "verifiedRootCauses": [
+      "Une surcouche V19 reroutait encore les PDF en ligne vers cdqOpenPdf, malgré le nettoyage V22.65.",
+      "Le panneau Affichage déplace ses contrôles hors de la modale d'origine; un pont tactile dédié est plus fiable sur Android."
+    ],
+    "cleanupValidation": [
+      "Aucun nouvel intercepteur de ligne PDF.",
+      "Aucun nouveau moteur de téléchargement PDF.",
+      "Aucun MutationObserver ajouté.",
+      "Aucune reconstruction PDF-Lib ajoutée.",
+      "Le pont tactile ne cible que Gestes, Lecteur PDF et les trois curseurs Affichage."
+    ],
+    "onlinePdfPath": "ligne fichier → modifierFichier → ancien modifierFichier natif → Apps Script → URL Drive du fichier client",
+    "offlinePdfPath": "uniquement hors ligne → moteur PDF local existant"
   }
 }
