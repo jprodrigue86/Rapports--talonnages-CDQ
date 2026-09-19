@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.76-pdf-id-validation-fix",
+  "version": "2026.09.19-v22.77-pdf-reader-preference",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.76-pdf-id-validation-fix",
-  "backend_version": "2026.09.19-v22.76-pdf-id-validation-fix",
+  "selector_version": "2026.09.19-v22.77-pdf-reader-preference",
+  "backend_version": "2026.09.19-v22.77-pdf-reader-preference",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -177,7 +177,9 @@
     "pdf-pointerup-direct-v2275",
     "pdf-google-drive-native-handler-v2275",
     "pdf-no-async-popup-v2275",
-    "pdf-drive-id-validation-v2276"
+    "pdf-drive-id-validation-v2276",
+    "pdf-reader-preference-v2277",
+    "pdf-android-chooser-v2277"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -190,5 +192,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.19-v22.76-pdf-id-validation-fix"
+  "pwa_version": "2026.09.19-v22.77-pdf-reader-preference"
 }
