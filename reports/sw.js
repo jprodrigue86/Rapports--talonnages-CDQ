@@ -1,13 +1,13 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE='cdq-reports-independent-v22-46-plancher-hq';
-const FORCE_BUILD='2026.09.19-v22.46-plancher-hq';
+const CACHE='cdq-reports-v22-49-pdf32mb';
+const FORCE_BUILD='2026.09.19-v22.49-pdf32mb';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;
 const root=p=>new URL(p,ROOT).href;
 const APP_SHELL=[
   url('./'),url('index.html'),url('manifest.webmanifest'),url('version.json'),
-  root('offline-templates.mjs?v=22.46'),
+  root('offline-templates.mjs?v=22.49'),
   root('reader.html'),root('reader.mjs?v=21.33'),root('reader-interactions.mjs?v=21.33'),
   root('firebase-config.js'),root('google-auth-config.js'),
   root('icons/icon-heavy-v3-192.png'),root('icons/icon-heavy-v3-512.png'),
