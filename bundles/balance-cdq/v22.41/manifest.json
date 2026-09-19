@@ -1,0 +1,67 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.41",
+  "build": "2026.09.18-v22.41-pc-syntax-recovery",
+  "title": "Balance CDQ V22.41 — récupération syntaxe PC",
+  "requiresBuild": [
+    "2026.09.18-v22.40-pc-no-flash-core"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.40-pc-no-flash-core",
+      "to": "2026.09.18-v22.41-pc-syntax-recovery"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.40-pc-no-flash-core",
+      "to": "2026.09.18-v22.41-pc-syntax-recovery"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\\n  const pc16KpiKeyV2240=[pct,s.ok,nc,watch,Number(t.surveillancesActives||0),Math.max(types.size,4),st.clients.length||0].join('|');\\n  if(x.dataset.kpiKeyV2240===pc16KpiKeyV2240)return;\\n  x.dataset.kpiKeyV2240=pc16KpiKeyV2240;",
+      "replacement": "const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  const pc16KpiKeyV2240=[pct,s.ok,nc,watch,Number(t.surveillancesActives||0),Math.max(types.size,4),st.clients.length||0].join('|');\n  if(x.dataset.kpiKeyV2240===pc16KpiKeyV2240)return;\n  x.dataset.kpiKeyV2240=pc16KpiKeyV2240;",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.40</span>",
+      "replacement": "<span>V22.41</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "v.textContent='V22.40';",
+      "replacement": "v.textContent='V22.41';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.40-pc-no-flash-core';",
+      "replacement": "r.dataset.build='v22.41-pc-syntax-recovery';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "root.dataset.build='v22.40-pc-no-flash-core';",
+      "replacement": "root.dataset.build='v22.41-pc-syntax-recovery';",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "recovery": true,
+    "notes": [
+      "Corrige les caractères \\\\n littéraux injectés par V22.40",
+      "Restaure un JavaScript Selector syntaxiquement valide",
+      "Aucun autre changement fonctionnel dans cette récupération"
+    ]
+  }
+}
