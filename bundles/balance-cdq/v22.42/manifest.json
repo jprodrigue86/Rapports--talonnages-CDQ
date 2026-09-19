@@ -1,0 +1,79 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.42",
+  "build": "2026.09.18-v22.42-pc-version-label-fix",
+  "title": "Balance CDQ V22.42 — correction numéro PC",
+  "requiresBuild": [
+    "2026.09.18-v22.40-pc-no-flash-core",
+    "2026.09.18-v22.41-pc-syntax-recovery"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.18-v22.40-pc-no-flash-core",
+        "2026.09.18-v22.41-pc-syntax-recovery"
+      ],
+      "to": "2026.09.18-v22.42-pc-version-label-fix"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.18-v22.40-pc-no-flash-core",
+        "2026.09.18-v22.41-pc-syntax-recovery"
+      ],
+      "to": "2026.09.18-v22.42-pc-version-label-fix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.26</span></div>",
+      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.36</span></div>",
+      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.40</span></div>",
+      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.41</span></div>",
+      "replacement": "<div class=\"pc16-side-meta\"><strong>Balance CDQ</strong><span>V22.42</span></div>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2242VersionLabelCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqPcV2242VersionLabelCss\">\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child{\n  font-size:0!important;\n  line-height:1!important;\n}\nhtml.windows #cdqPcV16 .pc16-side-meta > span:last-child::after{\n  content:\"V22.42\";\n  font-size:9px!important;\n  font-weight:800!important;\n  color:#dbe8ee!important;\n  white-space:nowrap!important;\n}\n</style>\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "microCorrection": true,
+    "notes": [
+      "Aucune modification du comportement anti-flash",
+      "Aucune modification de mise en page",
+      "Corrige uniquement le numéro de version affiché dans la barre latérale PC",
+      "CSS de secours masque un ancien V22.26 résiduel"
+    ]
+  }
+}
