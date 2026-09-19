@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.66-drive-pdf-settings-stable",
+  "version": "2026.09.19-v22.67-android-pdf-reader-direct",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.66-drive-pdf-settings-stable",
-  "backend_version": "2026.09.19-v22.66-drive-pdf-settings-stable",
+  "selector_version": "2026.09.19-v22.67-android-pdf-reader-direct",
+  "backend_version": "2026.09.19-v22.67-android-pdf-reader-direct",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -150,7 +150,10 @@
     "android-preopen-drive-window",
     "online-pdf-direct-drive-v2266",
     "settings-touch-bridge-v2266",
-    "no-online-pdf-rebuild"
+    "no-online-pdf-rebuild",
+    "android-direct-pdf-reader-intent",
+    "no-about-blank-pdf",
+    "respect-default-pdf-reader"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
