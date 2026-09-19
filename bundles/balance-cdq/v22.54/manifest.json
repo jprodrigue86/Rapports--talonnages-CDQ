@@ -1,0 +1,108 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.54",
+  "build": "2026.09.19-v22.54-live-update-watch",
+  "title": "Balance CDQ V22.54 — détection automatique des mises à jour",
+  "requiresBuild": [
+    "2026.09.19-v22.52-pdf-open-32mb",
+    "2026.09.19-v22.53-backend-pdf32mb"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.52-pdf-open-32mb",
+        "2026.09.19-v22.53-backend-pdf32mb"
+      ],
+      "to": "2026.09.19-v22.54-live-update-watch"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.52-pdf-open-32mb",
+        "2026.09.19-v22.53-backend-pdf32mb"
+      ],
+      "to": "2026.09.19-v22.54-live-update-watch"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "? \"Mise à jour disponible — touchez « Mettre à jour » pour l’installer.\"",
+      "replacement": "? (\"Mise à jour \"+cdqVersionLabelV87(d.latest)+\" disponible — touchez « Mettre à jour » pour l’installer.\")",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "b.innerHTML='<span>Nouvelle version de l’application disponible.</span><button type=\"button\">Mettre à jour</button>';",
+      "replacement": "b.innerHTML='<span>Nouvelle mise à jour disponible.</span><button type=\"button\">Mettre à jour</button>';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "content:\"V22.51\";",
+      "replacement": "content:\"V22.54\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "content:\"V22.52\";",
+      "replacement": "content:\"V22.54\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "content:\"V22.53\";",
+      "replacement": "content:\"V22.54\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "meta.textContent='V22.51';",
+      "replacement": "meta.textContent='V22.54';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "meta.textContent='V22.52';",
+      "replacement": "meta.textContent='V22.54';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "meta.textContent='V22.53';",
+      "replacement": "meta.textContent='V22.54';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2254LiveUpdateWatchJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<script id=\"cdqV2254LiveUpdateWatchJs\">\n(function(){\n  'use strict';\n  let timer=0;\n  function check(){\n    try{\n      if(document.visibilityState!=='visible')return;\n      if(typeof cdqPwaAvailable==='function' && !cdqPwaAvailable())return;\n      if(typeof cdqCheckUpdate==='function')cdqCheckUpdate();\n    }catch(e){}\n  }\n  timer=setInterval(check,30000);\n  document.addEventListener('visibilitychange',function(){\n    if(document.visibilityState==='visible')setTimeout(check,300);\n  });\n  window.addEventListener('focus',function(){setTimeout(check,250)});\n  setTimeout(check,1800);\n  window.addEventListener('beforeunload',function(){clearInterval(timer)},{once:true});\n})();\n</script>\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "notes": [
+      "Vérifie automatiquement les mises à jour toutes les 30 secondes pendant que l'application reste ouverte",
+      "Vérifie aussi immédiatement au retour au premier plan et au focus",
+      "La coque PWA vérifie que la nouvelle version est réellement déployée avant d'afficher le warning",
+      "Le bandeau supérieur reste visible jusqu'à la mise à jour",
+      "Le bouton Mettre à jour recharge la version Apps Script réellement déployée",
+      "Android et PC utilisent la même logique"
+    ]
+  }
+}
