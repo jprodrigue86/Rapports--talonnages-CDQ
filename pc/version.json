@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.18-v22.39-pc-no-flash-gate",
+  "version": "2026.09.18-v22.44-pc-update-banner-shell",
   "reader_version": "21.33",
   "selector_version": "2026.09.18-v22.15-persistance-largeur-pwa",
   "backend_version": "2026.09.18-v22.15-persistance-largeur-pwa",
@@ -121,7 +121,10 @@
     "clean-pc-new-app-identity",
     "pc-startup-stability-gate",
     "pc-single-reveal-after-pin",
-    "pc-hide-inner-rerenders"
+    "pc-hide-inner-rerenders",
+    "pc-deployed-update-banner",
+    "pc-update-health-check",
+    "pc-update-button-live-reload"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -134,5 +137,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.18-v22.39-pc-no-flash-gate"
+  "pwa_version": "2026.09.18-v22.44-pc-update-banner-shell"
 }
