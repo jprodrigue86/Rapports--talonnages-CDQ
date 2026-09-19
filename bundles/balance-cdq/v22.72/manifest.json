@@ -1,0 +1,68 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.72",
+  "build": "2026.09.19-v22.72-account-direct-pdf-intent",
+  "title": "Balance CDQ V22.72 — PDF comme Google Sheets : compte puis lecteur, sans page grise",
+  "requiresBuild": [
+    "2026.09.19-v22.69-direct-drive-stream",
+    "2026.09.19-v22.70-native-pdf-bridge",
+    "2026.09.19-v22.71-direct-pdf-no-bridge"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.69-direct-drive-stream",
+        "2026.09.19-v22.70-native-pdf-bridge",
+        "2026.09.19-v22.71-direct-pdf-no-bridge"
+      ],
+      "to": "2026.09.19-v22.72-account-direct-pdf-intent"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.69-direct-drive-stream",
+        "2026.09.19-v22.70-native-pdf-bridge",
+        "2026.09.19-v22.71-direct-pdf-no-bridge"
+      ],
+      "to": "2026.09.19-v22.72-account-direct-pdf-intent"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqPdfDriveUrlV2271(id){\n  return 'https://drive.google.com/file/d/'+encodeURIComponent(String(id||''))+'/view?usp=drivesdk';\n}\n\nfunction cdqPdfIntentV2271(id,packageName){\n  const fileId=encodeURIComponent(String(id||''));\n  const driveUrl=cdqPdfDriveUrlV2271(id);\n  let intent='intent://drive.google.com/file/d/'+fileId+'/view#Intent;scheme=https;action=android.intent.action.VIEW;type=application/pdf;';\n  if(packageName)intent+='package='+packageName+';';\n  intent+='S.browser_fallback_url='+encodeURIComponent(driveUrl)+';end';\n  return intent;\n}\n\nfunction cdqMarquerPdfOuvertV2271(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction cdqOuvrirPdfAndroidV2271(id){\n  const pref=cdqPdfReaderPreference();\n  cdqMarquerPdfOuvertV2271(id);\n\n  if(pref==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  let target;\n  if(pref==='ilovepdf'){\n    target=cdqPdfIntentV2271(id,'com.ilovepdf.www');\n  }else if(pref==='acrobat'){\n    target=cdqPdfIntentV2271(id,'com.adobe.reader');\n  }else{\n    target=cdqPdfIntentV2271(id,'');\n  }\n\n  const opened=window.open(target,'_blank','noopener');\n  if(!opened){\n    try{window.location.href=target;}catch(_){\n      window.open(cdqPdfDriveUrlV2271(id),'_blank','noopener');\n    }\n  }\n  return true;\n}\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false){\n      if(/Android/i.test(navigator.userAgent||'')){\n        return cdqOuvrirPdfAndroidV2271(id);\n      }\n      return cdqV19OldModify(id);\n    }\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "replacement": "function cdqMarquerPdfOuvertV2272(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nwindow.addEventListener('message',function(e){\n  if(!cdqFromPwa(e))return;\n  const d=e.data||{};\n  if(d.type==='CDQ_PDF_ACCOUNT_ERROR_V2272'){\n    afficherMessage(String(d.message||'Impossible d’ouvrir le PDF.'),false);\n  }\n});\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      const reader=cdqPdfReaderPreference();\n\n      if(reader==='cdq'){\n        return cdqOpenPdf(id).catch(afficherErreur);\n      }\n\n      cdqMarquerPdfOuvertV2272(id);\n      cdqPostToPwa({\n        type:'CDQ_PDF_ACCOUNT_OPEN_V2272',\n        requestId:'pdf-'+crypto.randomUUID(),\n        fileId:String(id),\n        name:String((meta&&meta.nom)||'Rapport.pdf'),\n        reader:String(reader||'ask'),\n        version:String((meta&&meta.dateModification)||'')\n      });\n      afficherMessage('Sélectionnez le compte Google.',true);\n      return;\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqMarquerPdfOuvertV2270(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      const reader=cdqPdfReaderPreference();\n\n      // Le lecteur CDQ reste interne.\n      if(reader==='cdq'){\n        return cdqOpenPdf(id).catch(afficherErreur);\n      }\n\n      cdqMarquerPdfOuvertV2270(id);\n      cdqPostToPwa({\n        type:'CDQ_PDF_NATIVE_REQUEST_V2270',\n        requestId:'pdf-'+crypto.randomUUID(),\n        fileId:String(id),\n        name:String((meta&&meta.nom)||'Rapport.pdf'),\n        reader:String(reader||'ask'),\n        version:String((meta&&meta.dateModification)||'')\n      });\n      afficherMessage('Choisissez le compte Google pour ouvrir le PDF.',true);\n      return;\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "replacement": "function cdqMarquerPdfOuvertV2272(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nwindow.addEventListener('message',function(e){\n  if(!cdqFromPwa(e))return;\n  const d=e.data||{};\n  if(d.type==='CDQ_PDF_ACCOUNT_ERROR_V2272'){\n    afficherMessage(String(d.message||'Impossible d’ouvrir le PDF.'),false);\n  }\n});\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      const reader=cdqPdfReaderPreference();\n\n      if(reader==='cdq'){\n        return cdqOpenPdf(id).catch(afficherErreur);\n      }\n\n      cdqMarquerPdfOuvertV2272(id);\n      cdqPostToPwa({\n        type:'CDQ_PDF_ACCOUNT_OPEN_V2272',\n        requestId:'pdf-'+crypto.randomUUID(),\n        fileId:String(id),\n        name:String((meta&&meta.nom)||'Rapport.pdf'),\n        reader:String(reader||'ask'),\n        version:String((meta&&meta.dateModification)||'')\n      });\n      afficherMessage('Sélectionnez le compte Google.',true);\n      return;\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqMarquerPdfOuvertV2269(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nwindow.addEventListener('message',function(e){\n  if(!cdqFromPwa(e))return;\n  const d=e.data||{};\n\n  if(d.type==='CDQ_PDF_OPEN_INTERNAL_V2269'){\n    if(!(d.blob instanceof Blob)||!d.fileId)return;\n    const rec={\n      id:String(d.fileId),\n      nom:String(d.name||'Rapport.pdf'),\n      blob:d.blob,\n      taille:d.blob.size\n    };\n    cdqOpenPdfInternal(String(d.fileId),rec).catch(afficherErreur);\n    return;\n  }\n});\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      cdqMarquerPdfOuvertV2269(id);\n      cdqPostToPwa({\n        type:'CDQ_PDF_OPEN_REQUEST_V2269',\n        requestId:'pdf-'+crypto.randomUUID(),\n        fileId:String(id),\n        name:String((meta&&meta.nom)||'Rapport.pdf'),\n        reader:cdqPdfReaderPreference(),\n        readOnly:String(utilisateurCourantRole||'')==='lecture'\n      });\n      afficherMessage('Choisissez le compte Google pour ouvrir le PDF.',true);\n      return;\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "replacement": "function cdqMarquerPdfOuvertV2272(id){\n  if(String(utilisateurCourantRole||'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=cdqDocumentMeta(id)||{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nwindow.addEventListener('message',function(e){\n  if(!cdqFromPwa(e))return;\n  const d=e.data||{};\n  if(d.type==='CDQ_PDF_ACCOUNT_ERROR_V2272'){\n    afficherMessage(String(d.message||'Impossible d’ouvrir le PDF.'),false);\n  }\n});\n\nconst cdqV19OldModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const meta=cdqDocumentMeta(id);\n\n  if(meta&&meta.type==='GOOGLE_SHEETS'){\n    cdqV19OpenOfflineSheet(id);\n    return;\n  }\n\n  if(meta&&meta.type==='PDF'){\n    if(navigator.onLine!==false && /Android/i.test(navigator.userAgent||'')){\n      const reader=cdqPdfReaderPreference();\n\n      if(reader==='cdq'){\n        return cdqOpenPdf(id).catch(afficherErreur);\n      }\n\n      cdqMarquerPdfOuvertV2272(id);\n      cdqPostToPwa({\n        type:'CDQ_PDF_ACCOUNT_OPEN_V2272',\n        requestId:'pdf-'+crypto.randomUUID(),\n        fileId:String(id),\n        name:String((meta&&meta.nom)||'Rapport.pdf'),\n        reader:String(reader||'ask'),\n        version:String((meta&&meta.dateModification)||'')\n      });\n      afficherMessage('Sélectionnez le compte Google.',true);\n      return;\n    }\n\n    if(navigator.onLine!==false)return cdqV19OldModify(id);\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(!navigator.onLine){\n    afficherMessage('Ouvrez ce fichier dans son application après l’avoir enregistré sur le téléphone.',false);\n    return;\n  }\n  return cdqV19OldModify(id);\n};",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "flow": [
+      "Toucher PDF : aucune navigation Drive et aucun nouvel onglet.",
+      "Balance CDQ demande immédiatement le compte Google avec prompt select_account.",
+      "Le compte choisi fournit un jeton Drive temporaire.",
+      "Le vrai PDF est exposé à Android par files.get alt=media autorisé.",
+      "Demander lance le sélecteur Android des lecteurs PDF.",
+      "iLovePDF ou Acrobat sélectionné lance directement le package mémorisé.",
+      "Aucun pont PDF APK.",
+      "Aucune reconstruction PDF par blocs.",
+      "Google Sheets inchangés."
+    ]
+  }
+}
