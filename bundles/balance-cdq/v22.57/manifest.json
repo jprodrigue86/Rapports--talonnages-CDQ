@@ -43,6 +43,13 @@
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
+      "search": "  const blobTechnicien=await cdqPersonnaliserBlobTechnicienPdf(modele.blob);\n  const techKey=String(cdqTechniciensVersion||\"cache\")+\"|\"+String(utilisateurCourantEmail||\"\").toLowerCase()+\"|\"+String(utilisateurCourantNomRapport||\"\");\n  await cdqV19PutRecord(\"document-pdf\",id,{\n    id:id,nom:String(resultat.nom||modele.nom||\"Balance intermédiaire.pdf\"),clientId:String(resultat.clientId||idClient||compagnieSelectionnee||\"\"),type:\"PDF\",\n    taille:Number(blobTechnicien.size),revision:String(resultat.revision||(\"copie-locale-\"+Date.now())),chunks:Math.ceil(blobTechnicien.size/(1024*1024)),blob:blobTechnicien,\n    instantCopy:true,localReadyUntil:Date.now()+(2*60*1000),cachedAt:Date.now(),cdqTechVersion:techKey\n  });",
+      "replacement": "  const blobTechnicien=(modele.blob instanceof Blob && modele.blob.size<=8*1024*1024)\n    ? await cdqPersonnaliserBlobTechnicienPdf(modele.blob)\n    : modele.blob;\n  const techKey=String(cdqTechniciensVersion||\"cache\")+\"|\"+String(utilisateurCourantEmail||\"\").toLowerCase()+\"|\"+String(utilisateurCourantNomRapport||\"\");\n  await cdqV19PutRecord(\"document-pdf\",id,{\n    id:id,nom:String(resultat.nom||modele.nom||\"Balance intermédiaire.pdf\"),clientId:String(resultat.clientId||idClient||compagnieSelectionnee||\"\"),type:\"PDF\",\n    taille:Number(blobTechnicien.size),revision:String(resultat.revision||(\"copie-locale-\"+Date.now())),chunks:Math.ceil(blobTechnicien.size/(1024*1024)),blob:blobTechnicien,\n    instantCopy:true,localReadyUntil:Date.now()+(2*60*1000),cachedAt:Date.now(),cdqTechVersion:(blobTechnicien===modele.blob?\"\":techKey)\n  });",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
       "search": "const workers=Math.min(3,total);",
       "replacement": "const workers=Math.min(2,total);",
       "expected": 1
@@ -83,7 +90,8 @@
       "Évite le blocage silencieux après Préparation du PDF sur Android",
       "Conserve le téléchargement par blocs et la barre de progression des grosses tâches",
       "Réduit les téléchargements parallèles de 3 à 2 pour limiter la mémoire Android",
-      "Force une nouvelle instance du lecteur PDF"
+      "Force une nouvelle instance du lecteur PDF",
+      "La préparation locale après copie ne réécrit plus les gros PDF avec PDF-Lib en arrière-plan"
     ]
   }
 }
