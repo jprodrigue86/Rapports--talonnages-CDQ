@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.19-v22.67-update-detect-direct';
+const CDQ_PWA_BUILD = '2026.09.19-v22.68-account-first-pdf-open';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1129,6 +1129,210 @@ function cdqHandleDisplayPrefsV2215(data,source){
   return false;
 }
 
+
+// =====================================================
+// V22.68 — OUVERTURE PDF ANDROID : COMPTE D'ABORD
+// Aucun about:blank, aucune navigation Drive avant le choix du compte.
+// =====================================================
+let cdqPdfUiStateV2268=null;
+
+function cdqPdfReaderLabelV2268(value){
+  value=String(value||'ask');
+  if(value==='ilovepdf')return 'iLovePDF';
+  if(value==='acrobat')return 'Adobe Acrobat';
+  if(value==='cdq')return 'Lecteur CDQ';
+  return 'Choisir une application';
+}
+
+function cdqPdfEnsureUiV2268(){
+  let ov=document.getElementById('cdq-pdf-account-v2268');
+  if(ov)return ov;
+  ov=document.createElement('div');
+  ov.id='cdq-pdf-account-v2268';
+  ov.style.cssText='position:fixed;inset:0;z-index:100500;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,10,18,.68);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)';
+  ov.innerHTML=
+    '<div style="width:min(430px,100%);border:1px solid #168dc2;border-radius:18px;background:#071a29;color:#f4fbff;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:18px">'+
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'+
+        '<div style="width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#12344b;font-size:22px">G</div>'+
+        '<div style="min-width:0;flex:1"><strong id="cdqPdfUiTitleV2268" style="display:block;font-size:20px">Ouvrir le PDF</strong><small id="cdqPdfUiSubV2268" style="display:block;margin-top:3px;color:#a9c4d3">Choisissez le compte Google.</small></div>'+
+        '<button id="cdqPdfUiCloseV2268" type="button" style="width:40px;height:40px;border-radius:10px;border:1px solid #31556c;background:#10283b;color:#fff;font-size:24px">×</button>'+
+      '</div>'+
+      '<div id="cdqPdfGoogleButtonV2268" style="display:grid;place-items:center;min-height:48px"></div>'+
+      '<div id="cdqPdfProgressWrapV2268" style="display:none;margin-top:12px">'+
+        '<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span id="cdqPdfProgressTextV2268">Préparation…</span><b id="cdqPdfProgressPctV2268">0 %</b></div>'+
+        '<div style="height:8px;border-radius:999px;background:#102d3d;overflow:hidden;margin-top:8px"><div id="cdqPdfProgressFillV2268" style="height:100%;width:0;background:#39cffa;border-radius:999px;transition:width .2s ease"></div></div>'+
+      '</div>'+
+      '<div id="cdqPdfReadyV2268" style="display:none;margin-top:12px;padding:12px;border:1px solid #294a61;border-radius:12px;background:#0b2435;line-height:1.45"></div>'+
+      '<button id="cdqPdfOpenButtonV2268" type="button" style="display:none;width:100%;min-height:48px;margin-top:14px;border:0;border-radius:12px;background:#199fe0;color:white;font-weight:900;font-size:15px">OK</button>'+
+    '</div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#cdqPdfUiCloseV2268').onclick=function(){
+    const st=cdqPdfUiStateV2268;
+    if(st&&st.source)replyToSelector(st.source,{type:'CDQ_PDF_ACCOUNT_CANCEL_V2268',requestId:st.requestId});
+    cdqPdfUiStateV2268=null;
+    ov.style.display='none';
+  };
+  return ov;
+}
+
+function cdqPdfUiShowProgressV2268(pct,detail){
+  const ov=cdqPdfEnsureUiV2268();
+  const wrap=ov.querySelector('#cdqPdfProgressWrapV2268');
+  wrap.style.display='block';
+  ov.querySelector('#cdqPdfProgressTextV2268').textContent=String(detail||'Préparation du PDF…');
+  ov.querySelector('#cdqPdfProgressPctV2268').textContent=Math.max(0,Math.min(100,Math.round(Number(pct)||0)))+' %';
+  ov.querySelector('#cdqPdfProgressFillV2268').style.width=Math.max(0,Math.min(100,Number(pct)||0))+'%';
+}
+
+async function cdqPdfAccountRequiredV2268(data,source){
+  const ov=cdqPdfEnsureUiV2268();
+  const requestId=String(data.requestId||'');
+  cdqPdfUiStateV2268={
+    requestId:requestId,
+    source:source,
+    name:String(data.name||'Rapport.pdf'),
+    reader:String(data.reader||'ask'),
+    blob:null,
+    email:''
+  };
+
+  ov.style.display='flex';
+  ov.querySelector('#cdqPdfUiTitleV2268').textContent='Choisir le compte Google';
+  ov.querySelector('#cdqPdfUiSubV2268').textContent=String(data.name||'Rapport PDF');
+  ov.querySelector('#cdqPdfProgressWrapV2268').style.display='none';
+  ov.querySelector('#cdqPdfReadyV2268').style.display='none';
+  ov.querySelector('#cdqPdfOpenButtonV2268').style.display='none';
+
+  const box=ov.querySelector('#cdqPdfGoogleButtonV2268');
+  box.style.display='grid';
+  box.innerHTML='';
+
+  try{
+    const gsi=await attendreGoogleIdentityV42();
+    if(!cdqPdfUiStateV2268||cdqPdfUiStateV2268.requestId!==requestId)return;
+    gsi.initialize({
+      client_id:String(data.clientId||''),
+      callback:function(resp){
+        const st=cdqPdfUiStateV2268;
+        if(!st||st.requestId!==requestId||!resp||!resp.credential)return;
+        box.innerHTML='';
+        box.style.display='none';
+        ov.querySelector('#cdqPdfUiTitleV2268').textContent='Vérification du compte';
+        ov.querySelector('#cdqPdfUiSubV2268').textContent='Balance CDQ reste ouvert pendant la préparation.';
+        cdqPdfUiShowProgressV2268(4,'Vérification du compte Google…');
+        replyToSelector(source,{
+          type:'CDQ_PDF_ACCOUNT_CREDENTIAL_V2268',
+          requestId:requestId,
+          challengeId:String(data.challengeId||''),
+          credential:String(resp.credential||'')
+        });
+      },
+      nonce:String(data.nonce||''),
+      auto_select:false,
+      cancel_on_tap_outside:false,
+      ux_mode:'popup',
+      context:'signin'
+    });
+    gsi.renderButton(box,{
+      type:'standard',
+      theme:'outline',
+      size:'large',
+      text:'continue_with',
+      shape:'rectangular',
+      logo_alignment:'left',
+      locale:'fr',
+      width:320
+    });
+  }catch(e){
+    ov.querySelector('#cdqPdfUiSubV2268').textContent=(e&&e.message?e.message:String(e));
+  }
+}
+
+function cdqPdfProgressV2268(data){
+  const st=cdqPdfUiStateV2268;
+  if(!st||st.requestId!==String(data.requestId||''))return;
+  cdqPdfUiShowProgressV2268(data.pct,data.detail);
+}
+
+function cdqPdfErrorV2268(data){
+  const st=cdqPdfUiStateV2268;
+  if(!st||st.requestId!==String(data.requestId||''))return;
+  const ov=cdqPdfEnsureUiV2268();
+  ov.querySelector('#cdqPdfUiTitleV2268').textContent='Impossible d’ouvrir le PDF';
+  ov.querySelector('#cdqPdfUiSubV2268').textContent=String(data.message||'Réessayez avec un autre compte.');
+  ov.querySelector('#cdqPdfProgressWrapV2268').style.display='none';
+  ov.querySelector('#cdqPdfGoogleButtonV2268').style.display='none';
+  const ready=ov.querySelector('#cdqPdfReadyV2268');
+  ready.style.display='block';
+  ready.textContent='Fermez cette fenêtre puis touchez de nouveau le PDF pour choisir un autre compte.';
+}
+
+function cdqPdfReadyV2268(data,source){
+  const st=cdqPdfUiStateV2268;
+  if(!st||st.requestId!==String(data.requestId||''))return;
+  if(!(data.blob instanceof Blob)||data.blob.type!=='application/pdf'||!data.blob.size||data.blob.size>32*1024*1024){
+    cdqPdfErrorV2268({requestId:st.requestId,message:'Le PDF reçu est invalide.'});
+    return;
+  }
+
+  st.blob=data.blob;
+  st.name=String(data.name||st.name||'Rapport.pdf');
+  st.reader=String(data.reader||st.reader||'ask');
+  st.email=String(data.email||'');
+
+  const ov=cdqPdfEnsureUiV2268();
+  ov.querySelector('#cdqPdfUiTitleV2268').textContent='PDF prêt';
+  ov.querySelector('#cdqPdfUiSubV2268').textContent='Le fichier client Drive a été chargé sans quitter Balance CDQ.';
+  cdqPdfUiShowProgressV2268(100,'Préparation terminée.');
+
+  const ready=ov.querySelector('#cdqPdfReadyV2268');
+  ready.style.display='block';
+  ready.innerHTML='<b>Compte :</b> '+(st.email||'Compte Google sélectionné')+'<br><b>Lecteur :</b> '+cdqPdfReaderLabelV2268(st.reader);
+
+  const open=ov.querySelector('#cdqPdfOpenButtonV2268');
+  open.style.display='block';
+  open.textContent=st.reader==='ask'
+    ? 'OK — choisir le lecteur'
+    : 'OK — ouvrir avec '+cdqPdfReaderLabelV2268(st.reader);
+
+  open.onclick=async function(){
+    if(!cdqPdfUiStateV2268||cdqPdfUiStateV2268.requestId!==st.requestId)return;
+
+    if(st.reader==='cdq'){
+      replyToSelector(source,{type:'CDQ_PDF_OPEN_INTERNAL_V2268',requestId:st.requestId});
+      cdqPdfUiStateV2268=null;
+      ov.style.display='none';
+      return;
+    }
+
+    const file=new File([st.blob],st.name,{type:'application/pdf'});
+    const payload={files:[file],title:st.name};
+    if(navigator.share&&(!navigator.canShare||navigator.canShare(payload))){
+      try{
+        open.disabled=true;
+        open.textContent='Ouverture…';
+        await navigator.share(payload);
+        replyToSelector(source,{type:'CDQ_PDF_EXTERNAL_DONE_V2268',requestId:st.requestId});
+        cdqPdfUiStateV2268=null;
+        ov.style.display='none';
+      }catch(e){
+        open.disabled=false;
+        open.textContent=st.reader==='ask'?'OK — choisir le lecteur':'OK — ouvrir avec '+cdqPdfReaderLabelV2268(st.reader);
+        if(!e||e.name!=='AbortError'){
+          ready.innerHTML+='<br><span style="color:#ff9aa5">Android n’a pas pu ouvrir le menu des applications.</span>';
+        }
+      }
+      return;
+    }
+
+    // Repli sans navigation blanche/grise : téléchargement local uniquement.
+    const url=URL.createObjectURL(st.blob);
+    const a=document.createElement('a');a.href=url;a.download=st.name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url)},60000);
+    ready.innerHTML+='<br>Le PDF a été téléchargé sur le téléphone.';
+  };
+}
+
 window.addEventListener('message', event => {
 const data = event.data || {};
 if (!isSelectorMessage(event)) return;
@@ -1166,6 +1370,10 @@ if(data.type==='CDQ_GOOGLE_AUTH_ERROR'){
   document.getElementById('load-message').textContent=String(data.message||'La connexion Google a échoué. Réessayez.');
 }
 if(data.type==='CDQ_GOOGLE_AUTH_HIDE')masquerConnexionGoogleV42();
+if(data.type==='CDQ_PDF_ACCOUNT_REQUIRED_V2268'){cdqPdfAccountRequiredV2268(data,event.source);return;}
+if(data.type==='CDQ_PDF_PROGRESS_V2268'){cdqPdfProgressV2268(data);return;}
+if(data.type==='CDQ_PDF_READY_V2268'){cdqPdfReadyV2268(data,event.source);return;}
+if(data.type==='CDQ_PDF_ERROR_V2268'){cdqPdfErrorV2268(data);return;}
 if(String(data.type||'').startsWith('CDQ_OFFLINE_'))cdqOffline.then(controller=>controller.handle(data));
 if(data.type==='CDQ_ACCESS_STATE' && data.state!=='ready')cdqOffline.then(controller=>controller.lock());
 if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready'))replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
