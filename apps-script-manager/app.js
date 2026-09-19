@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V27';
+const APP_VERSION = 'V28';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -748,8 +748,36 @@ async function sha256HexV24(text){
 
 async function fetchBundleTextV24(url,expectedSha=''){
   const u=bundleUrlFromValueV24(url);
-  const r=await fetch(u,{cache:'no-store',credentials:'omit'});
-  if(!r.ok)throw new Error('Téléchargement package impossible : '+r.status+' '+u);
+  const delays=[0,2000,5000,10000,20000];
+  const retryable=new Set([404,408,425,429,500,502,503,504]);
+  let r=null,lastError=null;
+  for(let i=0;i<delays.length;i++){
+    if(delays[i])await new Promise(resolve=>setTimeout(resolve,delays[i]));
+    try{
+      const bust=new URL(u);
+      bust.searchParams.set('cdq_retry',Date.now()+'_'+i);
+      r=await fetch(bust.href,{cache:'no-store',credentials:'omit'});
+      if(r.ok)break;
+      if(!retryable.has(Number(r.status))){
+        throw new Error('Téléchargement package impossible : '+r.status+' '+u);
+      }
+      lastError=new Error('HTTP '+r.status);
+      const wait=i+1<delays.length?Math.round(delays[i+1]/1000):0;
+      setQuickResult(
+        i+1<delays.length
+          ? 'Package encore en publication sur GitHub ('+r.status+'). Nouvelle tentative dans '+wait+' s…'
+          : 'Package toujours indisponible après plusieurs tentatives.',
+        'warn'
+      );
+    }catch(e){
+      lastError=e;
+      if(i===delays.length-1)break;
+      setQuickResult('Connexion au package interrompue. Nouvelle tentative automatique…','warn');
+    }
+  }
+  if(!r||!r.ok){
+    throw new Error('Téléchargement package impossible après plusieurs tentatives : '+(r?r.status:(lastError&&lastError.message)||'réseau')+' '+u);
+  }
   const text=await r.text();
   if(text.length>3_000_000)throw new Error('Fichier package trop volumineux.');
   if(expectedSha){
@@ -799,8 +827,26 @@ function applyPatchV25(source,patch,fileLabel){
     if(found<1)throw new Error(fileLabel+' : ancien build introuvable.');
     return source.split(from).join(to);
   }
+  if(op==='replace_build_any'){
+    const fromList=(Array.isArray(patch.from)?patch.from:[patch.from])
+      .map(x=>String(x||'')).filter(Boolean);
+    const to=String(patch.to||'');
+    if(!fromList.length||!to)throw new Error(fileLabel+' : replace_build_any invalide.');
+    if(countLiteralV25(source,to)>0)return source;
+    let found=0;
+    for(const from of fromList)found+=countLiteralV25(source,from);
+    if(found<1)throw new Error(fileLabel+' : aucune version source compatible trouvée.');
+    for(const from of fromList)source=source.split(from).join(to);
+    return source;
+  }
   if(op==='remove_script_id')return removeTaggedBlockV25(source,'script',patch.id);
   if(op==='remove_style_id')return removeTaggedBlockV25(source,'style',patch.id);
+  if(op==='remove_script_id_if_present'){
+    try{return removeTaggedBlockV25(source,'script',patch.id);}catch(e){return source;}
+  }
+  if(op==='remove_style_id_if_present'){
+    try{return removeTaggedBlockV25(source,'style',patch.id);}catch(e){return source;}
+  }
   if(op==='insert_before_literal'){
     const needle=String(patch.before||'');
     const text=String(patch.text||'');
@@ -816,8 +862,12 @@ function buildEntriesFromPatchesV25(manifest){
     throw new Error('Liste de correctifs invalide.');
   }
   const currentBuild=detectBuildLabel(S.files)||'';
-  if(manifest.requiresBuild && compareBuildLabels(currentBuild,String(manifest.requiresBuild))!==0){
-    throw new Error('Ce correctif exige '+manifest.requiresBuild+', mais le projet chargé annonce '+(currentBuild||'aucune version')+'.');
+  if(manifest.requiresBuild){
+    const allowed=Array.isArray(manifest.requiresBuild)?manifest.requiresBuild:[manifest.requiresBuild];
+    const ok=allowed.some(x=>compareBuildLabels(currentBuild,String(x))===0);
+    if(!ok){
+      throw new Error('Ce correctif exige '+allowed.join(' ou ')+', mais le projet chargé annonce '+(currentBuild||'aucune version')+'.');
+    }
   }
 
   const byFile=new Map();
@@ -1759,7 +1809,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=25').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=28').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
