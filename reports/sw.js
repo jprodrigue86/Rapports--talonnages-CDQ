@@ -1,6 +1,6 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE='cdq-reports-v22-57-live-update-fix';
-const FORCE_BUILD='2026.09.19-v22.57-live-update-probe-fix';
+const CACHE='cdq-reports-v22-67-update-detect-direct';
+const FORCE_BUILD='2026.09.19-v22.67-update-detect-direct';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;
