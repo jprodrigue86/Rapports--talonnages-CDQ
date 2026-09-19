@@ -432,7 +432,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v22.39-pc-no-flash-gate';
+const CDQ_PWA_BUILD = '2026.09.18-v22.44-pc-update-banner-shell';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -968,6 +968,95 @@ function cdqComparerVersions(a,b) {
   }
   return va.localeCompare(vb,undefined,{numeric:true});
 }
+const CDQ_PC_LATEST_MANIFEST='/Rapports--talonnages-CDQ/bundles/balance-cdq/latest/manifest.json';
+let cdqPcUpdateCheckBusyV2244=false;
+
+function cdqPcReplyV2244(source,payload){
+  try{source.postMessage(payload,'https://script.google.com');}catch(e){
+    try{source.postMessage(payload,'*');}catch(_){}
+  }
+}
+
+function cdqPcHealthBuildV2244(targetBuild,timeoutMs=12000){
+  return new Promise(resolve=>{
+    let done=false;
+    const frame=document.createElement('iframe');
+    frame.title='Vérification mise à jour Balance CDQ';
+    frame.tabIndex=-1;
+    frame.setAttribute('aria-hidden','true');
+    frame.style.cssText='position:fixed;left:-12000px;top:0;width:10px;height:10px;opacity:0;pointer-events:none;border:0';
+    const finish=value=>{
+      if(done)return;
+      done=true;
+      clearTimeout(timer);
+      window.removeEventListener('message',onMessage);
+      try{frame.remove()}catch(e){}
+      resolve(value);
+    };
+    const onMessage=e=>{
+      const d=e.data||{};
+      if(d.type!=='CDQ_HEALTH_READY')return;
+      const host=(()=>{try{return new URL(e.origin).hostname}catch(_){return ''}})();
+      if(!(host==='script.google.com'||host==='script.googleusercontent.com'||host.endsWith('-script.googleusercontent.com')))return;
+      const seen=String(d.selectorBuild||d.build||'');
+      if(seen && cdqComparerVersions(seen,targetBuild)>=0){
+        finish({ok:true,build:seen});
+      }
+    };
+    window.addEventListener('message',onMessage);
+    const sep=APP_URL.includes('?')?'&':'?';
+    frame.src=APP_URL+sep+'cdq_health=1&expected='+encodeURIComponent(targetBuild)+'&pc_update_probe=1&ts='+Date.now();
+    document.body.appendChild(frame);
+    const timer=setTimeout(()=>finish({ok:false,build:''}),timeoutMs);
+  });
+}
+
+async function cdqPcCheckUpdateV2244(source,currentBuild){
+  if(cdqPcUpdateCheckBusyV2244)return;
+  cdqPcUpdateCheckBusyV2244=true;
+  try{
+    const r=await fetch(CDQ_PC_LATEST_MANIFEST+'?ts='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('manifest '+r.status);
+    const m=await r.json();
+    const targetBuild=String(m.build||'');
+    const targetVersion=String(m.version||targetBuild||'');
+    const current=String(currentBuild||'');
+    if(!targetBuild || !current || cdqComparerVersions(targetBuild,current)<=0){
+      cdqPcReplyV2244(source,{type:'CDQ_PC_UPDATE_STATUS',available:false,deployed:false,currentBuild:current,targetBuild,targetVersion});
+      return;
+    }
+    const health=await cdqPcHealthBuildV2244(targetBuild,12000);
+    cdqPcReplyV2244(source,{
+      type:'CDQ_PC_UPDATE_STATUS',
+      available:!!health.ok,
+      deployed:!!health.ok,
+      currentBuild:current,
+      targetBuild,
+      targetVersion,
+      liveBuild:health.build||''
+    });
+  }catch(e){
+    cdqPcReplyV2244(source,{type:'CDQ_PC_UPDATE_STATUS',available:false,deployed:false,error:String(e&&e.message||e)});
+  }finally{
+    cdqPcUpdateCheckBusyV2244=false;
+  }
+}
+
+function cdqPcApplyUpdateV2244(){
+  loadGeneration++;
+  selectorReady=false;
+  iframeLoaded=false;
+  selectorAwaitingAccess=false;
+  clearTimeout(accessWaitTimer);
+  clearTimeout(hideLoadingTimer);
+  if(typeof cdqCancelPcRevealV2239==='function')cdqCancelPcRevealV2239();
+  app.style.visibility='hidden';
+  app.style.opacity='0';
+  loadHelp.style.display='none';
+  afficherMurChargement();
+  app.src=cdqFreshAppUrl('pc-update-button');
+}
+
 
 async function repondreEtatMiseAJour(source, buildSelector) {
 const latest = await lireVersionDistante();
@@ -1104,6 +1193,14 @@ function cdqHandleDisplayPrefsV2215(data,source){
 window.addEventListener('message', event => {
 const data = event.data || {};
 if (!isSelectorMessage(event)) return;
+if(data.type==='CDQ_PC_UPDATE_QUERY'){
+  cdqPcCheckUpdateV2244(event.source,String(data.build||''));
+  return;
+}
+if(data.type==='CDQ_PC_APPLY_UPDATE'){
+  cdqPcApplyUpdateV2244();
+  return;
+}
 if (data.type === 'CDQ_SELECTOR_READY' || data.type === 'CDQ_CHECK_UPDATE') {
 if (selectorWindow && selectorWindow !== event.source) return;
 selectorWindow = event.source;
