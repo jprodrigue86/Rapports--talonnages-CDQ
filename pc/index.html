@@ -37,6 +37,7 @@ display:block;
 transform:scale(var(--interface-scale));
 transform-origin:top left;
 visibility:hidden;
+opacity:0;
 }
 #loading{
 position:fixed;
@@ -431,7 +432,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.18-v22.38-clean-pc-install';
+const CDQ_PWA_BUILD = '2026.09.18-v22.39-pc-no-flash-gate';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -517,6 +518,36 @@ throw new Error('Le déverrouillage de l’appareil n’a pas été confirmé.')
 let loadingTimer = null;
 let hideLoadingTimer = null;
 let loadGeneration = 0;
+let pcStartupGate = true;
+let pcRevealTimer = null;
+let pcLastReadyAt = 0;
+const PC_STABLE_REVEAL_MS = 4200;
+
+function cdqIsPcV2239(){
+  return !!(window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches);
+}
+function cdqCancelPcRevealV2239(){
+  clearTimeout(pcRevealTimer);
+  pcRevealTimer=null;
+}
+function cdqSchedulePcRevealV2239(){
+  if(!cdqIsPcV2239())return false;
+  pcLastReadyAt=Date.now();
+  cdqCancelPcRevealV2239();
+  app.style.visibility='hidden';
+  app.style.opacity='0';
+  loading.style.display='grid';
+  loading.classList.remove('pc-frame-ready');
+  pcRevealTimer=setTimeout(()=>{
+    if(!selectorReady || selectorAwaitingAccess || !iframeLoaded)return;
+    app.style.visibility='visible';
+    app.style.opacity='1';
+    loading.style.display='none';
+    loadHelp.style.display='none';
+    pcStartupGate=false;
+  },PC_STABLE_REVEAL_MS);
+  return true;
+}
 document.getElementById('open-direct').href = cdqFreshAppUrl('direct');
 app.src = cdqFreshAppUrl('startup');
 
@@ -813,11 +844,18 @@ function recevoirEtatAcces(state) {
 if (!['pending','input','ready'].includes(state)) return;
 const wasPending = selectorAwaitingAccess;
 selectorAwaitingAccess = state === 'pending';
+if (state!=='ready' && cdqIsPcV2239()) {
+  cdqCancelPcRevealV2239();
+  app.style.visibility='hidden';
+  app.style.opacity='0';
+  loading.style.display='grid';
+  loading.classList.remove('pc-frame-ready');
+}
 if (selectorAwaitingAccess) {
 clearTimeout(hideLoadingTimer);
 loading.style.display = 'grid';
-const pcOneWall=window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches;
-if(pcOneWall){app.style.visibility='hidden';loading.classList.remove('pc-frame-ready');}
+const pcOneWall=cdqIsPcV2239();
+if(pcOneWall){app.style.visibility='hidden';app.style.opacity='0';loading.classList.remove('pc-frame-ready');}
 // Dernier secours si le Selector cesse complètement de répondre.
 if (!wasPending) accessWaitTimer = setTimeout(() => {
 if (!selectorAwaitingAccess) return;
@@ -828,6 +866,7 @@ afficherConnexionGoogle();
 } else {
 clearTimeout(accessWaitTimer);
 loadHelp.style.display = 'none';
+if(state==='ready' && cdqSchedulePcRevealV2239()) return;
 masquerMurApresDelaiMinimum();
 }
 }
@@ -838,6 +877,10 @@ loading.style.display = 'grid';
 }
 
 function masquerMurApresDelaiMinimum() {
+if(cdqIsPcV2239()){
+  cdqSchedulePcRevealV2239();
+  return;
+}
 const elapsed = performance.now() - loadingShownAt;
 const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
 clearTimeout(hideLoadingTimer);
@@ -845,6 +888,7 @@ const generation = loadGeneration;
 hideLoadingTimer = setTimeout(() => {
 if (selectorReady && !selectorAwaitingAccess && generation === loadGeneration) {
 app.style.visibility = 'visible';
+app.style.opacity = '1';
 loading.style.display = 'none';
 }
 }, remaining);
@@ -880,6 +924,9 @@ if (!selectorReady) armLoadingTimeout();
 function reessayerChargement() {
 if (navigator.onLine === false) { afficherConnexionGoogle(false); return; }
 loadGeneration++;
+pcStartupGate=true;
+cdqCancelPcRevealV2239();
+app.style.opacity='0';
 cdqOffline.then(controller=>controller.lock());
 selectorReady = false;
 iframeLoaded = false;
@@ -1079,7 +1126,7 @@ if(data.type==='CDQ_DISPLAY_PREFS_BOOTSTRAP_GET'){
 if(cdqHandleDisplayPrefsV2215(data,event.source))return;
 if(data.type==='CDQ_GOOGLE_AUTH_REQUIRED'){afficherConnexionGoogleV42(data);return;}
 if(data.type==='CDQ_GOOGLE_AUTH_OK'){
-  loading.style.display='grid';loadHelp.style.display='none';
+  loading.style.display='grid';loadHelp.style.display='none';if(cdqIsPcV2239()){app.style.visibility='hidden';app.style.opacity='0';}
   document.getElementById('google-button-container').innerHTML='';
 }
 if(data.type==='CDQ_GOOGLE_AUTH_ERROR'){
