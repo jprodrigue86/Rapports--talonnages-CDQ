@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.19-v22.49-pdf32mb",
+  "version": "2026.09.19-v22.52-pdf-open-32mb",
   "reader_version": "21.33",
-  "selector_version": "2026.09.19-v22.49-pdf32mb",
-  "backend_version": "2026.09.19-v22.49-pdf32mb",
+  "selector_version": "2026.09.19-v22.52-pdf-open-32mb",
+  "backend_version": "2026.09.19-v22.52-pdf-open-32mb",
   "date": "2026-09-19",
   "features": [
     "demarrage-verifie",
@@ -114,7 +114,10 @@
     "pc-music-wall-chosen-v2233",
     "pdf-offline-max-32mb",
     "offline-module-cache-bust-v2249",
-    "pwa-selector-version-synchronized"
+    "pwa-selector-version-synchronized",
+    "pdf-open-32mb",
+    "offline-engine-new-path-v2252",
+    "offline-cache-error-does-not-block-open"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -127,5 +130,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.19-v22.49-pdf32mb"
+  "pwa_version": "2026.09.19-v22.52-pdf-open-32mb"
 }
