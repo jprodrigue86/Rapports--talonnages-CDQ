@@ -1,0 +1,85 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.40",
+  "build": "2026.09.18-v22.40-pc-no-flash-core",
+  "title": "Balance CDQ V22.40 — PC sans flash",
+  "requiresBuild": [
+    "2026.09.18-v22.36-pc-recovery-stable"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.36-pc-recovery-stable",
+      "to": "2026.09.18-v22.40-pc-no-flash-core"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.18-v22.36-pc-recovery-stable",
+      "to": "2026.09.18-v22.40-pc-no-flash-core"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "function pc16AutoFitV21_65(){\n  // A maximize/restore on Windows can arrive in several steps. Re-measure\n  // repeatedly so a window that was small cannot remain small after maximize.\n  [0,30,80,160,300,500,800,1200,1800].forEach(function(ms){\n    setTimeout(function(){requestAnimationFrame(scaleStage)},ms);\n  });\n}",
+      "replacement": "let pc16FitTimerV2240=0;\nfunction pc16AutoFitV21_65(){\n  // V22.40 PC : un seul recalcul débouncé.\n  // L'ancienne séquence de 9 recalculs provoquait les flashs visibles après le NIP.\n  clearTimeout(pc16FitTimerV2240);\n  pc16FitTimerV2240=setTimeout(function(){\n    requestAnimationFrame(scaleStage);\n  },70);\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "async function loadClients(force){\n  if(!force&&!st.clients.length){\n    if(pc16RestoreGlobalCache())renderAll();\n  }\n  try{\n    let clients;\n    try{clients=await gs('obtenirDossiersClientsPCLeger',[!!force])}\n    catch(_){clients=await gs('obtenirDossiersClients',[!!force])}\n    if(Array.isArray(clients)){st.clients=clients;st.lastClientsSync=Date.now();renderAll();pc16SaveGlobalCache()}\n    const ids=st.clients.map(c=>c.id);\n    const jobs=[\n      gs('obtenirResumesConformiteClientsCDQ',[ids]).catch(()=>null),\n      gs('obtenirRapportsRecentsPC',[40,!!force]).catch(()=>null)\n    ];\n    const result=await Promise.all(jobs);\n    if(result[0])st.summaries=result[0];\n    if(Array.isArray(result[1]))st.recent=result[1];\n    if(!st.selected&&st.recent.length)st.selected=st.recent[0];\n    st.lastClientsSync=Date.now();pc16SaveGlobalCache();renderAll();\n  }catch(e){toast(e&&e.message||e,true)}\n}",
+      "replacement": "async function loadClients(force){\n  if(!force&&!st.clients.length){\n    if(pc16RestoreGlobalCache())renderAll();\n  }\n  try{\n    let changed=false,clients;\n    try{clients=await gs('obtenirDossiersClientsPCLeger',[!!force])}\n    catch(_){clients=await gs('obtenirDossiersClients',[!!force])}\n    if(Array.isArray(clients)){\n      const before=JSON.stringify((st.clients||[]).map(c=>[c.id,c.nom,c.dateModification||'']));\n      const after=JSON.stringify(clients.map(c=>[c.id,c.nom,c.dateModification||'']));\n      if(before!==after){st.clients=clients;changed=true}\n      st.lastClientsSync=Date.now();\n    }\n    const ids=st.clients.map(c=>c.id);\n    const jobs=[\n      gs('obtenirResumesConformiteClientsCDQ',[ids]).catch(()=>null),\n      gs('obtenirRapportsRecentsPC',[40,!!force]).catch(()=>null)\n    ];\n    const result=await Promise.all(jobs);\n    if(result[0]){\n      if(JSON.stringify(st.summaries||{})!==JSON.stringify(result[0]))changed=true;\n      st.summaries=result[0];\n    }\n    if(Array.isArray(result[1])){\n      const before=JSON.stringify((st.recent||[]).map(f=>[f.id,f.nom,f.dateModification||'',f.typeBalance||'']));\n      const after=JSON.stringify(result[1].map(f=>[f.id,f.nom,f.dateModification||'',f.typeBalance||'']));\n      if(before!==after)changed=true;\n      st.recent=result[1];\n    }\n    if(!st.selected&&st.recent.length)st.selected=st.recent[0];\n    st.lastClientsSync=Date.now();\n    pc16SaveGlobalCache();\n    if(changed)renderAll();\n  }catch(e){toast(e&&e.message||e,true)}\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "function renderKpis(){\n  const x=$('#pc16Kpis');if(!x)return;\n  const s=stats(),total=Math.max(1,s.ok+s.nc+s.unk),pct=Math.round(s.ok/total*100),types=new Set(st.recent.map(f=>f.typeBalance).filter(Boolean));\n  const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  x.innerHTML=`<div class=\"pc16-kpi green\"><span class=\"ico\">✓</span><div><span class=\"lab\">Conformité globale</span><strong>${pct}%</strong><em>${s.ok} conformes</em></div></div>\n  <div class=\"pc16-kpi red\" data-follow=\"nonconformities\"><span class=\"ico\">⚠</span><div><span class=\"lab\">Non-conformités actives</span><strong>${nc}</strong><em>Par client · historique</em></div></div>\n  <div class=\"pc16-kpi yellow\" data-follow=\"watchlist\"><span class=\"ico\">👥</span><div><span class=\"lab\">Clients à surveiller</span><strong>${watch}</strong><em>${Number(t.surveillancesActives||0)} suivis actifs</em></div></div>\n  <div class=\"pc16-kpi blue\"><span class=\"ico\">⚖</span><div><span class=\"lab\">Types de balances</span><strong>${Math.max(types.size,4)}</strong><em>Vue générale</em></div></div>\n  <div class=\"pc16-kpi cyan\" data-follow=\"clients\"><span class=\"ico\">🏢</span><div><span class=\"lab\">Clients chargés</span><strong>${st.clients.length||0}</strong><em>Ouvrir la liste</em></div></div>`;\n  $$('[data-follow]',x).forEach(k=>k.onclick=()=>show(k.dataset.follow));\n}",
+      "replacement": "function renderKpis(){\n  const x=$('#pc16Kpis');if(!x)return;\n  const s=stats(),total=Math.max(1,s.ok+s.nc+s.unk),pct=Math.round(s.ok/total*100),types=new Set(st.recent.map(f=>f.typeBalance).filter(Boolean));\n  const t=st.tracking.summary||{},nc=Number(t.nonConformitesActives!=null?t.nonConformitesActives:s.nc),watch=Number(t.clientsSurveilles||0);\n  const html=`<div class=\"pc16-kpi green\"><span class=\"ico\">✓</span><div><span class=\"lab\">Conformité globale</span><strong>${pct}%</strong><em>${s.ok} conformes</em></div></div>\n  <div class=\"pc16-kpi red\" data-follow=\"nonconformities\"><span class=\"ico\">⚠</span><div><span class=\"lab\">Non-conformités actives</span><strong>${nc}</strong><em>Par client · historique</em></div></div>\n  <div class=\"pc16-kpi yellow\" data-follow=\"watchlist\"><span class=\"ico\">👥</span><div><span class=\"lab\">Clients à surveiller</span><strong>${watch}</strong><em>${Number(t.surveillancesActives||0)} suivis actifs</em></div></div>\n  <div class=\"pc16-kpi blue\"><span class=\"ico\">⚖</span><div><span class=\"lab\">Types de balances</span><strong>${Math.max(types.size,4)}</strong><em>Vue générale</em></div></div>\n  <div class=\"pc16-kpi cyan\" data-follow=\"clients\"><span class=\"ico\">🏢</span><div><span class=\"lab\">Clients chargés</span><strong>${st.clients.length||0}</strong><em>Ouvrir la liste</em></div></div>`;\n  if(x.dataset.kpiHtml===html)return;\n  x.dataset.kpiHtml=html;\n  x.innerHTML=html;\n  $$('[data-follow]',x).forEach(k=>k.onclick=()=>show(k.dataset.follow));\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<span>V22.36</span>",
+      "replacement": "<span>V22.40</span>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "r.dataset.build='v22.36-pc-recovery-stable';",
+      "replacement": "r.dataset.build='v22.40-pc-no-flash-core';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2236RecoveryCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqPcV2236RecoveryJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqPcV2240NoFlashCss\">\nhtml.windows #cdqPcV16,\nhtml.windows #cdqPcV16 .pc16-stage{\n  backface-visibility:hidden!important;\n  -webkit-backface-visibility:hidden!important;\n}\nhtml.windows #cdqPcV16 .pc16-kpi,\nhtml.windows #cdqPcV16 .pc16-kpi *{\n  animation:none!important;\n}\n</style>\n<script id=\"cdqPcV2240NoFlashJs\">\n(function(){\n  function stamp(){\n    var root=document.getElementById('cdqPcV16');\n    if(!root)return false;\n    root.dataset.build='v22.40-pc-no-flash-core';\n    var v=root.querySelector('.pc16-side-meta span');\n    if(v)v.textContent='V22.40';\n    return true;\n  }\n  if(!stamp())document.addEventListener('DOMContentLoaded',function(){setTimeout(stamp,80)},{once:true});\n})();\n</script>\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "exactSource": "V22.36 diagnostic confirmé",
+    "notes": [
+      "Supprime la séquence PC de 9 recalculs d'échelle au démarrage",
+      "Remplace l'AutoFit Windows par un seul recalcul débouncé",
+      "Supprime le double renderAll() pendant le chargement des clients",
+      "Empêche la reconstruction des KPI si leur HTML n'a pas changé",
+      "Version PC visible V22.40"
+    ]
+  }
+}
