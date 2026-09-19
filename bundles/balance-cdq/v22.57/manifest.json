@@ -1,0 +1,89 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.57",
+  "build": "2026.09.19-v22.57-large-pdf-open-fast",
+  "title": "Balance CDQ V22.57 — ouverture rapide gros PDF",
+  "requiresBuild": [
+    "2026.09.19-v22.56-pdf-chunk-fix",
+    "2026.09.19-v22.55-major-progress-pdf-open"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.56-pdf-chunk-fix",
+        "2026.09.19-v22.55-major-progress-pdf-open"
+      ],
+      "to": "2026.09.19-v22.57-large-pdf-open-fast"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.19-v22.56-pdf-chunk-fix",
+        "2026.09.19-v22.55-major-progress-pdf-open"
+      ],
+      "to": "2026.09.19-v22.57-large-pdf-open-fast"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "async function cdqLoadPdfRecord(id){\n  let rec=await cdqEnsurePdf(id,false);\n  const pending=(await cdqV19QueueGet()).find(a=>a.kind==='pdf-import'&&a.targetId===id);\n  if(pending)rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n  rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  try{if(!pending)await cdqV19PutRecord('document-pdf',id,rec);}catch(e){}\n  return rec;\n}",
+      "replacement": "async function cdqLoadPdfRecord(id){\n  let rec=await cdqEnsurePdf(id,false);\n  const pending=(await cdqV19QueueGet()).find(a=>a.kind==='pdf-import'&&a.targetId===id);\n  if(pending)rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n  // Les gros PDF haute qualité ne sont plus entièrement réécrits avant ouverture.\n  // PDF-Lib pouvait bloquer Android plusieurs dizaines de secondes sans retour.\n  if(rec&&rec.blob instanceof Blob&&rec.blob.size<=8*1024*1024){\n    rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  }\n  try{if(!pending)await cdqV19PutRecord('document-pdf',id,rec);}catch(e){}\n  return rec;\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "async function cdqOpenPdfInternal(id,preparedRecord){\n  if(document.getElementById('cdqReaderFrame'))return;\n  afficherMessage('Ouverture du PDF…',true);\n  let rec=preparedRecord||await cdqLoadPdfRecord(id);\n  rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  if(document.getElementById('cdqReaderFrame'))return;",
+      "replacement": "async function cdqOpenPdfInternal(id,preparedRecord){\n  if(document.getElementById('cdqReaderFrame'))return;\n  afficherMessage('Ouverture du PDF…',true);\n  let rec=preparedRecord||await cdqLoadPdfRecord(id);\n  if(rec&&rec.blob instanceof Blob&&rec.blob.size<=8*1024*1024){\n    rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  }\n  if(document.getElementById('cdqReaderFrame'))return;",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "const workers=Math.min(3,total);",
+      "replacement": "const workers=Math.min(2,total);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "frame.src=CDQ_PWA_ORIGIN+'/Rapports--talonnages-CDQ/reader.html?cdq=1&v=21.32';",
+      "replacement": "frame.src=CDQ_PWA_ORIGIN+'/Rapports--talonnages-CDQ/reader.html?cdq=1&v=22.57&ts='+Date.now();",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "content:\"V22.56\";",
+      "replacement": "content:\"V22.57\";",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "meta.textContent='V22.56';",
+      "replacement": "meta.textContent='V22.57';",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "root.dataset.build='v22.56-pdf-chunk-fix';",
+      "replacement": "root.dataset.build='v22.57-large-pdf-open-fast';",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V30",
+    "notes": [
+      "Les PDF de plus de 8 Mo ne sont plus réécrits avec PDF-Lib avant ouverture",
+      "Évite le blocage silencieux après Préparation du PDF sur Android",
+      "Conserve le téléchargement par blocs et la barre de progression des grosses tâches",
+      "Réduit les téléchargements parallèles de 3 à 2 pour limiter la mémoire Android",
+      "Force une nouvelle instance du lecteur PDF"
+    ]
+  }
+}
