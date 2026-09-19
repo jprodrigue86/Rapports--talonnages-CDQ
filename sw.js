@@ -1,9 +1,9 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v22-35-live-iframe-refresh';
-const FORCE_BUILD='2026.09.18-v22.35-live-iframe-refresh';
+const CACHE = 'cdq-installable-v22-46-plancher-hq';
+const FORCE_BUILD='2026.09.19-v22.46-plancher-hq';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
-  './offline-templates.mjs?v=21.39', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
+  './offline-templates.mjs?v=22.46', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
   './assets/music-wall-choice1.webp?v=20260917-fit70', './assets/music-wall-pc-chosen-v2233.webp?v=20260918-pc35'
 ];
@@ -25,7 +25,7 @@ function shellKey(url) {
   if (url.pathname === SCOPE.pathname || url.pathname === SCOPE.pathname + 'index.html')
     return new URL('index.html', SCOPE).href;
   if (url.pathname === SCOPE.pathname + 'offline-templates.mjs')
-    return new URL('offline-templates.mjs?v=21.39', SCOPE).href;
+    return new URL('offline-templates.mjs?v=22.46', SCOPE).href;
   if (['version.json', 'firebase-config.js', 'google-auth-config.js', 'manifest.webmanifest', 'reader.html'].some(name => url.pathname === SCOPE.pathname + name))
     return url.origin + url.pathname;
   return url.href;
