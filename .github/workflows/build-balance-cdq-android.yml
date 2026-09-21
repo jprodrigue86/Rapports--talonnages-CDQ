@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: balance-cdq-android-apk
+  cancel-in-progress: true
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -66,18 +70,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p downloads
           APK_SRC='balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk'
-          APK_DST='downloads/Balance-CDQ-Android.apk'
-          UPDATE_JSON='downloads/android-update.json'
-
-          cp "$APK_SRC" "$APK_DST"
-
           VERSION_NAME=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' balance-cdq-android/app/build.gradle.kts | head -1)
           VERSION_CODE=$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' balance-cdq-android/app/build.gradle.kts | head -1)
-          APK_SHA256=$(sha256sum "$APK_DST" | awk '{print $1}')
 
-          cat > "$UPDATE_JSON" <<JSON
+          cp "$APK_SRC" /tmp/Balance-CDQ-Android.apk
+          APK_SHA256=$(sha256sum /tmp/Balance-CDQ-Android.apk | awk '{print $1}')
+
+          cat > /tmp/android-update.json <<JSON
           {
             "versionName": "$VERSION_NAME",
             "versionCode": $VERSION_CODE,
@@ -91,7 +91,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add "$APK_DST" "$UPDATE_JSON"
+          # Repartir du main le plus récent APRÈS le build afin d'éviter les
+          # conflits lorsque d'autres corrections ont été publiées pendant la compilation.
+          git fetch origin main
+          git reset --hard origin/main
+
+          mkdir -p downloads
+          cp /tmp/Balance-CDQ-Android.apk downloads/Balance-CDQ-Android.apk
+          cp /tmp/android-update.json downloads/android-update.json
+
+          git add downloads/Balance-CDQ-Android.apk downloads/android-update.json
 
           if git diff --cached --quiet; then
             echo "APK and Android update manifest unchanged"
@@ -99,5 +108,4 @@ jobs:
           fi
 
           git commit -m "Publish Balance CDQ Android $VERSION_NAME + update channel [skip ci]"
-          git pull --rebase origin main
           git push origin HEAD:main
