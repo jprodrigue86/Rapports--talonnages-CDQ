@@ -101,3 +101,27 @@ test('cleanup refuses a caller added to the fresh project after preparation',()=
   const {context}=cleanupContext(files,[{...files[1],source:'',remove:true}]);
   assert.throws(()=>context.buildUpdatedFileSet([...files,{name:'NewCaller',type:'SERVER_JS',source:'cdqTemplateEmbarque_("plancher")'}]),/encore utilisé/);
 });
+for(const healthy of [false,true])test(`production confirmation reflects the actual health check (${healthy})`,async()=>{
+  const deployed={deploymentId:'production',deploymentConfig:{versionNumber:99}};
+  const previous={deploymentId:'production',deploymentConfig:{versionNumber:98}};
+  const statuses=[],results=[],ends=[];
+  const state={id:'project',lastWrittenBuild:'next-build',productionBuild:'old-build',pkg:new Map()};
+  const context=vm.createContext({S:state,CDQ:{deployments:[previous]},CDQ_PRODUCTION_DEPLOYMENT_ID:'production',
+    description:{value:'test'},deployment:{value:'production'},isProductionProject:()=>true,productionDeployment:()=>previous,
+    cid:()=>'',createProjectVersion:async()=>({versionNumber:99}),updateDeployment:async()=>deployed,
+    waitForDeploymentVersionV26:async()=>({all:[deployed],deployment:deployed}),listDeployments:async()=>[deployed],
+    verifyProductionWebAppReadyV23:async()=>{if(!healthy)throw Error('live endpoint still old');return {build:'next-build'}},
+    setQuickDeployProgress(){},setQuickResult:(...x)=>results.push(x),stat:(...x)=>statuses.push(x),setKnownGoodV23(){},
+    renderDeployments(){},updateDeploymentUi(){},saveSettings(){},renderDiff(){},updateQuickUi(){},
+    beginQuickDeployProgress:()=>true,endQuickDeployProgress:(...x)=>ends.push(x)});
+  vm.runInContext(manager.slice(manager.indexOf('async function deployNewVersion('),manager.indexOf('async function writePendingAndDeploy(')),context);
+  context.writePendingAndDeploy=()=>context.deployNewVersion();
+  vm.runInContext(manager.slice(manager.indexOf('async function runQuickDeployAction('),manager.indexOf('function updateQuickUi(')),context);
+  await context.runQuickDeployAction();
+  assert.equal(state.lastDeploymentResult.healthChecked,healthy);
+  assert.equal(state.lastDeploymentResult.verificationPending,!healthy);
+  assert.equal(state.productionBuild,healthy?'next-build':'old-build');
+  assert.equal(statuses.at(-1)[1],healthy?'ok':'warn');
+  assert.equal(results.at(-1)[1],healthy?'ok':'warn');
+  assert.equal(ends.at(-1)[2],healthy,'quick action must not overwrite a pending verification with success');
+});

@@ -15,11 +15,13 @@ Correctif préparé le 21 septembre 2026 pour l'affichage, les documents et le m
 | Multiples fichiers de modèle dans Apps Script | Retrait conditionnel de 24 fragments connus et de leur chargeur, selon leur présence et leur SHA-256. Aucun document client concerné. |
 | Risque d'écraser une modification récente | Manager relit le projet et bloque les écritures si un fichier ciblé a changé; sauvegarde complète avant écriture et vérification après. |
 | Réglages qui réécrivent continuellement leur DOM | Mise à jour des boutons uniquement lorsque leur contenu change. Retrait d'un bloc CSS strictement dupliqué. |
+| Confirmation de production trompeuse | Une vérification web échouée reste signalée comme en attente; le Manager ne la remplace plus par une confirmation verte. |
 
 ## Vérifications
 
 - Tests automatisés du routage : quatre combinaisons compte/lecteur, ancien compte, clic double, déplacement, appui long, sélection, Sheets, TXT et rôle lecture.
 - Tests du nettoyage : empreintes, noms autorisés, références restantes, modification concurrente et nouvel appelant ajouté après préparation.
+- Tests du résultat de déploiement : confirmation Google avec vérification de production réussie ou échouée; le statut final reflète le contrôle réel.
 - Les 21 correctifs ont été appliqués avec le moteur réel du Manager sur une reconstruction V25.09; `Code.gs` et les 40 scripts JavaScript intégrés résultants passent l'analyse syntaxique.
 - Les sources privées complètes restent hors du dépôt. La reconstruction provient de l'export V22.26 archivé et des correctifs du dépôt; elle ne prouve pas l'état du projet actuellement déployé.
 

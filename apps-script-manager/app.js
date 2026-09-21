@@ -336,10 +336,10 @@ function beginQuickDeployProgress(text = 'Préparation de la mise à jour…') {
   return true;
 }
 
-function endQuickDeployProgress(ok, text = '') {
+function endQuickDeployProgress(ok, text = '', verified = true) {
   if (ok) {
-    S.deployProgress = 100;
-    setQuickDeployProgress(100, text || 'Mise à jour terminée.', 'success');
+    S.deployProgress = verified ? 100 : 98;
+    setQuickDeployProgress(S.deployProgress, text || 'Mise à jour terminée.', verified ? 'success' : 'warning');
   } else {
     if (!S.deployProgress) S.deployProgress = 2;
     setQuickDeployProgress(S.deployProgress, text || 'La mise à jour a échoué.', 'error');
@@ -359,8 +359,11 @@ function endQuickDeployProgress(ok, text = '') {
 async function runQuickDeployAction() {
   if (!beginQuickDeployProgress()) return;
   try {
-    await writePendingAndDeploy();
-    endQuickDeployProgress(true, '100 % — écriture, déploiement et vérification terminés.');
+    const result=await writePendingAndDeploy();
+    const verified=!result?.verificationPending;
+    endQuickDeployProgress(true, verified
+      ? '100 % — écriture, déploiement et vérification terminés.'
+      : 'Déploiement Google confirmé — vérification de la production encore en attente.', verified);
   } catch (e) {
     const message = e && e.message ? e.message : String(e);
     stat('Échec : ' + message, 'err');
@@ -2050,21 +2053,27 @@ async function deployNewVersion(targetOverride = null) {
   if (all.some(d => d.deploymentId === target)) deployment.value = target;
   updateDeploymentUi();
   saveSettings();
-  S.lastDeploymentResult = { version: v.versionNumber, deploymentId: target, createdNew: false, healthChecked:isProductionProject() };
+  const verificationPending=isProductionProject()&&!productionHealth;
+  S.lastDeploymentResult = { version: v.versionNumber, deploymentId: target, createdNew: false, healthChecked:Boolean(productionHealth), verificationPending };
 
   S.pkg.clear();
   S.pendingBuild = '';
   S.bundleAlreadyApplied=false;
   S.bundleTargetBuild='';
   S.redeploySource=false;
-  S.productionBuild=sourceBuild||S.productionBuild;
+  if(productionHealth)S.productionBuild=sourceBuild||S.productionBuild;
   renderDiff();
   updateQuickUi();
 
-  setQuickDeployProgress(99, isProductionProject() ? 'Production vérifiée — finalisation…' : 'Déploiement vérifié — finalisation…');
-  if(isProductionProject()){
+  if(verificationPending){
+    setQuickDeployProgress(98, 'Déploiement conservé — production encore à vérifier.', 'warning');
+    stat(`DÉPLOIEMENT GOOGLE CONFIRMÉ ✓ Apps Script v${v.versionNumber} • production encore à vérifier.`,'warn');
+  }else if(isProductionProject()){
+    setQuickDeployProgress(99, 'Production vérifiée — finalisation…');
     stat(`MISE À JOUR TERMINÉE ✓ Apps Script v${v.versionNumber} • production vérifiée côté serveur • même URL.`,'ok');
   }else{
+    setQuickDeployProgress(99, 'Déploiement vérifié — finalisation…');
+    setQuickResult(`MISE À JOUR CONFIRMÉE ✓ Apps Script v${v.versionNumber} • déploiement existant relu.`,'ok');
     stat(`MISE À JOUR TERMINÉE ✓ Déploiement actuel conservé • nouvelle version Apps Script v${v.versionNumber}.`,'ok');
   }
   return S.lastDeploymentResult;
