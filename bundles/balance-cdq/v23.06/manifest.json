@@ -1,0 +1,91 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.06",
+  "build": "2026.09.21-v23.06-no-flicker-native-open",
+  "title": "Balance CDQ V23.06 — ouverture native inchangée + anti-scintillement structurel",
+  "requiresBuild": [
+    "2026.09.21-v23.05-restore-native-file-open"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.05-restore-native-file-open",
+      "to": "2026.09.21-v23.06-no-flicker-native-open"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.05-restore-native-file-open",
+      "to": "2026.09.21-v23.06-no-flicker-native-open"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2305NoFlashCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2306NoFlickerCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2306OpenFreezeJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqV2306NoFlickerCss\">\nhtml.android.cdq-file-open-freeze-v2306 *,\nhtml.android.cdq-file-open-freeze-v2306 .file-row,\nhtml.android.cdq-file-open-freeze-v2306 #filesContainer,\nhtml.android.cdq-file-open-freeze-v2306 .selection-bar{\n  transition:none!important;\n  animation:none!important;\n  scroll-behavior:auto!important;\n}\nhtml.android.cdq-file-open-freeze-v2306 .file-row,\nhtml.android.cdq-file-open-freeze-v2306 .file-row:hover,\nhtml.android.cdq-file-open-freeze-v2306 .file-row:active,\nhtml.android.cdq-file-open-freeze-v2306 .file-row:focus,\nhtml.android.cdq-file-open-freeze-v2306 .file-row:focus-visible{\n  transform:none!important;\n  filter:none!important;\n  outline:none!important;\n  box-shadow:none!important;\n  -webkit-tap-highlight-color:transparent!important;\n}\n</style>\n<script id=\"cdqV2306OpenFreezeJs\">\n(function(){\n'use strict';\n\nfunction freezeV2306(ms){\n  ms=Math.max(250,Number(ms)||0);\n  const until=Date.now()+ms;\n  window.__cdqFileOpenFreezeUntilV2306=Math.max(Number(window.__cdqFileOpenFreezeUntilV2306)||0,until);\n  window.__cdqAutoFitSuppressedUntilV2217=Math.max(Number(window.__cdqAutoFitSuppressedUntilV2217)||0,until);\n  document.documentElement.classList.add('cdq-file-open-freeze-v2306');\n  clearTimeout(window.__cdqFileOpenFreezeTimerV2306);\n  window.__cdqFileOpenFreezeTimerV2306=setTimeout(function(){\n    if((Number(window.__cdqFileOpenFreezeUntilV2306)||0)>Date.now())return;\n    document.documentElement.classList.remove('cdq-file-open-freeze-v2306');\n  },ms+80);\n}\n\nfunction armV2306(){\n  window.__cdqFileOpenHandoffUntilV2306=Date.now()+15000;\n  freezeV2306(2600);\n}\n\ndocument.addEventListener('pointerdown',function(e){\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  if(e.target&&e.target.closest&&e.target.closest('button'))return;\n  armV2306();\n},true);\n\ndocument.addEventListener('click',function(e){\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  if(e.target&&e.target.closest&&e.target.closest('button'))return;\n  armV2306();\n},true);\n\ndocument.addEventListener('visibilitychange',function(){\n  if(document.visibilityState!=='visible')return;\n  if((Number(window.__cdqFileOpenHandoffUntilV2306)||0)>Date.now())freezeV2306(1400);\n},true);\n\nwindow.addEventListener('pageshow',function(){\n  if((Number(window.__cdqFileOpenHandoffUntilV2306)||0)>Date.now())freezeV2306(1400);\n},true);\n\nwindow.addEventListener('focus',function(){\n  if((Number(window.__cdqFileOpenHandoffUntilV2306)||0)>Date.now())freezeV2306(1400);\n},true);\n\nwindow.cdqFreezeFileOpenV2306=freezeV2306;\n})();\n</script>\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function actualiserApresModification(){\n  const fichierModification = recupererFichierModification();",
+      "replacement": "function actualiserApresModification(){\n  if((Number(window.__cdqFileOpenFreezeUntilV2306)||0)>Date.now()){\n    clearTimeout(window.__cdqDelayedRefreshV2306);\n    window.__cdqDelayedRefreshV2306=setTimeout(actualiserApresModification,Math.max(180,(Number(window.__cdqFileOpenFreezeUntilV2306)||0)-Date.now()+160));\n    return;\n  }\n  const fichierModification = recupererFichierModification();",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "  function cdqLiveSyncFolderV2200(force){\n    if(cdqLiveSyncBusyV2200) return;",
+      "replacement": "  function cdqLiveSyncFolderV2200(force){\n    if((Number(window.__cdqFileOpenFreezeUntilV2306)||0)>Date.now()) return;\n    if(cdqLiveSyncBusyV2200) return;",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function requestViewportV2215(){\n  if(cdqPwaAvailable())cdqPostToPwa({type:\"CDQ_VIEWPORT_GET\"});",
+      "replacement": "function requestViewportV2215(){\n  if((Number(window.__cdqFileOpenFreezeUntilV2306)||0)>Date.now())return;\n  if(cdqPwaAvailable())cdqPostToPwa({type:\"CDQ_VIEWPORT_GET\"});",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function fitV2220(){\n  if(typeof cdqFitGeneralScaleV92===\"function\" && typeof cdqGeneralValueV89===\"function\"){",
+      "replacement": "function fitV2220(){\n  if((Number(window.__cdqFileOpenFreezeUntilV2306)||0)>Date.now())return;\n  if(typeof cdqFitGeneralScaleV92===\"function\" && typeof cdqGeneralValueV89===\"function\"){",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqRefitGeneralScaleV92(){\n  if(window.__cdqGeneralScaleDraggingV2211)return;",
+      "replacement": "function cdqRefitGeneralScaleV92(){\n  if((Number(window.__cdqFileOpenFreezeUntilV2306)||0)>Date.now())return;\n  if(window.__cdqGeneralScaleDraggingV2211)return;",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "rollbackBase": "V23.05",
+    "scope": "Anti-scintillement seulement. Aucun changement au chemin d'ouverture Sheets/PDF.",
+    "fixes": [
+      "Gèle les animations/transitions au toucher d'un fichier.",
+      "Suspend l'auto-fit, le viewport sync et le live sync pendant le transfert vers l'application externe.",
+      "Suspend l'actualisation retour pendant 1,4 s puis la relance une seule fois après stabilisation.",
+      "Évite le reflow/zoom lors de l'apparition du sélecteur Android."
+    ],
+    "accountPicker": "Le choix de compte reste celui des applications Google natives. Aucun contournement PWA n'est appliqué dans cette version."
+  }
+}
