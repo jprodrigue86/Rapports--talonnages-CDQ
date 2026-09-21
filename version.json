@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v24.04-direct-system-pdf-resolver",
+  "version": "2026.09.21-v24.05-no-pdf-web-fallback",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v24.04-direct-system-pdf-resolver",
-  "backend_version": "2026.09.21-v24.04-direct-system-pdf-resolver",
+  "selector_version": "2026.09.21-v24.05-no-pdf-web-fallback",
+  "backend_version": "2026.09.21-v24.05-no-pdf-web-fallback",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -304,7 +304,9 @@
     "pdf-choice-before-download-v2402",
     "direct-system-pdf-resolver-v2404",
     "remove-integrated-pdf-viewer-v2404",
-    "android-pdf-always-once-v2404"
+    "android-pdf-always-once-v2404",
+    "pdf-no-web-fallback-v2405",
+    "direct-cdqpdf-scheme-v2405"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -317,5 +319,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v24.04-direct-system-pdf-resolver"
+  "pwa_version": "2026.09.21-v24.05-no-pdf-web-fallback"
 }
