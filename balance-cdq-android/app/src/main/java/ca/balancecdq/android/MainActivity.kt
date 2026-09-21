@@ -16,21 +16,21 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
-import com.google.android.gms.auth.api.identity.BeginSignInRequest
-import com.google.android.gms.auth.api.identity.Identity
+import androidx.browser.customtabs.CustomTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabsIntent
 import org.json.JSONObject
 
 class MainActivity : Activity() {
     companion object {
-        private const val REQ_FILE_CHOOSER = 25040
-        private const val REQ_NATIVE_GOOGLE = 25041
+        private const val REQ_FILE_CHOOSER = 25050
         private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.04"
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.05"
+        private const val AUTH_URL =
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
     }
 
     private lateinit var webView: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
-    private val oneTapClient by lazy { Identity.getSignInClient(this) }
 
     private var googleChallengeId = ""
     private var googleNonce = ""
@@ -43,16 +43,16 @@ class MainActivity : Activity() {
             val n = nonce.orEmpty().trim()
             val client = clientId.orEmpty().trim()
 
-            if (challenge.isBlank() || challenge.length > 200 ||
-                n.isBlank() || n.length > 500 ||
-                client.isBlank() || client.length > 500
+            if (!challenge.matches(Regex("^[A-Za-z0-9._-]{8,220}$")) ||
+                n.length !in 8..500 ||
+                !client.matches(Regex("^[0-9A-Za-z._-]+\\.apps\\.googleusercontent\\.com$"))
             ) {
                 nativeGoogleError("Demande Google invalide.")
                 return
             }
 
             runOnUiThread {
-                beginNativeGoogleLogin(challenge, n, client)
+                openWebGoogleLogin(challenge, n, client)
             }
         }
     }
@@ -79,7 +79,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.04"
+                settings.userAgentString + " BalanceCDQAndroid/25.05"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -101,7 +101,7 @@ class MainActivity : Activity() {
                 override fun onPageFinished(view: WebView, url: String) {
                     super.onPageFinished(view, url)
                     if (url.startsWith("https://jprodrigue86.github.io/Rapports--talonnages-CDQ/")) {
-                        installNativeGoogleBridge()
+                        installGoogleBridge()
                     }
                 }
             }
@@ -116,14 +116,14 @@ class MainActivity : Activity() {
                     fileCallback = newCallback
 
                     return try {
-                        val intent = fileChooserParams?.createIntent()
+                        val chooserIntent = fileChooserParams?.createIntent()
                             ?: Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                                 addCategory(Intent.CATEGORY_OPENABLE)
                                 type = "*/*"
                             }
 
                         startActivityForResult(
-                            Intent.createChooser(intent, "Choisir un fichier"),
+                            Intent.createChooser(chooserIntent, "Choisir un fichier"),
                             REQ_FILE_CHOOSER
                         )
                         true
@@ -152,15 +152,24 @@ class MainActivity : Activity() {
         } else {
             webView.restoreState(savedInstanceState)
         }
+
+        handleAuthCallback(intent)
     }
 
-    private fun installNativeGoogleBridge() {
+    override fun onNewIntent(newIntent: Intent?) {
+        super.onNewIntent(newIntent)
+        if (newIntent == null) return
+        intent = newIntent
+        handleAuthCallback(newIntent)
+    }
+
+    private fun installGoogleBridge() {
         val script = """
             (function(){
-              if(window.__cdqNativeGoogleV2504)return;
-              window.__cdqNativeGoogleV2504=true;
+              if(window.__cdqNativeGoogleV2505)return;
+              window.__cdqNativeGoogleV2505=true;
 
-              function nativeGoogleUiV2504(){
+              function ui(){
                 try{
                   var container=document.getElementById('google-button-container');
                   if(container){
@@ -177,12 +186,12 @@ class MainActivity : Activity() {
                   var help=document.getElementById('google-touch-help');
                   if(help){
                     help.hidden=false;
-                    help.textContent='Connexion Google sécurisée par Balance CDQ Android.';
+                    help.textContent='Connexion Google sécurisée. Retour automatique dans Balance CDQ.';
                   }
                 }catch(e){}
               }
 
-              function nativeGoogleStartV2504(){
+              function start(){
                 try{
                   if(typeof cdqGoogleChallengeV42==='undefined' ||
                      !cdqGoogleChallengeV42 ||
@@ -198,7 +207,7 @@ class MainActivity : Activity() {
                     return;
                   }
 
-                  nativeGoogleUiV2504();
+                  ui();
                   BalanceCDQNative.loginGoogle(
                     String(cdqGoogleChallengeV42.challengeId||''),
                     String(cdqGoogleChallengeV42.nonce||''),
@@ -206,7 +215,7 @@ class MainActivity : Activity() {
                   );
                 }catch(e){
                   var m=document.getElementById('load-message');
-                  if(m)m.textContent='Impossible de démarrer la connexion Google Android.';
+                  if(m)m.textContent='Impossible de démarrer la connexion Google.';
                 }
               }
 
@@ -214,23 +223,23 @@ class MainActivity : Activity() {
               if(typeof originalShow==='function'){
                 window.afficherConnexionGoogleV42=async function(){
                   var result=await originalShow.apply(this,arguments);
-                  nativeGoogleUiV2504();
-                  setTimeout(nativeGoogleUiV2504,80);
+                  ui();
+                  setTimeout(ui,80);
                   return result;
                 };
               }
 
               var fallback=document.getElementById('google-touch-fallback');
-              if(fallback && !fallback.dataset.cdqNative2504){
-                fallback.dataset.cdqNative2504='1';
+              if(fallback && !fallback.dataset.cdqNative2505){
+                fallback.dataset.cdqNative2505='1';
                 fallback.addEventListener('click',function(e){
                   e.preventDefault();
                   e.stopImmediatePropagation();
-                  nativeGoogleStartV2504();
+                  start();
                 },true);
               }
 
-              window.cdqNativeGoogleCredentialV2504=function(token,challengeId){
+              window.cdqNativeGoogleCredentialV2505=function(token,challengeId){
                 try{
                   if(typeof cdqGoogleChallengeV42==='undefined' ||
                      !cdqGoogleChallengeV42 ||
@@ -246,7 +255,7 @@ class MainActivity : Activity() {
                 }
               };
 
-              window.cdqNativeGoogleErrorV2504=function(message){
+              window.cdqNativeGoogleErrorV2505=function(message){
                 try{
                   var m=document.getElementById('load-message');
                   if(m)m.textContent=String(message||'Connexion Google annulée.');
@@ -259,15 +268,15 @@ class MainActivity : Activity() {
                 }catch(e){}
               };
 
-              nativeGoogleUiV2504();
-              setTimeout(nativeGoogleUiV2504,250);
+              ui();
+              setTimeout(ui,250);
             })();
         """.trimIndent()
 
         webView.evaluateJavascript(script, null)
     }
 
-    private fun beginNativeGoogleLogin(
+    private fun openWebGoogleLogin(
         challengeId: String,
         nonce: String,
         clientId: String
@@ -276,40 +285,51 @@ class MainActivity : Activity() {
         googleNonce = nonce
         googleClientId = clientId
 
-        val request = BeginSignInRequest.builder()
-            .setGoogleIdTokenRequestOptions(
-                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-                    .setSupported(true)
-                    .setServerClientId(clientId)
-                    .setFilterByAuthorizedAccounts(false)
-                    .setNonce(nonce)
-                    .build()
-            )
-            .setAutoSelectEnabled(false)
+        val uri = Uri.parse(AUTH_URL).buildUpon()
+            .appendQueryParameter("challengeId", challengeId)
+            .appendQueryParameter("nonce", nonce)
+            .appendQueryParameter("clientId", clientId)
             .build()
 
-        oneTapClient.beginSignIn(request)
-            .addOnSuccessListener { result ->
-                try {
-                    startIntentSenderForResult(
-                        result.pendingIntent.intentSender,
-                        REQ_NATIVE_GOOGLE,
-                        null,
-                        0,
-                        0,
-                        0
-                    )
-                } catch (e: Exception) {
-                    nativeGoogleError(
-                        e.message ?: "Impossible d’ouvrir le sélecteur Google."
-                    )
-                }
+        val colors = CustomTabColorSchemeParams.Builder()
+            .setToolbarColor(Color.rgb(5, 12, 20))
+            .setNavigationBarColor(Color.BLACK)
+            .build()
+
+        val tab = CustomTabsIntent.Builder()
+            .setDefaultColorSchemeParams(colors)
+            .setShowTitle(false)
+            .setUrlBarHidingEnabled(true)
+            .build()
+
+        try {
+            if (isInstalled("com.android.chrome")) {
+                tab.intent.setPackage("com.android.chrome")
             }
-            .addOnFailureListener { error ->
-                nativeGoogleError(
-                    error.message ?: "Le sélecteur Google Android n’est pas disponible."
-                )
-            }
+            tab.launchUrl(this, uri)
+        } catch (_: Exception) {
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+        }
+    }
+
+    private fun handleAuthCallback(source: Intent?) {
+        val data = source?.data ?: return
+        if (!data.scheme.equals("cdqauth", ignoreCase = true) ||
+            !data.host.equals("callback", ignoreCase = true)
+        ) return
+
+        val challenge = data.getQueryParameter("challengeId").orEmpty()
+        val credential = data.getQueryParameter("credential").orEmpty()
+
+        if (challenge.isBlank() ||
+            challenge != googleChallengeId ||
+            credential.length !in 100..8000
+        ) {
+            nativeGoogleError("Le retour Google n’est pas valide. Réessayez.")
+            return
+        }
+
+        deliverGoogleCredential(credential, challenge)
     }
 
     private fun nativeGoogleError(message: String) {
@@ -317,36 +337,40 @@ class MainActivity : Activity() {
         runOnUiThread {
             val quoted = JSONObject.quote(message)
             webView.evaluateJavascript(
-                "window.cdqNativeGoogleErrorV2504 && " +
-                    "window.cdqNativeGoogleErrorV2504($quoted);",
+                "window.cdqNativeGoogleErrorV2505 && " +
+                    "window.cdqNativeGoogleErrorV2505($quoted);",
                 null
             )
         }
     }
 
-    private fun deliverGoogleCredential(token: String) {
-        if (!::webView.isInitialized || googleChallengeId.isBlank()) return
+    private fun deliverGoogleCredential(token: String, challenge: String) {
+        if (!::webView.isInitialized) return
 
         val tokenQuoted = JSONObject.quote(token)
-        val challengeQuoted = JSONObject.quote(googleChallengeId)
+        val challengeQuoted = JSONObject.quote(challenge)
 
         webView.evaluateJavascript(
-            "window.cdqNativeGoogleCredentialV2504 && " +
-                "window.cdqNativeGoogleCredentialV2504($tokenQuoted,$challengeQuoted);",
+            "window.cdqNativeGoogleCredentialV2505 && " +
+                "window.cdqNativeGoogleCredentialV2505($tokenQuoted,$challengeQuoted);",
             null
         )
+
+        googleChallengeId = ""
+        googleNonce = ""
+        googleClientId = ""
     }
 
     private fun handleNavigation(url: String): Boolean {
         return try {
             when {
                 url.startsWith("intent://", ignoreCase = true) -> {
-                    val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
-                    val fallback = intent.getStringExtra("browser_fallback_url")
-                    intent.removeExtra("browser_fallback_url")
+                    val parsed = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                    val fallback = parsed.getStringExtra("browser_fallback_url")
+                    parsed.removeExtra("browser_fallback_url")
 
                     try {
-                        startActivity(intent)
+                        startActivity(parsed)
                     } catch (_: ActivityNotFoundException) {
                         if (!fallback.isNullOrBlank()) {
                             webView.loadUrl(fallback)
@@ -390,38 +414,22 @@ class MainActivity : Activity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        when (requestCode) {
-            REQ_FILE_CHOOSER -> {
-                val result = WebChromeClient.FileChooserParams.parseResult(resultCode, data)
-                fileCallback?.onReceiveValue(result)
-                fileCallback = null
-                return
-            }
-
-            REQ_NATIVE_GOOGLE -> {
-                if (resultCode != RESULT_OK || data == null) {
-                    nativeGoogleError("Connexion Google annulée.")
-                    return
-                }
-
-                try {
-                    val credential = oneTapClient.getSignInCredentialFromIntent(data)
-                    val token = credential.googleIdToken.orEmpty()
-                    if (token.isBlank()) {
-                        nativeGoogleError("Google n’a pas retourné de jeton de connexion.")
-                        return
-                    }
-                    deliverGoogleCredential(token)
-                } catch (e: Exception) {
-                    nativeGoogleError(
-                        e.message ?: "Le retour Google Android est invalide."
-                    )
-                }
-                return
-            }
+    @Suppress("DEPRECATION")
+    private fun isInstalled(packageName: String): Boolean =
+        try {
+            packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (_: Exception) {
+            false
         }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQ_FILE_CHOOSER) {
+            val result = WebChromeClient.FileChooserParams.parseResult(resultCode, data)
+            fileCallback?.onReceiveValue(result)
+            fileCallback = null
+            return
+        }
         super.onActivityResult(requestCode, resultCode, data)
     }
 
