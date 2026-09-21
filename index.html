@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v22.96-default-account-no-picker';
+const CDQ_PWA_BUILD = '2026.09.21-v22.97-pwa-default-account-capture';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1130,6 +1130,82 @@ function cdqHandleDisplayPrefsV2215(data,source){
 }
 
 
+
+// =====================================================
+// V22.97 — COMPTE GOOGLE PAR DÉFAUT PERSISTANT DANS LA PWA
+// =====================================================
+const CDQ_DEFAULT_GOOGLE_ACCOUNT_KEY_V2297='cdq_default_google_account_v2297';
+
+function cdqLoadDefaultGoogleAccountV2297(){
+  try{
+    const v=JSON.parse(localStorage.getItem(CDQ_DEFAULT_GOOGLE_ACCOUNT_KEY_V2297)||'null');
+    if(!v||typeof v!=='object')return {email:'',reset:false};
+    return {
+      email:String(v.email||'').trim().toLowerCase(),
+      reset:!!v.reset
+    };
+  }catch(e){return {email:'',reset:false};}
+}
+function cdqSaveDefaultGoogleAccountV2297(email,reset){
+  const value={
+    email:String(email||'').trim().toLowerCase(),
+    reset:!!reset,
+    updatedAt:Date.now()
+  };
+  try{localStorage.setItem(CDQ_DEFAULT_GOOGLE_ACCOUNT_KEY_V2297,JSON.stringify(value));}catch(e){}
+  return value;
+}
+function cdqReplyDefaultGoogleAccountV2297(source){
+  if(!source)return;
+  const v=cdqLoadDefaultGoogleAccountV2297();
+  replyToSelector(source,{
+    type:'CDQ_DEFAULT_GOOGLE_ACCOUNT_VALUE',
+    email:v.email,
+    reset:v.reset
+  });
+}
+function cdqOpenSheetDefaultAccountV2297(data){
+  const id=String(data&&data.id||'').trim();
+  const email=String(data&&data.email||'').trim().toLowerCase();
+  if(!/^[A-Za-z0-9_-]+$/.test(id)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return false;
+
+  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?authuser='+encodeURIComponent(email)+'&usp=drivesdk';
+
+  if(/Android/i.test(navigator.userAgent||'')){
+    // Forcer Chrome plutôt que l'application Sheets : c'est l'application
+    // Sheets qui affiche le sélecteur de comptes natif montré par l'utilisateur.
+    const intent='intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?authuser='+encodeURIComponent(email)+'&usp=drivesdk'+
+      '#Intent;scheme=https;package=com.android.chrome;'+
+      'S.browser_fallback_url='+encodeURIComponent(web)+';end';
+    window.location.href=intent;
+  }else{
+    window.open(web,'_blank','noopener');
+  }
+  return true;
+}
+function cdqHandleDefaultGoogleAccountV2297(data,source){
+  if(data.type==='CDQ_DEFAULT_GOOGLE_ACCOUNT_GET'){
+    cdqReplyDefaultGoogleAccountV2297(source);
+    return true;
+  }
+  if(data.type==='CDQ_DEFAULT_GOOGLE_ACCOUNT_SET'){
+    const email=String(data.email||'').trim().toLowerCase();
+    const reset=!!data.reset;
+    const value=cdqSaveDefaultGoogleAccountV2297(email,reset);
+    replyToSelector(source,{
+      type:'CDQ_DEFAULT_GOOGLE_ACCOUNT_VALUE',
+      email:value.email,
+      reset:value.reset
+    });
+    return true;
+  }
+  if(data.type==='CDQ_OPEN_SHEET_DEFAULT_ACCOUNT'){
+    cdqOpenSheetDefaultAccountV2297(data);
+    return true;
+  }
+  return false;
+}
+
 // =====================================================
 // V22.74 — PDF géré uniquement par le Selector Balance CDQ.
 // La coque PWA ne gère plus l'ouverture PDF.
@@ -1155,6 +1231,7 @@ if (data.authProtocol >= 24) recevoirEtatAcces(data.accessState || 'pending');
 else if (!selectorAwaitingAccess) masquerMurApresDelaiMinimum();
 }
 if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
+if(cdqHandleDefaultGoogleAccountV2297(data,event.source))return;
 if(data.type==='CDQ_VIEWPORT_GET'){cdqReplyViewportV2215(event.source);return;}
 if(data.type==='CDQ_DISPLAY_PREFS_BOOTSTRAP_GET'){
   let prefs=null;
