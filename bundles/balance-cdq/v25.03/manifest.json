@@ -3,22 +3,47 @@
   "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
   "version": "V25.03",
   "build": "2026.09.21-v25.03-mobile-ui-update-center-fix",
-  "title": "Balance CDQ V25.03 — retour taille interface + mise à jour fiable",
+  "title": "Balance CDQ V25.03 — cumulatif V25.00 → V25.03",
   "requiresBuild": [
+    "2026.09.21-v25.00-native-pdf-workflow",
+    "2026.09.21-v25.01-apk-share-update-center",
     "2026.09.21-v25.02-native-apk-file-share"
   ],
   "patches": [
     {
       "file": "Selector.html",
-      "op": "replace_build",
-      "from": "2026.09.21-v25.02-native-apk-file-share",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.21-v25.00-native-pdf-workflow",
+        "2026.09.21-v25.01-apk-share-update-center",
+        "2026.09.21-v25.02-native-apk-file-share"
+      ],
       "to": "2026.09.21-v25.03-mobile-ui-update-center-fix"
     },
     {
       "file": "Code.gs",
-      "op": "replace_build",
-      "from": "2026.09.21-v25.02-native-apk-file-share",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.21-v25.00-native-pdf-workflow",
+        "2026.09.21-v25.01-apk-share-update-center",
+        "2026.09.21-v25.02-native-apk-file-share"
+      ],
       "to": "2026.09.21-v25.03-mobile-ui-update-center-fix"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2501ApkShareCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2501ApkShareJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2502NativeApkShareJs"
     },
     {
       "file": "Selector.html",
@@ -39,23 +64,29 @@
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
+      "text": "\n<script id=\"cdqV2502NativeApkShareJs\">\n(function(){\n'use strict';\nfunction go(u){var a=document.createElement('a');a.href=u;a.target='_top';a.style.display='none';document.body.appendChild(a);a.click();a.remove();}\nfunction share(){go('intent://share#Intent;scheme=cdqapp;package=ca.balancecdq.android;end');}\nfunction reinstall(){go('intent://reinstall#Intent;scheme=cdqapp;package=ca.balancecdq.android;end');}\nfunction update(){go('intent://check#Intent;scheme=cdqupdate;package=ca.balancecdq.android;end');}\nfunction wire(){\n  var b=document.getElementById('cdqInstallShareSettingsButton')||document.getElementById('cdqAdminApkButtonV2501');\n  if(b&&!b.dataset.cdq2502){b.dataset.cdq2502='1';b.onclick=function(e){e&&e.preventDefault();share();};}\n}\nwindow.cdqOuvrirPartageApplication=share;\nwindow.cdqPartagerApkDirectV2502=share;\nwindow.cdqReinstallerApkV2502=reinstall;\nwindow.cdqMajApkV2502=update;\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(wire,100);setTimeout(wire,600);},{once:true});else{setTimeout(wire,30);setTimeout(wire,600);}\ntry{new MutationObserver(function(){setTimeout(wire,80);}).observe(document.body,{childList:true,subtree:true});}catch(_){}\n})();\n</script>\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
       "text": "\n<script id=\"cdqV2503UpdateHandoffJs\">\n(function(){\n'use strict';\nconst MANAGER_BASE='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/';\nconst ANDROID_FALLBACK='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/balance-cdq-android.html';\n\nfunction latestBundle(){\n  let build='';\n  try{build=String((window.cdqUpdateInfo&&window.cdqUpdateInfo.latest)||'');}catch(_){}\n  const m=build.match(/v(\\d+\\.\\d+)/i);\n  return m?('v'+m[1]):'latest';\n}\nfunction openScriptManager(){\n  const url=MANAGER_BASE+'?bundle='+encodeURIComponent(latestBundle());\n  try{\n    if(window.parent&&window.parent!==window){\n      window.parent.postMessage({type:'CDQ_OPEN_SCRIPT_MANAGER',url:url},'*');\n      return;\n    }\n  }catch(_){}\n  location.href=url;\n}\nfunction openAndroidUpdater(){\n  try{if(typeof window.cdqMajApkV2502==='function'){window.cdqMajApkV2502();return;}}catch(_){}\n  const intent='intent://check#Intent;scheme=cdqupdate;package=ca.balancecdq.android;S.browser_fallback_url='+encodeURIComponent(ANDROID_FALLBACK)+';end';\n  location.href=intent;\n}\nfunction refresh(){\n  const center=document.querySelector('.cdq-update-center');\n  if(!center)return;\n  const help=center.querySelector('.cdq-update-help');\n  if(help)help.textContent='Balance CDQ / Selector se met à jour avec Script Manager. La couche Android se met à jour séparément.';\n  const install=center.querySelector('#cdqInstallUpdateButton');\n  if(install&&!install.disabled){\n    install.textContent='Mettre à jour via Script Manager';\n    install.title='Ouvrir Script Manager avec la version disponible';\n  }\n  let android=center.querySelector('#cdqAndroidUpdaterButtonV2316');\n  if(!android){\n    android=document.createElement('button');\n    android.type='button';\n    android.id='cdqAndroidUpdaterButtonV2316';\n    android.textContent='Vérifier la mise à jour Android';\n    const actions=center.querySelector('.cdq-update-actions');\n    if(actions)actions.insertAdjacentElement('afterend',android); else center.appendChild(android);\n  }\n}\ndocument.addEventListener('click',function(e){\n  const target=e.target&&e.target.closest?e.target.closest('button'):null;\n  if(!target)return;\n  if(target.id==='cdqInstallUpdateButton' || (target.closest('#cdqUpdateBanner') && /mettre à jour/i.test(target.textContent||''))){\n    e.preventDefault();e.stopImmediatePropagation();openScriptManager();return;\n  }\n  if(target.id==='cdqAndroidUpdaterButtonV2316'){\n    e.preventDefault();e.stopImmediatePropagation();openAndroidUpdater();\n  }\n},true);\nfunction schedule(){clearTimeout(window.__cdqV2503Refresh);window.__cdqV2503Refresh=setTimeout(refresh,50);}\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){schedule();setTimeout(schedule,400);},{once:true});else schedule();\nwindow.addEventListener('load',function(){setTimeout(schedule,150);});\nwindow.addEventListener('message',function(){setTimeout(schedule,60);});\ntry{new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true,characterData:true});}catch(_){}\n})();\n</script>\n\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V39",
     "androidAppRequired": "Balance CDQ Android 25.02 ou plus récent",
+    "purpose": "Rattrapage direct en une seule écriture depuis V25.00, V25.01 ou V25.02.",
     "changes": [
-      "Retire l'agrandissement spécial V23.10 du bouton Réglages.",
-      "Le profil Android natif est restauré une seule fois à Interface 50/100, Texte 50/100, Icônes 54/100 par l'enveloppe PWA.",
-      "La bannière Mise à jour n'est affichée que pour un bundle réellement déployé.",
-      "Le bouton Mise à jour passe par l'enveloppe PWA puis ouvre Script Manager sans popup iframe bloquée."
+      "Accepte directement le projet actuellement en V25.00.",
+      "Ajoute le partage APK natif V25.02 sans imposer l'étape V25.01.",
+      "Retire l'agrandissement spécial du bouton Réglages.",
+      "Ajoute le nouveau passage fiable vers Script Manager pour les prochaines mises à jour."
     ],
     "preserved": [
-      "Ouverture PDF et Sheets actuelle.",
-      "Partage/réinstallation APK V25.02.",
-      "Navigation et pages existantes.",
-      "Réglages d'affichage restent modifiables après la restauration unique."
+      "Workflow PDF natif V25.00.",
+      "Ouverture Sheets/PDF existante.",
+      "Navigation et pages existantes."
     ]
   }
 }
