@@ -1,0 +1,57 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "version": "V24.05",
+  "build": "2026.09.21-v24.05-no-pdf-web-fallback",
+  "title": "Balance CDQ V24.05 — suppression totale du fallback téléchargement PDF",
+  "requiresBuild": [
+    "2026.09.21-v24.04-direct-system-pdf-resolver"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v24.04-direct-system-pdf-resolver",
+      "to": "2026.09.21-v24.05-no-pdf-web-fallback"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v24.04-direct-system-pdf-resolver",
+      "to": "2026.09.21-v24.05-no-pdf-web-fallback"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2404PdfSystemJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2404PdfSystemCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2405PdfDirectNativeJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<script id=\"cdqV2405PdfDirectNativeJs\">\n(function(){\n'use strict';\n\nfunction metaForIdV2405(id){\n  try{\n    if(typeof cdqDocumentMeta==='function'){\n      const m=cdqDocumentMeta(id);\n      if(m)return m;\n    }\n  }catch(_){}\n  const box=document.querySelector('.file-checkbox[data-file-id=\"'+String(id||'').replace(/[^A-Za-z0-9_-]/g,'')+'\"]');\n  const row=box&&box.closest('.file-row');\n  return row?{\n    id:String(id),\n    nom:String(row.dataset.fileName||''),\n    type:String(row.dataset.fileType||''),\n    dateModification:String(row.dataset.fileDate||'')\n  }:null;\n}\n\nfunction markOpenedV2405(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const meta=metaForIdV2405(id)||{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction nativePdfUrlV2405(id,name){\n  return 'cdqpdf://open?fileId='+encodeURIComponent(String(id||''))+\n    '&name='+encodeURIComponent(String(name||'Rapport.pdf'));\n}\n\nfunction openPdfNativeV2405(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return false;\n\n  const meta=metaForIdV2405(id)||{};\n  markOpenedV2405(id);\n\n  // V24.05 : aucun browser_fallback_url.\n  // Si la couche Android est installée, elle reçoit directement cdqpdf://open\n  // et affiche le résolveur système Android. Le navigateur ne peut plus\n  // retomber sur Drive et déclencher \"Télécharger de nouveau le fichier ?\".\n  window.location.href=nativePdfUrlV2405(id,String(meta.nom||'Rapport.pdf'));\n\n  // Filet de diagnostic uniquement : pas de téléchargement de secours.\n  const started=Date.now();\n  setTimeout(function(){\n    if(document.visibilityState==='visible' && Date.now()-started>=1800){\n      try{\n        if(typeof afficherMessage==='function'){\n          afficherMessage('Balance CDQ Android 24.04 ou plus récent est requis pour ouvrir les PDF.',false);\n        }\n      }catch(_){}\n    }\n  },1900);\n\n  return true;\n}\n\nfunction resetPdfDefaultV2405(){\n  window.location.href='cdqpdf://reset';\n}\n\nfunction patchSettingsV2405(){\n  const modal=document.getElementById('cdqDisplayModal');\n  if(!modal)return;\n\n  const groups=Array.from(modal.querySelectorAll('.cdq-display-group'));\n  const group=groups.find(function(g){\n    const label=g.querySelector('.cdq-display-label');\n    return label&&/(Lecteur PDF par défaut|Lecteur PDF Android)/i.test(label.textContent||'');\n  });\n  if(!group)return;\n\n  group.innerHTML=\n    '<div class=\"cdq-display-label\">Lecteur PDF Android</div>'+\n    '<div class=\"cdq-v20-note\" style=\"margin-bottom:10px\">'+\n      'Touchez un PDF : Android ouvre directement « Ouvrir avec ». '+\n      'Choisissez « Une seule fois » ou « Toujours ». Aucun téléchargement navigateur n’est utilisé.'+\n    '</div>'+\n    '<button type=\"button\" id=\"cdqResetPdfDefaultV2405\" class=\"cdq-ui-scale-reset\">'+\n      'Réinitialiser l’application PDF par défaut'+\n    '</button>';\n\n  const b=group.querySelector('#cdqResetPdfDefaultV2405');\n  if(b)b.onclick=resetPdfDefaultV2405;\n}\n\nfunction installV2405(){\n  try{window.cdqV24OpenPdf=openPdfNativeV2405;}catch(_){}\n  try{window.cdqOuvrirPdfCommeSheetV2275=openPdfNativeV2405;cdqOuvrirPdfCommeSheetV2275=openPdfNativeV2405;}catch(_){}\n  try{window.cdqOpenPdf=openPdfNativeV2405;cdqOpenPdf=openPdfNativeV2405;}catch(_){}\n\n  if(typeof window.modifierFichier==='function'&&!window.__cdqV2405ModifierInstalled){\n    const old=window.modifierFichier;\n    window.__cdqV2405ModifierInstalled=true;\n    const wrapped=function(id){\n      const meta=metaForIdV2405(id);\n      if(/Android/i.test(navigator.userAgent||'')&&meta&&String(meta.type||'').toUpperCase()==='PDF'){\n        return openPdfNativeV2405(id);\n      }\n      return old.apply(this,arguments);\n    };\n    window.modifierFichier=wrapped;\n    try{modifierFichier=wrapped;}catch(_){}\n  }\n\n  patchSettingsV2405();\n}\n\ndocument.addEventListener('click',function(e){\n  if(!/Android/i.test(navigator.userAgent||''))return;\n  if(e.target&&e.target.closest&&e.target.closest('button'))return;\n\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  if(document.body.classList.contains('selection-active'))return;\n  try{if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return;}catch(_){}\n  if(row.classList.contains('cdq-swiped-left')||row.classList.contains('cdq-swiped-right'))return;\n\n  if(String(row.dataset.fileType||'').toUpperCase()!=='PDF')return;\n  const box=row.querySelector('.file-checkbox[data-file-id]');\n  if(!box)return;\n\n  e.preventDefault();\n  e.stopImmediatePropagation();\n  openPdfNativeV2405(String(box.dataset.fileId||''));\n},true);\n\ndocument.addEventListener('click',function(e){\n  if(e.target&&e.target.closest&&e.target.closest('#cdqTopDisplayButtonV2204,#displayModeButton')){\n    setTimeout(patchSettingsV2405,30);\n    setTimeout(patchSettingsV2405,180);\n  }\n},true);\n\nif(document.readyState==='loading'){\n  document.addEventListener('DOMContentLoaded',function(){\n    installV2405();\n    setTimeout(installV2405,500);\n  },{once:true});\n}else{\n  installV2405();\n  setTimeout(installV2405,500);\n}\n\ntry{\n  new MutationObserver(function(){\n    clearTimeout(window.__cdqV2405SettingsTimer);\n    window.__cdqV2405SettingsTimer=setTimeout(patchSettingsV2405,60);\n  }).observe(document.body,{childList:true,subtree:true});\n}catch(_){}\n\nwindow.cdqV2405OpenPdf=openPdfNativeV2405;\n})();\n</script>\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V39",
+    "androidAppRequired": "Balance CDQ Android 24.04 ou plus récent",
+    "pdf": [
+      "Suppression complète de S.browser_fallback_url pour les PDF.",
+      "Suppression complète du fallback Drive Web.",
+      "Le clic PDF utilise directement cdqpdf://open.",
+      "Aucun téléchargement navigateur n'est possible depuis le chemin PDF Balance CDQ.",
+      "Si la couche Android manque, un message local est affiché; aucun fichier n'est téléchargé.",
+      "Le résolveur Android reste responsable de Une seule fois / Toujours."
+    ]
+  }
+}
