@@ -69,6 +69,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          APK='balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk'
           grep -q 'android:icon="@drawable/ic_balance_cdq"' balance-cdq-android/app/src/main/AndroidManifest.xml
           grep -q 'WebView' balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt
           grep -q 'BeginSignInRequest' balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt
