@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v23.03-stable-pdf-reader';
+const CDQ_PWA_BUILD = '2026.09.21-v23.04-pwa-pdf-chrome-sheets';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1252,6 +1252,9 @@ else if (!selectorAwaitingAccess) masquerMurApresDelaiMinimum();
 }
 if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
 if(cdqHandleDefaultGoogleAccountV2297(data,event.source))return;
+if(data.type==='CDQ_OPEN_PDF_V2304'){cdqAfficherPdfV2304(data,event.source);return;}
+if(data.type==='CDQ_PDF_SAVE_RESULT_V2304'){cdqPdfSaveResultV2304(data,event.source);return;}
+
 if(data.type==='CDQ_VIEWPORT_GET'){cdqReplyViewportV2215(event.source);return;}
 if(data.type==='CDQ_DISPLAY_PREFS_BOOTSTRAP_GET'){
   let prefs=null;
@@ -1322,6 +1325,100 @@ if(window.visualViewport){
 
 
 // Compatibilité avec un ancien Selector pendant sa mise à jour : aucun partage système.
+let cdqPdfV2304Context=null;
+
+function cdqAfficherPdfV2304(data,source){
+  if(!(data.blob instanceof Blob)||data.blob.type!=='application/pdf'||!data.blob.size||data.blob.size>32*1024*1024)return false;
+
+  const existing=document.getElementById('cdq-pdf-reader-v2304');
+  if(existing)existing.remove();
+
+  const frame=document.createElement('iframe');
+  frame.id='cdq-pdf-reader-v2304';
+  frame.title=String(data.name||'PDF CDQ');
+  frame.src='./reader.html?cdq=1&v=2304';
+  frame.referrerPolicy='origin';
+  frame.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:100000;background:#101820';
+
+  const ctx={
+    source:source,
+    frame:frame,
+    fileId:String(data.fileId||''),
+    name:String(data.name||'Rapport.pdf'),
+    readOnly:!!data.readOnly,
+    pending:new Map(),
+    closed:false
+  };
+  cdqPdfV2304Context=ctx;
+
+  function replyReader(payload){
+    if(!ctx.closed&&frame.contentWindow)frame.contentWindow.postMessage(payload,location.origin);
+  }
+
+  function close(){
+    if(ctx.closed)return;
+    ctx.closed=true;
+    if(cdqPdfV2304Context===ctx)cdqPdfV2304Context=null;
+    window.removeEventListener('message',receive);
+    try{frame.remove();}catch(_){}
+  }
+
+  function receive(event){
+    if(event.source!==frame.contentWindow||event.origin!==location.origin)return;
+    const d=event.data||{};
+
+    if(d.type==='CDQ_READER_READY'){
+      replyReader({
+        type:'CDQ_READER_OPEN',
+        blob:data.blob,
+        name:ctx.name,
+        fileId:ctx.fileId,
+        readOnly:ctx.readOnly
+      });
+      return;
+    }
+
+    if(d.type==='CDQ_READER_CLOSE'){
+      close();
+      return;
+    }
+
+    if(d.type==='CDQ_READER_SAVE'&&!ctx.readOnly){
+      if(typeof d.requestId!=='string'||!/^save-[\w-]{8,80}$/.test(d.requestId)||!(d.blob instanceof Blob))return;
+      if(ctx.pending.has(d.requestId))return;
+      ctx.pending.set(d.requestId,true);
+
+      replyToSelector(ctx.source,{
+        type:'CDQ_PDF_SAVE_REQUEST_V2304',
+        requestId:d.requestId,
+        fileId:ctx.fileId,
+        name:ctx.name,
+        blob:d.blob
+      });
+    }
+  }
+
+  window.addEventListener('message',receive);
+  document.body.appendChild(frame);
+  return true;
+}
+
+function cdqPdfSaveResultV2304(data,source){
+  const ctx=cdqPdfV2304Context;
+  if(!ctx||ctx.closed||ctx.source!==source)return false;
+  const requestId=String(data&&data.requestId||'');
+  if(!requestId||!ctx.pending.has(requestId))return false;
+  ctx.pending.delete(requestId);
+  ctx.frame.contentWindow.postMessage({
+    type:'CDQ_READER_SAVED',
+    requestId:requestId,
+    ok:!!data.ok,
+    queued:!!data.queued,
+    error:String(data.error||'')
+  },location.origin);
+  return true;
+}
+
 function cdqAfficherPdf(data) {
 if (!(data.blob instanceof Blob) || data.blob.type !== 'application/pdf' || !data.blob.size || data.blob.size > 32*1024*1024) return;
 if(document.getElementById('legacy-pdf-reader'))return;
