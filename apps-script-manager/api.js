@@ -136,27 +136,116 @@ function revokeGoogleToken() {
   }
 }
 
+const CDQ_SCRIPT_API_PRIMARY_V39 = 'https://scriptmanagement.googleapis.com/v1';
+const CDQ_SCRIPT_API_FALLBACK_V39 = 'https://script.googleapis.com/v1';
+
+function cdqSleepV39(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function cdqScriptAlternateUrlV39(url) {
+  url = String(url || '');
+  if (url.startsWith(CDQ_SCRIPT_API_PRIMARY_V39)) {
+    return CDQ_SCRIPT_API_FALLBACK_V39 + url.slice(CDQ_SCRIPT_API_PRIMARY_V39.length);
+  }
+  if (url.startsWith(CDQ_SCRIPT_API_FALLBACK_V39)) {
+    return CDQ_SCRIPT_API_PRIMARY_V39 + url.slice(CDQ_SCRIPT_API_FALLBACK_V39.length);
+  }
+  return '';
+}
+
+async function cdqFetchOnceV39(url, options, headers, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs || 25000);
+  try {
+    return await fetch(url, {
+      ...options,
+      headers,
+      signal: controller.signal,
+      mode: 'cors',
+      cache: 'no-store',
+      credentials: 'omit',
+      redirect: 'follow',
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function cdqNetworkMessageV39(error) {
+  const msg = String(error?.message || error || '');
+  if (error?.name === 'AbortError') return 'délai réseau dépassé';
+  if (/failed to fetch|networkerror|network request failed|load failed/i.test(msg)) return 'connexion réseau interrompue';
+  return msg || 'erreur réseau inconnue';
+}
+
 async function googleFetch(url, clientId, options = {}) {
   await ensureAuth(clientId);
-  const headers = new Headers(options.headers || {});
-  headers.set('Authorization', `Bearer ${CDQ.token}`);
-  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  let response = await fetch(url, { ...options, headers });
-  if (response.status === 401) {
-    CDQ.token = '';
-    CDQ.expiresAt = 0;
-    await ensureAuth(clientId);
-    headers.set('Authorization', `Bearer ${CDQ.token}`);
-    response = await fetch(url, { ...options, headers });
+
+  const method = String(options.method || 'GET').toUpperCase();
+  const safeToRetry = method === 'GET' || method === 'HEAD' || method === 'PUT';
+  const alternate = cdqScriptAlternateUrlV39(url);
+  const candidates = alternate ? [String(url), alternate] : [String(url)];
+  let lastNetworkError = null;
+  let tokenRefreshed = false;
+
+  for (let hostIndex = 0; hostIndex < candidates.length; hostIndex++) {
+    const target = candidates[hostIndex];
+    const attempts = safeToRetry ? 3 : 1;
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      const headers = new Headers(options.headers || {});
+      headers.set('Authorization', `Bearer ${CDQ.token}`);
+      if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+      headers.set('Accept', 'application/json');
+
+      let response;
+      try {
+        response = await cdqFetchOnceV39(target, options, headers, 25000);
+      } catch (error) {
+        lastNetworkError = error;
+        if (!safeToRetry) throw new Error('Connexion Google impossible : ' + cdqNetworkMessageV39(error) + '.');
+        if (attempt + 1 < attempts) {
+          await cdqSleepV39(attempt === 0 ? 450 : 1200);
+          continue;
+        }
+        break;
+      }
+
+      if (response.status === 401 && !tokenRefreshed) {
+        tokenRefreshed = true;
+        CDQ.token = '';
+        CDQ.expiresAt = 0;
+        await ensureAuth(clientId);
+        attempt--;
+        continue;
+      }
+
+      const text = await response.text();
+      const data = apiErrorPayload(text);
+      if (!response.ok) throw new Error(friendlyGoogleError(response.status, data));
+      return data;
+    }
+
+    // Si le premier domaine Apps Script a un problème de transport,
+    // essayer le second domaine officiel avant d'abandonner.
+    if (hostIndex + 1 < candidates.length) {
+      await cdqSleepV39(250);
+    }
   }
-  const text = await response.text();
-  const data = apiErrorPayload(text);
-  if (!response.ok) throw new Error(friendlyGoogleError(response.status, data));
-  return data;
+
+  throw new Error(
+    'API Google Apps Script inaccessible après plusieurs essais (' +
+    cdqNetworkMessageV39(lastNetworkError) +
+    '). La connexion Google est active; réessaie dans quelques secondes.'
+  );
 }
 
 function scriptApiUrl(path) {
-  return `https://script.googleapis.com/v1${path}`;
+  // Google documente maintenant scriptmanagement.googleapis.com pour
+  // projects.get / getContent / updateContent. Le domaine historique
+  // script.googleapis.com reste utilisé automatiquement comme secours.
+  return `${CDQ_SCRIPT_API_PRIMARY_V39}${path}`;
 }
 
 async function listAppsScriptProjects(clientId) {
