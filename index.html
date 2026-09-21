@@ -18,8 +18,8 @@
 (function(){
   try{
     if(/BalanceCDQAndroid\/\d+(?:\.\d+)?/i.test(String(navigator.userAgent||''))){
-      document.documentElement.style.setProperty('--interface-scale','1.00');
-      document.documentElement.dataset.cdqNativeScale='1.00';
+      document.documentElement.style.setProperty('--interface-scale','0.88','important');
+      document.documentElement.dataset.cdqNativeScale='0.88';
     }
   }catch(e){}
 })();
@@ -437,7 +437,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v25.04-stable-mobile-file-open';
+const CDQ_PWA_BUILD = '2026.09.21-v25.05-mobile-auth-file-recovery';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1174,15 +1174,16 @@ CDQ V22.15 — PRÉFÉRENCES D’AFFICHAGE PWA + VIEWPORT RÉEL
 ===================================================== */
 const CDQ_DISPLAY_PREFS_PWA_KEY_V2215='cdq_display_prefs_by_email_v2215';
 const CDQ_DISPLAY_PREFS_LAST_KEY_V2216='cdq_display_prefs_last_v2216';
-const CDQ_NATIVE_DISPLAY_RESTORE_KEY_V2503='cdq_native_display_restore_v2503';
+const CDQ_NATIVE_DISPLAY_RESTORE_KEY_V2503='cdq_native_display_restore_v2505';
 function cdqNativeAndroidShellV2503(){
   return /BalanceCDQAndroid\/\d+(?:\.\d+)?/i.test(String(navigator.userAgent||''));
 }
 function cdqNativeDisplayRestorePendingV2503(){
-  return false;
+  if(!cdqNativeAndroidShellV2503())return false;
+  try{return localStorage.getItem(CDQ_NATIVE_DISPLAY_RESTORE_KEY_V2503)!=='1';}catch(e){return false;}
 }
 function cdqPriorDisplayPrefsV2503(){
-  return {uiScale:50,uiTextScale:50,uiIconScale:54,uiScaleMapVersion:2202,uiUpdatedAt:Date.now()};
+  return {uiScale:50,uiTextScale:50,uiIconScale:50,uiScaleMapVersion:2202,uiUpdatedAt:Date.now()};
 }
 function cdqMarkNativeDisplayRestoredV2503(){
   try{localStorage.setItem(CDQ_NATIVE_DISPLAY_RESTORE_KEY_V2503,'1');}catch(e){}
@@ -1701,6 +1702,12 @@ function annulerPontBiometrique(){
 const ctx=bioContext;
 bioContext=null;
 if(ctx&&ctx.controller)ctx.controller.abort();
+if(ctx&&ctx.native){
+  try{
+    if(window.BalanceCDQNative&&typeof BalanceCDQNative.cancelBiometric==='function')
+      BalanceCDQNative.cancelBiometric(String(ctx.requestId||''));
+  }catch(_){}
+}
 bioAbortController=null;
 bioSetup.style.display='none';
 bioAction.disabled=false;
@@ -1736,11 +1743,21 @@ if(bioContext && bioContext.mode===mode && bioContext.source===source &&
 bioContext.email===email && bioContext.requestId===requestId)return;
 annulerPontBiometrique();
 if(!email){bioReply(source,'CDQ_BIOMETRIC_UNAVAILABLE',{requestId,message:'Compte inconnu.'});return;}
-const ctx={mode,source,email,requestId,running:false,controller:null};
+const ctx={mode,source,email,requestId,running:false,controller:null,native:false};
 bioContext=ctx;
 bioReply(source,'CDQ_BIOMETRIC_READY',{requestId});
+
+// Dans l'application Android native, WebAuthn n'est plus utilisé : on appelle
+// directement la boîte biométrique système via le pont de l'APK 25.07+.
+try{
+  if(window.BalanceCDQNative && typeof BalanceCDQNative.biometric==='function'){
+    ctx.native=true;
+    BalanceCDQNative.biometric(String(requestId||''));
+    return;
+  }
+}catch(_){ctx.native=false;}
+
 if(mode==='unlock'){
-// Appeler directement le téléphone, sans carte ni clic intermédiaire.
 executerPontBiometrique(ctx);
 return;
 }
@@ -1750,6 +1767,24 @@ bioText.textContent='Activez le déverrouillage de CDQ avec la sécurité de ce 
 bioAction.textContent='Activer la biométrie';
 bioSetup.style.display='flex';
 }
+window.cdqNativeBiometricResultV2507=function(requestId,success,message){
+const ctx=bioContext;
+if(!ctx||!ctx.native||String(ctx.requestId||'')!==String(requestId||''))return;
+bioContext=null;
+bioAbortController=null;
+bioSetup.style.display='none';
+bioAction.disabled=false;
+if(success){
+  bioReply(ctx.source,ctx.mode==='register'?'CDQ_BIOMETRIC_REGISTERED':'CDQ_BIOMETRIC_RESULT',{
+    success:true,requestId:ctx.requestId
+  });
+}else{
+  bioReply(ctx.source,ctx.mode==='register'?'CDQ_BIOMETRIC_UNAVAILABLE':'CDQ_BIOMETRIC_RESULT',{
+    success:false,requestId:ctx.requestId,message:String(message||'Entrez votre NIP à 4 chiffres.')
+  });
+}
+};
+
 bioAction.addEventListener('click',()=>{
 if(bioContext)executerPontBiometrique(bioContext);
 });
