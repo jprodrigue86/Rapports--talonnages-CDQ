@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v23-10-settings-button-scale';
-const FORCE_BUILD='2026.09.21-v23.10-settings-button-scale';
+const CACHE = 'cdq-installable-v23-11-native-default-account';
+const FORCE_BUILD='2026.09.21-v23.11-native-default-account';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates-v2252.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
