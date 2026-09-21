@@ -1,0 +1,71 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.03",
+  "build": "2026.09.21-v23.03-stable-pdf-reader",
+  "title": "Balance CDQ V23.03 — PDF lecteur CDQ stable + anti-scintillement",
+  "requiresBuild": [
+    "2026.09.21-v23.02-restore-stable-file-open"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.02-restore-stable-file-open",
+      "to": "2026.09.21-v23.03-stable-pdf-reader"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.02-restore-stable-file-open",
+      "to": "2026.09.21-v23.03-stable-pdf-reader"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2303StablePdfOpenJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2303NoFileFlashCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n\n<style id=\"cdqV2303NoFileFlashCss\">\nhtml.android .file-row,\nhtml.android .file-row *,\nhtml.android #filesContainer,\nhtml.android .selection-bar{\n  -webkit-tap-highlight-color:transparent!important;\n  transition:none!important;\n  animation:none!important;\n}\nhtml.android .file-row:active,\nhtml.android .file-row:focus,\nhtml.android .file-row:focus-visible{\n  transform:none!important;\n  filter:none!important;\n  outline:none!important;\n}\n</style>\n<script id=\"cdqV2303StablePdfOpenJs\">\n(function(){\n'use strict';\n\nfunction cdqPdfLoadingV2303(show,text){\n  let o=document.getElementById('cdqPdfLoadingV2303');\n  if(show){\n    if(!o){\n      o=document.createElement('div');\n      o.id='cdqPdfLoadingV2303';\n      o.style.cssText='position:fixed;inset:0;z-index:2147482999;background:rgba(4,12,18,.88);display:grid;place-items:center;padding:24px';\n      o.innerHTML='<div style=\"width:min(420px,92vw);padding:22px;border:1px solid #2d607e;border-radius:16px;background:#081b29;color:#e9f7ff;font:600 15px Arial;text-align:center;box-shadow:0 16px 50px rgba(0,0,0,.45)\"><div style=\"font-size:30px;margin-bottom:10px\">PDF</div><div id=\"cdqPdfLoadingTextV2303\">Préparation du PDF…</div><div style=\"height:8px;border-radius:99px;background:#102d42;margin-top:14px;overflow:hidden\"><div style=\"width:45%;height:100%;background:#1ebcff;border-radius:99px;animation:cdqPdfPulseV2303 1s ease-in-out infinite alternate\"></div></div></div>';\n      const st=document.createElement('style');\n      st.textContent='@keyframes cdqPdfPulseV2303{from{transform:translateX(-30%)}to{transform:translateX(150%)}}';\n      o.appendChild(st);\n      document.body.appendChild(o);\n    }\n    const t=o.querySelector('#cdqPdfLoadingTextV2303');\n    if(t)t.textContent=text||'Préparation du PDF…';\n    o.style.display='grid';\n  }else if(o){\n    o.style.display='none';\n  }\n}\n\nasync function cdqOpenPdfStableV2303(id){\n  if(document.getElementById('cdqReaderFrame'))return true;\n\n  cdqPdfLoadingV2303(true,'Chargement du PDF…');\n  try{\n    // Forcer le lecteur CDQ interne. Aucun Google Drive, aucun sélecteur de compte.\n    if(typeof cdqSetPdfReaderPreference==='function'){\n      try{cdqSetPdfReaderPreference('cdq');}catch(_){}\n    }\n\n    if(typeof cdqOpenPdfInternal!=='function'){\n      throw new Error('Lecteur PDF CDQ indisponible.');\n    }\n\n    await cdqOpenPdfInternal(String(id||''));\n\n    const frame=document.getElementById('cdqReaderFrame');\n    if(!frame)throw new Error('Le lecteur PDF ne s’est pas ouvert.');\n\n    cdqPdfLoadingV2303(false);\n    return true;\n  }catch(e){\n    cdqPdfLoadingV2303(false);\n    try{afficherErreur(e);}catch(_){}\n    return false;\n  }\n}\n\nwindow.cdqOpenPdfStableV2303=cdqOpenPdfStableV2303;\n})();\n</script>\n\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "      cdqOpenPdf(t.id);",
+      "replacement": "      cdqOpenPdfStableV2303(t.id);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "    return cdqOpenPdf(id);",
+      "replacement": "    return cdqOpenPdfStableV2303(id);",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "rollbackBase": "V23.02",
+    "scope": [
+      "Ne modifie pas l'ouverture Sheets native fonctionnelle.",
+      "Force les PDF dans le lecteur CDQ interne.",
+      "Supprime transitions/animations/tap highlight des lignes Android."
+    ],
+    "pdf": [
+      "Aucun intent Google Drive.",
+      "Aucun sélecteur de compte Google.",
+      "Overlay de chargement immédiat pendant la préparation du Blob PDF."
+    ],
+    "sheets": [
+      "Chemin Android natif conservé pour fiabilité.",
+      "Le sélecteur de compte de Google Sheets reste géré par Android/Google."
+    ]
+  }
+}
