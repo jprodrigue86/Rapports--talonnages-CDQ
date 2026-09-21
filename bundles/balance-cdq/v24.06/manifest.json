@@ -1,0 +1,53 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "version": "V24.06",
+  "build": "2026.09.21-v24.06-pdf-window-capture-native",
+  "title": "Balance CDQ V24.06 — interception PDF native avant anciens gestionnaires",
+  "requiresBuild": [
+    "2026.09.21-v24.05-no-pdf-web-fallback"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v24.05-no-pdf-web-fallback",
+      "to": "2026.09.21-v24.06-pdf-window-capture-native"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v24.05-no-pdf-web-fallback",
+      "to": "2026.09.21-v24.06-pdf-window-capture-native"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2405PdfDirectNativeJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2406PdfWindowCaptureJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<script id=\"cdqV2406PdfWindowCaptureJs\">\n(function(){\n'use strict';\n\nlet tapV2406=null;\nlet suppressClickUntilV2406=0;\n\nfunction metaForIdV2406(id){\n  try{\n    if(typeof cdqDocumentMeta==='function'){\n      const m=cdqDocumentMeta(id);\n      if(m)return m;\n    }\n  }catch(_){}\n  const box=document.querySelector('.file-checkbox[data-file-id=\"'+String(id||'').replace(/[^A-Za-z0-9_-]/g,'')+'\"]');\n  const row=box&&box.closest('.file-row');\n  return row?{\n    id:String(id||''),\n    nom:String(row.dataset.fileName||''),\n    type:String(row.dataset.fileType||''),\n    dateModification:String(row.dataset.fileDate||'')\n  }:null;\n}\n\nfunction markOpenedV2406(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const meta=metaForIdV2406(id)||{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction nativeIntentV2406(id,name){\n  return 'intent://open?fileId='+encodeURIComponent(String(id||''))+\n    '&name='+encodeURIComponent(String(name||'Rapport.pdf'))+\n    '#Intent;scheme=cdqpdf;package=ca.balancecdq.android;end';\n}\n\nfunction launchNativePdfV2406(id,row){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return false;\n\n  const meta=metaForIdV2406(id)||{};\n  markOpenedV2406(id);\n\n  // Lancement synchrone pendant le vrai geste utilisateur.\n  // target=\"_top\" évite que l'iframe Apps Script garde la navigation.\n  const a=document.createElement('a');\n  a.href=nativeIntentV2406(id,String(meta.nom||'Rapport.pdf'));\n  a.target='_top';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n\n  suppressClickUntilV2406=Date.now()+1200;\n  if(row)row.dataset.cdqV2406Opened='1';\n\n  setTimeout(function(){\n    if(row)try{delete row.dataset.cdqV2406Opened;}catch(_){}\n  },1300);\n\n  return true;\n}\n\nfunction pdfRowFromEventV2406(e){\n  const target=e&&e.target;\n  if(!target||!target.closest)return null;\n  if(target.closest('button'))return null;\n  const row=target.closest('.file-row');\n  if(!row)return null;\n  if(String(row.dataset.fileType||'').toUpperCase()!=='PDF')return null;\n  const box=row.querySelector('.file-checkbox[data-file-id]');\n  if(!box)return null;\n  return {row:row,id:String(box.dataset.fileId||'')};\n}\n\nfunction selectionActiveV2406(){\n  if(document.body.classList.contains('selection-active'))return true;\n  try{\n    if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return true;\n  }catch(_){}\n  return false;\n}\n\n// Capture sur WINDOW : passe AVANT les anciens listeners document capture.\nwindow.addEventListener('pointerdown',function(e){\n  if(!/Android/i.test(navigator.userAgent||''))return;\n  const item=pdfRowFromEventV2406(e);\n  if(!item)return;\n\n  tapV2406={\n    row:item.row,\n    id:item.id,\n    pointerId:e.pointerId,\n    x:e.clientX,\n    y:e.clientY,\n    moved:false\n  };\n},true);\n\nwindow.addEventListener('pointermove',function(e){\n  if(!tapV2406||tapV2406.pointerId!==e.pointerId)return;\n  if(Math.abs(e.clientX-tapV2406.x)>18||Math.abs(e.clientY-tapV2406.y)>18){\n    tapV2406.moved=true;\n  }\n},true);\n\nwindow.addEventListener('pointercancel',function(e){\n  if(tapV2406&&tapV2406.pointerId===e.pointerId)tapV2406=null;\n},true);\n\nwindow.addEventListener('pointerup',function(e){\n  if(!/Android/i.test(navigator.userAgent||''))return;\n  if(!tapV2406||tapV2406.pointerId!==e.pointerId)return;\n\n  const t=tapV2406;\n  tapV2406=null;\n\n  if(t.moved)return;\n  if(selectionActiveV2406())return;\n  if(t.row.classList.contains('cdq-swiped-left')||t.row.classList.contains('cdq-swiped-right'))return;\n\n  e.preventDefault();\n  e.stopImmediatePropagation();\n\n  launchNativePdfV2406(t.id,t.row);\n},true);\n\n// Supprimer le click synthétique qui suit le pointerup et empêcher toute\n// ancienne fenêtre PDF de s'ouvrir derrière.\nwindow.addEventListener('click',function(e){\n  if(!/Android/i.test(navigator.userAgent||''))return;\n  const item=pdfRowFromEventV2406(e);\n  if(!item)return;\n\n  if(Date.now()<=suppressClickUntilV2406 || item.row.dataset.cdqV2406Opened==='1'){\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    try{delete item.row.dataset.cdqV2406Opened;}catch(_){}\n    return;\n  }\n\n  if(selectionActiveV2406())return;\n  if(item.row.classList.contains('cdq-swiped-left')||item.row.classList.contains('cdq-swiped-right'))return;\n\n  // Fallback souris/accessibilité : reste natif et sans ancien modal.\n  e.preventDefault();\n  e.stopImmediatePropagation();\n  launchNativePdfV2406(item.id,item.row);\n},true);\n\n// Neutraliser tous les anciens points d'entrée PDF qui pourraient être\n// appelés autrement que par la ligne de fichier.\nfunction installV2406(){\n  try{window.cdqV24OpenPdf=launchNativePdfV2406;}catch(_){}\n  try{\n    window.cdqOuvrirPdfCommeSheetV2275=function(id){return launchNativePdfV2406(id,null);};\n    cdqOuvrirPdfCommeSheetV2275=window.cdqOuvrirPdfCommeSheetV2275;\n  }catch(_){}\n  try{\n    window.cdqOpenPdf=function(id){return Promise.resolve(launchNativePdfV2406(id,null));};\n    cdqOpenPdf=window.cdqOpenPdf;\n  }catch(_){}\n}\n\ninstallV2406();\nsetTimeout(installV2406,300);\nsetTimeout(installV2406,1000);\n\nwindow.cdqV2406OpenPdf=function(id){return launchNativePdfV2406(id,null);};\n})();\n</script>\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V39",
+    "androidAppRequired": "Balance CDQ Android 24.04 ou plus récent",
+    "rootCause": "Un ancien listener pointerup enregistré sur document pouvait ouvrir l'ancien modal PDF avant l'interception click V24.05.",
+    "fixes": [
+      "Interception pointerdown/pointerup sur window en capture, donc avant les anciens listeners document.",
+      "Lancement intent Android synchrone pendant le vrai geste utilisateur.",
+      "target=_top pour sortir directement de l'iframe Apps Script.",
+      "Aucun browser_fallback_url.",
+      "Click synthétique suivant supprimé avant les anciens gestionnaires.",
+      "Anciens points d'entrée cdqOpenPdf/cdqOuvrirPdfCommeSheet redirigés vers le pont natif."
+    ]
+  }
+}
