@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v22.91-plancher-pdf-integre",
+  "version": "2026.09.21-v22.93-progress-global",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v22.91-plancher-pdf-integre",
-  "backend_version": "2026.09.21-v22.91-plancher-pdf-integre",
+  "selector_version": "2026.09.21-v22.93-progress-global",
+  "backend_version": "2026.09.21-v22.93-progress-global",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -211,7 +211,13 @@
     "pdf-native-account-picker-restored-v2290",
     "plancher-fillable-embedded-v2291",
     "plancher-template-drive-id-preserved",
-    "plancher-offline-background-prewarm"
+    "plancher-offline-background-prewarm",
+    "photos-notes-classement-v2292",
+    "global-progress-percent-v2293",
+    "photo-drive-progress-v2293",
+    "pdf-copy-progress-v2293",
+    "note-progress-v2293",
+    "loading-not-frozen-indicator-v2293"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -224,5 +230,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v22.91-plancher-pdf-integre"
+  "pwa_version": "2026.09.21-v22.93-progress-global"
 }
