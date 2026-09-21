@@ -61,18 +61,43 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee /tmp/balance-cdq-badging.txt
           grep -q "package: name='ca.balancecdq.android'" /tmp/balance-cdq-badging.txt
 
-      - name: Publish APK
+      - name: Publish APK + update channel
         shell: bash
         run: |
+          set -euo pipefail
+
           mkdir -p downloads
-          cp balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk downloads/Balance-CDQ-Android.apk
+          APK_SRC='balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk'
+          APK_DST='downloads/Balance-CDQ-Android.apk'
+          UPDATE_JSON='downloads/android-update.json'
+
+          cp "$APK_SRC" "$APK_DST"
+
+          VERSION_NAME=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' balance-cdq-android/app/build.gradle.kts | head -1)
+          VERSION_CODE=$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' balance-cdq-android/app/build.gradle.kts | head -1)
+          APK_SHA256=$(sha256sum "$APK_DST" | awk '{print $1}')
+
+          cat > "$UPDATE_JSON" <<JSON
+          {
+            "versionName": "$VERSION_NAME",
+            "versionCode": $VERSION_CODE,
+            "apkUrl": "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/downloads/Balance-CDQ-Android.apk",
+            "sha256": "$APK_SHA256",
+            "mandatory": false,
+            "channel": "stable"
+          }
+          JSON
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/Balance-CDQ-Android.apk
+
+          git add "$APK_DST" "$UPDATE_JSON"
+
           if git diff --cached --quiet; then
-            echo "APK unchanged"
+            echo "APK and Android update manifest unchanged"
             exit 0
           fi
-          git commit -m "Publish Balance CDQ Android APK [skip ci]"
+
+          git commit -m "Publish Balance CDQ Android $VERSION_NAME + update channel [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
