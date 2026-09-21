@@ -15,6 +15,9 @@ class SheetOpenActivity : Activity() {
     }
 
     private var fileId = ""
+    private var preferredEmail = ""
+    private var accountMode = "auto"
+    private var sessionEmail = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +34,11 @@ class SheetOpenActivity : Activity() {
     }
 
     private fun parse(source: Intent) {
-        fileId = source.data?.getQueryParameter("fileId").orEmpty()
+        val data = source.data
+        fileId = data?.getQueryParameter("fileId").orEmpty()
+        preferredEmail = data?.getQueryParameter("account").orEmpty().trim().lowercase()
+        accountMode = data?.getQueryParameter("accountMode").orEmpty().trim().lowercase().ifBlank { "auto" }
+        sessionEmail = ""
     }
 
     private fun valid(): Boolean =
@@ -43,18 +50,34 @@ class SheetOpenActivity : Activity() {
             return
         }
 
-        if (DefaultGoogleAccountStore.account(this) == null) {
+        if (accountMode == "ask") {
             chooseAccount()
             return
         }
 
+        if (preferredEmail.isNotBlank()) {
+            sessionEmail = preferredEmail
+            if (accountMode == "default") {
+                DefaultGoogleAccountStore.save(this, preferredEmail)
+            }
+            openNativeSheet()
+            return
+        }
+
+        val saved = DefaultGoogleAccountStore.email(this)
+        if (saved.isBlank()) {
+            chooseAccount()
+            return
+        }
+
+        sessionEmail = saved
         openNativeSheet()
     }
 
     private fun chooseAccount() {
         try {
             startActivityForResult(
-                DefaultGoogleAccountStore.pickerIntent(this),
+                DefaultGoogleAccountStore.pickerIntent(this, preferredEmail),
                 REQ_ACCOUNT
             )
         } catch (e: Exception) {
@@ -78,18 +101,21 @@ class SheetOpenActivity : Activity() {
             return
         }
 
-        DefaultGoogleAccountStore.save(this, email)
+        sessionEmail = email
+        if (accountMode != "ask") {
+            DefaultGoogleAccountStore.save(this, email)
+        }
         openNativeSheet()
     }
 
     private fun openNativeSheet() {
-        val email = DefaultGoogleAccountStore.email(this)
+        val email = sessionEmail.ifBlank { DefaultGoogleAccountStore.email(this) }
         if (email.isBlank()) {
             chooseAccount()
             return
         }
 
-        val accountIndex = DefaultGoogleAccountStore.accountIndex(this)
+        val accountIndex = DefaultGoogleAccountStore.accountIndex(this, email)
 
         // Google Sheets ne documente pas d'extra Android permettant à une
         // application tierce d'imposer son compte actif. Le chemin /u/N/
