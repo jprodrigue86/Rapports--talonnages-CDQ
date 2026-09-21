@@ -1,17 +1,17 @@
 package ca.balancecdq.android
 
+import android.accounts.AccountManager
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
-import androidx.browser.customtabs.CustomTabColorSchemeParams
-import androidx.browser.customtabs.CustomTabsIntent
 
 class SheetOpenActivity : Activity() {
     companion object {
         private const val REQ_ACCOUNT = 23111
+        private const val SHEETS_PACKAGE = "com.google.android.apps.docs.editors.sheets"
     }
 
     private var fileId = ""
@@ -48,7 +48,7 @@ class SheetOpenActivity : Activity() {
             return
         }
 
-        openSheet()
+        openNativeSheet()
     }
 
     private fun chooseAccount() {
@@ -79,10 +79,10 @@ class SheetOpenActivity : Activity() {
         }
 
         DefaultGoogleAccountStore.save(this, email)
-        openSheet()
+        openNativeSheet()
     }
 
-    private fun openSheet() {
+    private fun openNativeSheet() {
         val email = DefaultGoogleAccountStore.email(this)
         if (email.isBlank()) {
             chooseAccount()
@@ -96,28 +96,38 @@ class SheetOpenActivity : Activity() {
                 "&login_hint=" + Uri.encode(email)
         )
 
-        val colors = CustomTabColorSchemeParams.Builder()
-            .setToolbarColor(Color.rgb(5, 12, 20))
-            .setNavigationBarColor(Color.BLACK)
-            .build()
+        val native = Intent(Intent.ACTION_VIEW, uri).apply {
+            setPackage(SHEETS_PACKAGE)
 
-        val tabs = CustomTabsIntent.Builder()
-            .setDefaultColorSchemeParams(colors)
-            .setShowTitle(false)
-            .setUrlBarHidingEnabled(true)
-            .build()
+            // Plusieurs clés sont envoyées pour compatibilité avec les
+            // différentes versions de l'application Google Sheets.
+            putExtra("authAccount", email)
+            putExtra(AccountManager.KEY_ACCOUNT_NAME, email)
+            putExtra("accountName", email)
 
-        try {
-            packageManager.getPackageInfo("com.android.chrome", 0)
-            tabs.intent.setPackage("com.android.chrome")
-        } catch (_: Exception) {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
 
         try {
-            tabs.launchUrl(this, uri)
+            if (native.resolveActivity(packageManager) != null) {
+                startActivity(native)
+                finish()
+                return
+            }
+        } catch (_: Exception) {
+        }
+
+        // Repli : navigateur uniquement si Google Sheets n'est pas installé.
+        val fallback = Intent(Intent.ACTION_VIEW, uri).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        try {
+            startActivity(fallback)
             finish()
-        } catch (e: Exception) {
-            fail(e.message ?: "Impossible d’ouvrir Google Sheets.")
+        } catch (_: ActivityNotFoundException) {
+            fail("Google Sheets n’est pas installé et aucun navigateur n’est disponible.")
         }
     }
 
