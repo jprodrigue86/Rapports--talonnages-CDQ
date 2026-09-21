@@ -1,131 +1,57 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.92",
-  "build": "2026.09.21-v22.92-photos-notes-classement",
-  "title": "Balance CDQ V22.92 — classement Photos et Notes",
+  "version": "V22.93",
+  "build": "2026.09.21-v22.93-progress-global",
+  "title": "Balance CDQ V22.93 — indicateur global de progression",
   "requiresBuild": [
-    "2026.09.21-v22.91-plancher-pdf-integre"
+    "2026.09.21-v22.92-photos-notes-classement"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v22.91-plancher-pdf-integre",
-      "to": "2026.09.21-v22.92-photos-notes-classement"
+      "from": "2026.09.21-v22.92-photos-notes-classement",
+      "to": "2026.09.21-v22.93-progress-global"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v22.91-plancher-pdf-integre",
-      "to": "2026.09.21-v22.92-photos-notes-classement"
+      "from": "2026.09.21-v22.92-photos-notes-classement",
+      "to": "2026.09.21-v22.93-progress-global"
     },
     {
-      "file": "Code.gs",
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2293GlobalProgressJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2293GlobalProgressCss"
+    },
+    {
+      "file": "Selector.html",
       "op": "insert_before_literal",
-      "before": "/* =====================================================\n   PHOTOS ATTACHÉES AUX CLIENTS / DOSSIERS / FICHIERS\n===================================================== */",
-      "text": "// =====================================================\n// V22.92 — CLASSEMENT LISIBLE DES PHOTOS ET NOTES\n// _CDQ_SYSTEME / Photos|Notes / Compagnie / Date - Technicien / fichier\n// =====================================================\nfunction cdqNomArchiveV2292_(v,repli){\n  let s=String(v||repli||'').replace(/[\\\\/:*?\"<>|\\u0000-\\u001F]+/g,' - ').replace(/\\s+/g,' ').trim();\n  if(!s)s=String(repli||'Sans nom');\n  return s.slice(0,110);\n}\nfunction cdqTechnicienArchiveV2292_(email){\n  email=normaliserEmailCDQ_(email);let nom='';\n  try{nom=cdqObtenirProfilTechnicien_(email).nomRapport||'';}catch(e){}\n  if(!nom&&email)nom=email.split('@')[0].replace(/[._-]+/g,' ');\n  return cdqNomArchiveV2292_(nom,'Technicien');\n}\nfunction cdqRacineArchiveV2292_(nom,creer){\n  const sys=obtenirDossierSystemeCDQ_(),it=sys.getFoldersByName(nom);\n  if(it.hasNext())return it.next();\n  return creer?sys.createFolder(nom):null;\n}\nfunction cdqDossierCompagnieArchiveV2292_(racine,client,creer){\n  if(!racine)return null;const id=String(client.getId()),it=racine.getFolders();let parNom=null;\n  while(it.hasNext()){\n    const d=it.next(),m=lireMetaPhotoCDQ_(d);\n    if(String(m.cdqArchiveClientId||m.cdqPhotoClientId||'')===id){if(creer&&d.getName()!==client.getName())d.setName(client.getName());return d;}\n    if(!parNom&&d.getName()===client.getName()&&!m.cdqArchiveClientId&&!m.cdqPhotoClientId)parNom=d;\n  }\n  if(parNom){if(creer)parNom.setDescription(JSON.stringify({cdqArchiveClientId:id,version:92}));return parNom;}\n  if(!creer)return null;\n  const d=racine.createFolder(cdqNomArchiveV2292_(client.getName(),'Client'));\n  d.setDescription(JSON.stringify({cdqArchiveClientId:id,version:92}));return d;\n}\nfunction cdqCibleArchiveV2292_(type,id,client){\n  try{\n    let n=type==='fichier'?DriveApp.getFileById(id).getName():(type==='dossier'?DriveApp.getFolderById(id).getName():'');\n    n=String(n||'').replace(/\\.(pdf|xlsx?|xlsm|csv)$/i,'').trim();\n    if(!n||n.toLowerCase()===String(client.getName()||'').trim().toLowerCase())return '';\n    return cdqNomArchiveV2292_(n,'');\n  }catch(e){return '';}\n}\nfunction cdqBaseNomArchiveV2292_(prefixe,client,tech,cible){\n  return [prefixe,cdqNomArchiveV2292_(client.getName(),'Client'),tech,cible].filter(Boolean).join(' - ');\n}\nfunction cdqExtensionPhotoV2292_(mime,original){\n  const m=String(original||'').match(/\\.([A-Za-z0-9]{2,8})$/);if(m)return'.'+m[1].toLowerCase();\n  mime=String(mime||'').toLowerCase();if(mime==='image/png')return'.png';if(mime==='image/webp')return'.webp';if(/heic|heif/.test(mime))return'.heic';return'.jpg';\n}\nfunction obtenirDossierPhotosClientLegacyV2292_(client){\n  const sys=obtenirDossierSystemeCDQ_(),it=sys.getFolders();\n  while(it.hasNext()){const d=it.next();if(d.getName()==='Photos'||d.getName()==='Notes')continue;if(String(lireMetaPhotoCDQ_(d).cdqPhotoClientId||'')===String(client.getId()))return d;}\n  return null;\n}\nfunction cdqArchiverNoteV2292_(type,id,note,acces){\n  note=String(note||'').trim();if(!note)return null;\n  const client=obtenirClientPhotoCDQ_(type,id),zone=Session.getScriptTimeZone()||'America/Toronto',now=new Date();\n  const jour=Utilities.formatDate(now,zone,'yyyy-MM-dd'),prefixe=Utilities.formatDate(now,zone,'yyyyMMdd_HHmmss');\n  const tech=cdqTechnicienArchiveV2292_(acces&&acces.email),cible=cdqCibleArchiveV2292_(type,id,client);\n  const racine=cdqRacineArchiveV2292_('Notes',true),comp=cdqDossierCompagnieArchiveV2292_(racine,client,true);\n  const sousNom=cdqNomArchiveV2292_(jour+' - '+tech+(cible?(' - '+cible):''),jour+' - '+tech),its=comp.getFoldersByName(sousNom),dossier=its.hasNext()?its.next():comp.createFolder(sousNom);\n  const nom=cdqBaseNomArchiveV2292_(prefixe,client,tech,cible)+'.txt';\n  const texte=['Compagnie : '+client.getName(),'Date : '+jour,'Technicien : '+tech,cible?('Balance / cible : '+cible):'','','Note :',note].join('\\n');\n  const f=dossier.createFile(nom,texte,MimeType.PLAIN_TEXT);\n  f.setDescription(JSON.stringify({cdqNoteArchive:true,type:type,cibleId:id,idCompagnie:client.getId(),ajoutePar:acces&&acces.email||'',ajouteLe:now.toISOString(),nomCible:cible,version:92}));\n  return f;\n}\n\n"
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "function obtenirDossierPhotosClientCDQ_(client, creer) {\n  const systeme = obtenirDossierSystemeCDQ_(), dossiers = systeme.getFolders();",
-      "replacement": "function obtenirDossierPhotosClientCDQ_(client, creer) {\n  const systeme = cdqRacineArchiveV2292_('Photos', creer);\n  if (!systeme) return null;\n  const dossiers = systeme.getFolders();",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "  dossier.setDescription(JSON.stringify({cdqPhotoClientId:client.getId(), rangement:'client/date', version:25}));",
-      "replacement": "  dossier.setDescription(JSON.stringify({cdqPhotoClientId:client.getId(), cdqArchiveClientId:client.getId(), rangement:'Photos/Compagnie/Date-Technicien', version:92}));",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dossier.getName())) continue;",
-      "replacement": "    if (!/^\\d{4}-\\d{2}-\\d{2}(?:\\s+-\\s+.+)?$/.test(dossier.getName())) continue;",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "  const date = datePrisePhotoCDQ_(photoMeta);\n  const uploadId = String(photoMeta && photoMeta.uploadId || '').slice(0,160);\n  const bytes = Utilities.base64Decode(match[2]);\n  const nom = date.prefixe + '_' + nettoyerNomPhotoCDQ_(nomFichier || 'photo.jpg');",
-      "replacement": "  const date = datePrisePhotoCDQ_(photoMeta);\n  const technicien = cdqTechnicienArchiveV2292_(utilisateur.email);\n  const cible = cdqCibleArchiveV2292_(type, id, client);\n  const uploadId = String(photoMeta && photoMeta.uploadId || '').slice(0,160);\n  const bytes = Utilities.base64Decode(match[2]);\n  const nom = cdqBaseNomArchiveV2292_(date.prefixe, client, technicien, cible) + cdqExtensionPhotoV2292_(match[1], nomFichier);",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "    const clientPhotos = obtenirDossierPhotosClientCDQ_(client, true);\n    const dates = clientPhotos.getFoldersByName(date.jour);\n    const dossier = dates.hasNext() ? dates.next() : clientPhotos.createFolder(date.jour);",
-      "replacement": "    const clientPhotos = obtenirDossierPhotosClientCDQ_(client, true);\n    const nomSousDossier = cdqNomArchiveV2292_(date.jour + ' - ' + technicien, date.jour);\n    const dates = clientPhotos.getFoldersByName(nomSousDossier);\n    const dossier = dates.hasNext() ? dates.next() : clientPhotos.createFolder(nomSousDossier);",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "      const meta = {type:type, cibleId:id, idCompagnie:client.getId(), capturedAt:date.capturedAt,\n        datePhoto:date.jour, uploadId:uploadId, ajoutePar:utilisateur.email, ajouteLe:new Date().toISOString()};",
-      "replacement": "      const meta = {type:type, cibleId:id, idCompagnie:client.getId(), capturedAt:date.capturedAt,\n        datePhoto:date.jour, uploadId:uploadId, ajoutePar:utilisateur.email, ajouteLe:new Date().toISOString(),\n        technicien:technicien, nomCompagnie:client.getName(), nomCible:cible, rangement:'Photos/Compagnie/Date-Technicien', version:92};",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "  parcourirPhotosClientCDQ_(obtenirDossierPhotosClientCDQ_(client, false), function(f){ ajouter(f, false); });\n  const ancien = obtenirDossierPhotosCibleCDQ_(type, id);",
-      "replacement": "  parcourirPhotosClientCDQ_(obtenirDossierPhotosClientCDQ_(client, false), function(f){ ajouter(f, false); });\n  parcourirPhotosClientCDQ_(obtenirDossierPhotosClientLegacyV2292_(client), function(f){ ajouter(f, false); });\n  const ancien = obtenirDossierPhotosCibleCDQ_(type, id);",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "function enregistrerNoteFichier(fichierId, note, idCompagnie) {\n  verifierDroit_('ecriture');",
-      "replacement": "function enregistrerNoteFichier(fichierId, note, idCompagnie) {\n  const acces = verifierDroit_('ecriture');",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "  fichier.setDescription(nouvelleDescription);\n\n  if (idCompagnie) {",
-      "replacement": "  fichier.setDescription(nouvelleDescription);\n  if (note) cdqArchiverNoteV2292_('fichier', fichierId, note, acces);\n\n  if (idCompagnie) {",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "function enregistrerNoteDossier(dossierId, note, idCompagnie) {\n  verifierDroit_('ecriture');",
-      "replacement": "function enregistrerNoteDossier(dossierId, note, idCompagnie) {\n  const acces = verifierDroit_('ecriture');",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "  dossier.setDescription(remplacerNoteCDQ_(descriptionActuelle, note));\n\n  if (idCompagnie) invaliderCacheContenuClient_(idCompagnie);",
-      "replacement": "  dossier.setDescription(remplacerNoteCDQ_(descriptionActuelle, note));\n  if (note) cdqArchiverNoteV2292_('dossier', dossierId, note, acces);\n\n  if (idCompagnie) invaliderCacheContenuClient_(idCompagnie);",
-      "expected": 1
+      "before": "</body>",
+      "text": "\n\n<style id=\"cdqV2293GlobalProgressCss\">\n#cdqGlobalProgressV2293{\n  position:fixed;right:12px;bottom:calc(78px + env(safe-area-inset-bottom,0px));\n  z-index:2147483000;min-width:172px;max-width:min(78vw,320px);\n  padding:9px 11px 8px;border-radius:12px;\n  background:rgba(6,16,28,.94);border:1px solid rgba(85,224,255,.55);\n  box-shadow:0 7px 24px rgba(0,0,0,.38);\n  color:#eefcff;font-family:Arial,Helvetica,sans-serif;\n  pointer-events:none;opacity:0;transform:translateY(8px);\n  transition:opacity .16s ease,transform .16s ease;\n}\n#cdqGlobalProgressV2293.show{opacity:1;transform:translateY(0)}\n#cdqGlobalProgressV2293 .cdq-progress-head{display:flex;align-items:center;gap:9px;justify-content:space-between}\n#cdqGlobalProgressV2293 .cdq-progress-label{font-size:12px;font-weight:700;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n#cdqGlobalProgressV2293 .cdq-progress-pct{font-size:14px;font-weight:800;min-width:39px;text-align:right;font-variant-numeric:tabular-nums}\n#cdqGlobalProgressV2293 .cdq-progress-track{height:4px;margin-top:7px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}\n#cdqGlobalProgressV2293 .cdq-progress-fill{height:100%;width:0;border-radius:inherit;background:#58e4ff;transition:width .24s ease}\n#cdqGlobalProgressV2293.failed{border-color:rgba(255,105,105,.8)}\n#cdqGlobalProgressV2293.failed .cdq-progress-fill{background:#ff6969}\nhtml.windows #cdqGlobalProgressV2293{bottom:18px;right:18px}\n@media(max-width:520px){\n  #cdqGlobalProgressV2293{right:9px;bottom:calc(72px + env(safe-area-inset-bottom,0px));min-width:158px;max-width:74vw}\n}\n</style>\n<script id=\"cdqV2293GlobalProgressJs\">\n(function(){\n'use strict';\nconst P={seq:0,active:false,value:0,label:'',timer:null,hide:null,failed:false};\n\nfunction el(){\n  let box=document.getElementById('cdqGlobalProgressV2293');\n  if(box)return box;\n  box=document.createElement('div');\n  box.id='cdqGlobalProgressV2293';\n  box.setAttribute('role','status');\n  box.setAttribute('aria-live','polite');\n  box.innerHTML='<div class=\"cdq-progress-head\"><span class=\"cdq-progress-label\">Chargement…</span><strong class=\"cdq-progress-pct\">0 %</strong></div><div class=\"cdq-progress-track\"><div class=\"cdq-progress-fill\"></div></div>';\n  document.body.appendChild(box);\n  return box;\n}\nfunction clearTimers(){\n  if(P.timer){clearInterval(P.timer);P.timer=null;}\n  if(P.hide){clearTimeout(P.hide);P.hide=null;}\n}\nfunction render(){\n  const box=el(),lab=box.querySelector('.cdq-progress-label'),pct=box.querySelector('.cdq-progress-pct'),fill=box.querySelector('.cdq-progress-fill');\n  if(lab)lab.textContent=P.label||'Chargement…';\n  if(pct)pct.textContent=Math.round(P.value)+' %';\n  if(fill)fill.style.width=Math.max(0,Math.min(100,P.value))+'%';\n  box.classList.toggle('failed',!!P.failed);\n  box.classList.toggle('show',!!P.active);\n}\nfunction set(v,label){\n  if(label)P.label=String(label);\n  if(Number.isFinite(Number(v)))P.value=Math.max(P.value,Math.min(100,Number(v)));\n  render();return P.seq;\n}\nfunction start(label,startValue){\n  if(P.active && !P.failed){\n    if(label)P.label=String(label);\n    if(Number.isFinite(Number(startValue)))P.value=Math.max(P.value,Number(startValue));\n    render();return P.seq;\n  }\n  clearTimers();P.seq++;P.active=true;P.failed=false;P.value=Math.max(1,Math.min(90,Number(startValue)||6));P.label=String(label||'Chargement…');render();\n  P.timer=setInterval(function(){\n    if(!P.active||P.failed)return;\n    let step=P.value<28?4:(P.value<58?2:(P.value<82?1:0.5));\n    P.value=Math.min(92,P.value+step);render();\n  },650);\n  return P.seq;\n}\nfunction done(label,seq){\n  if(seq&&seq!==P.seq)return;\n  if(!P.active||P.failed)return;\n  if(P.timer){clearInterval(P.timer);P.timer=null;}\n  P.value=100;P.label=String(label||'Terminé');render();\n  P.hide=setTimeout(function(){P.active=false;render();},750);\n}\nfunction fail(label,seq){\n  if(seq&&seq!==P.seq)return;\n  if(!P.active)start(label||'Erreur',8);\n  if(P.timer){clearInterval(P.timer);P.timer=null;}\n  P.failed=true;P.label=String(label||'Erreur');render();\n  P.hide=setTimeout(function(){P.active=false;P.failed=false;render();},1800);\n}\nfunction kindLabel(kind){\n  return ({photo:'Photo → Drive',note:'Note → Drive','template-copy':'Copie PDF → Drive','pdf-import':'PDF → Drive','inventory-transfer':'Synchronisation inventaire'})[String(kind||'')]||'Synchronisation Drive';\n}\nfunction loadingText(t){\n  return /(chargement|préparation|préparer|création|copie|duplication|synchronisation|en cours|téléchargement|import|envoi|conversion|transfert|enregistrement|actualisation|lecture du projet)/i.test(String(t||''));\n}\nwindow.cdqProgressStartV2293=start;\nwindow.cdqProgressSetV2293=set;\nwindow.cdqProgressDoneV2293=done;\nwindow.cdqProgressFailV2293=fail;\nwindow.cdqProgressStateV2293=P;\n\nif(typeof afficherMessage==='function'){\n  const old=afficherMessage;\n  afficherMessage=function(texte,succes){\n    const r=old.apply(this,arguments);\n    if(succes===true){\n      if(P.active&&!P.failed)done(String(texte||'Terminé'));\n    }else if(loadingText(texte)){\n      start(String(texte||'Chargement…'),8);\n    }\n    return r;\n  };\n  window.afficherMessage=afficherMessage;\n}\nif(typeof afficherErreur==='function'){\n  const old=afficherErreur;\n  afficherErreur=function(erreur){\n    fail((erreur&&erreur.message)?erreur.message:'Erreur');\n    return old.apply(this,arguments);\n  };\n  window.afficherErreur=afficherErreur;\n}\n\nif(typeof confirmerCopie==='function'){\n  const old=confirmerCopie;\n  confirmerCopie=async function(){\n    const token=start('Copie PDF → Drive',8);\n    try{\n      const r=await old.apply(this,arguments);\n      if(P.active&&!P.failed)done('PDF prêt',token);\n      return r;\n    }catch(e){fail(e&&e.message?e.message:'Erreur de copie',token);throw e;}\n  };\n  window.confirmerCopie=confirmerCopie;\n}\n\nif(typeof cdqV19HandlePhotoFile==='function'){\n  const old=cdqV19HandlePhotoFile;\n  cdqV19HandlePhotoFile=async function(){\n    const token=start('Préparation de la photo',5);\n    try{\n      set(18,'Compression de la photo');\n      const r=await old.apply(this,arguments);\n      if(P.active&&!P.failed)done('Photo enregistrée',token);\n      return r;\n    }catch(e){fail(e&&e.message?e.message:'Erreur photo',token);throw e;}\n  };\n  window.cdqV19HandlePhotoFile=cdqV19HandlePhotoFile;\n}\n\nif(typeof cdqV19ProcessAction==='function'){\n  const old=cdqV19ProcessAction;\n  cdqV19ProcessAction=async function(a){\n    if(P.active)set(Math.min(86,Math.max(32,P.value)),kindLabel(a&&a.kind));\n    const r=await old.apply(this,arguments);\n    if(P.active)set(Math.min(90,P.value+9),kindLabel(a&&a.kind));\n    return r;\n  };\n  window.cdqV19ProcessAction=cdqV19ProcessAction;\n}\n\nif(typeof cdqSynchroniserEnAttente==='function'){\n  const old=cdqSynchroniserEnAttente;\n  cdqSynchroniserEnAttente=async function(){\n    let token=P.active?P.seq:start('Synchronisation Drive',12);\n    try{\n      if(typeof cdqV19QueueGet==='function'){\n        try{\n          const q=await cdqV19QueueGet();\n          if(q&&q.length)set(Math.max(22,P.value),kindLabel(q[0].kind));\n        }catch(_){}\n      }\n      const r=await old.apply(this,arguments);\n      if(P.active&&!P.failed)done('Synchronisation terminée',token);\n      return r;\n    }catch(e){fail(e&&e.message?e.message:'Erreur de synchronisation',token);throw e;}\n  };\n  window.cdqSynchroniserEnAttente=cdqSynchroniserEnAttente;\n}\n\nif(typeof confirmerNoteFichier==='function'){\n  const old=confirmerNoteFichier;\n  confirmerNoteFichier=function(){\n    start('Enregistrement de la note',10);\n    return old.apply(this,arguments);\n  };\n  window.confirmerNoteFichier=confirmerNoteFichier;\n}\n\nif(typeof ouvrirNoteElement==='function'){\n  const old=ouvrirNoteElement;\n  ouvrirNoteElement=function(cible){\n    const r=old.apply(this,arguments);\n    try{\n      const input=document.getElementById('noteInput');\n      const modal=document.getElementById('noteModalOverlay');\n      if(input&&input.disabled&&/Chargement de la note/i.test(String(input.value||''))){\n        const token=start('Chargement de la note',10);\n        const born=Date.now();\n        const watch=setInterval(function(){\n          if(!P.active||P.seq!==token){clearInterval(watch);return;}\n          if(!input.disabled || !modal || modal.style.display!=='flex'){\n            clearInterval(watch);if(!P.failed)done('Note chargée',token);return;\n          }\n          if(Date.now()-born>30000){clearInterval(watch);}\n        },160);\n      }\n    }catch(_){}\n    return r;\n  };\n  window.ouvrirNoteElement=ouvrirNoteElement;\n}\n\nif(typeof chargerFichiers==='function'){\n  const old=chargerFichiers;\n  chargerFichiers=function(){\n    start('Chargement des fichiers',7);\n    return old.apply(this,arguments);\n  };\n  window.chargerFichiers=chargerFichiers;\n}\nif(typeof afficherContenu==='function'){\n  const old=afficherContenu;\n  afficherContenu=function(){\n    const r=old.apply(this,arguments);\n    if(P.active&&!P.failed&&/Chargement des fichiers/i.test(P.label))done('Fichiers prêts');\n    return r;\n  };\n  window.afficherContenu=afficherContenu;\n}\n\nif(typeof cdqV19OfflineStatus==='function'){\n  const old=cdqV19OfflineStatus;\n  cdqV19OfflineStatus=function(text,state,clientId){\n    const r=old.apply(this,arguments);\n    const m=String(text||'').match(/Modèle PDF\\s+(\\d+)\\/(\\d+)/i);\n    if(m){\n      const cur=Number(m[1]),tot=Math.max(1,Number(m[2]));\n      start('Téléchargement du modèle PDF',8);\n      set(Math.min(94,Math.round((cur/tot)*90)+4),'Téléchargement du modèle PDF');\n    }else if(state==='ready'&&P.active&&/modèle PDF/i.test(P.label)){\n      done('Modèle PDF prêt');\n    }\n    return r;\n  };\n  window.cdqV19OfflineStatus=cdqV19OfflineStatus;\n}\n\nwindow.addEventListener('online',function(){\n  if(P.active&&P.failed){P.failed=false;render();}\n});\n})();\n</script>\n\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V32",
-    "rollbackBase": "V22.91",
-    "storage": [
-      "_CDQ_SYSTEME/Photos/Compagnie/AAAA-MM-JJ - Technicien - Numéro de balance si associé/photo",
-      "_CDQ_SYSTEME/Notes/Compagnie/AAAA-MM-JJ - Technicien - Numéro de balance si associé/note.txt"
+    "rollbackBase": "V22.92",
+    "behavior": [
+      "Petit indicateur fixe non bloquant visible pendant les opérations longues.",
+      "Pourcentage animé jusqu'à 92 % quand Google ne fournit pas de progression réseau mesurable.",
+      "100 % uniquement lors d'une confirmation réelle de fin.",
+      "Étiquette d'opération : photo, note, copie PDF, synchronisation Drive, chargement de fichiers ou modèle PDF.",
+      "Erreurs visibles dans le même indicateur avant disparition.",
+      "Aucun changement au classement Photos/Notes V22.92."
     ],
-    "preserved": [
-      "liaison photo actuelle",
-      "file hors ligne photos",
-      "notes dans descriptions Drive",
-      "lecture anciennes photos"
+    "exactProgress": [
+      "Téléchargement des morceaux d'un modèle PDF quand le compteur i/n est disponible."
     ],
-    "filenameIncludes": [
-      "date et heure",
-      "compagnie",
-      "technicien",
-      "numéro ou nom de balance/cible si disponible"
-    ],
-    "folderIncludes": [
-      "date",
-      "technicien",
-      "numéro ou nom de balance/cible si disponible"
+    "estimatedProgress": [
+      "Appels Google Apps Script / Drive qui ne publient pas de progression octet par octet."
     ]
   }
 }
