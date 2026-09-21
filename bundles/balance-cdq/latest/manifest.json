@@ -1,87 +1,51 @@
 {
   "schema": "cdq-script-bundle-v2",
   "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
-  "version": "V25.06",
-  "build": "2026.09.21-v25.06-personal-icon-pdf-swipe-fix",
-  "title": "Balance CDQ V25.06 — icônes téléphone + PDF + gestes",
+  "version": "V25.07",
+  "build": "2026.09.21-v25.07-auth-nav-settings-swipe-pdf-fix",
+  "title": "Balance CDQ V25.07 — identification, Réglages, glissements et PDF",
   "requiresBuild": [
-    "2026.09.21-v25.03-mobile-ui-update-center-fix",
-    "2026.09.21-v25.04-stable-mobile-file-open",
-    "2026.09.21-v25.05-mobile-auth-file-recovery"
+    "2026.09.21-v25.06-personal-icon-pdf-swipe-fix"
   ],
   "patches": [
     {
       "file": "Selector.html",
-      "op": "replace_build_any",
-      "from": [
-        "2026.09.21-v25.03-mobile-ui-update-center-fix",
-        "2026.09.21-v25.04-stable-mobile-file-open",
-        "2026.09.21-v25.05-mobile-auth-file-recovery"
-      ],
-      "to": "2026.09.21-v25.06-personal-icon-pdf-swipe-fix"
+      "op": "replace_build",
+      "from": "2026.09.21-v25.06-personal-icon-pdf-swipe-fix",
+      "to": "2026.09.21-v25.07-auth-nav-settings-swipe-pdf-fix"
     },
     {
       "file": "Code.gs",
-      "op": "replace_build_any",
-      "from": [
-        "2026.09.21-v25.03-mobile-ui-update-center-fix",
-        "2026.09.21-v25.04-stable-mobile-file-open",
-        "2026.09.21-v25.05-mobile-auth-file-recovery"
-      ],
-      "to": "2026.09.21-v25.06-personal-icon-pdf-swipe-fix"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2500NativePdfWorkflowJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2504StableFileOpenJs"
+      "op": "replace_build",
+      "from": "2026.09.21-v25.06-personal-icon-pdf-swipe-fix",
+      "to": "2026.09.21-v25.07-auth-nav-settings-swipe-pdf-fix"
     },
     {
       "file": "Selector.html",
       "op": "remove_style_id_if_present",
-      "id": "cdqV2505MobileRecoveryCss"
+      "id": "cdqV2507TargetedUiCss"
     },
     {
       "file": "Selector.html",
       "op": "remove_script_id_if_present",
-      "id": "cdqV2505MobileRecoveryJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2506PersonalIconCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2506PersonalRecoveryJs"
+      "id": "cdqV2507TargetedUiJs"
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqV2506PersonalIconCss\">\nhtml:is(.android,.mobile-device){\n  --cdq-personal-icon-factor-v2506:.74;\n}\nhtml:is(.android,.mobile-device) .bottom-nav .nav-icon,\nhtml:is(.android,.mobile-device) .bottom-nav [class*=\"nav-icon\"],\nhtml:is(.android,.mobile-device) .bottom-nav button > span:first-child,\nhtml:is(.android,.mobile-device) .bottom-nav a > span:first-child,\nhtml:is(.android,.mobile-device) .bottom-nav img,\nhtml:is(.android,.mobile-device) .bottom-nav svg,\nhtml:is(.android,.mobile-device) .quick-icon,\nhtml:is(.android,.mobile-device) #cdqTopActionsV2204 > .cdq-top-action > span:first-child,\nhtml:is(.android,.mobile-device) .file-icon,\nhtml:is(.android,.mobile-device) .folder-icon{\n  transform:scale(var(--cdq-personal-icon-factor-v2506))!important;\n  transform-origin:center!important;\n}\n</style>\n<script id=\"cdqV2506PersonalRecoveryJs\">\n(function(){\n'use strict';\n\nfunction clamp(v){v=Number(v);return Number.isFinite(v)?Math.max(0,Math.min(100,v)):50;}\nfunction factor(v){\n  v=clamp(v);\n  // Ce téléphone : 50 devient le rendu de référence souhaité.\n  // Les autres utilisateurs gardent toute la plage du curseur.\n  if(v<=50)return .58+(.74-.58)*(v/50);\n  return .74+(1.04-.74)*((v-50)/50);\n}\nfunction currentIconValue(){\n  try{if(typeof cdqIconValueV89==='function')return clamp(cdqIconValueV89());}catch(_){}\n  const r=findIconRange();\n  return r?clamp(r.value):50;\n}\nfunction findIconRange(){\n  const ranges=Array.from(document.querySelectorAll('input[type=\"range\"]'));\n  for(const r of ranges){\n    let p=r.parentElement;\n    for(let depth=0;p&&depth<5;depth++,p=p.parentElement){\n      const txt=String(p.textContent||'');\n      if(/Icônes/i.test(txt)&&!/Interface générale/i.test(txt)&&!/Texte\\s*50/i.test(txt))return r;\n    }\n  }\n  return ranges.length>=3?ranges[2]:null;\n}\nfunction applyIconFactor(value){\n  const f=factor(value==null?currentIconValue():value);\n  document.documentElement.style.setProperty('--cdq-personal-icon-factor-v2506',String(f));\n}\napplyIconFactor();\nsetTimeout(applyIconFactor,120);\nsetTimeout(applyIconFactor,700);\n\ndocument.addEventListener('input',function(e){\n  const t=e.target;\n  if(!t||t.type!=='range')return;\n  const icon=findIconRange();\n  if(icon&&t===icon)applyIconFactor(t.value);\n},true);\ndocument.addEventListener('change',function(e){\n  const t=e.target;\n  if(!t||t.type!=='range')return;\n  const icon=findIconRange();\n  if(icon&&t===icon)applyIconFactor(t.value);\n},true);\n\ntry{\n  new MutationObserver(function(){clearTimeout(window.__cdqV2506IconTimer);window.__cdqV2506IconTimer=setTimeout(applyIconFactor,50);})\n    .observe(document.body,{childList:true,subtree:true});\n}catch(_){}\n\nfunction markOpen(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const meta=(typeof cdqDocumentMeta==='function'&&cdqDocumentMeta(id))||{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\nfunction openSheet(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return false;\n  markOpen(id);\n  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit';\n  const href=/Android/i.test(navigator.userAgent||'')\n    ? 'intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;S.browser_fallback_url='+encodeURIComponent(web)+';end'\n    : web;\n  const a=document.createElement('a');\n  a.href=href;a.target='_top';a.rel='noopener';a.style.display='none';\n  document.body.appendChild(a);a.click();a.remove();\n  return true;\n}\nfunction openPdf(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return false;\n  markOpen(id);\n  try{\n    if(typeof cdqOpenPdf==='function'){\n      Promise.resolve(cdqOpenPdf(id)).catch(function(err){\n        try{if(typeof afficherErreur==='function')afficherErreur(err);}catch(_){}\n      });\n      return true;\n    }\n  }catch(_){}\n  try{if(typeof afficherMessage==='function')afficherMessage('Impossible d’ouvrir ce PDF.',false);}catch(_){}\n  return false;\n}\n\nconst previousModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  let meta=null;\n  try{meta=typeof cdqDocumentMeta==='function'?cdqDocumentMeta(id):null;}catch(_){}\n  const type=String(meta&&meta.type||'').toUpperCase();\n  if(type==='GOOGLE_SHEETS'||type.includes('SHEET'))return openSheet(id);\n  if(type==='PDF')return openPdf(id);\n  if(typeof previousModify==='function')return previousModify.apply(this,arguments);\n};\n\ntry{\n  window.cdqV19OpenOfflineSheet=openSheet;\n  window.cdqOpenSheetStableV2506=openSheet;\n  window.cdqV24OpenPdf=openPdf;\n  window.cdqOuvrirPdfCommeSheetV2275=openPdf;\n}catch(_){}\n\n// IMPORTANT : aucun pointerdown/pointerup global ici.\n// Les gestes historiques gauche/droite et l'appui long restent entièrement au Selector.\n})();\n</script>\n"
+      "text": "\n<style id=\"cdqV2507TargetedUiCss\">\n/* Réglages : même présence visuelle que Hors ligne / Note / Photos. */\nhtml:is(.android,.mobile-device) #cdqTopDisplayButtonV2204 > span:first-child,\nhtml:is(.android,.mobile-device) #displayModeButton > span:first-child,\nhtml:is(.android,.mobile-device) #cdqTopDisplayButtonV2204 svg,\nhtml:is(.android,.mobile-device) #displayModeButton svg{\n  font-size:34px!important;\n  width:34px!important;\n  height:34px!important;\n  line-height:34px!important;\n  min-width:34px!important;\n  display:inline-grid!important;\n  place-items:center!important;\n  transform:scale(var(--cdq-personal-icon-factor-v2506,.74))!important;\n  transform-origin:center!important;\n}\n\n/* Les actions révélées par glissement doivent rester compactes. */\nhtml:is(.android,.mobile-device) [class*=\"swipe\"] button,\nhtml:is(.android,.mobile-device) [class*=\"swipe\"] [role=\"button\"],\nhtml:is(.android,.mobile-device) .file-actions button,\nhtml:is(.android,.mobile-device) .file-action-button,\nhtml:is(.android,.mobile-device) [class*=\"file-action\"] button{\n  width:56px!important;\n  min-width:56px!important;\n  max-width:56px!important;\n  height:56px!important;\n  min-height:56px!important;\n  padding:6px!important;\n  font-size:20px!important;\n  line-height:1!important;\n  flex:0 0 56px!important;\n  box-sizing:border-box!important;\n  overflow:hidden!important;\n}\nhtml:is(.android,.mobile-device) [class*=\"swipe\"] button > span:first-child,\nhtml:is(.android,.mobile-device) .file-actions button > span:first-child,\nhtml:is(.android,.mobile-device) .file-action-button > span:first-child,\nhtml:is(.android,.mobile-device) [class*=\"file-action\"] button > span:first-child{\n  font-size:22px!important;\n  line-height:1!important;\n  transform:none!important;\n}\nhtml:is(.android,.mobile-device) [class*=\"swipe\"] button svg,\nhtml:is(.android,.mobile-device) [class*=\"swipe\"] button img,\nhtml:is(.android,.mobile-device) .file-actions button svg,\nhtml:is(.android,.mobile-device) .file-actions button img{\n  width:24px!important;\n  height:24px!important;\n  max-width:24px!important;\n  max-height:24px!important;\n  transform:none!important;\n}\n</style>\n<script id=\"cdqV2507TargetedUiJs\">\n(function(){\n'use strict';\n\nfunction validId(id){return /^[A-Za-z0-9_-]{10,200}$/.test(String(id||''));}\nfunction metaFor(id){\n  try{return typeof cdqDocumentMeta==='function'?(cdqDocumentMeta(id)||{}):{};}catch(_){return {};}\n}\nfunction markOpen(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const meta=metaFor(id);\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\nfunction openSheet(id){\n  id=String(id||'');if(!validId(id))return false;\n  markOpen(id);\n  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit';\n  const href=/Android/i.test(navigator.userAgent||'')\n    ? 'intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;S.browser_fallback_url='+encodeURIComponent(web)+';end'\n    : web;\n  const a=document.createElement('a');\n  a.href=href;a.target='_top';a.rel='noopener';a.style.display='none';\n  document.body.appendChild(a);a.click();a.remove();\n  return true;\n}\nfunction driveFallback(id){\n  const web='https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view?usp=drivesdk';\n  const href=/Android/i.test(navigator.userAgent||'')\n    ? 'intent://drive.google.com/file/d/'+encodeURIComponent(id)+'/view?usp=drivesdk#Intent;scheme=https;package=com.google.android.apps.docs;S.browser_fallback_url='+encodeURIComponent(web)+';end'\n    : web;\n  const a=document.createElement('a');\n  a.href=href;a.target='_top';a.rel='noopener';a.style.display='none';\n  document.body.appendChild(a);a.click();a.remove();\n}\nfunction readerVisible(){\n  return !!document.querySelector(\n    '#legacy-pdf-reader,#cdq-pdf-reader-v2304,iframe[src*=\"reader.html\"],.pdf-reader,.cdq-pdf-reader'\n  );\n}\nfunction openPdf(id){\n  id=String(id||'');if(!validId(id))return false;\n  markOpen(id);\n  let started=false;\n  try{\n    if(typeof cdqOpenPdf==='function'){\n      started=true;\n      Promise.resolve(cdqOpenPdf(id)).catch(function(){\n        if(!readerVisible())driveFallback(id);\n      });\n    }\n  }catch(_){}\n  if(started){\n    setTimeout(function(){\n      if(document.visibilityState==='visible'&&!readerVisible())driveFallback(id);\n    },2400);\n    return true;\n  }\n  driveFallback(id);\n  return true;\n}\nfunction fileInfo(target){\n  if(!target||!target.closest)return null;\n  if(target.closest('button,a,input,select,textarea,label,[class*=\"swipe\"],[class*=\"file-action\"],.file-actions'))return null;\n  const row=target.closest('.file-row');\n  if(!row)return null;\n  const box=row.querySelector('.file-checkbox[data-file-id]');\n  const id=String(box&&box.dataset.fileId||'');\n  if(!validId(id))return null;\n  const meta=metaFor(id);\n  const type=String(meta.type||row.dataset.fileType||'').toUpperCase();\n  if(type==='PDF')return {id,type:'PDF'};\n  if(type==='GOOGLE_SHEETS'||type.includes('SHEET'))return {id,type:'GOOGLE_SHEETS'};\n  return null;\n}\n\n// Click uniquement : aucun pointerdown/pointerup, donc les glissements restent natifs.\ndocument.addEventListener('click',function(e){\n  let selecting=false;\n  try{\n    selecting=document.body.classList.contains('selection-active')||\n      (typeof modeSelectionFichiers!=='undefined'&&!!modeSelectionFichiers);\n  }catch(_){}\n  if(selecting)return;\n  const info=fileInfo(e.target);if(!info)return;\n  e.preventDefault();e.stopImmediatePropagation();\n  if(info.type==='PDF')openPdf(info.id);else openSheet(info.id);\n},true);\n\ntry{\n  window.cdqOpenSheetStableV2507=openSheet;\n  window.cdqV19OpenOfflineSheet=openSheet;\n  window.cdqV24OpenPdf=openPdf;\n  window.cdqOuvrirPdfCommeSheetV2275=openPdf;\n}catch(_){}\n})();\n</script>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V39",
-    "androidAppRequired": "Balance CDQ Android 25.06 compatible; 25.07 seulement pour la biométrie native",
-    "baseline": {
-      "interface": 50,
-      "text": 50,
-      "icons": 50,
-      "personalIconFactorAt50": 0.74
-    },
+    "androidAppRequired": "25.06 compatible; 25.08 pour l'icône adaptive et la biométrie native",
     "fixes": [
-      "À Icônes 50, la taille visuelle est réduite à 74 % pour ce téléphone.",
-      "Le curseur Icônes continue de modifier la taille de 0 à 100.",
-      "Aucun listener pointerdown/pointerup n'intercepte les lignes de fichiers : glissement gauche/droite restauré.",
-      "Google Sheets passe par modifierFichier puis l'intent Sheets direct.",
-      "PDF passe par modifierFichier puis cdqOpenPdf(), le chemin interne stable."
+      "Barre du bas masquée par la PWA tant que CDQ_ACCESS_STATE n'est pas ready.",
+      "Icône Réglages normalisée sans toucher aux trois autres boutons rapides.",
+      "Icônes des actions de glissement limitées à 56 px.",
+      "Aucun pointerdown/pointerup global : glissement gauche/droite conservé.",
+      "PDF : lecteur CDQ d'abord, repli Google Drive si aucun lecteur ne s'affiche."
     ]
   }
 }
