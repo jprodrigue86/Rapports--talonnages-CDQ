@@ -14,6 +14,16 @@
 <script src="./google-auth-config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <title>Rapports D’étalonnages</title>
+<script>
+(function(){
+  try{
+    if(/BalanceCDQAndroid\/\d+(?:\.\d+)?/i.test(String(navigator.userAgent||''))){
+      document.documentElement.style.setProperty('--interface-scale','1.00');
+      document.documentElement.dataset.cdqNativeScale='1.00';
+    }
+  }catch(e){}
+})();
+</script>
 <style>
 :root{
 --interface-scale:1.20;
@@ -427,7 +437,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v25.03-mobile-ui-update-center-fix';
+const CDQ_PWA_BUILD = '2026.09.21-v25.04-stable-mobile-file-open';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1169,8 +1179,7 @@ function cdqNativeAndroidShellV2503(){
   return /BalanceCDQAndroid\/\d+(?:\.\d+)?/i.test(String(navigator.userAgent||''));
 }
 function cdqNativeDisplayRestorePendingV2503(){
-  if(!cdqNativeAndroidShellV2503())return false;
-  try{return localStorage.getItem(CDQ_NATIVE_DISPLAY_RESTORE_KEY_V2503)!=='1';}catch(e){return false;}
+  return false;
 }
 function cdqPriorDisplayPrefsV2503(){
   return {uiScale:50,uiTextScale:50,uiIconScale:54,uiScaleMapVersion:2202,uiUpdatedAt:Date.now()};
