@@ -60,14 +60,18 @@ object DefaultGoogleAccountStore {
             .apply()
     }
 
-    fun pickerIntent(context: Context, preferredEmail: String = ""): Intent {
+    fun pickerIntent(
+        context: Context,
+        preferredEmail: String = "",
+        title: String = "Compte Google par défaut — Balance CDQ"
+    ): Intent {
         val selected = account(context, preferredEmail)
 
         val options = AccountPicker.AccountChooserOptions.Builder()
             .setAllowableAccountsTypes(listOf(GOOGLE_ACCOUNT_TYPE))
             .setAlwaysShowAccountPicker(true)
             .setSelectedAccount(selected)
-            .setTitleOverrideText("Compte Google par défaut — Balance CDQ")
+            .setTitleOverrideText(title)
             .build()
 
         return AccountPicker.newChooseAccountIntent(options)
