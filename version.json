@@ -332,8 +332,9 @@
     "native-apk-update-no-browser-v2502",
     "native-android-display-profile-restored-50-50-54",
     "settings-icon-returns-standard-size",
-    "update-banner-only-for-deployed-bundle",
-    "script-manager-parent-handoff-native-safe"
+    "script-manager-parent-handoff-native-safe",
+    "legacy-update-banner-deployed-only",
+    "v25-03-plus-update-banner-opens-script-manager"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
