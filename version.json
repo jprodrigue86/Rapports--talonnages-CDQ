@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v24.08-pdf-script-reader",
+  "version": "2026.09.21-v24.09-direct-drive-pdf",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v24.08-pdf-script-reader",
-  "backend_version": "2026.09.21-v24.08-pdf-script-reader",
+  "selector_version": "2026.09.21-v24.09-direct-drive-pdf",
+  "backend_version": "2026.09.21-v24.09-direct-drive-pdf",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -314,7 +314,10 @@
     "pdf-scroll-click-guard-v2407",
     "pdf-script-reader-no-apk-v2408",
     "pdf-native-bridge-bypass-v2408",
-    "pdf-tap-priority-preserved-v2408"
+    "pdf-tap-priority-preserved-v2408",
+    "pdf-direct-drive-no-preload-v2409",
+    "pdf-no-block-download-v2409",
+    "pdf-stable-v2279-path-restored-v2409"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -327,5 +330,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v24.08-pdf-script-reader"
+  "pwa_version": "2026.09.21-v24.09-direct-drive-pdf"
 }
