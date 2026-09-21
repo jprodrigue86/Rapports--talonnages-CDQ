@@ -1,0 +1,53 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "version": "V24.07",
+  "build": "2026.09.21-v24.07-pdf-tap-priority",
+  "title": "Balance CDQ V24.07 — toucher PDF prioritaire sur la sélection",
+  "requiresBuild": [
+    "2026.09.21-v24.06-pdf-window-capture-native"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v24.06-pdf-window-capture-native",
+      "to": "2026.09.21-v24.07-pdf-tap-priority"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v24.06-pdf-window-capture-native",
+      "to": "2026.09.21-v24.07-pdf-tap-priority"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2406PdfWindowCaptureJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2407PdfTapPriorityJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n\n<script id=\"cdqV2407PdfTapPriorityJs\">\n(function(){\n'use strict';\n\nlet tapV2407=null;\nlet blockClickUntilV2407=0;\nlet openedClickUntilV2407=0;\n\nfunction isAndroidV2407(){\n  return /Android/i.test(navigator.userAgent||'');\n}\n\nfunction selectionActiveV2407(){\n  if(document.body.classList.contains('selection-active'))return true;\n  try{\n    if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return true;\n  }catch(_){}\n  return false;\n}\n\nfunction metaForIdV2407(id){\n  try{\n    if(typeof cdqDocumentMeta==='function'){\n      const m=cdqDocumentMeta(id);\n      if(m)return m;\n    }\n  }catch(_){}\n  const box=document.querySelector('.file-checkbox[data-file-id=\"'+String(id||'').replace(/[^A-Za-z0-9_-]/g,'')+'\"]');\n  const row=box&&box.closest('.file-row');\n  return row?{\n    id:String(id||''),\n    nom:String(row.dataset.fileName||''),\n    type:String(row.dataset.fileType||''),\n    dateModification:String(row.dataset.fileDate||'')\n  }:null;\n}\n\nfunction markOpenedV2407(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const meta=metaForIdV2407(id)||{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction nativeIntentV2407(id,name){\n  return 'intent://open?fileId='+encodeURIComponent(String(id||''))+\n    '&name='+encodeURIComponent(String(name||'Rapport.pdf'))+\n    '#Intent;scheme=cdqpdf;package=ca.balancecdq.android;end';\n}\n\nfunction launchNativePdfV2407(id,row){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return false;\n\n  const meta=metaForIdV2407(id)||{};\n  markOpenedV2407(id);\n\n  const a=document.createElement('a');\n  a.href=nativeIntentV2407(id,String(meta.nom||'Rapport.pdf'));\n  a.target='_top';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n\n  openedClickUntilV2407=Date.now()+1400;\n  if(row)row.dataset.cdqV2407Opened='1';\n  setTimeout(function(){\n    if(row)try{delete row.dataset.cdqV2407Opened;}catch(_){}\n  },1500);\n\n  return true;\n}\n\nfunction pdfRowFromEventV2407(e){\n  const target=e&&e.target;\n  if(!target||!target.closest)return null;\n\n  // Les vrais contrôles de sélection restent utilisables.\n  if(target.closest('button,a,input,select,textarea,label'))return null;\n\n  const row=target.closest('.file-row');\n  if(!row)return null;\n  if(String(row.dataset.fileType||'').toUpperCase()!=='PDF')return null;\n\n  const box=row.querySelector('.file-checkbox[data-file-id]');\n  if(!box)return null;\n\n  return {row:row,box:box,id:String(box.dataset.fileId||'')};\n}\n\nfunction rowIsSwipedV2407(row){\n  return !!(row&&(row.classList.contains('cdq-swiped-left')||row.classList.contains('cdq-swiped-right')));\n}\n\n// Le point essentiel de V24.07 : si la sélection n'était PAS déjà active\n// au début du toucher, le PDF prend possession du geste dès WINDOW capture.\n// L'ancien pointerdown de sélection, installé plus bas sur document, ne reçoit\n// donc jamais ce toucher normal.\nwindow.addEventListener('pointerdown',function(e){\n  if(!isAndroidV2407())return;\n\n  const item=pdfRowFromEventV2407(e);\n  if(!item)return;\n\n  // Si l'utilisateur est déjà en mode sélection, on ne change rien :\n  // le PDF peut être ajouté/retiré de la sélection normalement.\n  if(selectionActiveV2407())return;\n  if(rowIsSwipedV2407(item.row))return;\n\n  tapV2407={\n    row:item.row,\n    id:item.id,\n    pointerId:e.pointerId,\n    x:e.clientX,\n    y:e.clientY,\n    moved:false\n  };\n\n  // Ne pas preventDefault ici : le défilement vertical doit rester naturel.\n  // On bloque seulement les anciens gestionnaires JS de sélection.\n  e.stopImmediatePropagation();\n},true);\n\nwindow.addEventListener('pointermove',function(e){\n  if(!tapV2407||tapV2407.pointerId!==e.pointerId)return;\n  if(Math.abs(e.clientX-tapV2407.x)>18||Math.abs(e.clientY-tapV2407.y)>18){\n    tapV2407.moved=true;\n  }\n},true);\n\nwindow.addEventListener('pointercancel',function(e){\n  if(tapV2407&&tapV2407.pointerId===e.pointerId)tapV2407=null;\n},true);\n\nwindow.addEventListener('pointerup',function(e){\n  if(!isAndroidV2407())return;\n  if(!tapV2407||tapV2407.pointerId!==e.pointerId)return;\n\n  const t=tapV2407;\n  tapV2407=null;\n\n  if(t.moved){\n    // Empêcher le click synthétique suivant d'ouvrir le PDF après un scroll.\n    blockClickUntilV2407=Date.now()+700;\n    return;\n  }\n  if(rowIsSwipedV2407(t.row))return;\n\n  // Ne pas re-tester selectionActive ici : un ancien code ne doit pas pouvoir\n  // voler le toucher entre pointerdown et pointerup.\n  e.preventDefault();\n  e.stopImmediatePropagation();\n\n  launchNativePdfV2407(t.id,t.row);\n},true);\n\nwindow.addEventListener('click',function(e){\n  if(!isAndroidV2407())return;\n\n  const item=pdfRowFromEventV2407(e);\n  if(!item)return;\n\n  if(Date.now()<=blockClickUntilV2407){\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    return;\n  }\n\n  if(Date.now()<=openedClickUntilV2407||item.row.dataset.cdqV2407Opened==='1'){\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    try{delete item.row.dataset.cdqV2407Opened;}catch(_){}\n    return;\n  }\n\n  // En mode sélection volontaire, laisser le comportement de sélection.\n  if(selectionActiveV2407())return;\n  if(rowIsSwipedV2407(item.row))return;\n\n  // Fallback accessibilité/souris Android.\n  e.preventDefault();\n  e.stopImmediatePropagation();\n  launchNativePdfV2407(item.id,item.row);\n},true);\n\nfunction installV2407(){\n  try{window.cdqV24OpenPdf=launchNativePdfV2407;}catch(_){}\n  try{\n    window.cdqOuvrirPdfCommeSheetV2275=function(id){return launchNativePdfV2407(id,null);};\n    cdqOuvrirPdfCommeSheetV2275=window.cdqOuvrirPdfCommeSheetV2275;\n  }catch(_){}\n  try{\n    window.cdqOpenPdf=function(id){return Promise.resolve(launchNativePdfV2407(id,null));};\n    cdqOpenPdf=window.cdqOpenPdf;\n  }catch(_){}\n}\n\ninstallV2407();\nsetTimeout(installV2407,300);\nsetTimeout(installV2407,1000);\n\nwindow.cdqV2407OpenPdf=function(id){return launchNativePdfV2407(id,null);};\n})();\n</script>\n\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V39",
+    "androidAppRequired": "Balance CDQ Android 24.04 ou plus récent",
+    "rootCause": "Le toucher PDF pouvait activer l'ancien gestionnaire de sélection dès pointerdown avant que V24.06 n'arrive au pointerup.",
+    "fixes": [
+      "Un toucher PDF normal est capturé sur window dès pointerdown avant les anciens gestionnaires document.",
+      "Le pointerdown n'est pas preventDefault afin de conserver le défilement vertical; seule la propagation vers les anciens gestionnaires JS est bloquée.",
+      "Le pointerup appartenant au PDF ouvre le pont natif sans revalider un mode sélection qui aurait pu être activé pendant le geste.",
+      "Un déplacement de plus de 18 px est traité comme un scroll et bloque le click synthétique suivant.",
+      "Un mode sélection déjà actif avant le toucher reste intact.",
+      "Google Sheets n'est pas modifié."
+    ]
+  }
+}
