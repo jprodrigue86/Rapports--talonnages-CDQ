@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v24.00-clean-file-open-core",
+  "version": "2026.09.21-v24.01-pdf-reader-choice",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v24.00-clean-file-open-core",
-  "backend_version": "2026.09.21-v24.00-clean-file-open-core",
+  "selector_version": "2026.09.21-v24.01-pdf-reader-choice",
+  "backend_version": "2026.09.21-v24.01-pdf-reader-choice",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -296,7 +296,9 @@
     "pdf-no-indexeddb-open-v2400",
     "pdf-direct-reader-v2400",
     "native-editable-sheets-v2400",
-    "legacy-file-open-wrapper-cleanup-v2400"
+    "legacy-file-open-wrapper-cleanup-v2400",
+    "pdf-reader-choice-v2401",
+    "pdf-installed-apps-share-v2401"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -309,5 +311,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v24.00-clean-file-open-core"
+  "pwa_version": "2026.09.21-v24.01-pdf-reader-choice"
 }
