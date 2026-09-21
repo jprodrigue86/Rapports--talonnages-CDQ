@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v25.03-mobile-ui-update-center-fix",
+  "version": "2026.09.21-v25.04-stable-mobile-file-open",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v25.03-mobile-ui-update-center-fix",
-  "backend_version": "2026.09.21-v25.03-mobile-ui-update-center-fix",
+  "selector_version": "2026.09.21-v25.04-stable-mobile-file-open",
+  "backend_version": "2026.09.21-v25.04-stable-mobile-file-open",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -334,7 +334,11 @@
     "settings-icon-returns-standard-size",
     "script-manager-parent-handoff-native-safe",
     "legacy-update-banner-deployed-only",
-    "v25-03-plus-update-banner-opens-script-manager"
+    "v25-03-plus-update-banner-opens-script-manager",
+    "native-android-outer-scale-1-00-v2504",
+    "restore-stable-sheets-intent-v2504",
+    "restore-internal-pdf-open-v2504",
+    "bypass-broken-native-pdf-activity-v2504"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -347,5 +351,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v25.03-mobile-ui-update-center-fix"
+  "pwa_version": "2026.09.21-v25.04-stable-mobile-file-open"
 }
