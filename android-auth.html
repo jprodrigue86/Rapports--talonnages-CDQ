@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Connexion Google — Balance CDQ</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+html,body{margin:0;min-height:100%;background:#050c14;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+body{display:grid;place-items:center;min-height:100vh;padding:18px;box-sizing:border-box}
+.card{width:min(420px,100%);background:#0b1723;border:1px solid #294b64;border-radius:22px;padding:24px;box-sizing:border-box;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+h1{font-size:24px;margin:0 0 10px}
+p{color:#a9bfce;line-height:1.45;margin:0 0 18px}
+#google{display:flex;justify-content:center;min-height:48px}
+#status{font-size:13px;color:#9cb3c2;margin-top:14px;min-height:20px}
+button{width:100%;min-height:48px;border:1px solid #277eb0;border-radius:12px;background:#123d5e;color:#fff;font-weight:800;font-size:15px;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Connexion à Balance CDQ</h1>
+  <p>Choisissez votre compte Google. Vous reviendrez automatiquement dans Balance CDQ.</p>
+  <div id="google"></div>
+  <div id="status">Préparation de Google…</div>
+  <button id="retry" type="button" hidden>Réessayer</button>
+</div>
+<script>
+(function(){
+'use strict';
+const q=new URLSearchParams(location.search);
+const challengeId=String(q.get('challengeId')||'');
+const nonce=String(q.get('nonce')||'');
+const clientId=String(q.get('clientId')||'');
+const status=document.getElementById('status');
+const retry=document.getElementById('retry');
+
+function valid(){
+  return /^[A-Za-z0-9._-]{8,220}$/.test(challengeId) &&
+    nonce.length>=8 && nonce.length<=500 &&
+    /^[0-9A-Za-z._-]+\.apps\.googleusercontent\.com$/.test(clientId);
+}
+function back(credential){
+  status.textContent='Retour vers Balance CDQ…';
+  const target='intent://callback?challengeId='+encodeURIComponent(challengeId)+
+    '&credential='+encodeURIComponent(String(credential||''))+
+    '#Intent;scheme=cdqauth;package=ca.balancecdq.android;end';
+  location.href=target;
+}
+function init(){
+  if(!valid()){
+    status.textContent='Paramètres de connexion invalides.';
+    return;
+  }
+  if(!(window.google&&google.accounts&&google.accounts.id)){
+    status.textContent='Google se charge…';
+    setTimeout(init,150);
+    return;
+  }
+  try{
+    google.accounts.id.initialize({
+      client_id:clientId,
+      callback:function(r){
+        if(!r||!r.credential){status.textContent='Google n’a pas retourné le compte.';retry.hidden=false;return;}
+        back(r.credential);
+      },
+      nonce:nonce,
+      auto_select:false,
+      cancel_on_tap_outside:false,
+      ux_mode:'popup',
+      context:'signin'
+    });
+    const host=document.getElementById('google');
+    host.innerHTML='';
+    google.accounts.id.renderButton(host,{
+      type:'standard',
+      theme:'outline',
+      size:'large',
+      text:'signin_with',
+      shape:'rectangular',
+      logo_alignment:'left',
+      locale:'fr',
+      width:320
+    });
+    status.textContent='Touchez votre compte Google.';
+    retry.hidden=true;
+  }catch(e){
+    status.textContent='Impossible de préparer Google. Réessayez.';
+    retry.hidden=false;
+  }
+}
+retry.onclick=function(){retry.hidden=true;status.textContent='Nouvelle tentative…';setTimeout(init,80);};
+init();
+})();
+</script>
+</body>
+</html>
