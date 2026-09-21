@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>CDQ Apps Script Manager</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=35">
+  <link rel="stylesheet" href="style.css?v=36">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -39,7 +39,7 @@
             <strong>CDQ Script Manager</strong>
             <span>Gestion et déploiement de vos applications Google Apps Script</span>
           </div>
-          <div class="version-chip" id="versionChip" title="Version de CDQ Script Manager">V35</div>
+          <div class="version-chip" id="versionChip" title="Version de CDQ Script Manager">V36</div>
           <button id="installApp" class="install-btn" type="button">Installer</button>
         </div>
       </header>
@@ -66,34 +66,90 @@
         <p>Connecte ton compte Google, choisis le projet, colle le nouveau code et écris-le sans ouvrir l’éditeur Apps Script.</p>
       </div>
       <div class="status-row">
-        <span id="versionBadge" class="badge version-badge">Version : V35</span>
+        <span id="versionBadge" class="badge version-badge">Version : V36</span>
         <span id="authBadge" class="badge">Google : non connecté</span>
         <span id="projectBadge" class="badge">Projet : aucun</span>
         <span id="changeBadge" class="badge">Modifications : 0</span>
       </div>
     </section>
 
-    <section class="card quick-card" id="quickCard">
-      <div class="section-title"><span>⚡</span><h2>Mise à jour rapide</h2></div>
-      <div class="quick-grid">
-        <div class="quick-line"><span>Google</span><b id="quickGoogleStatus">Non connecté</b></div>
-        <div class="quick-line"><span>Projet</span><b id="quickProjectStatus">Non lié</b></div>
-        <div class="quick-line"><span>Package</span><b id="quickZipSummary">Aucun fichier</b></div>
-      </div>
-      <button id="quickConnect" class="primary quick-main" type="button">1. Se connecter à Google</button>
-      <button id="quickChooseZip" class="primary quick-main" type="button">2. Choisir ZIP / lien</button>
-      <button id="quickApply" class="green quick-apply" type="button" disabled>3. ÉCRIRE + DÉPLOYER</button>
-      <div id="quickDeployProgress" class="quick-deploy-progress" role="progressbar" aria-label="Progression écriture et déploiement" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
-        <div class="quick-deploy-track" aria-hidden="true">
-          <div id="quickDeployProgressBar" class="quick-deploy-fill"></div>
+    <section class="sm-workflow" id="quickCard">
+      <article class="sm-step-card" id="smProjectStep">
+        <div class="sm-step-head">
+          <span class="sm-step-number">1</span>
+          <div class="sm-step-copy">
+            <h2>Projet cible</h2>
+            <p>Projet Apps Script où appliquer les modifications</p>
+          </div>
+          <span class="sm-step-state" id="smProjectState">● Projet en attente</span>
         </div>
-        <div class="quick-deploy-copy">
-          <strong id="quickDeployProgressPercent">0 %</strong>
-          <span id="quickDeployProgressText">Prêt à écrire.</span>
+        <div class="sm-project-row">
+          <div class="sm-project-field">
+            <span class="sm-project-icon">🧩</span>
+            <div><small>Projet sélectionné</small><strong id="quickProjectStatus">Non lié</strong></div>
+          </div>
+          <button id="smChangeProject" class="sm-outline-action" type="button">📁 Changer</button>
         </div>
-      </div>
-      <div id="quickResult" class="quick-result">Le projet sera lié automatiquement après la première connexion.</div>
-      <button id="toggleAdvanced" class="secondary quick-advanced" type="button">Options avancées</button>
+        <div class="sm-google-strip">
+          <span>Google</span>
+          <b id="quickGoogleStatus">Non connecté</b>
+          <button id="quickConnect" class="sm-inline-action" type="button">Se connecter</button>
+        </div>
+      </article>
+
+      <article class="sm-step-card" id="smPackageStep">
+        <div class="sm-step-head">
+          <span class="sm-step-number">2</span>
+          <div class="sm-step-copy">
+            <h2>Package à déployer</h2>
+            <p>Choisissez une version ou collez un lien de package</p>
+          </div>
+          <span class="sm-step-state" id="smPackageState">● Package en attente</span>
+        </div>
+        <div class="sm-package-row">
+          <div class="sm-package-field">
+            <span class="sm-package-icon">◫</span>
+            <div><small>Balance CDQ</small><strong id="quickZipSummary">Aucun fichier</strong></div>
+          </div>
+          <button id="quickChooseZip" class="sm-outline-action sm-package-button" type="button">🔗 Choisir un autre<br>package / lien</button>
+        </div>
+        <div class="sm-package-note" id="smPackageNote">Le package chargé apparaîtra ici avec sa version et le nombre de modifications.</div>
+      </article>
+
+      <article class="sm-step-card sm-deploy-card" id="smDeployStep">
+        <div class="sm-step-head">
+          <span class="sm-step-number sm-step-number-green">3</span>
+          <div class="sm-step-copy">
+            <h2>Écriture et déploiement</h2>
+            <p>Les fichiers seront écrits dans le projet sélectionné, puis déployés.</p>
+          </div>
+        </div>
+
+        <button id="quickApply" class="green quick-apply sm-deploy-button" type="button" disabled>
+          <span class="sm-lock">🔒</span>
+          <span>ÉCRIRE + DÉPLOYER</span>
+        </button>
+
+        <div id="quickDeployProgress" class="quick-deploy-progress sm-deploy-progress" role="progressbar" aria-label="Progression écriture et déploiement" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+          <div class="sm-progress-label">Progression globale</div>
+          <div class="sm-progress-line">
+            <div class="quick-deploy-track" aria-hidden="true"><div id="quickDeployProgressBar" class="quick-deploy-fill"></div></div>
+            <strong id="quickDeployProgressPercent" class="sm-progress-percent">0 %</strong>
+          </div>
+          <div id="quickDeployProgressText" class="sm-progress-detail">Prêt à écrire.</div>
+
+          <div class="sm-stage-list" aria-live="polite">
+            <div class="sm-stage" id="smStagePrepare"><span>○</span><b>Préparation du package…</b><em>En attente</em></div>
+            <div class="sm-stage" id="smStageRead"><span>○</span><b>Lecture des fichiers…</b><em>En attente</em></div>
+            <div class="sm-stage" id="smStageWrite"><span>○</span><b>Écriture du code.gs…</b><em>En attente</em></div>
+            <div class="sm-stage" id="smStageDeploy"><span>○</span><b>Déploiement de l'application…</b><em>En attente</em></div>
+            <div class="sm-stage" id="smStageVerify"><span>○</span><b>Vérification en production…</b><em>En attente</em></div>
+          </div>
+        </div>
+
+        <div id="quickResult" class="quick-result sm-workflow-result">Google connecté et projet lié automatiquement. Choisis maintenant ton package.</div>
+        <button id="toggleAdvanced" class="secondary quick-advanced" type="button">Options avancées</button>
+      </article>
     </section>
 
     <section class="card advanced-section" id="googleCard">
@@ -211,37 +267,66 @@
       </main>
     </div>
 
-    <aside class="sm-settings-rail" aria-label="Réglages rapides">
+    <aside class="sm-settings-rail" aria-label="Réglages Script Manager">
       <div class="sm-settings-head">
-        <div><span class="sm-settings-gear">⚙</span><strong>Réglages</strong><small>Votre environnement de déploiement</small></div>
+        <div><span class="sm-settings-gear">⚙</span><strong>Réglages</strong><small>Personnalisez votre expérience</small></div>
+        <span class="sm-settings-tagline">DES OUTILS<br>QUI FONT AVANCER</span>
       </div>
 
-      <div class="sm-settings-card">
-        <div class="sm-settings-title">Compte Google</div>
-        <div class="sm-settings-state"><span class="sm-dot"></span><b id="railAccountStatus">Non connecté</b></div>
-        <button type="button" class="sm-settings-action" data-sm-jump="googleCard">Gérer la connexion Google</button>
+      <div class="sm-settings-tabs" role="tablist" aria-label="Réglages">
+        <button type="button" class="sm-settings-tab active" data-sm-settings-tab="account">👤<span>Compte Google</span></button>
+        <button type="button" class="sm-settings-tab" data-sm-settings-tab="appearance">🎨<span>Apparence</span></button>
+        <button type="button" class="sm-settings-tab" data-sm-settings-tab="options">☷<span>Options</span></button>
+        <button type="button" class="sm-settings-tab" data-sm-settings-tab="advanced">🔧<span>Avancé</span></button>
       </div>
 
-      <div class="sm-settings-card">
-        <div class="sm-settings-title">Projet cible</div>
-        <div class="sm-settings-value" id="railProjectStatus">Aucun projet chargé</div>
-        <button type="button" class="sm-settings-action" data-sm-jump="projectCard">Choisir / changer le projet</button>
-      </div>
+      <section class="sm-settings-panel active" data-sm-settings-panel="account">
+        <div class="sm-settings-card sm-account-card">
+          <div class="sm-settings-title">Compte Google</div>
+          <p class="sm-settings-help">Compte utilisé pour lire et écrire le projet Google Apps Script.</p>
+          <div class="sm-account-status">
+            <span class="sm-account-avatar">●</span>
+            <div><small>État de connexion</small><strong id="railAccountStatus">Non connecté</strong></div>
+            <span class="sm-account-check">✓</span>
+          </div>
+          <button type="button" class="sm-settings-action" data-sm-jump="googleCard">Gérer la connexion Google</button>
+        </div>
+      </section>
 
-      <div class="sm-settings-card">
-        <div class="sm-settings-title">Package</div>
-        <div class="sm-settings-value" id="railPackageStatus">Aucun package prêt</div>
-        <button type="button" class="sm-settings-action" data-sm-jump="packageCard">Ouvrir le package</button>
-      </div>
+      <section class="sm-settings-panel" data-sm-settings-panel="appearance">
+        <div class="sm-settings-card">
+          <div class="sm-settings-title">Apparence</div>
+          <p class="sm-settings-help">Interface industrielle CDQ active.</p>
+          <div class="sm-option-preview"><span>◉</span><b>Sombre industriel CDQ</b><em>Actif</em></div>
+          <div class="sm-option-preview"><span>↔</span><b>Mise en page adaptative</b><em>Auto</em></div>
+        </div>
+      </section>
 
-      <div class="sm-settings-card sm-settings-preview">
-        <div class="sm-settings-title">Écriture et déploiement</div>
-        <div class="sm-preview-row"><span>Code Apps Script</span><b id="railWriteState">En attente</b></div>
-        <div class="sm-preview-row"><span>Production</span><b id="railDeployState">En attente</b></div>
-        <button type="button" class="sm-settings-action primary-rail" data-sm-jump="quickCard">Retour au déploiement</button>
-      </div>
+      <section class="sm-settings-panel" data-sm-settings-panel="options">
+        <div class="sm-settings-card">
+          <div class="sm-settings-title">Projet cible</div>
+          <div class="sm-settings-value" id="railProjectStatus">Aucun projet chargé</div>
+          <button type="button" class="sm-settings-action" data-sm-jump="projectCard">Choisir / changer le projet</button>
+        </div>
+        <div class="sm-settings-card">
+          <div class="sm-settings-title">Package</div>
+          <div class="sm-settings-value" id="railPackageStatus">Aucun package prêt</div>
+          <button type="button" class="sm-settings-action" data-sm-jump="packageCard">Ouvrir le package</button>
+        </div>
+      </section>
 
-      <div class="sm-settings-footer">CDQ • SIMPLE • RAPIDE • FIABLE</div>
+      <section class="sm-settings-panel" data-sm-settings-panel="advanced">
+        <div class="sm-settings-card sm-settings-preview">
+          <div class="sm-settings-title">Écriture et déploiement</div>
+          <div class="sm-preview-row"><span>Code Apps Script</span><b id="railWriteState">En attente</b></div>
+          <div class="sm-preview-row"><span>Production</span><b id="railDeployState">En attente</b></div>
+          <button type="button" class="sm-settings-action primary-rail" id="smOpenAdvancedFromRail">Ouvrir les options avancées</button>
+        </div>
+      </section>
+
+      <div class="sm-settings-footer">
+        <strong>CDQ</strong><span>LA CIBLE DE VOS SOLUTIONS</span>
+      </div>
     </aside>
   </div>
 
@@ -266,6 +351,6 @@
 
   <script src="api.js?v=23"></script>
   <script src="jszip.min.js?v=23"></script>
-  <script src="app.js?v=35"></script>
+  <script src="app.js?v=36"></script>
 </body>
 </html>
