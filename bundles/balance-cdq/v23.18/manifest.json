@@ -1,0 +1,59 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.18",
+  "build": "2026.09.21-v23.18-fast-pdf-backend",
+  "title": "Balance CDQ V23.18 — backend PDF direct",
+  "requiresBuild": [
+    "2026.09.21-v23.17-fast-pdf-open"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.17-fast-pdf-open",
+      "to": "2026.09.21-v23.18-fast-pdf-backend"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.17-fast-pdf-open",
+      "to": "2026.09.21-v23.18-fast-pdf-backend"
+    },
+    {
+      "file": "Code.gs",
+      "op": "insert_before_literal",
+      "before": "function obtenirPdfClientCDQ_(id) {",
+      "text": "\n// V23.18 — chemin rapide de lecture PDF.\n// Ne remonte pas l'arborescence client à chaque bloc; les droits Balance CDQ\n// sont vérifiés et le fichier lui-même est strictement validé.\nfunction obtenirMetaDocumentPdfRapideCDQ(id) {\n  verifierDroit_('lecture');\n\n  id = String(id || '').trim();\n  if (!/^[A-Za-z0-9_-]{10,200}$/.test(id)) throw new Error('Identifiant PDF invalide.');\n\n  const f = DriveApp.getFileById(id);\n  if (f.isTrashed() || f.getMimeType() !== 'application/pdf') {\n    throw new Error('PDF introuvable ou invalide.');\n  }\n\n  const taille = Number(f.getSize() || 0);\n  if (!taille || taille > CDQ_DOCUMENT_MAX_BYTES_) {\n    throw new Error('Ce PDF dépasse la limite de 15 Mo.');\n  }\n\n  const revision = f.getLastUpdated().toISOString();\n  return {\n    id: f.getId(),\n    nom: f.getName(),\n    type: 'PDF',\n    taille: taille,\n    revision: revision,\n    chunks: Math.ceil(taille / CDQ_DOCUMENT_CHUNK_BYTES_)\n  };\n}\n\nfunction obtenirChunkDocumentPdfRapideCDQ(id, revision, index) {\n  verifierDroit_('lecture');\n\n  id = String(id || '').trim();\n  if (!/^[A-Za-z0-9_-]{10,200}$/.test(id)) throw new Error('Identifiant PDF invalide.');\n  if (!Number.isInteger(index) || index < 0) throw new Error('Segment PDF invalide.');\n\n  const f = DriveApp.getFileById(id);\n  if (f.isTrashed() || f.getMimeType() !== 'application/pdf') {\n    throw new Error('PDF introuvable ou invalide.');\n  }\n\n  const taille = Number(f.getSize() || 0);\n  if (!taille || taille > CDQ_DOCUMENT_MAX_BYTES_) {\n    throw new Error('Ce PDF dépasse la limite de 15 Mo.');\n  }\n\n  const actuelle = f.getLastUpdated().toISOString();\n  if (actuelle !== String(revision || '')) {\n    throw new Error('Le PDF a changé. Recommencez son ouverture.');\n  }\n\n  const debut = index * CDQ_DOCUMENT_CHUNK_BYTES_;\n  if (debut >= taille) throw new Error('Segment PDF inexistant.');\n\n  const bytes = f.getBlob().getBytes();\n  return {\n    revision: actuelle,\n    base64: Utilities.base64Encode(\n      bytes.slice(debut, debut + CDQ_DOCUMENT_CHUNK_BYTES_)\n    )\n  };\n}\n\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "      meta=await cdqV19Gs('obtenirMetaDocumentPdfCDQ',[id]);",
+      "replacement": "      meta=await Promise.race([\n        cdqV19Gs('obtenirMetaDocumentPdfRapideCDQ',[id]),\n        new Promise(function(_,reject){\n          setTimeout(function(){reject(new Error('Le serveur PDF ne répond pas. Réessayez.'));},15000);\n        })\n      ]);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "        cdqV19Gs('obtenirChunkDocumentPdfCDQ',[id,meta.revision,i]),",
+      "replacement": "        cdqV19Gs('obtenirChunkDocumentPdfRapideCDQ',[id,meta.revision,i]),",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "androidAppRequired": "Aucun changement Android requis",
+    "rollbackBase": "V23.17",
+    "pdf": [
+      "Métadonnées PDF lues directement par ID après vérification du droit Balance CDQ.",
+      "Blocs PDF lus directement sans recherche répétée du dossier client.",
+      "Validation MIME, corbeille, taille, révision et index conservée.",
+      "Timeout visible de 15 s sur l'étape métadonnées et 25 s par bloc.",
+      "Enregistrement des PDF remplis inchangé et conserve les validations client existantes."
+    ],
+    "sheets": [
+      "Aucun changement au lancement Sheets dans cette version.",
+      "Le sélecteur de compte affiché par l'application Google Sheets reste sous contrôle Google."
+    ]
+  }
+}
