@@ -5,6 +5,9 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Color
+import android.hardware.biometrics.BiometricPrompt
+import android.os.Build
+import android.os.CancellationSignal
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.CookieManager
@@ -24,7 +27,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
         private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.06"
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.07"
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
     }
@@ -35,6 +38,9 @@ class MainActivity : Activity() {
     private var googleChallengeId = ""
     private var googleNonce = ""
     private var googleClientId = ""
+
+    private var biometricCancellation: CancellationSignal? = null
+    private var biometricRequestId = ""
 
     inner class NativeBridge {
         @JavascriptInterface
@@ -53,6 +59,25 @@ class MainActivity : Activity() {
 
             runOnUiThread {
                 openWebGoogleLogin(challenge, n, client)
+            }
+        }
+
+        @JavascriptInterface
+        fun biometric(requestId: String?) {
+            val id = requestId.orEmpty().trim()
+            if (!id.matches(Regex("^[A-Za-z0-9._-]{1,120}$"))) return
+            runOnUiThread { startNativeBiometric(id) }
+        }
+
+        @JavascriptInterface
+        fun cancelBiometric(requestId: String?) {
+            val id = requestId.orEmpty().trim()
+            runOnUiThread {
+                if (id.isBlank() || biometricRequestId == id) {
+                    biometricRequestId = ""
+                    biometricCancellation?.cancel()
+                    biometricCancellation = null
+                }
             }
         }
     }
@@ -79,7 +104,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.06"
+                settings.userAgentString + " BalanceCDQAndroid/25.07"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -276,6 +301,68 @@ class MainActivity : Activity() {
         webView.evaluateJavascript(script, null)
     }
 
+    @Suppress("DEPRECATION")
+    private fun startNativeBiometric(requestId: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            deliverNativeBiometric(requestId, false, "Biométrie Android indisponible.")
+            return
+        }
+
+        biometricCancellation?.cancel()
+        biometricRequestId = requestId
+        val signal = CancellationSignal()
+        biometricCancellation = signal
+        val executor = mainExecutor
+
+        val prompt = BiometricPrompt.Builder(this)
+            .setTitle("Balance CDQ")
+            .setSubtitle("Confirmez votre identité")
+            .setNegativeButton("Utiliser le NIP", executor) { _, _ ->
+                deliverNativeBiometric(requestId, false, "Utilisez votre NIP.")
+            }
+            .build()
+
+        prompt.authenticate(
+            signal,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult?) {
+                    super.onAuthenticationSucceeded(result)
+                    deliverNativeBiometric(requestId, true, "")
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
+                    super.onAuthenticationError(errorCode, errString)
+                    deliverNativeBiometric(
+                        requestId,
+                        false,
+                        errString?.toString().orEmpty().ifBlank { "Biométrie annulée." }
+                    )
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    // Android garde la boîte biométrique ouverte pour une autre tentative.
+                }
+            }
+        )
+    }
+
+    private fun deliverNativeBiometric(requestId: String, success: Boolean, message: String) {
+        if (biometricRequestId != requestId) return
+        biometricRequestId = ""
+        biometricCancellation = null
+
+        if (!::webView.isInitialized) return
+        val idQuoted = JSONObject.quote(requestId)
+        val messageQuoted = JSONObject.quote(message)
+        webView.evaluateJavascript(
+            "window.cdqNativeBiometricResultV2507 && " +
+                "window.cdqNativeBiometricResultV2507($idQuoted,$success,$messageQuoted);",
+            null
+        )
+    }
+
     private fun openWebGoogleLogin(
         challengeId: String,
         nonce: String,
@@ -448,6 +535,9 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        biometricRequestId = ""
+        biometricCancellation?.cancel()
+        biometricCancellation = null
         if (::webView.isInitialized) {
             webView.stopLoading()
             webView.removeAllViews()
