@@ -158,7 +158,14 @@ class PdfOpenActivity : Activity() {
     private fun chooseAccount() {
         try {
             startActivityForResult(
-                DefaultGoogleAccountStore.pickerIntent(this, preferredEmail),
+                DefaultGoogleAccountStore.pickerIntent(
+                    this,
+                    preferredEmail,
+                    if (accountMode == "ask")
+                        "Choisir le compte Google — Balance CDQ"
+                    else
+                        "Compte Google par défaut — Balance CDQ"
+                ),
                 REQ_ACCOUNT
             )
         } catch (e: Exception) {
