@@ -83,7 +83,7 @@ jobs:
           test -s android-auth.html
           grep -q 'accounts.google.com/gsi/client' android-auth.html
           grep -q 'package=ca.balancecdq.android' android-auth.html
-          grep -q 'scheme=cdqauth' balance-cdq-android/app/src/main/AndroidManifest.xml
+          grep -q 'android:scheme="cdqauth"' balance-cdq-android/app/src/main/AndroidManifest.xml
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
