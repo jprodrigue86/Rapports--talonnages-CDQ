@@ -36,10 +36,12 @@ test('clearing the visible default never resurrects a legacy or signed-in accoun
 test('one pointer gesture launches once; swiping, long press and selection do not launch',()=>{
   const r=routing();let now=1000;r.context.Date={now:()=>now};
   const target={closest:selector=>selector==='.file-row'?r.row:null};
-  const emit=(name,extra={})=>(r.handlers[name]||[]).forEach(fn=>fn({target,pointerId:1,clientX:0,clientY:0,preventDefault(){},stopImmediatePropagation(){},...extra}));
+  let stopped=0;
+  const emit=(name,extra={})=>(r.handlers[name]||[]).forEach(fn=>fn({target,pointerId:1,clientX:0,clientY:0,preventDefault(){},stopImmediatePropagation(){stopped++},...extra}));
   emit('pointerdown');emit('pointerup');emit('click');emit('click');
   assert.equal(r.launches.length,1);
-  now+=1000;emit('pointerdown');emit('pointermove',{clientX:40});emit('pointerup');emit('click');
+  now+=1000;emit('pointerdown');emit('pointermove',{clientX:40});emit('pointerup');
+  const beforeDragClick=stopped;emit('click');assert.equal(stopped,beforeDragClick+1,'drag must not reach a legacy click opener');
   assert.equal(r.launches.length,1);
   now+=1000;emit('pointerdown');now+=1200;emit('pointerup');emit('click');
   assert.equal(r.launches.length,1);

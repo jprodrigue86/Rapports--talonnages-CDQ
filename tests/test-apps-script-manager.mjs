@@ -77,7 +77,7 @@ try {
     }}};
     const realFetch=window.fetch.bind(window);
     window.fetch=async (url,opts={})=>{
-      const s=String(url),method=opts.method||'GET';
+      const s=String(url).replace('https://scriptmanagement.googleapis.com/v1','https://script.googleapis.com/v1'),method=opts.method||'GET';
       window.__mockFetchLog.push(method+' '+s);
       const ok=data=>new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
       if(s.startsWith('https://www.googleapis.com/drive/v3/files')) return ok({files:[{id:'TEST_SCRIPT_ID',name:'Projet Test CDQ',modifiedTime:'2026-09-17T16:00:00Z',webViewLink:'https://script.google.com/'}]});
