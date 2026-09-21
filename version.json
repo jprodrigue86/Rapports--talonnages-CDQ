@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v22.97-pwa-default-account-capture",
+  "version": "2026.09.21-v22.98-default-account-core-no-flicker",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v22.97-pwa-default-account-capture",
-  "backend_version": "2026.09.21-v22.97-pwa-default-account-capture",
+  "selector_version": "2026.09.21-v22.98-default-account-core-no-flicker",
+  "backend_version": "2026.09.21-v22.98-default-account-core-no-flicker",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -235,7 +235,12 @@
     "default-account-pwa-storage-v2297",
     "default-account-click-capture-v2297",
     "sheets-force-chrome-v2297",
-    "pdf-no-google-account-picker-v2297"
+    "pdf-no-google-account-picker-v2297",
+    "default-account-core-selector-v2298",
+    "sheets-force-chrome-core-v2298",
+    "pdf-cdq-reader-default-v2298",
+    "file-selection-no-flicker-v2298",
+    "selection-autofit-suppression-v2298"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -248,5 +253,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v22.97-pwa-default-account-capture"
+  "pwa_version": "2026.09.21-v22.98-default-account-core-no-flicker"
 }
