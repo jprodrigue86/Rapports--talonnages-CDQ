@@ -1,0 +1,45 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.10",
+  "build": "2026.09.21-v23.10-settings-button-scale",
+  "title": "Balance CDQ V23.10 — bouton Réglages agrandi",
+  "requiresBuild": [
+    "2026.09.21-v23.09-sheets-self-handoff"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.09-sheets-self-handoff",
+      "to": "2026.09.21-v23.10-settings-button-scale"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.09-sheets-self-handoff",
+      "to": "2026.09.21-v23.10-settings-button-scale"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2310SettingsButtonScaleCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqV2310SettingsButtonScaleCss\">\n/* V23.10 — micro-correction : bouton Réglages de la rangée supérieure uniquement */\nhtml:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204{\n  gap:7px!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204 > span:first-child{\n  font-size:29px!important;\n  line-height:1!important;\n  width:29px!important;\n  min-width:29px!important;\n  height:29px!important;\n  display:inline-flex!important;\n  align-items:center!important;\n  justify-content:center!important;\n  overflow:visible!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204 > span:last-child{\n  font-size:13px!important;\n  line-height:1.05!important;\n  font-weight:850!important;\n  letter-spacing:0!important;\n  overflow:visible!important;\n  text-overflow:clip!important;\n}\n@media(max-width:430px){\n  html:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204 > span:first-child{\n    font-size:27px!important;\n    width:27px!important;\n    min-width:27px!important;\n    height:27px!important;\n  }\n  html:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204 > span:last-child{\n    font-size:12px!important;\n  }\n}\n</style>\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "rollbackBase": "V23.09",
+    "scope": "Micro-correction visuelle uniquement sur #cdqTopDisplayButtonV2204.",
+    "changes": [
+      "Icône ⚙ Réglages portée à 29 px sur mobile standard.",
+      "Texte Réglages porté à 13 px et plus gras.",
+      "Adaptation petits écrans à 27 px / 12 px.",
+      "Aucun changement aux autres boutons, aux fichiers, au PDF ou à Google Sheets."
+    ]
+  }
+}
