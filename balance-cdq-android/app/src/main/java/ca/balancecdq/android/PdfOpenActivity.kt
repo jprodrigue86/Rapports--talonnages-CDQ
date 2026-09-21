@@ -20,6 +20,7 @@ import java.util.concurrent.Executors
 class PdfOpenActivity : Activity() {
     companion object {
         private const val REQ_AUTH = 22730
+        private const val REQ_ACCOUNT = 22731
         private const val DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
     }
 
@@ -29,6 +30,7 @@ class PdfOpenActivity : Activity() {
     private var fileId = ""
     private var fileName = "Rapport.pdf"
     private var reader = "ask"
+    private var accountRetryUsed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +47,7 @@ class PdfOpenActivity : Activity() {
         if (newIntent == null) return
         intent = newIntent
         parseIntent(newIntent)
+        accountRetryUsed = false
         if (!isValid()) {
             fail("Demande PDF invalide.")
             return
@@ -65,10 +68,27 @@ class PdfOpenActivity : Activity() {
             reader in setOf("ask", "ilovepdf", "acrobat")
     }
 
+    private fun chooseDefaultAccount() {
+        try {
+            startActivityForResult(
+                DefaultGoogleAccountStore.pickerIntent(this),
+                REQ_ACCOUNT
+            )
+        } catch (e: Exception) {
+            fail(e.message ?: "Impossible d’ouvrir le choix du compte Google.")
+        }
+    }
+
     private fun requestGoogleAccount() {
+        val account = DefaultGoogleAccountStore.account(this)
+        if (account == null) {
+            chooseDefaultAccount()
+            return
+        }
+
         val request = AuthorizationRequest.builder()
             .setRequestedScopes(listOf(Scope(DRIVE_SCOPE)))
-            .setPrompt(AuthorizationRequest.Prompt.SELECT_ACCOUNT)
+            .setAccount(account)
             .build()
 
         authClient.authorize(request)
@@ -80,13 +100,18 @@ class PdfOpenActivity : Activity() {
                 }
             }
             .addOnFailureListener { error ->
-                fail(error.message ?: "Impossible d’ouvrir le choix du compte Google.")
+                if (!accountRetryUsed) {
+                    accountRetryUsed = true
+                    chooseDefaultAccount()
+                } else {
+                    fail(error.message ?: "Impossible d’autoriser ce compte Google.")
+                }
             }
     }
 
     private fun launchResolution(pending: PendingIntent?) {
         if (pending == null) {
-            fail("Le choix du compte Google n’est pas disponible.")
+            fail("L’autorisation Google n’est pas disponible.")
             return
         }
         try {
@@ -99,23 +124,48 @@ class PdfOpenActivity : Activity() {
                 0
             )
         } catch (e: Exception) {
-            fail(e.message ?: "Impossible d’ouvrir le choix du compte Google.")
+            fail(e.message ?: "Impossible d’autoriser ce compte Google.")
         }
     }
 
-    @Deprecated("Utilisé pour le résultat de Google AuthorizationClient.")
+    @Deprecated("Utilisé pour les résultats Google.")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == REQ_ACCOUNT) {
+            if (resultCode != RESULT_OK) {
+                finish()
+                return
+            }
+
+            val email = DefaultGoogleAccountStore.readResult(data)
+            if (email.isBlank()) {
+                finish()
+                return
+            }
+
+            DefaultGoogleAccountStore.save(this, email)
+            accountRetryUsed = true
+            requestGoogleAccount()
+            return
+        }
+
         if (requestCode != REQ_AUTH) return
         if (resultCode != RESULT_OK || data == null) {
             finish()
             return
         }
+
         try {
             val result = authClient.getAuthorizationResultFromIntent(data)
             consumeAuthorization(result)
         } catch (e: Exception) {
-            fail(e.message ?: "Google n’a pas confirmé le compte.")
+            if (!accountRetryUsed) {
+                accountRetryUsed = true
+                chooseDefaultAccount()
+            } else {
+                fail(e.message ?: "Google n’a pas confirmé le compte.")
+            }
         }
     }
 
@@ -175,7 +225,7 @@ class PdfOpenActivity : Activity() {
             if (code !in 200..299) {
                 throw IllegalStateException(
                     if (code == 403 || code == 404)
-                        "Ce compte Google n’a pas accès à ce PDF."
+                        "Le compte Google par défaut n’a pas accès à ce PDF."
                     else
                         "Google Drive a refusé le PDF ($code)."
                 )
