@@ -22,17 +22,14 @@ object DefaultGoogleAccountStore {
         val wanted = preferredEmail.trim().lowercase().ifBlank { email(context) }
         if (wanted.isBlank()) return null
 
-        return try {
-            AccountManager.get(context)
-                .getAccountsByType(GOOGLE_ACCOUNT_TYPE)
-                .firstOrNull { it.name.trim().equals(wanted, ignoreCase = true) }
-        } catch (_: Exception) {
-            null
-        }
+        // L'adresse choisie par le sélecteur Google suffit pour demander
+        // l'autorisation à Google Identity. Éviter de dépendre de l'énumération
+        // AccountManager, qui peut être filtrée par Android.
+        return Account(wanted, GOOGLE_ACCOUNT_TYPE)
     }
 
-    fun accountIndex(context: Context): Int {
-        val selected = email(context)
+    fun accountIndex(context: Context, preferredEmail: String = ""): Int {
+        val selected = preferredEmail.trim().lowercase().ifBlank { email(context) }
         if (selected.isBlank()) return 0
 
         return try {
