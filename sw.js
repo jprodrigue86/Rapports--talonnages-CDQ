@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v25-08-display-fit-live-sliders';
-const FORCE_BUILD='2026.09.21-v25.08-display-fit-live-sliders';
+const CACHE = 'cdq-installable-v25-09-native-file-open-contract';
+const FORCE_BUILD='2026.09.21-v25.09-native-file-open-contract';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates-v2252.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
