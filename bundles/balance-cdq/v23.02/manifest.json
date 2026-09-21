@@ -1,0 +1,75 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.02",
+  "build": "2026.09.21-v23.02-restore-stable-file-open",
+  "title": "Balance CDQ V23.02 — restauration ouverture stable Sheets et PDF",
+  "requiresBuild": [
+    "2026.09.21-v23.01-stable-file-open"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.01-stable-file-open",
+      "to": "2026.09.21-v23.02-restore-stable-file-open"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.01-stable-file-open",
+      "to": "2026.09.21-v23.02-restore-stable-file-open"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2300NoNativeGoogleAccountPickerJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2301OpenFilesStableJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqV19OpenOfflineSheet(id){\n  if(cdqDefaultGoogleAccountV2299())return cdqOpenSheetDefaultV2301(id);\n  const a=document.createElement('a');a.href=cdqSheetAppUrl(id);a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',(cdqDocumentMeta(id)||{}).dateModification||'');\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n}",
+      "replacement": "function cdqV19OpenOfflineSheet(id){\n  const url='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(String(id||''))+'/edit';\n  const href=/Android/i.test(navigator.userAgent||'')\n    ? 'intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(String(id||''))+'/edit#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;S.browser_fallback_url='+encodeURIComponent(url)+';end'\n    : url;\n  const a=document.createElement('a');\n  a.href=href;\n  a.target='_blank';\n  a.rel='noopener';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',(cdqDocumentMeta(id)||{}).dateModification||'');\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n  return true;\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "      cdqOpenPdfNoGoogleAccountV2301(t.id);",
+      "replacement": "      cdqOpenPdf(t.id);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "    return cdqOpenPdfNoGoogleAccountV2301(id);",
+      "replacement": "    return cdqOpenPdf(id);",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "rollbackBase": "V23.01",
+    "fixes": [
+      "Retire les surcouches V23.00/V23.01 qui interceptaient plusieurs fois le même clic.",
+      "Google Sheets revient au chemin Android natif stable qui ouvrait réellement Sheets.",
+      "PDF n'utilise plus Google Drive : ouverture via cdqOpenPdf(), lecteur CDQ ou choix de lecteur.",
+      "Le pointerup PDF historique continue de supprimer le double click mais ouvre maintenant le lecteur CDQ."
+    ],
+    "limitation": [
+      "Le sélecteur de compte de l'application Google Sheets est contrôlé par Android/Google, pas par la PWA Balance CDQ.",
+      "Le compte par défaut PWA ne peut donc pas forcer la sélection dans l'application Sheets native."
+    ],
+    "preserved": [
+      "Réglages et préférences existantes.",
+      "Mode hors ligne.",
+      "Photos et Notes.",
+      "Sélection multiple/appui long.",
+      "Progression globale."
+    ]
+  }
+}
