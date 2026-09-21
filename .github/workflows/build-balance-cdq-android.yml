@@ -65,6 +65,16 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee /tmp/balance-cdq-badging.txt
           grep -q "package: name='ca.balancecdq.android'" /tmp/balance-cdq-badging.txt
 
+      - name: Validate native shell + icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'android:icon="@drawable/ic_balance_cdq"' balance-cdq-android/app/src/main/AndroidManifest.xml
+          grep -q 'WebView' balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt
+          grep -q 'BeginSignInRequest' balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt
+          ! grep -q 'CustomTabsIntent' balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt
+          unzip -l "$APK" | grep -q 'res/drawable/ic_balance_cdq.png'
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
