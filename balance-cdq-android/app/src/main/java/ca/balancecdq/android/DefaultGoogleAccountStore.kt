@@ -23,6 +23,24 @@ object DefaultGoogleAccountStore {
         return if (email.isBlank()) null else Account(email, GOOGLE_ACCOUNT_TYPE)
     }
 
+    fun accountIndex(context: Context): Int {
+        val selected = email(context)
+        if (selected.isBlank()) return 0
+
+        return try {
+            val accounts = AccountManager.get(context)
+                .getAccountsByType(GOOGLE_ACCOUNT_TYPE)
+
+            val index = accounts.indexOfFirst {
+                it.name.trim().equals(selected, ignoreCase = true)
+            }
+
+            if (index >= 0) index else 0
+        } catch (_: Exception) {
+            0
+        }
+    }
+
     fun save(context: Context, email: String) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
