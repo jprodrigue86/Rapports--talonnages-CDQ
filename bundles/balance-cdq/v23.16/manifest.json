@@ -1,0 +1,73 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.16",
+  "build": "2026.09.21-v23.16-real-update-channels",
+  "title": "Balance CDQ V23.16 — vrais canaux de mise à jour",
+  "requiresBuild": [
+    "2026.09.21-v23.13-android-self-update",
+    "2026.09.21-v23.14-pdf-internal-sheets-account-slot",
+    "2026.09.21-v23.15-updater-button-direct"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.21-v23.13-android-self-update",
+        "2026.09.21-v23.14-pdf-internal-sheets-account-slot",
+        "2026.09.21-v23.15-updater-button-direct"
+      ],
+      "to": "2026.09.21-v23.16-real-update-channels"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.21-v23.13-android-self-update",
+        "2026.09.21-v23.14-pdf-internal-sheets-account-slot",
+        "2026.09.21-v23.15-updater-button-direct"
+      ],
+      "to": "2026.09.21-v23.16-real-update-channels"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqOuvrirPdfCommeSheetV2275(id){\n  const pref=cdqPdfReaderPreference();\n\n  if(pref==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n\n  const meta=cdqDocumentMeta(id)||{};\n  const fallback=cdqPdfDriveUrlV2275(id);\n  const nativeIntent=\n    'intent://open?fileId='+encodeURIComponent(String(id||''))+\n    '&name='+encodeURIComponent(String(meta.nom||'Rapport.pdf'))+\n    '&reader='+encodeURIComponent(String(pref||'ask'))+\n    '#Intent;scheme=cdqpdf;package=ca.balancecdq.android;'+\n    'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n\n  window.location.href=nativeIntent;\n  return true;\n}",
+      "replacement": "function cdqOuvrirPdfCommeSheetV2275(id){\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n  return cdqOpenPdf(id).catch(afficherErreur);\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2316UnifiedUpdaterCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2316UnifiedUpdaterJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqV2316UnifiedUpdaterCss\">\n#cdqAndroidUpdaterButtonV2316{\n  width:100%;\n  min-height:46px;\n  margin-top:10px;\n  border:1px solid #23afe8;\n  border-radius:9px;\n  background:linear-gradient(180deg,#12344b,#0a2638);\n  color:#fff;\n  font-weight:900;\n}\n#cdqInstallUpdateButton.cdq-script-manager-update-v2316:not(:disabled){\n  background:linear-gradient(180deg,#169cff,#0873ca)!important;\n  color:#fff!important;\n}\n</style>\n<script id=\"cdqV2316UnifiedUpdaterJs\">\n(function(){\n'use strict';\n\nconst MANAGER_BASE_V2316='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/';\nconst ANDROID_FALLBACK_V2316='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/balance-cdq-android.html';\n\nfunction latestBundleV2316(){\n  let build='';\n  try{build=String((window.cdqUpdateInfo&&window.cdqUpdateInfo.latest)||'');}catch(_){}\n  const m=build.match(/v(\\d+\\.\\d+)/i);\n  return m?('v'+m[1]):'latest';\n}\n\nfunction openScriptManagerV2316(){\n  const url=MANAGER_BASE_V2316+'?bundle='+encodeURIComponent(latestBundleV2316());\n  try{\n    const w=window.open(url,'_blank','noopener');\n    if(w)return;\n  }catch(_){}\n  try{window.top.location.href=url;}catch(_){location.href=url;}\n}\n\nfunction openAndroidUpdaterV2316(){\n  const intent='intent://check#Intent;scheme=cdqupdate;package=ca.balancecdq.android;'+\n    'S.browser_fallback_url='+encodeURIComponent(ANDROID_FALLBACK_V2316)+';end';\n  window.location.href=intent;\n}\n\nfunction refreshUpdaterUiV2316(){\n  const center=document.querySelector('.cdq-update-center');\n  if(!center)return;\n\n  const help=center.querySelector('.cdq-update-help');\n  if(help){\n    help.textContent='Balance CDQ / Selector se met à jour avec Script Manager. La couche Android se met à jour séparément avec le bouton Android ci-dessous.';\n  }\n\n  const install=center.querySelector('#cdqInstallUpdateButton');\n  if(install){\n    install.classList.add('cdq-script-manager-update-v2316');\n    if(!install.disabled){\n      install.textContent='Mettre à jour via Script Manager';\n      install.title='Ouvrir Script Manager avec la dernière version Balance CDQ';\n    }\n  }\n\n  let android=center.querySelector('#cdqAndroidUpdaterButtonV2316');\n  if(!android){\n    android=document.createElement('button');\n    android.type='button';\n    android.id='cdqAndroidUpdaterButtonV2316';\n    android.textContent='Vérifier la mise à jour Android';\n    const actions=center.querySelector('.cdq-update-actions');\n    if(actions)actions.insertAdjacentElement('afterend',android);\n    else center.appendChild(android);\n  }\n}\n\ndocument.addEventListener('click',function(e){\n  const target=e.target&&e.target.closest?e.target.closest('button'):null;\n  if(!target)return;\n\n  if(target.id==='cdqInstallUpdateButton' ||\n     (target.closest('#cdqUpdateBanner') && /mettre à jour/i.test(target.textContent||''))){\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    openScriptManagerV2316();\n    return;\n  }\n\n  if(target.id==='cdqAndroidUpdaterButtonV2316'){\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    openAndroidUpdaterV2316();\n  }\n},true);\n\nfunction scheduleV2316(){\n  clearTimeout(window.__cdqUpdaterUiV2316);\n  window.__cdqUpdaterUiV2316=setTimeout(refreshUpdaterUiV2316,40);\n}\n\nif(document.readyState==='loading'){\n  document.addEventListener('DOMContentLoaded',function(){\n    scheduleV2316();\n    setTimeout(scheduleV2316,300);\n    setTimeout(scheduleV2316,900);\n  },{once:true});\n}else{\n  scheduleV2316();\n  setTimeout(scheduleV2316,300);\n}\n\nwindow.addEventListener('load',function(){setTimeout(scheduleV2316,120);});\nwindow.addEventListener('message',function(){setTimeout(scheduleV2316,30);});\ndocument.addEventListener('click',function(e){\n  if(e.target&&e.target.closest&&e.target.closest('#cdqTopDisplayButtonV2204,#displayModeButton')){\n    setTimeout(scheduleV2316,40);\n    setTimeout(scheduleV2316,220);\n  }\n},true);\n\ntry{\n  new MutationObserver(scheduleV2316).observe(document.body,{childList:true,subtree:true,characterData:true});\n}catch(_){}\n})();\n</script>\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "androidAppRequired": "Balance CDQ Android 23.13 ou plus récent",
+    "rollbackBase": "V23.13",
+    "fixes": [
+      "Le bouton Installer ne recharge plus simplement la PWA.",
+      "Le bouton de mise à jour Balance CDQ ouvre Script Manager avec le bundle de la version disponible.",
+      "Un bouton Vérifier la mise à jour Android est ajouté directement dans le centre Mise à jour.",
+      "Le PDF est ramené au moteur interne même si l'utilisateur saute directement de V23.13 à V23.16."
+    ],
+    "preserved": [
+      "Compte Google par défaut Android.",
+      "Auto-mise-à-jour Android.",
+      "Corrections anti-scintillement.",
+      "Tous les réglages d'affichage."
+    ]
+  }
+}
