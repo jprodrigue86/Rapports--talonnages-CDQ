@@ -1,55 +1,72 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V23.00",
-  "build": "2026.09.21-v23.00-no-native-account-picker",
-  "title": "Balance CDQ V23.00 — compte par défaut sans sélecteur natif",
+  "version": "V23.01",
+  "build": "2026.09.21-v23.01-stable-file-open",
+  "title": "Balance CDQ V23.01 — ouverture PDF sans compte + Sheets fiable",
   "requiresBuild": [
-    "2026.09.21-v22.99-direct-sheet-core-no-picker"
+    "2026.09.21-v23.00-no-native-account-picker"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v22.99-direct-sheet-core-no-picker",
-      "to": "2026.09.21-v23.00-no-native-account-picker"
+      "from": "2026.09.21-v23.00-no-native-account-picker",
+      "to": "2026.09.21-v23.01-stable-file-open"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v22.99-direct-sheet-core-no-picker",
-      "to": "2026.09.21-v23.00-no-native-account-picker"
+      "from": "2026.09.21-v23.00-no-native-account-picker",
+      "to": "2026.09.21-v23.01-stable-file-open"
     },
     {
       "file": "Selector.html",
       "op": "remove_script_id_if_present",
-      "id": "cdqV2300NoNativeGoogleAccountPickerJs"
+      "id": "cdqV2301OpenFilesStableJs"
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n\n<script id=\"cdqV2300NoNativeGoogleAccountPickerJs\">\n(function(){\n'use strict';\n\nfunction defaultEmailV2300(){\n  try{\n    if(typeof cdqDefaultGoogleAccountV2299==='function'){\n      const e=String(cdqDefaultGoogleAccountV2299()||'').trim().toLowerCase();\n      if(e)return e;\n    }\n  }catch(_){}\n  try{\n    const e=String(\n      localStorage.getItem('cdqDefaultGoogleAccountV2299')||\n      localStorage.getItem('cdqDefaultGoogleAccountV2294')||\n      utilisateurCourantEmail||\n      ''\n    ).trim().toLowerCase();\n    return e;\n  }catch(_){return '';}\n}\n\nfunction markOpenV2300(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=id;\n    const meta=typeof cdqDocumentMeta==='function'?(cdqDocumentMeta(id)||{}):{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction openSheetV2300(id){\n  const email=defaultEmailV2300();\n  if(!email)return false;\n  markOpenV2300(id);\n\n  try{\n    if(typeof cdqPostToPwa==='function' && cdqPostToPwa({\n      type:'CDQ_OPEN_SHEET_DEFAULT_ACCOUNT',\n      id:String(id||''),\n      email:email\n    }))return true;\n  }catch(_){}\n\n  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(String(id||''))+\n    '/edit?usp=drivesdk&authuser='+encodeURIComponent(email)+\n    '&login_hint='+encodeURIComponent(email);\n\n  if(/Android/i.test(navigator.userAgent||'')){\n    window.location.href='intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(String(id||''))+\n      '/edit?usp=drivesdk&authuser='+encodeURIComponent(email)+\n      '&login_hint='+encodeURIComponent(email)+\n      '#Intent;scheme=https;package=com.android.chrome;'+\n      'S.browser_fallback_url='+encodeURIComponent(web)+';end';\n  }else{\n    const a=document.createElement('a');\n    a.href=web;a.target='_blank';a.rel='noopener';\n    document.body.appendChild(a);a.click();a.remove();\n  }\n  return true;\n}\n\nasync function openPdfV2300(id){\n  markOpenV2300(id);\n\n  // IMPORTANT : aucun intent Google Drive ici.\n  // Le PDF est déjà récupérable par CDQ sous forme de Blob.\n  // Donc aucun compte Google n'est requis pour l'ouverture.\n  const rec=typeof cdqLoadPdfRecord==='function'\n    ? await cdqLoadPdfRecord(id)\n    : null;\n\n  if(!rec||!(rec.blob instanceof Blob)){\n    if(typeof cdqOpenPdf==='function'){\n      try{\n        if(typeof cdqSetPdfReaderPreference==='function')cdqSetPdfReaderPreference('cdq');\n      }catch(_){}\n      return cdqOpenPdf(id);\n    }\n    throw new Error('PDF CDQ indisponible.');\n  }\n\n  let pref='cdq';\n  try{\n    pref=typeof cdqPdfReaderPreference==='function'\n      ? String(cdqPdfReaderPreference()||'cdq')\n      : 'cdq';\n  }catch(_){}\n\n  if(pref==='ilovepdf' || pref==='acrobat'){\n    if(typeof cdqExternalPdf==='function'){\n      return cdqExternalPdf(rec,pref);\n    }\n  }\n\n  if(pref==='ask' && typeof cdqShowPdfReaderChoice==='function'){\n    cdqShowPdfReaderChoice(id,rec);\n    return true;\n  }\n\n  if(typeof cdqOpenPdfInternal==='function'){\n    await cdqOpenPdfInternal(id,rec);\n    return true;\n  }\n\n  if(typeof cdqOpenPdf==='function'){\n    try{\n      if(typeof cdqSetPdfReaderPreference==='function')cdqSetPdfReaderPreference('cdq');\n    }catch(_){}\n    return cdqOpenPdf(id);\n  }\n\n  throw new Error('Lecteur PDF CDQ indisponible.');\n}\n\n// Remplacer le chemin PDF V22.90 appelé au POINTERUP.\n// L'ancien gestionnaire Android continuera d'appeler cette fonction,\n// mais elle n'ouvrira plus jamais l'application Google Drive.\nwindow.cdqOuvrirPdfCommeSheetV2275=function(id){\n  Promise.resolve(openPdfV2300(id)).catch(function(err){\n    try{afficherErreur(err);}catch(_){}\n  });\n  return true;\n};\n\n// Sheets : forcer le compte par défaut sans lancer l'application Sheets native.\nconst oldSheetV2300=typeof window.cdqV19OpenOfflineSheet==='function'\n  ? window.cdqV19OpenOfflineSheet\n  : null;\n\nwindow.cdqV19OpenOfflineSheet=function(id){\n  if(defaultEmailV2300())return openSheetV2300(id);\n  return oldSheetV2300?oldSheetV2300(id):false;\n};\n\n// Dernier filet de sécurité : toute ouverture standard passe ici.\nconst oldModifyV2300=typeof window.modifierFichier==='function'\n  ? window.modifierFichier\n  : null;\n\nwindow.modifierFichier=function(id){\n  let meta=null;\n  try{meta=typeof cdqDocumentMeta==='function'?cdqDocumentMeta(id):null;}catch(_){}\n  const type=String(meta&&meta.type||'').toUpperCase();\n\n  if(type==='PDF'){\n    return Promise.resolve(openPdfV2300(id)).catch(function(err){\n      try{afficherErreur(err);}catch(_){}\n    });\n  }\n\n  if(type==='GOOGLE_SHEETS' && defaultEmailV2300()){\n    return openSheetV2300(id);\n  }\n\n  return oldModifyV2300?oldModifyV2300.apply(this,arguments):false;\n};\n\n// Empêcher qu'un ancien CLICK redéclenche un chemin natif après le pointerup.\ndocument.addEventListener('click',function(e){\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  if(e.target&&e.target.closest&&e.target.closest('button'))return;\n  try{if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return;}catch(_){}\n\n  const box=row.querySelector('.file-checkbox[data-file-id]');\n  if(!box)return;\n  const id=String(box.dataset.fileId||'');\n  if(!id)return;\n\n  let meta=null;\n  try{meta=typeof cdqDocumentMeta==='function'?cdqDocumentMeta(id):null;}catch(_){}\n  const type=String(meta&&meta.type||'').toUpperCase();\n\n  if(type==='PDF'){\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    Promise.resolve(openPdfV2300(id)).catch(function(err){\n      try{afficherErreur(err);}catch(_){}\n    });\n    return;\n  }\n\n  if(type==='GOOGLE_SHEETS'&&defaultEmailV2300()){\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    openSheetV2300(id);\n  }\n},true);\n\nwindow.cdqOpenPdfNoGoogleAccountV2300=openPdfV2300;\nwindow.cdqOpenSheetDefaultV2300=openSheetV2300;\n})();\n</script>\n\n"
+      "text": "\n\n<script id=\"cdqV2301OpenFilesStableJs\">\n(function(){\n'use strict';\n\nfunction cdqDefaultEmailV2301(){\n  try{\n    if(typeof cdqDefaultGoogleAccountV2299==='function'){\n      const e=String(cdqDefaultGoogleAccountV2299()||'').trim().toLowerCase();\n      if(e)return e;\n    }\n  }catch(_){}\n  try{\n    return String(\n      localStorage.getItem('cdqDefaultGoogleAccountV2299')||\n      localStorage.getItem('cdqDefaultGoogleAccountV2294')||\n      utilisateurCourantEmail||\n      ''\n    ).trim().toLowerCase();\n  }catch(_){return '';}\n}\n\nfunction cdqMarquerOuvertureV2301(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const m=typeof cdqDocumentMeta==='function'?(cdqDocumentMeta(id)||{}):{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(m.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction cdqOpenPdfNoGoogleAccountV2301(id){\n  cdqMarquerOuvertureV2301(id);\n\n  // Le lecteur PDF CDQ travaille avec le Blob du fichier.\n  // Aucun intent Google Drive, donc aucun sélecteur de compte Google.\n  try{\n    if(typeof cdqOpenPdf==='function'){\n      return cdqOpenPdf(id);\n    }\n  }catch(e){\n    try{afficherErreur(e);}catch(_){}\n  }\n  return false;\n}\n\nfunction cdqOpenSheetDefaultV2301(id){\n  const email=cdqDefaultEmailV2301();\n  if(!email)return false;\n  cdqMarquerOuvertureV2301(id);\n\n  // L'ouverture doit être exécutée par la coque PWA (top-level Android).\n  // Le Selector Apps Script ne tente plus de naviguer lui-même.\n  try{\n    if(typeof cdqPostToPwa==='function'){\n      return !!cdqPostToPwa({\n        type:'CDQ_OPEN_SHEET_DEFAULT_ACCOUNT',\n        id:String(id||''),\n        email:email,\n        version:2301\n      });\n    }\n  }catch(_){}\n  return false;\n}\n\nwindow.cdqOpenPdfNoGoogleAccountV2301=cdqOpenPdfNoGoogleAccountV2301;\nwindow.cdqOpenSheetDefaultV2301=cdqOpenSheetDefaultV2301;\n})();\n</script>\n\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "      cdqOuvrirPdfCommeSheetV2275(t.id);",
+      "replacement": "      cdqOpenPdfNoGoogleAccountV2301(t.id);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "    return cdqOuvrirPdfCommeSheetV2275(id);",
+      "replacement": "    return cdqOpenPdfNoGoogleAccountV2301(id);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "  if(cdqDefaultGoogleAccountV2299())return cdqOpenSheetChromeV2299(id);",
+      "replacement": "  if(cdqDefaultGoogleAccountV2299())return cdqOpenSheetDefaultV2301(id);",
+      "expected": 1
     }
   ],
   "audit": {
     "scriptManagerRequired": "V38",
-    "rollbackBase": "V22.99",
-    "rootCause": [
-      "V22.90 ouvrait les PDF Android avec le package com.google.android.apps.docs.",
-      "L'application Google Drive affiche son propre sélecteur de comptes et ignore le compte par défaut mémorisé par la PWA."
-    ],
-    "behavior": [
-      "PDF : aucun intent Google Drive; ouverture via Blob CDQ, lecteur CDQ ou application PDF externe choisie.",
-      "Sheets : compte par défaut ouvert via Chrome avec authuser + login_hint.",
-      "Le gestionnaire pointerup PDF de V22.90 reste compatible car sa fonction cible est remplacée.",
-      "Le click standard est également intercepté pour empêcher une double ouverture native."
+    "rollbackBase": "V23.00",
+    "directFixes": [
+      "Remplacement direct du callsite PDF pointerup hérité de V22.90.",
+      "Remplacement direct du callsite PDF modifierFichier hérité de V22.90.",
+      "PDF passe par cdqOpenPdf() et ne lance jamais Google Drive.",
+      "Sheets passe uniquement par la coque PWA avec le compte par défaut."
     ],
     "preserved": [
-      "Compte par défaut et reset dans Réglages.",
-      "Lecteur PDF choisi dans Affichage.",
+      "Réglages compte par défaut/reset.",
+      "Lecteur PDF choisi par l'utilisateur.",
       "Mode hors ligne.",
-      "Sélection multiple et appui long.",
-      "Photos/Notes et progression existantes."
+      "Sélection multiple/appui long.",
+      "Photos, Notes et progression."
     ]
   }
 }
