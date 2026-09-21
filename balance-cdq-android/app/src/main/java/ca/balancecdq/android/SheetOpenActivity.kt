@@ -89,10 +89,16 @@ class SheetOpenActivity : Activity() {
             return
         }
 
+        val accountIndex = DefaultGoogleAccountStore.accountIndex(this)
+
+        // Google Sheets ne documente pas d'extra Android permettant à une
+        // application tierce d'imposer son compte actif. Le chemin /u/N/
+        // est donc inclus directement dans l'URL Google multi-compte.
         val uri = Uri.parse(
-            "https://docs.google.com/spreadsheets/d/" +
-                Uri.encode(fileId) +
-                "/edit?usp=drivesdk&authuser=" + Uri.encode(email) +
+            "https://docs.google.com/spreadsheets/u/" +
+                accountIndex +
+                "/d/" + Uri.encode(fileId) +
+                "/edit?usp=drivesdk&authuser=" + accountIndex +
                 "&login_hint=" + Uri.encode(email)
         )
 
@@ -104,6 +110,8 @@ class SheetOpenActivity : Activity() {
             putExtra("authAccount", email)
             putExtra(AccountManager.KEY_ACCOUNT_NAME, email)
             putExtra("accountName", email)
+            putExtra("account_index", accountIndex)
+            putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
 
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
