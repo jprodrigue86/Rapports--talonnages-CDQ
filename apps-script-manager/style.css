@@ -151,3 +151,192 @@ body.show-advanced .advanced-section{display:block}
   .backup-item span{font-size:12px}
   .backup-item button{font-size:14px;min-height:44px}
 }
+
+
+/* =========================================================
+   V33 — INTERFACE INDUSTRIELLE CDQ SCRIPT MANAGER
+   Maquette validée : acier sombre + cyan + workflow central
+========================================================= */
+html,body{min-height:100%;background:
+  radial-gradient(circle at 46% 10%,rgba(0,142,222,.08),transparent 28%),
+  linear-gradient(180deg,#02070b 0%,#050b11 48%,#02070b 100%)!important}
+body{margin:0!important;overflow-x:hidden}
+.sm-shell{
+  width:min(1680px,100%);
+  min-height:100vh;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:310px minmax(0,1fr) 360px;
+  gap:10px;
+  padding:8px;
+  box-sizing:border-box;
+}
+.sm-brand-rail,.sm-settings-rail,.sm-center{
+  min-width:0;
+}
+.sm-brand-rail{
+  position:sticky;top:8px;height:calc(100vh - 16px);
+  border:1px solid #4c5b67;border-radius:18px;
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.035),transparent 22%),
+    linear-gradient(180deg,#07131d 0%,#02080d 100%);
+  box-shadow:inset 0 0 0 2px #071019,0 18px 50px rgba(0,0,0,.42);
+  overflow:hidden;
+}
+.sm-brand-rail:before,.sm-settings-rail:before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 24px 24px,#a9b2b9 0 4px,#202a31 5px 8px,transparent 9px),
+    radial-gradient(circle at calc(100% - 24px) 24px,#a9b2b9 0 4px,#202a31 5px 8px,transparent 9px),
+    radial-gradient(circle at 24px calc(100% - 24px),#a9b2b9 0 4px,#202a31 5px 8px,transparent 9px),
+    radial-gradient(circle at calc(100% - 24px) calc(100% - 24px),#a9b2b9 0 4px,#202a31 5px 8px,transparent 9px);
+}
+.sm-brand-frame{height:100%;display:flex;flex-direction:column;align-items:center;padding:28px 18px 18px;box-sizing:border-box;position:relative;z-index:1}
+.sm-rail-kicker{font-size:14px;line-height:1.65;letter-spacing:.34em;text-align:center;color:#c9d8e5;font-weight:800}
+.sm-rail-icon{width:226px;max-width:82%;margin:16px auto 2px;filter:drop-shadow(0 0 16px rgba(0,183,255,.35))}
+.sm-rail-wordmark{text-align:center;margin-top:-2px}
+.sm-rail-wordmark strong{display:block;font-size:64px;line-height:.95;letter-spacing:.04em;color:#dce4e9;text-shadow:0 3px 0 #2a333a,0 0 18px rgba(0,179,255,.22)}
+.sm-rail-wordmark span{display:block;color:#39c7ff;font-size:25px;font-weight:900;letter-spacing:.07em;margin-top:6px}
+.sm-metal-plate{
+  width:92%;margin:18px 0 14px;padding:12px 8px;border-radius:7px;text-align:center;
+  color:#111;font-weight:900;font-size:11px;line-height:1.5;letter-spacing:.2em;
+  background:linear-gradient(180deg,#d4d9dd,#69747c 48%,#c3cbd0 52%,#727c84);
+  border:1px solid #d6dde1;box-shadow:inset 0 0 0 2px #4c555b,0 6px 18px rgba(0,0,0,.35);
+}
+.sm-rail-benefits{list-style:none;padding:0;margin:6px 0 0;width:88%;display:grid;gap:10px}
+.sm-rail-benefits li{position:relative;padding-left:30px;color:#d8e5ee;font-size:14px;font-weight:700}
+.sm-rail-benefits li:before{
+  content:"✓";position:absolute;left:0;top:-1px;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;
+  background:#13d8f5;color:#00121c;font-size:12px;font-weight:1000;box-shadow:0 0 12px rgba(0,210,255,.28)
+}
+.sm-rail-motto{margin-top:auto;text-align:center;color:#dbe7ef;font-size:24px;line-height:1.2;font-family:cursive;font-style:italic;transform:rotate(-5deg);text-shadow:0 0 12px rgba(0,194,255,.25)}
+.sm-center{display:flex;flex-direction:column;min-height:100vh}
+.sm-center .topbar{
+  position:static!important;margin:0 0 8px!important;border-radius:15px!important;
+  border:1px solid #1f648e!important;background:linear-gradient(180deg,#071a29,#04111b)!important;
+  box-shadow:inset 0 0 22px rgba(0,152,229,.05),0 8px 22px rgba(0,0,0,.25)!important
+}
+.sm-center .brand{width:100%;display:grid;grid-template-columns:62px minmax(0,1fr) auto auto;align-items:center;gap:12px}
+.sm-mini-logo{width:58px!important;height:58px!important;border-radius:14px!important;object-fit:cover!important;background:#030a10!important;border:1px solid #2b8dc4!important}
+.sm-center .brand-text strong{font-size:24px!important;letter-spacing:.01em}
+.sm-center .brand-text span{font-size:12px!important}
+.sm-tabs{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid #1d5275;border-radius:13px;
+  overflow:hidden;margin-bottom:9px;background:#071522;box-shadow:0 7px 18px rgba(0,0,0,.22)
+}
+.sm-tab{
+  min-height:64px!important;border:0!important;border-right:1px solid #234861!important;border-radius:0!important;
+  background:linear-gradient(180deg,#0d2234,#071421)!important;color:#d9e7f1!important;font-size:14px!important;
+  display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px!important
+}
+.sm-tab:last-child{border-right:0!important}
+.sm-tab.active{background:linear-gradient(180deg,#19bbff,#0876e8)!important;color:#04111d!important;box-shadow:inset 0 0 18px rgba(255,255,255,.15)!important}
+.sm-center main{width:100%!important;max-width:none!important;padding:0!important}
+.sm-center .hero{display:none}
+.sm-center .card{
+  border-color:#1f587c!important;background:
+   linear-gradient(180deg,rgba(8,27,42,.98),rgba(4,15,24,.98))!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.018),0 8px 22px rgba(0,0,0,.24)!important
+}
+#quickCard{
+  padding:14px!important;border-radius:14px!important;
+  background:linear-gradient(180deg,#071b2a,#04111b)!important;
+}
+#quickCard .section-title{margin-bottom:10px!important}
+#quickCard .section-title>span{background:linear-gradient(180deg,#27bfff,#0875e9)!important;color:white!important;border:0!important}
+#quickCard .section-title h2{font-size:19px!important}
+.quick-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;margin-bottom:10px!important
+}
+.quick-line{
+  min-height:78px!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;
+  border:1px solid #255777!important;border-radius:12px!important;background:#071521!important;padding:10px 12px!important
+}
+.quick-line span{font-size:12px!important;color:#88a5b9!important}
+.quick-line b{font-size:14px!important;text-align:left!important;color:#f1f7fb!important;word-break:break-word}
+#quickConnect,#quickChooseZip,#quickApply{
+  position:relative!important;min-height:62px!important;border-radius:12px!important;font-size:16px!important;font-weight:950!important
+}
+#quickConnect:before{content:"1";margin-right:10px;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#058ff5;color:white}
+#quickChooseZip:before{content:"2";margin-right:10px;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#058ff5;color:white}
+#quickApply:before{content:"3";margin-right:10px;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#19d971;color:#03130b}
+#quickApply{background:linear-gradient(180deg,#14b85d,#07823e)!important;border-color:#2ce47a!important;color:white!important;text-shadow:0 1px 0 rgba(0,0,0,.2)}
+#quickApply.busy{background:linear-gradient(180deg,#119c52,#076f37)!important}
+.quick-deploy-progress{border-color:#266445!important;background:#06170f!important}
+.quick-deploy-track{height:14px!important;background:#0b2435!important;border-color:#2f6e92!important}
+.quick-deploy-fill{background:linear-gradient(90deg,#078cf0,#22d8ff)!important;box-shadow:0 0 15px rgba(0,183,255,.34)!important}
+.quick-deploy-copy strong{color:#eaf8ff!important;font-size:17px!important}
+.quick-deploy-copy span{color:#c7d9e5!important}
+.quick-result{background:#071521!important;border-color:#254a63!important}
+.quick-advanced{border-color:#2b5a77!important;background:#0b2030!important}
+.advanced-section{border-radius:14px!important}
+body.show-advanced .advanced-section{display:block}
+.sm-settings-rail{
+  position:sticky;top:8px;height:calc(100vh - 16px);overflow:auto;box-sizing:border-box;
+  border:1px solid #31546d;border-radius:18px;background:linear-gradient(180deg,#06131d,#02090e);
+  padding:14px;box-shadow:inset 0 0 0 2px #071019,0 18px 50px rgba(0,0,0,.42)
+}
+.sm-settings-head{position:relative;z-index:1;padding:6px 4px 14px;border-bottom:1px solid #244b65;margin-bottom:11px}
+.sm-settings-head>div{display:grid;grid-template-columns:42px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center}
+.sm-settings-gear{grid-row:1/3;width:42px;height:42px;display:grid;place-items:center;border-radius:11px;background:#129ae9;color:#03131e;font-size:24px}
+.sm-settings-head strong{font-size:20px;color:#eef8ff}
+.sm-settings-head small{font-size:11px;color:#89a5b9}
+.sm-settings-card{position:relative;z-index:1;border:1px solid #244c66;border-radius:13px;background:#071722;padding:12px;margin-bottom:10px}
+.sm-settings-title{font-size:15px;font-weight:900;color:#e8f5fc;margin-bottom:8px}
+.sm-settings-state{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #1d6248;border-radius:10px;background:#07251a}
+.sm-dot{width:12px;height:12px;border-radius:50%;background:#19df80;box-shadow:0 0 14px rgba(25,223,128,.55)}
+.sm-settings-value{color:#b8cfdd;font-size:12px;line-height:1.45;padding:8px 0}
+.sm-settings-action{width:100%!important;min-height:44px!important;margin-top:8px!important;border-color:#2a79ab!important;background:#0b2638!important;color:#eaf8ff!important;font-size:12px!important}
+.primary-rail{background:linear-gradient(180deg,#128fdc,#0966a4)!important}
+.sm-preview-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid #17394e;color:#9fb8c9;font-size:12px}
+.sm-preview-row b{color:#e4f5ff}
+.sm-settings-footer{position:relative;z-index:1;text-align:center;color:#3acbff;font-size:11px;font-weight:900;letter-spacing:.14em;margin:15px 0 4px}
+#status{margin-bottom:16px}
+.modal{z-index:5000!important}
+
+/* Desktop compact */
+@media(max-width:1320px){
+  .sm-shell{grid-template-columns:245px minmax(0,1fr) 300px}
+  .sm-rail-icon{width:180px}
+  .sm-rail-wordmark strong{font-size:50px}
+  .sm-rail-wordmark span{font-size:20px}
+  .sm-rail-benefits li{font-size:12px}
+}
+/* Tablet / landscape Android */
+@media(max-width:1050px){
+  .sm-shell{grid-template-columns:1fr;padding:7px}
+  .sm-brand-rail,.sm-settings-rail{position:static;height:auto}
+  .sm-brand-rail{display:none}
+  .sm-settings-rail{order:3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}
+  .sm-settings-head,.sm-settings-footer{grid-column:1/-1}
+  .sm-settings-card{margin:0}
+  .sm-center{min-height:auto}
+}
+/* Android portrait */
+@media(max-width:700px){
+  .sm-shell{display:block;padding:0}
+  .sm-center .topbar{margin:0!important;border-radius:0!important;border-left:0!important;border-right:0!important}
+  .sm-center .brand{grid-template-columns:48px minmax(0,1fr) auto;gap:8px;padding:8px}
+  .sm-mini-logo{width:46px!important;height:46px!important}
+  .sm-center .brand-text strong{font-size:17px!important}
+  .sm-center .brand-text span{font-size:9.5px!important;line-height:1.25}
+  #installApp{display:none}
+  .version-chip{height:34px!important;min-width:46px!important}
+  .sm-tabs{margin:6px;border-radius:11px}
+  .sm-tab{min-height:53px!important;font-size:10.5px!important;padding:5px 2px!important}
+  .sm-tab span{font-size:9.5px}
+  .sm-center main{padding:0 7px 16px!important}
+  #quickCard{padding:11px!important}
+  .quick-grid{grid-template-columns:1fr!important}
+  .quick-line{min-height:54px!important}
+  #quickConnect,#quickChooseZip,#quickApply{min-height:60px!important;font-size:15px!important}
+  .sm-settings-rail{display:block;margin:7px;border-radius:14px;padding:9px}
+  .sm-settings-head{padding-bottom:9px}
+  .sm-settings-card{margin-bottom:8px}
+  .advanced-section{margin-left:0!important;margin-right:0!important}
+  .actions.two,.actions.three{grid-template-columns:1fr!important}
+}
+/* Installed app: no accidental selection flash in manager UI */
+.sm-tab,.sm-settings-action,#quickApply,#quickChooseZip,#quickConnect{
+  -webkit-tap-highlight-color:transparent;
+}
