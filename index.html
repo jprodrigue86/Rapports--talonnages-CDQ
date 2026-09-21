@@ -1048,9 +1048,13 @@ async function cdqVerifierMiseAJourLiveV2254(source,buildSelector,force){
   try{
     const latest=await cdqLireDernierBundleV2254();
     const publishedNewer=!!latest.build && cdqComparerVersions(latest.build,selector)>0;
+    const managerHandoffReady=cdqComparerVersions(selector,'2026.09.21-v25.03-mobile-ui-update-center-fix')>=0;
     let liveReady=!!(publishedNewer && backendBuild && backendBuild!=='inconnue' && cdqComparerVersions(backendBuild,latest.build)>=0);
     let liveBuild=liveReady?backendBuild:'';
-    if(publishedNewer && !liveReady){
+
+    // Ancien Selector : la bannière n'est permise que si la version est déjà
+    // réellement déployée, afin d'éviter le bouton mort vu sur Android.
+    if(publishedNewer && !managerHandoffReady && !liveReady){
       try{
         const live=await cdqVerifierProductionV2254(latest.build,5000);
         liveReady=!!(live&&live.ok);
@@ -1058,11 +1062,10 @@ async function cdqVerifierMiseAJourLiveV2254(source,buildSelector,force){
         if(liveBuild)backendBuild=liveBuild;
       }catch(e){}
     }
-    const available=publishedNewer && liveReady;
 
-    // V25.03 : une version publiée dans GitHub n'est annoncée que lorsqu'elle
-    // est réellement déployée dans Apps Script. Cela supprime la bannière
-    // permanente qui ne pouvait rien installer.
+    // V25.03+ : le bouton ouvre Script Manager de façon fiable via l'enveloppe
+    // PWA, donc une version publiée peut être proposée avant son déploiement.
+    const available=publishedNewer && (managerHandoffReady || liveReady);
     try{
       replyToSelector(cible,{
         type:'CDQ_UPDATE_STATUS',
