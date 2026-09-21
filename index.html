@@ -380,9 +380,24 @@ moins de groupes mais des noms plus lisibles.
   #loading .loading-label{font-size:10px}
   #loading .loading-bar{margin-top:10px}
 }
+
+#cdq-auth-bottom-mask-v2507{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  height:calc(104px + env(safe-area-inset-bottom,0px));
+  background:#000;
+  z-index:10050;
+  display:block;
+  pointer-events:auto;
+}
+#cdq-auth-bottom-mask-v2507.cdq-auth-ready-v2507{
+  display:none;
+  pointer-events:none;
+}
 </style>
 </head>
 <body>
+<div id="cdq-auth-bottom-mask-v2507" aria-hidden="true"></div>
 <div id="loading">
 <div class="music-wall-image" aria-hidden="true"></div>
 <div class="music-wall-pc" aria-hidden="true"><span class="pc-band white" style="--r:-2deg">Metallica</span><span class="pc-band red" style="--r:1deg">Slayer</span><span class="pc-band blue" style="--r:0deg">Megadeth</span><span class="pc-band white" style="--r:-1deg">Iron Maiden</span><span class="pc-band dim" style="--r:2deg">Judas Priest</span><span class="pc-band white" style="--r:0deg">Black Sabbath</span><span class="pc-band red" style="--r:-2deg">Slipknot</span><span class="pc-band white" style="--r:1deg">Korn</span><span class="pc-band dim" style="--r:0deg">System of a Down</span><span class="pc-band white" style="--r:-1deg">Disturbed</span><span class="pc-band dim" style="--r:2deg">Tool</span><span class="pc-band blue" style="--r:0deg">Deftones</span><span class="pc-band white" style="--r:-2deg">Lorna Shore</span><span class="pc-band red" style="--r:1deg">Cannibal Corpse</span><span class="pc-band white" style="--r:0deg">Despised Icon</span><span class="pc-band dim" style="--r:-1deg">Whitechapel</span><span class="pc-band white" style="--r:2deg">Gojira</span><span class="pc-band blue" style="--r:0deg">Meshuggah</span><span class="pc-band white" style="--r:-2deg">Lamb of God</span><span class="pc-band dim" style="--r:1deg">Behemoth</span><span class="pc-band white" style="--r:0deg">Arch Enemy</span><span class="pc-band blue" style="--r:-1deg">In Flames</span><span class="pc-band white" style="--r:2deg">Children of Bodom</span><span class="pc-band dim" style="--r:0deg">Trivium</span><span class="pc-band white" style="--r:-2deg">Killswitch Engage</span><span class="pc-band white" style="--r:1deg">Parkway Drive</span><span class="pc-band red" style="--r:0deg">August Burns Red</span><span class="pc-band blue" style="--r:-1deg">Periphery</span><span class="pc-band white" style="--r:2deg">ERRA</span><span class="pc-band dim" style="--r:0deg">Tesseract</span><img class="music-wall-pc-logo" src="./icons/icon-heavy-v3-512.png" alt=""></div>
@@ -437,7 +452,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v25.06-personal-icon-pdf-swipe-fix';
+const CDQ_PWA_BUILD = '2026.09.21-v25.07-auth-nav-settings-swipe-pdf-fix';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -890,6 +905,8 @@ function armLoadingTimeout() {
 
 function recevoirEtatAcces(state) {
 if (!['pending','input','ready'].includes(state)) return;
+const authMask=document.getElementById('cdq-auth-bottom-mask-v2507');
+if(authMask)authMask.classList.toggle('cdq-auth-ready-v2507',state==='ready');
 const wasPending = selectorAwaitingAccess;
 selectorAwaitingAccess = state === 'pending';
 if (selectorAwaitingAccess) {
