@@ -1,85 +1,52 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.95",
-  "build": "2026.09.21-v22.95-archive-noms-lisibles",
-  "title": "Balance CDQ V22.95 — noms Photos et Notes simplifiés",
+  "version": "V22.96",
+  "build": "2026.09.21-v22.96-default-account-no-picker",
+  "title": "Balance CDQ V22.96 — compte par défaut sans sélecteur Android",
   "requiresBuild": [
-    "2026.09.21-v22.94-default-google-account-settings"
+    "2026.09.21-v22.95-archive-noms-lisibles"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v22.94-default-google-account-settings",
-      "to": "2026.09.21-v22.95-archive-noms-lisibles"
+      "from": "2026.09.21-v22.95-archive-noms-lisibles",
+      "to": "2026.09.21-v22.96-default-account-no-picker"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v22.94-default-google-account-settings",
-      "to": "2026.09.21-v22.95-archive-noms-lisibles"
+      "from": "2026.09.21-v22.95-archive-noms-lisibles",
+      "to": "2026.09.21-v22.96-default-account-no-picker"
     },
     {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "function cdqCibleArchiveV2292_(type,id,client){\n  try{\n    let n=type==='fichier'?DriveApp.getFileById(id).getName():(type==='dossier'?DriveApp.getFolderById(id).getName():'');\n    n=String(n||'').replace(/\\.(pdf|xlsx?|xlsm|csv)$/i,'').trim();\n    if(!n||n.toLowerCase()===String(client.getName()||'').trim().toLowerCase())return '';\n    return cdqNomArchiveV2292_(n,'');\n  }catch(e){return '';}\n}",
-      "replacement": "function cdqCibleArchiveV2292_(type,id,client){\n  try{\n    type=String(type||'').toLowerCase();\n    if(type==='client')return '';\n    const clientId=String(client&&client.getId?client.getId():'');\n    const clientNom=String(client&&client.getName?client.getName():'').trim().toLowerCase();\n\n    if(type==='dossier'){\n      const d=DriveApp.getFolderById(id);\n      if(String(d.getId())===clientId)return '';\n      const n=String(d.getName()||'').trim();\n      if(!n||n.toLowerCase()===clientNom)return '';\n      return cdqNomArchiveV2292_(n,'');\n    }\n\n    if(type==='fichier'){\n      const f=DriveApp.getFileById(id);\n      const structure={\n        'certficat de poid étalon':1,\n        'certificat de poids étalon':1,\n        'contrat':1,\n        'liste de balance':1,\n        \"rapports d'étalonnages\":1,\n        \"rapports d'étalonnage\":1,\n        'rapports':1\n      };\n      const attente=[],vus={};\n      const parents=f.getParents();while(parents.hasNext())attente.push(parents.next());\n      let garde=0;\n      while(attente.length&&garde++<40){\n        const d=attente.shift(),did=String(d.getId());\n        if(vus[did])continue;vus[did]=1;\n        if(did===clientId)break;\n        const nom=String(d.getName()||'').trim();\n        const low=nom.toLowerCase();\n        if(nom && low!==clientNom && !structure[low] && low.indexOf('_cdq_')!==0){\n          return cdqNomArchiveV2292_(nom,'');\n        }\n        const ps=d.getParents();while(ps.hasNext())attente.push(ps.next());\n      }\n      let n=String(f.getName()||'').replace(/\\.(pdf|xlsx?|xlsm|csv)$/i,'').trim();\n      if(!n||n.toLowerCase()===clientNom)return '';\n      return cdqNomArchiveV2292_(n,'');\n    }\n    return '';\n  }catch(e){return '';}\n}",
-      "expected": 1
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2296DefaultAccountNoPickerJs"
     },
     {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "  const nom = cdqBaseNomArchiveV2292_(date.prefixe, client, technicien, cible) + cdqExtensionPhotoV2292_(match[1], nomFichier);",
-      "replacement": "  const nom = cdqBaseNomArchiveV2292_(date.jour, client, technicien, cible) + cdqExtensionPhotoV2292_(match[1], nomFichier);",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "  const jour=Utilities.formatDate(now,zone,'yyyy-MM-dd'),prefixe=Utilities.formatDate(now,zone,'yyyyMMdd_HHmmss');",
-      "replacement": "  const jour=Utilities.formatDate(now,zone,'yyyy-MM-dd'),prefixe=jour;",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "    const nomSousDossier = cdqNomArchiveV2292_(date.jour + ' - ' + technicien, date.jour);",
-      "replacement": "    const nomSousDossier = cdqNomArchiveV2292_(date.jour + ' - ' + technicien + (cible ? ' - ' + cible : ''), date.jour + ' - ' + technicien);",
-      "expected": 1
-    },
-    {
-      "file": "Code.gs",
-      "op": "replace_literal_if_present",
-      "search": "  const sousNom=cdqNomArchiveV2292_(jour+' - '+tech,jour),its=comp.getFoldersByName(sousNom),dossier=its.hasNext()?its.next():comp.createFolder(sousNom);",
-      "replacement": "  const sousNom=cdqNomArchiveV2292_(jour+' - '+tech+(cible?(' - '+cible):''),jour+' - '+tech),its=comp.getFoldersByName(sousNom),dossier=its.hasNext()?its.next():comp.createFolder(sousNom);",
-      "expected": 1
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n\n<script id=\"cdqV2296DefaultAccountNoPickerJs\">\n(function(){\n'use strict';\n\nconst KEY='cdqDefaultGoogleAccountV2294';\nconst RESET_KEY='cdqDefaultGoogleAccountResetV2296';\n\nfunction emailDefault(){\n  try{return String(localStorage.getItem(KEY)||'').trim().toLowerCase();}catch(_){return '';}\n}\nfunction emailCourant(){\n  try{return String(utilisateurCourantEmail||'').trim().toLowerCase();}catch(_){return '';}\n}\nfunction hasReset(){\n  try{return localStorage.getItem(RESET_KEY)==='1';}catch(_){return false;}\n}\nfunction markReset(v){\n  try{if(v)localStorage.setItem(RESET_KEY,'1');else localStorage.removeItem(RESET_KEY);}catch(_){}\n}\nfunction setDefault(email){\n  email=String(email||'').trim().toLowerCase();\n  const setter=window.cdqSetGoogleDefaultAccountV2294;\n  if(email){\n    markReset(false);\n    if(typeof setter==='function')return setter(email);\n    try{localStorage.setItem(KEY,email);}catch(_){}\n    return email;\n  }\n  markReset(true);\n  if(typeof setter==='function')return setter('');\n  try{localStorage.removeItem(KEY);}catch(_){}\n  return '';\n}\n\n// Premier démarrage de V22.96 : le compte CDQ connecté devient le compte\n// par défaut automatiquement. Une réinitialisation explicite empêche\n// cette auto-sélection de revenir.\nfunction ensureDefaultFromCdq(){\n  if(emailDefault()||hasReset())return;\n  const e=emailCourant();\n  if(!e)return;\n  try{\n    const setter=window.cdqSetGoogleDefaultAccountV2294;\n    if(typeof setter==='function')setter(e);\n    else localStorage.setItem(KEY,e);\n  }catch(_){}\n}\n\nfunction encodeChromeIntent(url){\n  try{\n    const u=new URL(url);\n    const path=u.host+u.pathname+u.search+u.hash;\n    return 'intent://'+path+\n      '#Intent;scheme=https;package=com.android.chrome;'+\n      'S.browser_fallback_url='+encodeURIComponent(u.href)+';end';\n  }catch(_){return String(url||'');}\n}\n\nfunction markFileOpened(id){\n  if(String(typeof utilisateurCourantRole!=='undefined'?utilisateurCourantRole:'')==='lecture')return;\n  try{\n    fichierOuvertPourModification=id;\n    const meta=typeof cdqDocumentMeta==='function'?(cdqDocumentMeta(id)||{}):{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction sheetWebUrl(id,email){\n  id=String(id||'');\n  if(!/^[\\w-]+$/.test(id))throw new Error('Identifiant de feuille invalide.');\n  const u=new URL('https://docs.google.com/spreadsheets/d/'+id+'/edit');\n  u.searchParams.set('authuser',email);\n  u.searchParams.set('usp','drivesdk');\n  return u.href;\n}\n\nfunction openSheetWithoutPicker(id){\n  const email=emailDefault();\n  if(!email)return false;\n  const url=sheetWebUrl(id,email);\n  markFileOpened(id);\n\n  // IMPORTANT : ne pas remettre le package Sheets/Drive ici.\n  // En ciblant Chrome, Android ne lance plus son sélecteur de comptes natif.\n  if(/Android/i.test(navigator.userAgent||'')){\n    window.location.href=encodeChromeIntent(url);\n  }else{\n    const a=document.createElement('a');\n    a.href=url;a.target='_blank';a.rel='noopener';\n    document.body.appendChild(a);a.click();a.remove();\n  }\n  return true;\n}\n\nasync function openPdfWithoutPicker(id){\n  const email=emailDefault();\n  if(!email)return false;\n  markFileOpened(id);\n\n  // Le PDF est récupéré par le moteur CDQ déjà authentifié puis envoyé au\n  // lecteur configuré. Aucun passage par Google Drive natif = aucun picker.\n  if(typeof cdqOpenPdf==='function'){\n    await cdqOpenPdf(id);\n    return true;\n  }\n  if(typeof cdqOpenPdfInternal==='function' && typeof cdqLoadPdfRecord==='function'){\n    const rec=await cdqLoadPdfRecord(id);\n    await cdqOpenPdfInternal(id,rec);\n    return true;\n  }\n  return false;\n}\n\nfunction installOpenOverride(){\n  if(window.__cdqV2296OpenInstalled)return;\n  if(typeof window.modifierFichier!=='function')return;\n  const old=window.modifierFichier;\n  window.__cdqV2296OpenInstalled=true;\n  window.__cdqV2296OldModify=old;\n\n  window.modifierFichier=function(id){\n    const def=emailDefault();\n    if(!def || navigator.onLine===false){\n      return old.apply(this,arguments);\n    }\n\n    let meta=null;\n    try{meta=typeof cdqDocumentMeta==='function'?cdqDocumentMeta(id):null;}catch(_){}\n\n    if(meta&&meta.type==='GOOGLE_SHEETS'){\n      try{\n        if(typeof afficherMessage==='function')afficherMessage('Ouverture avec '+def+'…',false);\n        return openSheetWithoutPicker(id);\n      }catch(e){\n        if(typeof afficherErreur==='function')afficherErreur(e);\n        return false;\n      }\n    }\n\n    if(meta&&meta.type==='PDF'){\n      if(typeof afficherMessage==='function')afficherMessage('Ouverture du PDF…',false);\n      return Promise.resolve(openPdfWithoutPicker(id)).catch(function(e){\n        if(typeof afficherErreur==='function')afficherErreur(e);\n      });\n    }\n\n    return old.apply(this,arguments);\n  };\n}\n\nfunction rebindSettings(){\n  const modal=document.getElementById('cdqSettingsModalV2294');\n  if(!modal)return;\n\n  const save=modal.querySelector('#cdqSaveGoogleDefaultV2294');\n  const reset=modal.querySelector('#cdqResetGoogleDefaultV2294');\n  const current=modal.querySelector('#cdqCurrentGoogleRowV2294');\n\n  if(save && save.dataset.cdqV2296!=='1'){\n    save.dataset.cdqV2296='1';\n    save.onclick=function(){\n      const input=modal.querySelector('#cdqDefaultGoogleEmailV2294');\n      const e=String(input&&input.value||'').trim().toLowerCase();\n      if(!e){if(typeof afficherErreur==='function')afficherErreur(new Error('Entrez le compte Google par défaut.'));return;}\n      try{\n        setDefault(e);\n        updateSettingsText();\n      }catch(err){if(typeof afficherErreur==='function')afficherErreur(err);}\n    };\n  }\n\n  if(reset && reset.dataset.cdqV2296!=='1'){\n    reset.dataset.cdqV2296='1';\n    reset.onclick=function(){\n      setDefault('');\n      updateSettingsText();\n      if(typeof afficherMessage==='function')afficherMessage('Compte par défaut réinitialisé. Google demandera de nouveau le compte.',true);\n    };\n  }\n\n  if(current && current.dataset.cdqV2296!=='1'){\n    current.dataset.cdqV2296='1';\n    current.addEventListener('click',function(e){\n      const b=e.target&&e.target.closest?e.target.closest('button'):null;\n      if(!b)return;\n      setTimeout(function(){\n        const def=emailDefault();\n        if(def)markReset(false);\n        updateSettingsText();\n      },0);\n    });\n  }\n\n  updateSettingsText();\n}\n\nfunction updateSettingsText(){\n  const modal=document.getElementById('cdqSettingsModalV2294');\n  if(!modal)return;\n  const status=modal.querySelector('#cdqDefaultGoogleStatusV2294');\n  const p=modal.querySelector('.cdq-settings-card-v2294:nth-of-type(2) p');\n  const def=emailDefault();\n  if(status){\n    status.innerHTML=def\n      ? 'Compte par défaut actif : <strong>'+def.replace(/[&<>\"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]);})+'</strong><br><small>Sheets et PDF s’ouvriront sans le sélecteur de comptes Google.</small>'\n      : 'Compte par défaut : <strong>Aucun</strong><br><small>Google demandera le compte à chaque ouverture.</small>';\n  }\n  if(p)p.textContent='Quand un compte est défini, CDQ évite le sélecteur Android de comptes Google. Réinitialisez ici pour réactiver le choix de compte.';\n}\n\nfunction boot(){\n  ensureDefaultFromCdq();\n  installOpenOverride();\n  rebindSettings();\n}\n\nif(document.readyState==='loading'){\n  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,120);setTimeout(boot,900);},{once:true});\n}else{\n  setTimeout(boot,20);setTimeout(boot,700);\n}\nwindow.addEventListener('load',function(){setTimeout(boot,150);setTimeout(boot,1200);});\nwindow.addEventListener('cdq:access-ready',function(){setTimeout(boot,80);});\n\ntry{\n  new MutationObserver(function(){\n    clearTimeout(window.__cdqV2296Mutation);\n    window.__cdqV2296Mutation=setTimeout(function(){rebindSettings();installOpenOverride();},80);\n  }).observe(document.body,{childList:true,subtree:true});\n}catch(_){}\n\nwindow.cdqDefaultGoogleAccountV2296=emailDefault;\nwindow.cdqResetDefaultGoogleAccountV2296=function(){return setDefault('');};\n})();\n</script>\n\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V32",
-    "rollbackBase": "V22.94",
-    "storage": [
-      "_CDQ_SYSTEME/Photos/Compagnie/AAAA-MM-JJ - Technicien - Balance si associée/photo",
-      "_CDQ_SYSTEME/Notes/Compagnie/AAAA-MM-JJ - Technicien - Balance si associée/note.txt"
-    ],
-    "fileNaming": [
-      "AAAA-MM-JJ - Compagnie - Technicien - Balance.ext",
-      "AAAA-MM-JJ - Compagnie - Technicien.ext lorsque l'élément est attaché seulement au client"
-    ],
-    "removed": [
-      "préfixe compact AAAAMMJJ_HHMMSS",
-      "six chiffres d'heure/minute/seconde dans les noms de fichiers"
-    ],
-    "balanceResolution": [
-      "Dossier de balance directement ciblé : utiliser son nom.",
-      "Rapport/fichier dans un dossier de balance : utiliser le dossier de balance le plus proche.",
-      "Client directement ciblé : ne pas ajouter de balance."
+    "rollbackBase": "V22.95",
+    "problem": "Le paramètre authuser ne contrôle pas le sélecteur de comptes natif des applications Google Android.",
+    "behavior": [
+      "Au premier démarrage V22.96, le compte CDQ connecté devient automatiquement le compte par défaut si aucun choix/reset n'existe.",
+      "Avec un compte par défaut, les Google Sheets s'ouvrent dans Chrome avec authuser=email et sans lancer le picker Android natif.",
+      "Avec un compte par défaut, les PDF passent par le moteur/lecteur CDQ et n'ouvrent pas le picker Google Drive.",
+      "Réinitialiser le compte dans Réglages restaure le flux natif et le choix de compte.",
+      "Le reset est persistant et empêche l'auto-sélection de revenir tant qu'un nouveau compte n'est pas enregistré."
     ],
     "preserved": [
-      "V22.94 compte Google par défaut et Réglages",
-      "V22.93 progression globale",
-      "liaisons internes photos/notes",
-      "lecture des anciennes photos"
+      "V22.95 noms Photos/Notes lisibles",
+      "V22.94 panneau Réglages",
+      "V22.93 indicateur de progression",
+      "mode hors ligne"
     ]
   }
 }
