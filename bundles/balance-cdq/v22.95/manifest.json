@@ -1,0 +1,85 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.95",
+  "build": "2026.09.21-v22.95-archive-noms-lisibles",
+  "title": "Balance CDQ V22.95 — noms Photos et Notes simplifiés",
+  "requiresBuild": [
+    "2026.09.21-v22.94-default-google-account-settings"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v22.94-default-google-account-settings",
+      "to": "2026.09.21-v22.95-archive-noms-lisibles"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v22.94-default-google-account-settings",
+      "to": "2026.09.21-v22.95-archive-noms-lisibles"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "function cdqCibleArchiveV2292_(type,id,client){\n  try{\n    let n=type==='fichier'?DriveApp.getFileById(id).getName():(type==='dossier'?DriveApp.getFolderById(id).getName():'');\n    n=String(n||'').replace(/\\.(pdf|xlsx?|xlsm|csv)$/i,'').trim();\n    if(!n||n.toLowerCase()===String(client.getName()||'').trim().toLowerCase())return '';\n    return cdqNomArchiveV2292_(n,'');\n  }catch(e){return '';}\n}",
+      "replacement": "function cdqCibleArchiveV2292_(type,id,client){\n  try{\n    type=String(type||'').toLowerCase();\n    if(type==='client')return '';\n    const clientId=String(client&&client.getId?client.getId():'');\n    const clientNom=String(client&&client.getName?client.getName():'').trim().toLowerCase();\n\n    if(type==='dossier'){\n      const d=DriveApp.getFolderById(id);\n      if(String(d.getId())===clientId)return '';\n      const n=String(d.getName()||'').trim();\n      if(!n||n.toLowerCase()===clientNom)return '';\n      return cdqNomArchiveV2292_(n,'');\n    }\n\n    if(type==='fichier'){\n      const f=DriveApp.getFileById(id);\n      const structure={\n        'certficat de poid étalon':1,\n        'certificat de poids étalon':1,\n        'contrat':1,\n        'liste de balance':1,\n        \"rapports d'étalonnages\":1,\n        \"rapports d'étalonnage\":1,\n        'rapports':1\n      };\n      const attente=[],vus={};\n      const parents=f.getParents();while(parents.hasNext())attente.push(parents.next());\n      let garde=0;\n      while(attente.length&&garde++<40){\n        const d=attente.shift(),did=String(d.getId());\n        if(vus[did])continue;vus[did]=1;\n        if(did===clientId)break;\n        const nom=String(d.getName()||'').trim();\n        const low=nom.toLowerCase();\n        if(nom && low!==clientNom && !structure[low] && low.indexOf('_cdq_')!==0){\n          return cdqNomArchiveV2292_(nom,'');\n        }\n        const ps=d.getParents();while(ps.hasNext())attente.push(ps.next());\n      }\n      let n=String(f.getName()||'').replace(/\\.(pdf|xlsx?|xlsm|csv)$/i,'').trim();\n      if(!n||n.toLowerCase()===clientNom)return '';\n      return cdqNomArchiveV2292_(n,'');\n    }\n    return '';\n  }catch(e){return '';}\n}",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  const nom = cdqBaseNomArchiveV2292_(date.prefixe, client, technicien, cible) + cdqExtensionPhotoV2292_(match[1], nomFichier);",
+      "replacement": "  const nom = cdqBaseNomArchiveV2292_(date.jour, client, technicien, cible) + cdqExtensionPhotoV2292_(match[1], nomFichier);",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  const jour=Utilities.formatDate(now,zone,'yyyy-MM-dd'),prefixe=Utilities.formatDate(now,zone,'yyyyMMdd_HHmmss');",
+      "replacement": "  const jour=Utilities.formatDate(now,zone,'yyyy-MM-dd'),prefixe=jour;",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "    const nomSousDossier = cdqNomArchiveV2292_(date.jour + ' - ' + technicien, date.jour);",
+      "replacement": "    const nomSousDossier = cdqNomArchiveV2292_(date.jour + ' - ' + technicien + (cible ? ' - ' + cible : ''), date.jour + ' - ' + technicien);",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  const sousNom=cdqNomArchiveV2292_(jour+' - '+tech,jour),its=comp.getFoldersByName(sousNom),dossier=its.hasNext()?its.next():comp.createFolder(sousNom);",
+      "replacement": "  const sousNom=cdqNomArchiveV2292_(jour+' - '+tech+(cible?(' - '+cible):''),jour+' - '+tech),its=comp.getFoldersByName(sousNom),dossier=its.hasNext()?its.next():comp.createFolder(sousNom);",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V32",
+    "rollbackBase": "V22.94",
+    "storage": [
+      "_CDQ_SYSTEME/Photos/Compagnie/AAAA-MM-JJ - Technicien - Balance si associée/photo",
+      "_CDQ_SYSTEME/Notes/Compagnie/AAAA-MM-JJ - Technicien - Balance si associée/note.txt"
+    ],
+    "fileNaming": [
+      "AAAA-MM-JJ - Compagnie - Technicien - Balance.ext",
+      "AAAA-MM-JJ - Compagnie - Technicien.ext lorsque l'élément est attaché seulement au client"
+    ],
+    "removed": [
+      "préfixe compact AAAAMMJJ_HHMMSS",
+      "six chiffres d'heure/minute/seconde dans les noms de fichiers"
+    ],
+    "balanceResolution": [
+      "Dossier de balance directement ciblé : utiliser son nom.",
+      "Rapport/fichier dans un dossier de balance : utiliser le dossier de balance le plus proche.",
+      "Client directement ciblé : ne pas ajouter de balance."
+    ],
+    "preserved": [
+      "V22.94 compte Google par défaut et Réglages",
+      "V22.93 progression globale",
+      "liaisons internes photos/notes",
+      "lecture des anciennes photos"
+    ]
+  }
+}
