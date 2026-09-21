@@ -1,0 +1,42 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.09",
+  "build": "2026.09.21-v23.09-sheets-self-handoff",
+  "title": "Balance CDQ V23.09 — suppression du saut résiduel Google Sheets",
+  "requiresBuild": [
+    "2026.09.21-v23.08-zero-file-geometry-shift"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.08-zero-file-geometry-shift",
+      "to": "2026.09.21-v23.09-sheets-self-handoff"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.08-zero-file-geometry-shift",
+      "to": "2026.09.21-v23.09-sheets-self-handoff"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "  a.target='_blank';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();",
+      "replacement": "  a.target='_self';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "rollbackBase": "V23.08",
+    "scope": "Google Sheets seulement; PDF et styles de sélection inchangés.",
+    "rootCause": "Le handoff Sheets utilisait encore target=_blank, ce qui pouvait créer un basculement visuel transitoire avant l'ouverture de l'application Google Sheets.",
+    "fix": [
+      "Conserve exactement le même intent Android vers Google Sheets.",
+      "Remplace uniquement target=_blank par target=_self.",
+      "Aucun changement au PDF.",
+      "Aucun changement au sélecteur de compte Google."
+    ]
+  }
+}
