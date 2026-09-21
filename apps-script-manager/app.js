@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V36';
+const APP_VERSION = 'V37';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -61,6 +61,9 @@ const S = {
   bundleLabel: '',
   bundleAlreadyApplied: false,
   bundleTargetBuild: '',
+  sourceBuild: '',
+  productionBuild: '',
+  redeploySource: false,
   deployBusy: false,
   deployProgress: 0,
 };
@@ -378,7 +381,10 @@ function updateQuickUi() {
   if (quickZipSummary) {
     const pending = pendingChangeCount();
     const staged = S.pkg.size;
-    if(S.bundleAlreadyApplied){
+    if(S.redeploySource && !staged){
+      quickZipSummary.textContent='Code source '+(S.sourceBuild||'actuel')+' • prêt à redéployer';
+      quickZipSummary.className='warn';
+    }else if(S.bundleAlreadyApplied){
       quickZipSummary.textContent='Code déjà présent • prêt à déployer'+(S.bundleTargetBuild?' • '+S.bundleTargetBuild:'');
       quickZipSummary.className='ok';
     }else{
@@ -393,7 +399,7 @@ function updateQuickUi() {
   if (quickConnect) quickConnect.hidden = hasLiveToken();
   if (quickChooseZip) quickChooseZip.disabled = !S.id;
   if (quickApply) {
-    const ready=Boolean(S.id && (S.pkg.size>0 || S.bundleAlreadyApplied) && productionDeploymentReady());
+    const ready=Boolean(S.id && (S.pkg.size>0 || S.bundleAlreadyApplied || S.redeploySource) && productionDeploymentReady());
     quickApply.disabled=S.deployBusy || !ready;
     if(isProductionProject() && S.id && !productionDeploymentReady()){
       quickApply.title='Déploiement de production Balance CDQ introuvable : mise à jour bloquée.';
@@ -803,10 +809,15 @@ async function readProject(id, save = true) {
   S.pkg.clear();
   S.bundleAlreadyApplied=false;
   S.bundleTargetBuild='';
+  S.sourceBuild='';
+  S.productionBuild='';
+  S.redeploySource=false;
   S.sel = '';
   scriptIdInput.value = id;
   if (save) LS.setItem('cdqsm_script_id', id);
   const sourceBuild=detectBuildLabel(S.files)||'version non détectée';
+  S.sourceBuild=sourceBuild;
+  S.lastWrittenBuild=sourceBuild;
   projectMeta.innerHTML = `<b>${esc(meta.title || 'Projet Apps Script')}</b><br>Script ID : <code>${esc(id)}</code><br>Code source lu : <code>${esc(sourceBuild)}</code>`;
   badge('projectBadge', 'Projet : ' + (meta.title || 'chargé'), 'ok');
   renderFiles();
@@ -823,11 +834,29 @@ async function readProject(id, save = true) {
         const dep=productionDeployment();
         const depVersion=Number(dep?.deploymentConfig?.versionNumber||0);
         projectMeta.innerHTML += `<br>Production servie : <code>${esc(liveBuild)}</code>${depVersion?' • Apps Script v'+depVersion:''}`;
+        S.productionBuild=liveBuild;
         if(compareBuildLabels(liveBuild,sourceBuild)!==0){
-          setQuickResult('DIAGNOSTIC : le code source et la production servie ne correspondent pas. Source '+sourceBuild+' • production '+liveBuild+'.','err');
+          S.redeploySource=true;
+          updateQuickUi();
+          setQuickResult(
+            'CODE SOURCE DÉJÀ ÉCRIT ✓ '+sourceBuild+
+            ' • production différente ('+liveBuild+'). Appuie sur « ÉCRIRE + DÉPLOYER » pour republier le code source actuel.',
+            'warn'
+          );
+        }else{
+          S.redeploySource=false;
+          updateQuickUi();
         }
       }catch(e){
         projectMeta.innerHTML += '<br>Production servie : <code>vérification impossible</code>';
+        if(sourceBuild && sourceBuild!=='version non détectée'){
+          S.redeploySource=true;
+          updateQuickUi();
+          setQuickResult(
+            'Le code source '+sourceBuild+' est déjà écrit, mais la production ne répond pas au diagnostic. Tu peux appuyer sur « ÉCRIRE + DÉPLOYER » pour republier cette source.',
+            'warn'
+          );
+        }
       }
     },250);
   }
@@ -1818,7 +1847,7 @@ async function deployNewVersion(targetOverride = null) {
 
   const targetDeployment = (CDQ.deployments || []).find(d => d.deploymentId === target);
   const previousVersion = Number(targetDeployment?.deploymentConfig?.versionNumber || 0);
-  const sourceBuild = S.lastWrittenBuild || S.pendingBuild || '';
+  const sourceBuild = S.lastWrittenBuild || S.sourceBuild || S.pendingBuild || '';
 
   setQuickDeployProgress(60, 'Création de la nouvelle version Apps Script…');
   const v = await createProjectVersion(S.id, desc, cid());
@@ -1942,6 +1971,8 @@ async function deployNewVersion(targetOverride = null) {
   S.pendingBuild = '';
   S.bundleAlreadyApplied=false;
   S.bundleTargetBuild='';
+  S.redeploySource=false;
+  S.productionBuild=sourceBuild||S.productionBuild;
   renderDiff();
   updateQuickUi();
 
@@ -1962,8 +1993,8 @@ async function writePendingAndDeploy() {
   const target=isProductionProject()?CDQ_PRODUCTION_DEPLOYMENT_ID:(deployment.value||'__new__');
   const pending=pendingChangeCount();
 
-  if(pending===0 && !S.pkg.size && !S.bundleAlreadyApplied){
-    throw Error('Aucun package ni code déjà préparé à déployer.');
+  if(pending===0 && !S.pkg.size && !S.bundleAlreadyApplied && !S.redeploySource){
+    throw Error('Aucun package ni code source à déployer.');
   }
 
   if (pending > 0) {
@@ -1971,8 +2002,11 @@ async function writePendingAndDeploy() {
     stat(`Étape 1/${isProductionProject()?'3':'2'} — écriture de ${pending} modification(s) dans Apps Script…`);
     await writeProjectChanges();
   } else {
-    setQuickDeployProgress(55, 'Code déjà présent dans Apps Script — préparation du déploiement…');
-    stat(`Étape 1/${isProductionProject()?'3':'2'} — aucune modification en attente. Le code Google est déjà écrit.`);
+    const label=S.redeploySource
+      ? 'Code source '+(S.sourceBuild||'actuel')+' déjà écrit — republication en production…'
+      : 'Code déjà présent dans Apps Script — préparation du déploiement…';
+    setQuickDeployProgress(55, label);
+    stat(`Étape 1/${isProductionProject()?'3':'2'} — aucune modification en attente. Le code Google est déjà écrit; déploiement de la source actuelle.`);
   }
 
   stat(isProductionProject()
