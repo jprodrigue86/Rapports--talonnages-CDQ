@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V32';
+const APP_VERSION = 'V33';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -40,6 +40,10 @@ const quickResult = $('quickResult');
 const quickConnect = $('quickConnect');
 const quickChooseZip = $('quickChooseZip');
 const quickApply = $('quickApply');
+const quickDeployProgress = $('quickDeployProgress');
+const quickDeployProgressBar = $('quickDeployProgressBar');
+const quickDeployProgressPercent = $('quickDeployProgressPercent');
+const quickDeployProgressText = $('quickDeployProgressText');
 const toggleAdvanced = $('toggleAdvanced');
 
 const S = {
@@ -57,6 +61,8 @@ const S = {
   bundleLabel: '',
   bundleAlreadyApplied: false,
   bundleTargetBuild: '',
+  deployBusy: false,
+  deployProgress: 0,
 };
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({
@@ -219,6 +225,9 @@ function verifyProductionWebAppReadyV23(expectedBuild='',timeoutMs=90000){
     function loadHealth(){
       if(finished)return;
       attempt++;
+      if(S.deployBusy){
+        setQuickDeployProgress(Math.min(98,92+attempt),'Vérification production — tentative '+attempt+'…');
+      }
       const sep=CDQ_PRODUCTION_WEBAPP_URL.includes('?')?'&':'?';
       const expected=encodeURIComponent(expectedBuild||'');
       frame.src=CDQ_PRODUCTION_WEBAPP_URL+sep+
@@ -250,6 +259,72 @@ function setQuickResult(text, kind = '') {
   quickResult.className = `quick-result ${kind}`.trim();
 }
 
+function setQuickDeployProgress(value, text = '', state = 'working') {
+  const n = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+  S.deployProgress = Math.max(S.deployBusy ? S.deployProgress : 0, n);
+  const shown = S.deployBusy ? S.deployProgress : n;
+
+  if (quickDeployProgress) {
+    quickDeployProgress.hidden = false;
+    quickDeployProgress.className = `quick-deploy-progress ${state || 'working'}`.trim();
+    quickDeployProgress.setAttribute('aria-valuenow', String(shown));
+  }
+  if (quickDeployProgressBar) quickDeployProgressBar.style.width = shown + '%';
+  if (quickDeployProgressPercent) quickDeployProgressPercent.textContent = shown + ' %';
+  if (quickDeployProgressText && text) quickDeployProgressText.textContent = text;
+}
+
+function beginQuickDeployProgress(text = 'Préparation de la mise à jour…') {
+  if (S.deployBusy) return false;
+  S.deployBusy = true;
+  S.deployProgress = 0;
+
+  if (quickApply) {
+    quickApply.disabled = true;
+    quickApply.classList.add('busy');
+    quickApply.textContent = 'ÉCRITURE EN COURS…';
+    quickApply.setAttribute('aria-busy', 'true');
+  }
+  const advancedDeploy = $('deployVersion');
+  if (advancedDeploy) advancedDeploy.disabled = true;
+
+  setQuickDeployProgress(0, text, 'working');
+  requestAnimationFrame(() => setQuickDeployProgress(2, 'Préparation et vérification du package…', 'working'));
+  return true;
+}
+
+function endQuickDeployProgress(ok, text = '') {
+  if (ok) {
+    S.deployProgress = 100;
+    setQuickDeployProgress(100, text || 'Mise à jour terminée.', 'success');
+  } else {
+    if (!S.deployProgress) S.deployProgress = 2;
+    setQuickDeployProgress(S.deployProgress, text || 'La mise à jour a échoué.', 'error');
+  }
+
+  S.deployBusy = false;
+  if (quickApply) {
+    quickApply.classList.remove('busy');
+    quickApply.removeAttribute('aria-busy');
+    quickApply.textContent = '3. ÉCRIRE + DÉPLOYER';
+  }
+  const advancedDeploy = $('deployVersion');
+  if (advancedDeploy) advancedDeploy.disabled = false;
+  updateQuickUi();
+}
+
+async function runQuickDeployAction() {
+  if (!beginQuickDeployProgress()) return;
+  try {
+    await writePendingAndDeploy();
+    endQuickDeployProgress(true, '100 % — écriture, déploiement et vérification terminés.');
+  } catch (e) {
+    const message = e && e.message ? e.message : String(e);
+    stat('Échec : ' + message, 'err');
+    endQuickDeployProgress(false, 'Arrêt à ' + S.deployProgress + ' % — ' + message);
+  }
+}
+
 function updateQuickUi() {
   if (quickGoogleStatus) {
     const connected = hasLiveToken();
@@ -279,7 +354,7 @@ function updateQuickUi() {
   if (quickChooseZip) quickChooseZip.disabled = !S.id;
   if (quickApply) {
     const ready=Boolean(S.id && (S.pkg.size>0 || S.bundleAlreadyApplied) && productionDeploymentReady());
-    quickApply.disabled=!ready;
+    quickApply.disabled=S.deployBusy || !ready;
     if(isProductionProject() && S.id && !productionDeploymentReady()){
       quickApply.title='Déploiement de production Balance CDQ introuvable : mise à jour bloquée.';
     }else quickApply.title='';
@@ -1372,12 +1447,16 @@ function buildUpdatedFileSet(freshFiles) {
 
 async function writeProjectChanges() {
   const count = validateChanges();
+  setQuickDeployProgress(8, 'Lecture de la version actuelle depuis Google…');
   stat('1/4 Relecture depuis Google…');
   const fresh = await getProjectContent(S.id, cid());
+  setQuickDeployProgress(16, 'Création de la sauvegarde complète…');
   stat('2/4 Sauvegarde complète…');
   await saveBackup(S.id, fresh, `Avant écriture (${count} fichier${count > 1 ? 's' : ''})`);
+  setQuickDeployProgress(28, 'Écriture du nouveau code dans Apps Script…');
   stat('3/4 Écriture…');
   await updateProjectContent(S.id, buildUpdatedFileSet(fresh.files), cid());
+  setQuickDeployProgress(46, 'Code écrit — relecture et vérification Google…');
   stat('4/4 Vérification…');
   const checked = await getProjectContent(S.id, cid());
   for (const [k, entry] of changes()) {
@@ -1399,6 +1478,7 @@ async function writeProjectChanges() {
   renderDiff();
   saveSettings();
   updateQuickUi();
+  setQuickDeployProgress(55, 'Code écrit et vérifié dans Apps Script.');
   stat(`TERMINÉ ✓ ${count} fichier(s) écrit(s) et vérifié(s)${S.lastWrittenBuild ? ' • ' + S.lastWrittenBuild : ''}.`, 'ok');
   return count;
 }
@@ -1519,6 +1599,10 @@ async function waitForDeploymentVersionV26(target,versionNumber,timeoutMs=60000)
       }
 
       const elapsed=Math.round((Date.now()-started)/1000);
+      if(S.deployBusy){
+        const fraction=Math.min(1,(Date.now()-started)/Math.max(1,timeoutMs));
+        setQuickDeployProgress(80+Math.round(fraction*10),'Propagation Google du déploiement… '+elapsed+' s');
+      }
       setQuickResult(
         'Déploiement envoyé. Google annonce encore '+(lastVersion?('Apps Script v'+lastVersion):'une ancienne version')+
         ' — propagation '+elapsed+' s / '+Math.round(timeoutMs/1000)+' s…',
@@ -1554,9 +1638,12 @@ async function deployNewVersion(targetOverride = null) {
   const previousVersion = Number(targetDeployment?.deploymentConfig?.versionNumber || 0);
   const sourceBuild = S.lastWrittenBuild || S.pendingBuild || '';
 
+  setQuickDeployProgress(60, 'Création de la nouvelle version Apps Script…');
   const v = await createProjectVersion(S.id, desc, cid());
+  setQuickDeployProgress(68, 'Version Apps Script créée : v'+v.versionNumber+'.');
 
   if (target === '__new__') {
+    setQuickDeployProgress(74, 'Création du nouveau déploiement…');
     const created = await createDeployment(S.id, v.versionNumber, desc, cid());
     const all = await listDeployments(S.id, cid());
     renderDeployments(all);
@@ -1567,6 +1654,7 @@ async function deployNewVersion(targetOverride = null) {
     S.pendingBuild = '';
     renderDiff();
     updateQuickUi();
+    setQuickDeployProgress(98, 'Nouveau déploiement créé et relu.');
     stat(`Version ${v.versionNumber} créée + NOUVEAU déploiement créé. Attention : nouvelle URL.`, 'warn');
     return { version: v.versionNumber, deploymentId: created?.deploymentId, createdNew: true };
   }
@@ -1575,7 +1663,9 @@ async function deployNewVersion(targetOverride = null) {
     throw Error('Ce déploiement est en lecture seule. Choisis un déploiement versionné.');
   }
 
+  setQuickDeployProgress(72, 'Mise à jour du déploiement existant…');
   const updatedDeployment=await updateDeployment(S.id, target, v.versionNumber, desc, cid());
+  setQuickDeployProgress(78, 'Déploiement envoyé à Google — attente de propagation…');
   const updatedVersion=Number(updatedDeployment?.deploymentConfig?.versionNumber||0);
   if(updatedVersion!==Number(v.versionNumber)){
     throw new Error('Google a accepté la requête, mais le déploiement ne pointe pas vers Apps Script v'+v.versionNumber+'. Version retournée : v'+(updatedVersion||0)+'.');
@@ -1601,6 +1691,7 @@ async function deployNewVersion(targetOverride = null) {
     // Apps Script deployment listings can be eventually consistent.
     // For production, the live web-app build is the strongest evidence of
     // what technicians actually receive.
+    setQuickDeployProgress(91, 'API Google encore en propagation — vérification directe de Balance CDQ…');
     stat('Étape 3/3 — API Google encore en propagation, vérification directe de Balance CDQ…','warn');
     setQuickResult(
       'La liste des déploiements Google est encore en retard. Vérification directe de l’URL de production…',
@@ -1624,6 +1715,7 @@ async function deployNewVersion(targetOverride = null) {
   }
 
   if(isProductionProject()){
+    setQuickDeployProgress(92, 'Vérification de Balance CDQ réellement servie en production…');
     stat('Étape 3/3 — vérification serveur de Balance CDQ en production…');
     setQuickResult(
       apiConfirmed
@@ -1636,6 +1728,7 @@ async function deployNewVersion(targetOverride = null) {
       const health=productionHealth || await verifyProductionWebAppReadyV23(sourceBuild,90000);
       productionHealth=health;
       setKnownGoodV23(v.versionNumber);
+      setQuickDeployProgress(98, 'Production confirmée — finalisation…');
       setQuickResult(
         `PRODUCTION TESTÉE ✓ ${sourceBuild||health.selectorBuild||health.build} • Apps Script v${v.versionNumber} • ${apiConfirmed?'déploiement + ':''}endpoint serveur confirmé.`,
         'ok'
@@ -1670,6 +1763,7 @@ async function deployNewVersion(targetOverride = null) {
   renderDiff();
   updateQuickUi();
 
+  setQuickDeployProgress(99, isProductionProject() ? 'Production vérifiée — finalisation…' : 'Déploiement vérifié — finalisation…');
   if(isProductionProject()){
     stat(`MISE À JOUR TERMINÉE ✓ Apps Script v${v.versionNumber} • production vérifiée côté serveur • même URL.`,'ok');
   }else{
@@ -1691,9 +1785,11 @@ async function writePendingAndDeploy() {
   }
 
   if (pending > 0) {
+    setQuickDeployProgress(5, 'Préparation de l’écriture de '+pending+' modification(s)…');
     stat(`Étape 1/${isProductionProject()?'3':'2'} — écriture de ${pending} modification(s) dans Apps Script…`);
     await writeProjectChanges();
   } else {
+    setQuickDeployProgress(55, 'Code déjà présent dans Apps Script — préparation du déploiement…');
     stat(`Étape 1/${isProductionProject()?'3':'2'} — aucune modification en attente. Le code Google est déjà écrit.`);
   }
 
@@ -1741,7 +1837,7 @@ async function handleInstallPwa() {
 
 if (quickConnect) quickConnect.addEventListener('click', handleGoogleConnect);
 if (quickChooseZip) quickChooseZip.addEventListener('click', () => $('localFiles').click());
-if (quickApply) quickApply.addEventListener('click', () => runAction(writePendingAndDeploy, 'Mise à jour rapide…'));
+if (quickApply) quickApply.addEventListener('click', runQuickDeployAction);
 if (toggleAdvanced) toggleAdvanced.addEventListener('click', () => {
   document.body.classList.toggle('show-advanced');
   toggleAdvanced.textContent = document.body.classList.contains('show-advanced') ? 'Masquer les options avancées' : 'Options avancées';
@@ -1809,7 +1905,7 @@ $('confirmWrite').addEventListener('click', () => {
 });
 
 $('createVersion').addEventListener('click', () => runAction(createVersionOnly, 'Création de version…'));
-$('deployVersion').addEventListener('click', () => runAction(writePendingAndDeploy, 'Préparation de la mise à jour…'));
+$('deployVersion').addEventListener('click', runQuickDeployAction);
 $('backupNow').addEventListener('click', () => runAction(async () => {
   const id = sid();
   if (!id) throw Error('Aucun projet.');
