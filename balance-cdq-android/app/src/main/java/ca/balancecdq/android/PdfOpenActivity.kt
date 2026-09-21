@@ -1,10 +1,12 @@
 package ca.balancecdq.android
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.PendingIntent
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -20,10 +22,17 @@ import java.util.concurrent.Executors
 
 class PdfOpenActivity : Activity() {
     companion object {
-        private const val REQ_AUTH = 24040
-        private const val REQ_ACCOUNT = 24041
+        private const val REQ_AUTH = 24050
+        private const val REQ_ACCOUNT = 24051
         private const val DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
+        private const val READER_PREFS = "cdq_pdf_reader_v2"
+        private const val READER_PACKAGE = "package"
     }
+
+    private data class PdfApp(
+        val label: String,
+        val packageName: String
+    )
 
     private val executor = Executors.newSingleThreadExecutor()
     private val authClient by lazy { Identity.getAuthorizationClient(this) }
@@ -36,6 +45,7 @@ class PdfOpenActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         if (intent?.data?.host.equals("reset", ignoreCase = true)) {
+            clearSavedReader()
             openDefaultAppsSettings()
             return
         }
@@ -54,6 +64,7 @@ class PdfOpenActivity : Activity() {
         intent = newIntent
 
         if (newIntent.data?.host.equals("reset", ignoreCase = true)) {
+            clearSavedReader()
             openDefaultAppsSettings()
             return
         }
@@ -196,7 +207,7 @@ class PdfOpenActivity : Activity() {
                 )
 
                 runOnUiThread {
-                    openAndroidPdfResolver(session)
+                    openPreferredPdfReader(session)
                 }
             } catch (e: Exception) {
                 runOnUiThread {
@@ -254,41 +265,134 @@ class PdfOpenActivity : Activity() {
         }
     }
 
-    private fun openAndroidPdfResolver(session: PdfSession) {
-        val uri = Uri.parse(
-            "content://" + packageName + ".pdf/session/" + session.id
-        )
+    private fun pdfUri(session: PdfSession): Uri =
+        Uri.parse("content://" + packageName + ".pdf/session/" + session.id)
 
-        val intent = Intent(Intent.ACTION_VIEW).apply {
+    private fun basePdfIntent(session: PdfSession): Intent {
+        val uri = pdfUri(session)
+        return Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/pdf")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             clipData = ClipData.newRawUri(session.fileName, uri)
         }
+    }
+
+    private fun availablePdfApps(base: Intent): List<PdfApp> {
+        val seen = LinkedHashSet<String>()
+        val apps = ArrayList<PdfApp>()
+
+        packageManager.queryIntentActivities(base, PackageManager.MATCH_DEFAULT_ONLY)
+            .forEach { info ->
+                val pkg = info.activityInfo?.packageName.orEmpty()
+                if (pkg.isBlank() || pkg == packageName || !seen.add(pkg)) return@forEach
+
+                val label = try {
+                    info.loadLabel(packageManager)?.toString().orEmpty().ifBlank { pkg }
+                } catch (_: Exception) {
+                    pkg
+                }
+                apps.add(PdfApp(label, pkg))
+            }
+
+        return apps.sortedWith(
+            compareBy<PdfApp> {
+                when (it.packageName) {
+                    "com.ilovepdf.www" -> 0
+                    "com.adobe.reader" -> 1
+                    else -> 2
+                }
+            }.thenBy { it.label.lowercase() }
+        )
+    }
+
+    private fun savedReader(): String =
+        getSharedPreferences(READER_PREFS, MODE_PRIVATE)
+            .getString(READER_PACKAGE, "")
+            .orEmpty()
+
+    private fun saveReader(targetPackage: String) {
+        getSharedPreferences(READER_PREFS, MODE_PRIVATE)
+            .edit()
+            .putString(READER_PACKAGE, targetPackage)
+            .apply()
+    }
+
+    private fun clearSavedReader() {
+        getSharedPreferences(READER_PREFS, MODE_PRIVATE)
+            .edit()
+            .remove(READER_PACKAGE)
+            .apply()
+    }
+
+    private fun openPreferredPdfReader(session: PdfSession) {
+        val base = basePdfIntent(session)
+        val apps = availablePdfApps(base)
+
+        if (apps.isEmpty()) {
+            fail("Aucune application PDF compatible n’est installée.")
+            return
+        }
+
+        val preferred = savedReader()
+        val chosen = apps.firstOrNull { it.packageName == preferred }
+
+        if (chosen != null) {
+            launchPdfApp(session, base, chosen)
+            return
+        }
+
+        clearSavedReader()
+        showPdfAppChooser(session, base, apps)
+    }
+
+    private fun showPdfAppChooser(session: PdfSession, base: Intent, apps: List<PdfApp>) {
+        val labels = apps.map { it.label }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Ouvrir le PDF avec")
+            .setItems(labels) { dialog, which ->
+                dialog.dismiss()
+                val chosen = apps.getOrNull(which) ?: return@setItems
+                saveReader(chosen.packageName)
+                launchPdfApp(session, base, chosen)
+            }
+            .setNegativeButton("Annuler") { dialog, _ ->
+                dialog.dismiss()
+                finish()
+            }
+            .setOnCancelListener { finish() }
+            .show()
+    }
+
+    private fun launchPdfApp(session: PdfSession, base: Intent, pdfApp: PdfApp) {
+        val uri = pdfUri(session)
 
         try {
-            val targets = packageManager.queryIntentActivities(intent, 0)
-            if (targets.isEmpty()) {
-                fail("Aucune application PDF compatible n’est installée.")
+            grantUriPermission(pdfApp.packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+            val direct = Intent(base).apply {
+                setPackage(pdfApp.packageName)
+            }
+
+            if (direct.resolveActivity(packageManager) == null) {
+                clearSavedReader()
+                showPdfAppChooser(session, base, availablePdfApps(base))
                 return
             }
 
-            targets.forEach { info ->
-                val pkg = info.activityInfo?.packageName.orEmpty()
-                if (pkg.isNotBlank()) {
-                    try {
-                        grantUriPermission(pkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    } catch (_: Exception) {
-                    }
-                }
-            }
-
-            startActivity(intent)
+            startActivity(direct)
             finish()
         } catch (_: ActivityNotFoundException) {
-            fail("Aucune application PDF compatible n’est installée.")
+            clearSavedReader()
+            val apps = availablePdfApps(base)
+            if (apps.isEmpty()) {
+                fail("L’application PDF choisie n’est plus disponible.")
+            } else {
+                showPdfAppChooser(session, base, apps)
+            }
         } catch (e: Exception) {
-            fail(e.message ?: "Impossible d’afficher les applications PDF.")
+            clearSavedReader()
+            fail(e.message ?: "Impossible d’ouvrir le PDF dans ${pdfApp.label}.")
         }
     }
 
