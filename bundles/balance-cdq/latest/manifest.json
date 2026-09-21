@@ -1,63 +1,85 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V22.94",
-  "build": "2026.09.21-v22.94-default-google-account-settings",
-  "title": "Balance CDQ V22.94 — compte Google par défaut et Réglages",
+  "version": "V22.95",
+  "build": "2026.09.21-v22.95-archive-noms-lisibles",
+  "title": "Balance CDQ V22.95 — noms Photos et Notes simplifiés",
   "requiresBuild": [
-    "2026.09.21-v22.93-progress-global"
+    "2026.09.21-v22.94-default-google-account-settings"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v22.93-progress-global",
-      "to": "2026.09.21-v22.94-default-google-account-settings"
+      "from": "2026.09.21-v22.94-default-google-account-settings",
+      "to": "2026.09.21-v22.95-archive-noms-lisibles"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v22.93-progress-global",
-      "to": "2026.09.21-v22.94-default-google-account-settings"
+      "from": "2026.09.21-v22.94-default-google-account-settings",
+      "to": "2026.09.21-v22.95-archive-noms-lisibles"
     },
     {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2294SettingsJs"
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "function cdqCibleArchiveV2292_(type,id,client){\n  try{\n    let n=type==='fichier'?DriveApp.getFileById(id).getName():(type==='dossier'?DriveApp.getFolderById(id).getName():'');\n    n=String(n||'').replace(/\\.(pdf|xlsx?|xlsm|csv)$/i,'').trim();\n    if(!n||n.toLowerCase()===String(client.getName()||'').trim().toLowerCase())return '';\n    return cdqNomArchiveV2292_(n,'');\n  }catch(e){return '';}\n}",
+      "replacement": "function cdqCibleArchiveV2292_(type,id,client){\n  try{\n    type=String(type||'').toLowerCase();\n    if(type==='client')return '';\n    const clientId=String(client&&client.getId?client.getId():'');\n    const clientNom=String(client&&client.getName?client.getName():'').trim().toLowerCase();\n\n    if(type==='dossier'){\n      const d=DriveApp.getFolderById(id);\n      if(String(d.getId())===clientId)return '';\n      const n=String(d.getName()||'').trim();\n      if(!n||n.toLowerCase()===clientNom)return '';\n      return cdqNomArchiveV2292_(n,'');\n    }\n\n    if(type==='fichier'){\n      const f=DriveApp.getFileById(id);\n      const structure={\n        'certficat de poid étalon':1,\n        'certificat de poids étalon':1,\n        'contrat':1,\n        'liste de balance':1,\n        \"rapports d'étalonnages\":1,\n        \"rapports d'étalonnage\":1,\n        'rapports':1\n      };\n      const attente=[],vus={};\n      const parents=f.getParents();while(parents.hasNext())attente.push(parents.next());\n      let garde=0;\n      while(attente.length&&garde++<40){\n        const d=attente.shift(),did=String(d.getId());\n        if(vus[did])continue;vus[did]=1;\n        if(did===clientId)break;\n        const nom=String(d.getName()||'').trim();\n        const low=nom.toLowerCase();\n        if(nom && low!==clientNom && !structure[low] && low.indexOf('_cdq_')!==0){\n          return cdqNomArchiveV2292_(nom,'');\n        }\n        const ps=d.getParents();while(ps.hasNext())attente.push(ps.next());\n      }\n      let n=String(f.getName()||'').replace(/\\.(pdf|xlsx?|xlsm|csv)$/i,'').trim();\n      if(!n||n.toLowerCase()===clientNom)return '';\n      return cdqNomArchiveV2292_(n,'');\n    }\n    return '';\n  }catch(e){return '';}\n}",
+      "expected": 1
     },
     {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2294SettingsCss"
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  const nom = cdqBaseNomArchiveV2292_(date.prefixe, client, technicien, cible) + cdqExtensionPhotoV2292_(match[1], nomFichier);",
+      "replacement": "  const nom = cdqBaseNomArchiveV2292_(date.jour, client, technicien, cible) + cdqExtensionPhotoV2292_(match[1], nomFichier);",
+      "expected": 1
     },
     {
-      "file": "Selector.html",
-      "op": "insert_before_literal",
-      "before": "</body>",
-      "text": "\n\n<style id=\"cdqV2294SettingsCss\">\n#cdqSettingsModalV2294 .modal{max-width:620px}\n#cdqSettingsModalV2294 .cdq-settings-v2294{display:grid;gap:12px;padding:4px 0 8px}\n#cdqSettingsModalV2294 .cdq-settings-card-v2294{\n  border:1px solid #31516a;border-radius:13px;background:#0b1c2b;padding:13px;\n}\n#cdqSettingsModalV2294 .cdq-settings-card-v2294 h3{margin:0 0 4px;font-size:15px}\n#cdqSettingsModalV2294 .cdq-settings-card-v2294 p{margin:4px 0 10px;color:#9fb6c9;font-size:12px;line-height:1.45}\n#cdqSettingsModalV2294 .cdq-settings-row-v2294{display:flex;gap:8px;flex-wrap:wrap}\n#cdqSettingsModalV2294 .cdq-settings-row-v2294 button{\n  flex:1 1 180px;min-height:46px;border:1px solid #268bc0;border-radius:10px;\n  background:#10283d;color:#fff;font-weight:800;padding:9px 11px;\n}\n#cdqSettingsModalV2294 .cdq-settings-email-v2294{\n  width:100%;box-sizing:border-box;min-height:44px;margin:2px 0 9px;padding:9px 11px;\n  border:1px solid #3b5e77;border-radius:9px;background:#071522;color:#fff;font-size:14px;\n}\n#cdqSettingsModalV2294 .cdq-account-current-v2294{\n  padding:9px 10px;border-radius:9px;background:#071522;border:1px solid #203e54;\n  color:#dff6ff;font-size:13px;margin:7px 0 10px;word-break:break-all;\n}\n#cdqSettingsModalV2294 .cdq-account-current-v2294 strong{color:#5de6ff}\n#cdqSettingsModalV2294 .danger-v2294{border-color:#854149!important;background:#32161b!important;color:#ffd8db!important}\nbody.light #cdqSettingsModalV2294 .cdq-settings-card-v2294,\nbody.light #cdqSettingsModalV2294 .cdq-account-current-v2294,\nbody.light #cdqSettingsModalV2294 .cdq-settings-email-v2294{\n  background:#fff;color:#172838;border-color:#c6d5df;\n}\n@media(max-width:620px){\n  #cdqSettingsModalV2294 .modal{width:calc(100vw - 14px)!important;max-width:none!important}\n  #cdqSettingsModalV2294 .cdq-settings-row-v2294{display:grid;grid-template-columns:1fr}\n}\n</style>\n<script id=\"cdqV2294SettingsJs\">\n(function(){\n'use strict';\n\nconst KEY='cdqDefaultGoogleAccountV2294';\nlet originalDisplayOpenV2294=null;\nlet originalBottomDisplayOpenV2294=null;\n\nfunction normalizeEmail(v){\n  return String(v||'').trim().toLowerCase();\n}\nfunction getDefault(){\n  try{return normalizeEmail(localStorage.getItem(KEY)||'');}catch(_){return '';}\n}\nfunction setDefault(email){\n  email=normalizeEmail(email);\n  if(email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new Error('Adresse Google invalide.');\n  try{\n    if(email)localStorage.setItem(KEY,email);\n    else localStorage.removeItem(KEY);\n  }catch(_){}\n  refreshSettings();\n  if(typeof afficherMessage==='function'){\n    afficherMessage(email?'Compte Google par défaut enregistré : '+email:'Compte Google par défaut réinitialisé.',true);\n  }\n  return email;\n}\nfunction withDefault(url){\n  const email=getDefault();\n  if(!email)return String(url||'');\n  try{\n    const u=new URL(String(url||''),location.href);\n    u.searchParams.set('authuser',email);\n    return u.href;\n  }catch(_){return String(url||'');}\n}\nwindow.cdqGoogleDefaultAccountV2294=getDefault;\nwindow.cdqSetGoogleDefaultAccountV2294=setDefault;\nwindow.cdqWithDefaultGoogleAccountV2294=withDefault;\n\n// Google Sheets : conserver le même chemin natif mais ajouter le compte préféré.\nif(typeof cdqSheetUrl==='function'){\n  cdqSheetUrl=function(id){\n    id=String(id||'');\n    if(!/^[\\w-]+$/.test(id))throw new Error('Identifiant de feuille invalide.');\n    return withDefault('https://docs.google.com/spreadsheets/d/'+id+'/edit');\n  };\n  window.cdqSheetUrl=cdqSheetUrl;\n}\nif(typeof cdqSheetAppUrl==='function'){\n  cdqSheetAppUrl=function(id){\n    const url=cdqSheetUrl(id);\n    if(!/Android/i.test(navigator.userAgent||''))return url;\n    const u=new URL(url);\n    return 'intent://docs.google.com'+u.pathname+u.search+\n      '#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;'+\n      'S.browser_fallback_url='+encodeURIComponent(url)+';end';\n  };\n  window.cdqSheetAppUrl=cdqSheetAppUrl;\n}\n\n// PDF : même chemin Google Drive natif que V22.90, avec authuser si configuré.\nif(typeof cdqPdfDriveUrlV2275==='function'){\n  cdqPdfDriveUrlV2275=function(id){\n    id=String(id||'');\n    if(!/^[A-Za-z0-9_-]+$/.test(id))throw new Error('Identifiant PDF invalide.');\n    return withDefault('https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view?usp=drivesdk');\n  };\n  window.cdqPdfDriveUrlV2275=cdqPdfDriveUrlV2275;\n}\nif(typeof cdqPdfDriveIntentV2275==='function'){\n  cdqPdfDriveIntentV2275=function(id){\n    const drive=cdqPdfDriveUrlV2275(id);\n    if(!/Android/i.test(navigator.userAgent||''))return drive;\n    const u=new URL(drive);\n    return 'intent://drive.google.com'+u.pathname+u.search+\n      '#Intent;scheme=https;package=com.google.android.apps.docs;'+\n      'S.browser_fallback_url='+encodeURIComponent(drive)+';end';\n  };\n  window.cdqPdfDriveIntentV2275=cdqPdfDriveIntentV2275;\n}\n\nfunction ensureModal(){\n  let o=document.getElementById('cdqSettingsModalV2294');\n  if(o)return o;\n  o=document.createElement('div');\n  o.id='cdqSettingsModalV2294';\n  o.className='modal-overlay';\n  o.style.display='none';\n  o.innerHTML=\n    '<div class=\"modal\">'+\n      '<h2 class=\"cdq-modal-title\">⚙️ Réglages</h2>'+\n      '<div class=\"cdq-modal-body\"><div class=\"cdq-settings-v2294\">'+\n        '<section class=\"cdq-settings-card-v2294\">'+\n          '<h3>🎨 Affichage</h3>'+\n          '<p>Thème, taille de l’interface, texte, icônes et préférences du lecteur PDF.</p>'+\n          '<div class=\"cdq-settings-row-v2294\"><button type=\"button\" id=\"cdqOpenDisplayV2294\">Ouvrir les réglages d’affichage</button></div>'+\n        '</section>'+\n        '<section class=\"cdq-settings-card-v2294\">'+\n          '<h3>☁️ Compte Google par défaut</h3>'+\n          '<p>Ce compte sera proposé automatiquement à Google pour ouvrir les fichiers Sheets et PDF sur cet appareil.</p>'+\n          '<div id=\"cdqDefaultGoogleStatusV2294\" class=\"cdq-account-current-v2294\"></div>'+\n          '<div class=\"cdq-settings-row-v2294\" id=\"cdqCurrentGoogleRowV2294\"></div>'+\n          '<p style=\"margin-top:11px\">Pour utiliser un autre compte Google déjà ajouté sur cet appareil, entre son adresse :</p>'+\n          '<input class=\"cdq-settings-email-v2294\" id=\"cdqDefaultGoogleEmailV2294\" type=\"email\" inputmode=\"email\" autocomplete=\"email\" placeholder=\"nom@gmail.com\">'+\n          '<div class=\"cdq-settings-row-v2294\">'+\n            '<button type=\"button\" id=\"cdqSaveGoogleDefaultV2294\">Enregistrer ce compte</button>'+\n            '<button type=\"button\" id=\"cdqResetGoogleDefaultV2294\" class=\"danger-v2294\">Réinitialiser le compte par défaut</button>'+\n          '</div>'+\n        '</section>'+\n      '</div></div>'+\n      '<div class=\"modal-buttons\"><button type=\"button\" class=\"modal-button cancel-button\" id=\"cdqSettingsCloseV2294\">Fermer</button></div>'+\n    '</div>';\n  document.body.appendChild(o);\n  o.querySelector('#cdqSettingsCloseV2294').onclick=function(){o.style.display='none';};\n  o.addEventListener('click',function(e){if(e.target===o)o.style.display='none';});\n  o.querySelector('#cdqSaveGoogleDefaultV2294').onclick=function(){\n    try{setDefault(o.querySelector('#cdqDefaultGoogleEmailV2294').value);}\n    catch(e){if(typeof afficherErreur==='function')afficherErreur(e);else alert(e.message||e);}\n  };\n  o.querySelector('#cdqResetGoogleDefaultV2294').onclick=function(){setDefault('');};\n  o.querySelector('#cdqOpenDisplayV2294').onclick=function(){\n    o.style.display='none';\n    // Reprendre le vrai panneau Affichage déjà existant.\n    try{\n      const inline=document.getElementById('cdqInlineDisplayPanelV2204');\n      if(originalDisplayOpenV2294){originalDisplayOpenV2294.call(document.getElementById('cdqTopDisplayButtonV2204'));return;}\n      if(originalBottomDisplayOpenV2294){originalBottomDisplayOpenV2294.call(document.getElementById('displayModeButton'));return;}\n      if(typeof window.ouvrirReglagesAffichage==='function'){window.ouvrirReglagesAffichage();return;}\n      if(inline)inline.classList.add('open');\n    }catch(e){if(typeof afficherErreur==='function')afficherErreur(e);}\n  };\n  return o;\n}\nfunction refreshSettings(){\n  const o=ensureModal();\n  const saved=getDefault();\n  const current=normalizeEmail(typeof utilisateurCourantEmail!=='undefined'?utilisateurCourantEmail:'');\n  const status=o.querySelector('#cdqDefaultGoogleStatusV2294');\n  status.innerHTML=saved\n    ? 'Compte par défaut : <strong>'+saved.replace(/[&<>\"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]);})+'</strong>'\n    : 'Compte par défaut : <strong>Aucun</strong> — Google demandera le compte.';\n  const row=o.querySelector('#cdqCurrentGoogleRowV2294');\n  row.innerHTML='';\n  if(current){\n    const b=document.createElement('button');\n    b.type='button';\n    b.textContent='Utiliser mon compte CDQ : '+current;\n    b.onclick=function(){setDefault(current);};\n    row.appendChild(b);\n  }\n  const input=o.querySelector('#cdqDefaultGoogleEmailV2294');\n  if(input&&!input.matches(':focus'))input.value=saved||current||'';\n}\nfunction openSettings(){\n  const inline=document.getElementById('cdqInlineDisplayPanelV2204');\n  if(inline)inline.classList.remove('open');\n  refreshSettings();\n  ensureModal().style.display='flex';\n}\nwindow.cdqOpenSettingsV2294=openSettings;\n\nfunction applyButtons(){\n  const top=document.getElementById('cdqTopDisplayButtonV2204');\n  if(top){\n    if(!top.__cdqOriginalDisplayV2294){\n      top.__cdqOriginalDisplayV2294=top.onclick;\n      if(!originalDisplayOpenV2294)originalDisplayOpenV2294=top.onclick;\n    }\n    if(top.dataset.cdqSettingsV2294!=='1'){\n      top.dataset.cdqSettingsV2294='1';\n    }\n    top.title='Réglages';\n    top.setAttribute('aria-label','Réglages');\n    top.innerHTML='<span aria-hidden=\"true\" style=\"font-size:22px;line-height:1\">⚙</span><span>Réglages</span>';\n    top.onclick=openSettings;\n  }\n\n  const bottom=document.getElementById('displayModeButton');\n  if(bottom){\n    if(!bottom.__cdqOriginalDisplayV2294){\n      bottom.__cdqOriginalDisplayV2294=bottom.onclick;\n      if(!originalBottomDisplayOpenV2294)originalBottomDisplayOpenV2294=bottom.onclick;\n    }\n    bottom.title='Réglages';\n    bottom.setAttribute('aria-label','Réglages');\n    const small=bottom.querySelector('small');if(small)small.textContent='Réglages';\n    const icon=bottom.querySelector('span');if(icon)icon.textContent='⚙';\n    bottom.onclick=openSettings;\n  }\n\n  document.querySelectorAll('.desktop-sidebar-action').forEach(function(btn){\n    const txt=String(btn.textContent||'').trim().toLowerCase();\n    if(txt.indexOf('affichage')!==-1 || btn.dataset.cdqSettingsV2294==='1'){\n      btn.dataset.cdqSettingsV2294='1';\n      btn.innerHTML='<span class=\"side-icon\">⚙</span><span>Réglages</span>';\n      btn.onclick=openSettings;\n    }\n  });\n}\nfunction scheduleApply(){\n  clearTimeout(window.__cdqSettingsApplyV2294);\n  window.__cdqSettingsApplyV2294=setTimeout(applyButtons,70);\n}\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){applyButtons();setTimeout(applyButtons,500);},{once:true});\nelse{applyButtons();setTimeout(applyButtons,500);}\nwindow.addEventListener('load',function(){setTimeout(applyButtons,120);setTimeout(applyButtons,1100);});\ntry{new MutationObserver(scheduleApply).observe(document.body,{childList:true,subtree:true});}catch(_){}\nwindow.addEventListener('cdq:access-ready',function(){setTimeout(refreshSettings,100);});\n})();\n</script>\n\n"
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  const jour=Utilities.formatDate(now,zone,'yyyy-MM-dd'),prefixe=Utilities.formatDate(now,zone,'yyyyMMdd_HHmmss');",
+      "replacement": "  const jour=Utilities.formatDate(now,zone,'yyyy-MM-dd'),prefixe=jour;",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "    const nomSousDossier = cdqNomArchiveV2292_(date.jour + ' - ' + technicien, date.jour);",
+      "replacement": "    const nomSousDossier = cdqNomArchiveV2292_(date.jour + ' - ' + technicien + (cible ? ' - ' + cible : ''), date.jour + ' - ' + technicien);",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  const sousNom=cdqNomArchiveV2292_(jour+' - '+tech,jour),its=comp.getFoldersByName(sousNom),dossier=its.hasNext()?its.next():comp.createFolder(sousNom);",
+      "replacement": "  const sousNom=cdqNomArchiveV2292_(jour+' - '+tech+(cible?(' - '+cible):''),jour+' - '+tech),its=comp.getFoldersByName(sousNom),dossier=its.hasNext()?its.next():comp.createFolder(sousNom);",
+      "expected": 1
     }
   ],
   "audit": {
     "scriptManagerRequired": "V32",
-    "rollbackBase": "V22.93",
-    "behavior": [
-      "Nouveau bouton ⚙ Réglages à la place de l'accès direct Affichage.",
-      "Affichage reste accessible à l'intérieur de Réglages.",
-      "Compte Google par défaut mémorisé localement par appareil.",
-      "Bouton pour utiliser le compte Balance CDQ actuellement connecté.",
-      "Possibilité d'entrer une autre adresse Google déjà présente sur l'appareil.",
-      "Bouton Réinitialiser pour revenir au choix de compte Google.",
-      "Sheets et PDF reçoivent le compte par défaut via le paramètre authuser.",
-      "Aucun droit Drive n'est contourné : Google reste responsable de l'autorisation réelle."
+    "rollbackBase": "V22.94",
+    "storage": [
+      "_CDQ_SYSTEME/Photos/Compagnie/AAAA-MM-JJ - Technicien - Balance si associée/photo",
+      "_CDQ_SYSTEME/Notes/Compagnie/AAAA-MM-JJ - Technicien - Balance si associée/note.txt"
     ],
-    "storageKey": "cdqDefaultGoogleAccountV2294",
-    "appliesTo": [
-      "Google Sheets",
-      "PDF ouverts via Google Drive"
+    "fileNaming": [
+      "AAAA-MM-JJ - Compagnie - Technicien - Balance.ext",
+      "AAAA-MM-JJ - Compagnie - Technicien.ext lorsque l'élément est attaché seulement au client"
+    ],
+    "removed": [
+      "préfixe compact AAAAMMJJ_HHMMSS",
+      "six chiffres d'heure/minute/seconde dans les noms de fichiers"
+    ],
+    "balanceResolution": [
+      "Dossier de balance directement ciblé : utiliser son nom.",
+      "Rapport/fichier dans un dossier de balance : utiliser le dossier de balance le plus proche.",
+      "Client directement ciblé : ne pas ajouter de balance."
     ],
     "preserved": [
+      "V22.94 compte Google par défaut et Réglages",
       "V22.93 progression globale",
-      "V22.92 classement Photos/Notes",
-      "flux PDF natif V22.90"
+      "liaisons internes photos/notes",
+      "lecture des anciennes photos"
     ]
   }
 }
