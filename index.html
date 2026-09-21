@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v22.98-default-account-core-no-flicker';
+const CDQ_PWA_BUILD = '2026.09.21-v22.99-direct-sheet-core-no-picker';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1169,12 +1169,12 @@ function cdqOpenSheetDefaultAccountV2297(data){
   const email=String(data&&data.email||'').trim().toLowerCase();
   if(!/^[A-Za-z0-9_-]+$/.test(id)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return false;
 
-  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?authuser='+encodeURIComponent(email)+'&usp=drivesdk';
+  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?usp=drivesdk&authuser='+encodeURIComponent(email)+'&login_hint='+encodeURIComponent(email);
 
   if(/Android/i.test(navigator.userAgent||'')){
-    // Forcer Chrome plutôt que l'application Sheets : c'est l'application
-    // Sheets qui affiche le sélecteur de comptes natif montré par l'utilisateur.
-    const intent='intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?authuser='+encodeURIComponent(email)+'&usp=drivesdk'+
+    // V22.99 : cibler explicitement Chrome. Ne jamais transmettre ce clic
+    // à l'application Sheets native quand un compte par défaut est actif.
+    const intent='intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?usp=drivesdk&authuser='+encodeURIComponent(email)+'&login_hint='+encodeURIComponent(email)+
       '#Intent;scheme=https;package=com.android.chrome;'+
       'S.browser_fallback_url='+encodeURIComponent(web)+';end';
     window.location.href=intent;
