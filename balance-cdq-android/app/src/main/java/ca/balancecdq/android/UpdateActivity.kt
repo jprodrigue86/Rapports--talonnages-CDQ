@@ -108,7 +108,7 @@ class UpdateActivity : Activity() {
                 val sha256 = json.getString("sha256").lowercase()
 
                 runOnUiThread {
-                    if (latestCode <= BuildConfig.VERSION_CODE) {
+                    if (latestCode.toLong() <= currentVersionCode()) {
                         progress.visibility = ProgressBar.GONE
                         status.text =
                             "Balance CDQ Android est à jour.\nVersion installée : ${BuildConfig.VERSION_NAME}"
@@ -121,7 +121,7 @@ class UpdateActivity : Activity() {
                     }
                 }
 
-                if (latestCode > BuildConfig.VERSION_CODE) {
+                if (latestCode.toLong() > currentVersionCode()) {
                     val apk = downloadApk(apkUrl)
                     val actual = sha256(apk)
                     if (!actual.equals(sha256, ignoreCase = true)) {
@@ -275,6 +275,21 @@ class UpdateActivity : Activity() {
             }
         }
         return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    private fun currentVersionCode(): Long {
+        val info = packageManager.getPackageInfo(packageName, 0)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            info.versionCode.toLong()
+        }
+    }
+
+    private fun currentVersionName(): String {
+        val info = packageManager.getPackageInfo(packageName, 0)
+        return info.versionName.orEmpty().ifBlank { currentVersionCode().toString() }
     }
 
     private fun fullWidth(): LinearLayout.LayoutParams =
