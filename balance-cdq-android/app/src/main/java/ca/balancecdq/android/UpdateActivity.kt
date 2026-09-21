@@ -111,12 +111,12 @@ class UpdateActivity : Activity() {
                     if (latestCode.toLong() <= currentVersionCode()) {
                         progress.visibility = ProgressBar.GONE
                         status.text =
-                            "Balance CDQ Android est à jour.\nVersion installée : ${BuildConfig.VERSION_NAME}"
+                            "Balance CDQ Android est à jour.\nVersion installée : ${currentVersionName()}"
                         action.isEnabled = false
                     } else {
                         status.text =
                             "Nouvelle version disponible : $latestVersionName\n" +
-                            "Version installée : ${BuildConfig.VERSION_NAME}\n\n" +
+                            "Version installée : ${currentVersionName()}\n\n" +
                             "Préparation de la mise à jour…"
                     }
                 }
