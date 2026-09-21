@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v22.98-default-account-core-no-flicker",
+  "version": "2026.09.21-v22.99-direct-sheet-core-no-picker",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v22.98-default-account-core-no-flicker",
-  "backend_version": "2026.09.21-v22.98-default-account-core-no-flicker",
+  "selector_version": "2026.09.21-v22.99-direct-sheet-core-no-picker",
+  "backend_version": "2026.09.21-v22.99-direct-sheet-core-no-picker",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -240,7 +240,10 @@
     "sheets-force-chrome-core-v2298",
     "pdf-cdq-reader-default-v2298",
     "file-selection-no-flicker-v2298",
-    "selection-autofit-suppression-v2298"
+    "selection-autofit-suppression-v2298",
+    "sheets-core-chrome-no-native-picker-v2299",
+    "default-account-direct-core-v2299",
+    "selection-stable-no-flicker-v2299"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -253,5 +256,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v22.98-default-account-core-no-flicker"
+  "pwa_version": "2026.09.21-v22.99-direct-sheet-core-no-picker"
 }
