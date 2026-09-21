@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v22-99-direct-sheet-core-no-picker';
-const FORCE_BUILD='2026.09.21-v22.99-direct-sheet-core-no-picker';
+const CACHE = 'cdq-installable-v23-00-no-native-account-picker';
+const FORCE_BUILD='2026.09.21-v23.00-no-native-account-picker';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates-v2252.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
