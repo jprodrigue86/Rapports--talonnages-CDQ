@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v23.07-parent-viewport-freeze",
+  "version": "2026.09.21-v23.08-zero-file-geometry-shift",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v23.07-parent-viewport-freeze",
-  "backend_version": "2026.09.21-v23.07-parent-viewport-freeze",
+  "selector_version": "2026.09.21-v23.08-zero-file-geometry-shift",
+  "backend_version": "2026.09.21-v23.08-zero-file-geometry-shift",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -270,7 +270,9 @@
     "suppress-autofit-handoff-v2306",
     "parent-iframe-viewport-freeze-v2307",
     "parent-resize-suppression-v2307",
-    "selector-ignore-viewport-during-handoff-v2307"
+    "selector-ignore-viewport-during-handoff-v2307",
+    "file-row-no-active-scale-v2308",
+    "selected-outline-no-border-v2308"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -283,5 +285,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v23.07-parent-viewport-freeze"
+  "pwa_version": "2026.09.21-v23.08-zero-file-geometry-shift"
 }
