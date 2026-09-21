@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v23.15-updater-button-direct",
+  "version": "2026.09.21-v23.16-real-update-channels",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v23.15-updater-button-direct",
-  "backend_version": "2026.09.21-v23.15-updater-button-direct",
+  "selector_version": "2026.09.21-v23.16-real-update-channels",
+  "backend_version": "2026.09.21-v23.16-real-update-channels",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -282,7 +282,10 @@
     "android-update-channel-v2313",
     "pdf-internal-restore-v2314",
     "sheets-account-slot-v2314",
-    "android-updater-button-direct-v2315"
+    "android-updater-button-direct-v2315",
+    "real-update-channels-v2316",
+    "script-manager-update-button-v2316",
+    "android-update-button-in-center-v2316"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -295,5 +298,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v23.15-updater-button-direct"
+  "pwa_version": "2026.09.21-v23.16-real-update-channels"
 }
