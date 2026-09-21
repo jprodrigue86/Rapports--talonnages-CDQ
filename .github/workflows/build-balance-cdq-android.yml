@@ -65,6 +65,14 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee /tmp/balance-cdq-badging.txt
           grep -q "package: name='ca.balancecdq.android'" /tmp/balance-cdq-badging.txt
 
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Balance-CDQ-Android-25.00
+          path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Publish APK + update channel
         shell: bash
         run: |
