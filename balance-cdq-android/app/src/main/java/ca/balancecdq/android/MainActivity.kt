@@ -24,7 +24,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
         private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.05"
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.06"
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
     }
@@ -79,7 +79,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.05"
+                settings.userAgentString + " BalanceCDQAndroid/25.06"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -166,8 +166,8 @@ class MainActivity : Activity() {
     private fun installGoogleBridge() {
         val script = """
             (function(){
-              if(window.__cdqNativeGoogleV2505)return;
-              window.__cdqNativeGoogleV2505=true;
+              if(window.__cdqNativeGoogleV2506)return;
+              window.__cdqNativeGoogleV2506=true;
 
               function ui(){
                 try{
@@ -230,8 +230,8 @@ class MainActivity : Activity() {
               }
 
               var fallback=document.getElementById('google-touch-fallback');
-              if(fallback && !fallback.dataset.cdqNative2505){
-                fallback.dataset.cdqNative2505='1';
+              if(fallback && !fallback.dataset.cdqNative2506){
+                fallback.dataset.cdqNative2506='1';
                 fallback.addEventListener('click',function(e){
                   e.preventDefault();
                   e.stopImmediatePropagation();
@@ -239,7 +239,7 @@ class MainActivity : Activity() {
                 },true);
               }
 
-              window.cdqNativeGoogleCredentialV2505=function(token,challengeId){
+              window.cdqNativeGoogleCredentialV2506=function(token,challengeId){
                 try{
                   if(typeof cdqGoogleChallengeV42==='undefined' ||
                      !cdqGoogleChallengeV42 ||
@@ -255,7 +255,7 @@ class MainActivity : Activity() {
                 }
               };
 
-              window.cdqNativeGoogleErrorV2505=function(message){
+              window.cdqNativeGoogleErrorV2506=function(message){
                 try{
                   var m=document.getElementById('load-message');
                   if(m)m.textContent=String(message||'Connexion Google annulée.');
@@ -337,8 +337,8 @@ class MainActivity : Activity() {
         runOnUiThread {
             val quoted = JSONObject.quote(message)
             webView.evaluateJavascript(
-                "window.cdqNativeGoogleErrorV2505 && " +
-                    "window.cdqNativeGoogleErrorV2505($quoted);",
+                "window.cdqNativeGoogleErrorV2506 && " +
+                    "window.cdqNativeGoogleErrorV2506($quoted);",
                 null
             )
         }
@@ -351,8 +351,8 @@ class MainActivity : Activity() {
         val challengeQuoted = JSONObject.quote(challenge)
 
         webView.evaluateJavascript(
-            "window.cdqNativeGoogleCredentialV2505 && " +
-                "window.cdqNativeGoogleCredentialV2505($tokenQuoted,$challengeQuoted);",
+            "window.cdqNativeGoogleCredentialV2506 && " +
+                "window.cdqNativeGoogleCredentialV2506($tokenQuoted,$challengeQuoted);",
             null
         )
 
