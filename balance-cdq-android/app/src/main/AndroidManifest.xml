@@ -18,6 +18,14 @@
             <action android:name="android.intent.action.EDIT" />
             <data android:mimeType="application/pdf" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.EDIT" />
+            <data android:mimeType="text/plain" />
+        </intent>
     </queries>
 
     <application
@@ -108,6 +116,20 @@
         </activity>
 
         <activity
+            android:name=".NoteOpenActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.BalanceCDQ.Transparent">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="cdqnote" android:host="open" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".PdfOpenActivity"
             android:exported="true"
             android:excludeFromRecents="true"
@@ -130,6 +152,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:theme="@style/Theme.BalanceCDQ.Starting"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

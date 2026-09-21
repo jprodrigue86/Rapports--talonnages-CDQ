@@ -18,8 +18,8 @@
 (function(){
   try{
     if(/BalanceCDQAndroid\/\d+(?:\.\d+)?/i.test(String(navigator.userAgent||''))){
-      document.documentElement.style.setProperty('--interface-scale','0.88','important');
-      document.documentElement.dataset.cdqNativeScale='0.88';
+      document.documentElement.style.setProperty('--interface-scale','1','important');
+      document.documentElement.dataset.cdqNativeScale='1';
     }
   }catch(e){}
 })();
@@ -452,7 +452,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v25.09-native-file-open-contract';
+const CDQ_PWA_BUILD = '2026.09.21-v25.10-display-document-cleanup';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';

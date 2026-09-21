@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.BalanceCDQ.Starting" parent="Theme.BalanceCDQ">
+        <item name="android:windowSplashScreenBackground">#050C14</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#050C14</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+    </style>
+</resources>

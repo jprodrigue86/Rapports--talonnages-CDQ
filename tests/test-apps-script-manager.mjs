@@ -1,5 +1,8 @@
 import puppeteer from 'puppeteer-core';
 import {spawn} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+
+const expectedVersion=readFileSync('apps-script-manager/app.js','utf8').match(/const APP_VERSION = '(V\d+)'/)[1];
 
 const chrome = process.env.CHROME_PATH || '/usr/bin/google-chrome';
 const server = spawn('python3',['-m','http.server','8080','--bind','127.0.0.1'],{stdio:'inherit'});
@@ -26,15 +29,22 @@ try {
     top:document.querySelector('#versionChip')?.textContent,
     badge:document.querySelector('#versionBadge')?.textContent
   }));
-  assert(visibleVersion.top==='V18','Top version chip must show V18');
-  assert(visibleVersion.badge?.includes('V18'),'Version badge must show V18');
+  assert(visibleVersion.top===expectedVersion,'Top version chip must show '+expectedVersion);
+  assert(visibleVersion.badge?.includes(expectedVersion),'Version badge must show '+expectedVersion);
 
   const manifest = await client.send('Page.getAppManifest');
   assert(!manifest.errors?.length,'Manifest errors: '+JSON.stringify(manifest.errors));
   const parsed = JSON.parse(manifest.data || '{}');
-  const icons = (parsed.icons||[]).map(i=>i.src);
-  assert(icons.some(x=>x.includes('icon-192.png')),'Manifest missing 192 PNG icon');
-  assert(icons.some(x=>x.includes('icon-512.png')),'Manifest missing 512 PNG icon');
+  const icons = parsed.icons||[];
+  assert(icons.some(x=>x.purpose==='any'),'Manifest missing standard icon');
+  assert(icons.some(x=>x.purpose==='maskable'),'Manifest missing maskable icon');
+  for(const icon of icons){
+    const valid=await page.evaluate(async src=>{
+      const image=new Image();image.src=src;
+      await image.decode();return image.naturalWidth>0&&image.naturalHeight>0;
+    },icon.src);
+    assert(valid,'Manifest icon does not decode: '+icon.src);
+  }
 
   const dims = await page.evaluate(async()=>{
     async function dim(src){ const r=await fetch(src); if(!r.ok) throw new Error(src+' HTTP '+r.status); const b=await r.blob(); const bm=await createImageBitmap(b); return [bm.width,bm.height]; }
@@ -225,10 +235,10 @@ try {
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
-  console.log('PASS: V18 remembers the Google connection preference for 7 days without storing a permanent token');
+  console.log('PASS: Manager remembers the Google connection preference for 7 days with expiry on the retained access token');
   console.log('PASS: Drive project listing works');
-  console.log('PASS: V18 is visibly displayed in the app');
-  console.log('PASS: V18 keeps ÉCRIRE + DÉPLOYER enabled when ZIP matches code already present');
+  console.log('PASS: Manager is visibly displayed in the app');
+  console.log('PASS: Manager keeps ÉCRIRE + DÉPLOYER enabled when ZIP matches code already present');
   console.log('PASS: ZIP import shows received/decoding/success visual state');
   console.log('PASS: ZIP import finds nested GS and Selector files and maps them to the project');
   console.log('PASS: read-only HEAD deployment is excluded');

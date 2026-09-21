@@ -14,3 +14,6 @@ credentials.*
 *.bak
 *.backup
 *.zip
+
+# Local reconstruction of private Apps Script exports
+.audit/

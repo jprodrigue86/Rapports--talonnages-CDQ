@@ -18,6 +18,7 @@ class SheetOpenActivity : Activity() {
     private var preferredEmail = ""
     private var accountMode = "auto"
     private var sessionEmail = ""
+    private var readOnly = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +40,7 @@ class SheetOpenActivity : Activity() {
         preferredEmail = data?.getQueryParameter("account").orEmpty().trim().lowercase()
         accountMode = data?.getQueryParameter("accountMode").orEmpty().trim().lowercase().ifBlank { "auto" }
         sessionEmail = ""
+        readOnly = data?.getQueryParameter("readOnly") == "1"
     }
 
     private fun valid(): Boolean =
@@ -122,17 +124,11 @@ class SheetOpenActivity : Activity() {
             return
         }
 
-        val accountIndex = DefaultGoogleAccountStore.accountIndex(this, email)
-
-        // Google Sheets ne documente pas d'extra Android permettant à une
-        // application tierce d'imposer son compte actif. Le chemin /u/N/
-        // est donc inclus directement dans l'URL Google multi-compte.
+        // Android account ordering is not Google's web-session ordering.
+        // Pass the selected address; never silently substitute account zero.
         val uri = Uri.parse(
-            "https://docs.google.com/spreadsheets/u/" +
-                accountIndex +
-                "/d/" + Uri.encode(fileId) +
-                "/edit?usp=drivesdk&authuser=" + accountIndex +
-                "&login_hint=" + Uri.encode(email)
+            "https://docs.google.com/spreadsheets/d/" + Uri.encode(fileId) +
+                (if (readOnly) "/preview" else "/edit") + "?usp=drivesdk&authuser=" + Uri.encode(email)
         )
 
         val native = Intent(Intent.ACTION_VIEW, uri).apply {
@@ -143,7 +139,6 @@ class SheetOpenActivity : Activity() {
             putExtra("authAccount", email)
             putExtra(AccountManager.KEY_ACCOUNT_NAME, email)
             putExtra("accountName", email)
-            putExtra("account_index", accountIndex)
             putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
 
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
