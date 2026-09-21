@@ -5,20 +5,32 @@
   "build": "2026.09.21-v25.05-mobile-auth-file-recovery",
   "title": "Balance CDQ V25.05 — interface, biométrie et fichiers Android",
   "requiresBuild": [
+    "2026.09.21-v25.03-mobile-ui-update-center-fix",
     "2026.09.21-v25.04-stable-mobile-file-open"
   ],
   "patches": [
     {
       "file": "Selector.html",
-      "op": "replace_build",
-      "from": "2026.09.21-v25.04-stable-mobile-file-open",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.21-v25.03-mobile-ui-update-center-fix",
+        "2026.09.21-v25.04-stable-mobile-file-open"
+      ],
       "to": "2026.09.21-v25.05-mobile-auth-file-recovery"
     },
     {
       "file": "Code.gs",
-      "op": "replace_build",
-      "from": "2026.09.21-v25.04-stable-mobile-file-open",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.21-v25.03-mobile-ui-update-center-fix",
+        "2026.09.21-v25.04-stable-mobile-file-open"
+      ],
       "to": "2026.09.21-v25.05-mobile-auth-file-recovery"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2500NativePdfWorkflowJs"
     },
     {
       "file": "Selector.html",
@@ -52,6 +64,10 @@
       "Tap Google Sheets capturé avant les anciens gestionnaires et envoyé directement à l'application Sheets.",
       "Tap PDF capturé avant les anciens gestionnaires et envoyé au lecteur PDF interne CDQ.",
       "Biométrie Android native utilisée quand l'APK 25.07 est installée."
+    ],
+    "acceptsFrom": [
+      "V25.03",
+      "V25.04"
     ]
   }
 }
