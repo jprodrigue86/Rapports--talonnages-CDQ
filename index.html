@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v23.00-no-native-account-picker';
+const CDQ_PWA_BUILD = '2026.09.21-v23.01-stable-file-open';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1172,14 +1172,34 @@ function cdqOpenSheetDefaultAccountV2297(data){
   const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?usp=drivesdk&authuser='+encodeURIComponent(email)+'&login_hint='+encodeURIComponent(email);
 
   if(/Android/i.test(navigator.userAgent||'')){
-    // V22.99 : cibler explicitement Chrome. Ne jamais transmettre ce clic
-    // à l'application Sheets native quand un compte par défaut est actif.
     const intent='intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?usp=drivesdk&authuser='+encodeURIComponent(email)+'&login_hint='+encodeURIComponent(email)+
       '#Intent;scheme=https;package=com.android.chrome;'+
       'S.browser_fallback_url='+encodeURIComponent(web)+';end';
-    window.location.href=intent;
+
+    // V23.01 : clic d'ancre top-level plutôt qu'une assignation location.
+    // Sur certaines PWA Android, location.href vers intent:// est ignoré.
+    const a=document.createElement('a');
+    a.href=intent;
+    a.style.display='none';
+    a.rel='noopener';
+    document.body.appendChild(a);
+    a.click();
+
+    // Si l'intent n'a pas quitté l'application, repli garanti vers le Web.
+    setTimeout(function(){
+      try{a.remove();}catch(_){}
+      if(document.visibilityState==='visible'){
+        window.location.assign(web);
+      }
+    },700);
   }else{
-    window.open(web,'_blank','noopener');
+    const a=document.createElement('a');
+    a.href=web;
+    a.target='_blank';
+    a.rel='noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
   return true;
 }
