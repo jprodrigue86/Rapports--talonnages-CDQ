@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v25.08-display-fit-live-sliders",
+  "version": "2026.09.21-v25.09-native-file-open-contract",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v25.08-display-fit-live-sliders",
-  "backend_version": "2026.09.21-v25.08-display-fit-live-sliders",
+  "selector_version": "2026.09.21-v25.09-native-file-open-contract",
+  "backend_version": "2026.09.21-v25.09-native-file-open-contract",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -359,7 +359,11 @@
     "live-slider-reapply-v2508",
     "bottom-nav-scales-with-interface-v2508",
     "bottom-nav-icons-restored-v2508",
-    "settings-label-no-stack-v2508"
+    "settings-label-no-stack-v2508",
+    "pdf-native-account-then-reader-contract-v2509",
+    "sheets-native-account-contract-v2509",
+    "settings-account-source-of-truth-v2509",
+    "settings-reader-source-of-truth-v2509"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -372,5 +376,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v25.08-display-fit-live-sliders"
+  "pwa_version": "2026.09.21-v25.09-native-file-open-contract"
 }
