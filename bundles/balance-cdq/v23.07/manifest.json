@@ -1,0 +1,57 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.07",
+  "build": "2026.09.21-v23.07-parent-viewport-freeze",
+  "title": "Balance CDQ V23.07 — suppression scintillement viewport parent",
+  "requiresBuild": [
+    "2026.09.21-v23.06-no-flicker-native-open"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.06-no-flicker-native-open",
+      "to": "2026.09.21-v23.07-parent-viewport-freeze"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.06-no-flicker-native-open",
+      "to": "2026.09.21-v23.07-parent-viewport-freeze"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2307HandoffCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2307HandoffJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqV2307HandoffCss\">\nhtml:is(.android,.ios,.mobile-device) .file-row,\nhtml:is(.android,.ios,.mobile-device) .file-row *{\n  -webkit-tap-highlight-color:transparent!important;\n}\nhtml:is(.android,.ios,.mobile-device).cdq-file-open-freeze-v2306 .file-row,\nhtml:is(.android,.ios,.mobile-device).cdq-file-open-freeze-v2306 .file-row *,\nhtml:is(.android,.ios,.mobile-device).cdq-file-open-freeze-v2306 #filesContainer{\n  transition:none!important;\n  animation:none!important;\n  transform:none!important;\n  filter:none!important;\n}\n</style>\n<script id=\"cdqV2307HandoffJs\">\n(function(){\n'use strict';\n\nfunction notifyParentV2307(){\n  try{\n    if(typeof window.cdqFreezeFileOpenV2306==='function')window.cdqFreezeFileOpenV2306(4200);\n  }catch(_){}\n  try{\n    if(typeof cdqPostToPwa==='function'){\n      cdqPostToPwa({type:'CDQ_FILE_HANDOFF_FREEZE_V2307',duration:4200});\n    }\n  }catch(_){}\n}\n\ndocument.addEventListener('pointerdown',function(e){\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  if(e.target&&e.target.closest&&e.target.closest('button'))return;\n  notifyParentV2307();\n},true);\n\ndocument.addEventListener('click',function(e){\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  if(e.target&&e.target.closest&&e.target.closest('button'))return;\n  notifyParentV2307();\n},true);\n\nwindow.addEventListener('pageshow',function(){\n  try{cdqPostToPwa({type:'CDQ_FILE_HANDOFF_RELEASE_V2307'});}catch(_){}\n},true);\n\nwindow.addEventListener('focus',function(){\n  if((Number(window.__cdqFileOpenHandoffUntilV2306)||0)>Date.now()){\n    try{cdqPostToPwa({type:'CDQ_FILE_HANDOFF_RELEASE_V2307',delay:650});}catch(_){}\n  }\n},true);\n})();\n</script>\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "  if(d.type===\"CDQ_VIEWPORT_VALUE\"){\n    const w=Number(d.width||0);",
+      "replacement": "  if(d.type===\"CDQ_VIEWPORT_VALUE\"){\n    if((Number(window.__cdqFileOpenFreezeUntilV2306)||0)>Date.now())return;\n    const w=Number(d.width||0);",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "rollbackBase": "V23.06",
+    "scope": "Scintillement seulement; aucun changement au chemin natif Sheets/PDF.",
+    "rootCause": "La PWA parent continuait d'envoyer CDQ_VIEWPORT_VALUE pendant le handoff Android, ce qui pouvait relancer cdqFitGeneralScaleV92 malgré le gel interne.",
+    "fixes": [
+      "Le Selector ignore les mises à jour de viewport pendant l'ouverture d'un fichier.",
+      "Le Selector demande à la PWA parent de geler l'iframe avant le lancement de l'application externe.",
+      "Le parent relâche le gel après retour/focus et n'envoie qu'une seule mesure stabilisée."
+    ]
+  }
+}
