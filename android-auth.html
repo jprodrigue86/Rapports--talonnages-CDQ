@@ -9,70 +9,108 @@
 <style>
 html,body{margin:0;min-height:100%;background:#050c14;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
 body{display:grid;place-items:center;min-height:100vh;padding:18px;box-sizing:border-box}
-.card{width:min(420px,100%);background:#0b1723;border:1px solid #294b64;border-radius:22px;padding:24px;box-sizing:border-box;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+.card{width:min(430px,100%);background:#0b1723;border:1px solid #294b64;border-radius:22px;padding:24px;box-sizing:border-box;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.45)}
 h1{font-size:24px;margin:0 0 10px}
 p{color:#a9bfce;line-height:1.45;margin:0 0 18px}
-#google{display:flex;justify-content:center;min-height:48px}
-#status{font-size:13px;color:#9cb3c2;margin-top:14px;min-height:20px}
-button{width:100%;min-height:48px;border:1px solid #277eb0;border-radius:12px;background:#123d5e;color:#fff;font-weight:800;font-size:15px;margin-top:14px}
+#google{display:none;justify-content:center;min-height:48px}
+#status{font-size:14px;color:#b7cedc;margin-top:8px;min-height:42px;line-height:1.45}
+button{width:100%;min-height:50px;border:1px solid #277eb0;border-radius:12px;background:#123d5e;color:#fff;font-weight:800;font-size:15px;margin-top:14px}
+#back{background:#0f684c;border-color:#22a878}
+.small{font-size:12px;color:#7f9aaa;margin-top:13px;line-height:1.4}
 </style>
 </head>
 <body>
 <div class="card">
   <h1>Connexion à Balance CDQ</h1>
-  <p>Choisissez votre compte Google. Vous reviendrez automatiquement dans Balance CDQ.</p>
+  <p>Choisissez votre compte Google une seule fois.</p>
   <div id="google"></div>
-  <div id="status">Préparation de Google…</div>
-  <button id="retry" type="button" hidden>Réessayer</button>
+  <div id="status">Ouverture du choix de compte Google…</div>
+  <button id="retry" type="button" hidden>Réessayer le choix Google</button>
+  <button id="back" type="button" hidden>Retourner dans Balance CDQ</button>
+  <div class="small" id="help">Après la confirmation Google, Balance CDQ reprendra automatiquement.</div>
 </div>
 <script>
 (function(){
 'use strict';
+
 const q=new URLSearchParams(location.search);
 const challengeId=String(q.get('challengeId')||'');
 const nonce=String(q.get('nonce')||'');
 const clientId=String(q.get('clientId')||'');
+
 const status=document.getElementById('status');
 const retry=document.getElementById('retry');
+const backButton=document.getElementById('back');
+const googleHost=document.getElementById('google');
+const help=document.getElementById('help');
+
+let credential='';
+let initialized=false;
+let completed=false;
+let promptAttempt=0;
 
 function valid(){
   return /^[A-Za-z0-9._-]{8,220}$/.test(challengeId) &&
     nonce.length>=8 && nonce.length<=500 &&
     /^[0-9A-Za-z._-]+\.apps\.googleusercontent\.com$/.test(clientId);
 }
-function back(credential){
-  status.textContent='Retour vers Balance CDQ…';
-  const target='intent://callback?challengeId='+encodeURIComponent(challengeId)+
-    '&credential='+encodeURIComponent(String(credential||''))+
+
+function appIntent(){
+  return 'intent://callback?challengeId='+encodeURIComponent(challengeId)+
+    '&credential='+encodeURIComponent(credential)+
     '#Intent;scheme=cdqauth;package=ca.balancecdq.android;end';
-  location.href=target;
 }
-function init(){
-  if(!valid()){
-    status.textContent='Paramètres de connexion invalides.';
-    return;
-  }
-  if(!(window.google&&google.accounts&&google.accounts.id)){
-    status.textContent='Google se charge…';
-    setTimeout(init,150);
-    return;
-  }
+
+function returnToApp(fromTap){
+  if(!credential)return;
+  status.textContent='Retour vers Balance CDQ…';
+  backButton.hidden=false;
   try{
-    google.accounts.id.initialize({
-      client_id:clientId,
-      callback:function(r){
-        if(!r||!r.credential){status.textContent='Google n’a pas retourné le compte.';retry.hidden=false;return;}
-        back(r.credential);
-      },
-      nonce:nonce,
-      auto_select:false,
-      cancel_on_tap_outside:false,
-      ux_mode:'popup',
-      context:'signin'
-    });
-    const host=document.getElementById('google');
-    host.innerHTML='';
-    google.accounts.id.renderButton(host,{
+    if(fromTap){
+      location.href=appIntent();
+    }else{
+      location.replace(appIntent());
+    }
+  }catch(e){
+    backButton.hidden=false;
+    status.textContent='Connexion Google confirmée. Touchez « Retourner dans Balance CDQ ».';
+  }
+}
+
+function complete(response){
+  if(completed)return;
+  const token=String(response&&response.credential||'');
+  if(token.length<100){
+    status.textContent='Google n’a pas retourné la connexion. Réessayez.';
+    retry.hidden=false;
+    return;
+  }
+
+  completed=true;
+  credential=token;
+  retry.hidden=true;
+  googleHost.style.display='none';
+  status.textContent='Compte Google confirmé. Retour vers Balance CDQ…';
+  help.textContent='Si Android ne revient pas tout seul, touchez le bouton vert.';
+  backButton.hidden=false;
+
+  // Tentative automatique. Le bouton vert reste disponible car Chrome
+  // peut empêcher l'ouverture d'une autre application sans geste utilisateur.
+  setTimeout(function(){returnToApp(false);},80);
+  setTimeout(function(){
+    if(document.visibilityState==='visible'){
+      status.textContent='Compte Google confirmé. Touchez « Retourner dans Balance CDQ ».';
+      backButton.hidden=false;
+    }
+  },1200);
+}
+
+function showFallbackButton(){
+  if(completed)return;
+  googleHost.style.display='flex';
+  googleHost.innerHTML='';
+  try{
+    google.accounts.id.renderButton(googleHost,{
       type:'standard',
       theme:'outline',
       size:'large',
@@ -85,11 +123,90 @@ function init(){
     status.textContent='Touchez votre compte Google.';
     retry.hidden=true;
   }catch(e){
-    status.textContent='Impossible de préparer Google. Réessayez.';
+    status.textContent='Impossible d’afficher Google. Touchez Réessayer.';
     retry.hidden=false;
   }
 }
-retry.onclick=function(){retry.hidden=true;status.textContent='Nouvelle tentative…';setTimeout(init,80);};
+
+function promptGoogle(){
+  if(completed)return;
+  promptAttempt++;
+  status.textContent='Ouverture du choix de compte Google…';
+  googleHost.style.display='none';
+  googleHost.innerHTML='';
+  retry.hidden=true;
+
+  try{
+    google.accounts.id.prompt(function(notification){
+      if(completed)return;
+      try{
+        const notDisplayed=notification && notification.isNotDisplayed && notification.isNotDisplayed();
+        const skipped=notification && notification.isSkippedMoment && notification.isSkippedMoment();
+        if(notDisplayed || skipped){
+          showFallbackButton();
+        }
+      }catch(e){}
+    });
+
+    setTimeout(function(){
+      if(!completed && promptAttempt>0 && googleHost.innerHTML===''){
+        showFallbackButton();
+      }
+    },4500);
+  }catch(e){
+    showFallbackButton();
+  }
+}
+
+function init(){
+  if(!valid()){
+    status.textContent='Paramètres de connexion invalides.';
+    retry.hidden=true;
+    return;
+  }
+
+  if(!(window.google&&google.accounts&&google.accounts.id)){
+    status.textContent='Google se charge…';
+    setTimeout(init,120);
+    return;
+  }
+
+  if(!initialized){
+    initialized=true;
+    try{
+      google.accounts.id.initialize({
+        client_id:clientId,
+        callback:complete,
+        nonce:nonce,
+        auto_select:false,
+        cancel_on_tap_outside:false,
+        context:'signin',
+        use_fedcm_for_button:true,
+        button_auto_select:false
+      });
+    }catch(e){
+      initialized=false;
+      status.textContent='Impossible de préparer Google. Réessayez.';
+      retry.hidden=false;
+      return;
+    }
+  }
+
+  promptGoogle();
+}
+
+retry.onclick=function(){
+  if(window.google&&google.accounts&&google.accounts.id){
+    promptGoogle();
+  }else{
+    init();
+  }
+};
+
+backButton.onclick=function(){
+  returnToApp(true);
+};
+
 init();
 })();
 </script>
