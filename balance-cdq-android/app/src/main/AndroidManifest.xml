@@ -26,6 +26,34 @@
             android:grantUriPermissions="true" />
 
         <activity
+            android:name=".AccountSettingsActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.BalanceCDQ.Transparent">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="cdqaccount" android:host="pick" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".SheetOpenActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.BalanceCDQ.Transparent">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="cdqsheet" android:host="open" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".PdfOpenActivity"
             android:exported="true"
             android:excludeFromRecents="true"
