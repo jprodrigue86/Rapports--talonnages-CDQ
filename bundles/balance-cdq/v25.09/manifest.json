@@ -1,0 +1,62 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "version": "V25.09",
+  "build": "2026.09.21-v25.09-native-file-open-contract",
+  "title": "Balance CDQ V25.09 — ouverture PDF et Sheets selon les réglages",
+  "requiresBuild": [
+    "2026.09.21-v25.07-auth-nav-settings-swipe-pdf-fix",
+    "2026.09.21-v25.08-display-fit-live-sliders"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.21-v25.07-auth-nav-settings-swipe-pdf-fix",
+        "2026.09.21-v25.08-display-fit-live-sliders"
+      ],
+      "to": "2026.09.21-v25.09-native-file-open-contract"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.21-v25.07-auth-nav-settings-swipe-pdf-fix",
+        "2026.09.21-v25.08-display-fit-live-sliders"
+      ],
+      "to": "2026.09.21-v25.09-native-file-open-contract"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2509NativeFileOpenJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<script id=\"cdqV2509NativeFileOpenJs\">\n(function(){\n'use strict';\n\nfunction validId(id){\n  return /^[A-Za-z0-9_-]{10,200}$/.test(String(id||''));\n}\n\nfunction metaFor(id){\n  try{\n    if(typeof cdqDocumentMeta==='function'){\n      const m=cdqDocumentMeta(id);\n      if(m)return m;\n    }\n  }catch(_){}\n  const safe=String(id||'').replace(/[^A-Za-z0-9_-]/g,'');\n  const box=document.querySelector('.file-checkbox[data-file-id=\"'+safe+'\"]');\n  const row=box&&box.closest('.file-row');\n  return row?{\n    id:String(id||''),\n    nom:String(row.dataset.fileName||''),\n    type:String(row.dataset.fileType||''),\n    dateModification:String(row.dataset.fileDate||'')\n  }:null;\n}\n\nfunction markOpened(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const m=metaFor(id)||{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(m.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction defaultGoogleEmail(){\n  const fnNames=[\n    'cdqDefaultGoogleAccountV2298',\n    'cdqDefaultGoogleAccountV2297',\n    'cdqDefaultGoogleAccountV2296',\n    'cdqGoogleDefaultAccountV2294'\n  ];\n  for(const name of fnNames){\n    try{\n      if(typeof window[name]==='function'){\n        const v=String(window[name]()||'').trim().toLowerCase();\n        if(v)return v;\n      }\n    }catch(_){}\n  }\n\n  const keys=[\n    'cdqDefaultGoogleAccountV2298',\n    'cdqDefaultGoogleAccountV2297',\n    'cdqDefaultGoogleAccountV2296',\n    'cdqDefaultGoogleAccountV2294'\n  ];\n  for(const key of keys){\n    try{\n      const v=String(localStorage.getItem(key)||'').trim().toLowerCase();\n      if(v)return v;\n    }catch(_){}\n  }\n  return '';\n}\n\nfunction pdfReaderPreference(){\n  try{\n    if(typeof cdqPdfReaderPreference==='function'){\n      const v=String(cdqPdfReaderPreference()||'ask').trim().toLowerCase();\n      if(['ask','cdq','ilovepdf','acrobat'].includes(v))return v;\n    }\n  }catch(_){}\n  try{\n    const v=String(localStorage.getItem('cdqPdfReaderPreferenceV1')||'ask').trim().toLowerCase();\n    if(['ask','cdq','ilovepdf','acrobat'].includes(v))return v;\n  }catch(_){}\n  return 'ask';\n}\n\nfunction nativeAndroid(){\n  return /BalanceCDQAndroid\\/\\d+(?:\\.\\d+)?/i.test(String(navigator.userAgent||''));\n}\n\nfunction goIntent(url){\n  const a=document.createElement('a');\n  a.href=url;\n  a.target='_top';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n}\n\nfunction openPdf(id){\n  id=String(id||'');\n  if(!validId(id))return false;\n  const meta=metaFor(id)||{};\n  const pref=pdfReaderPreference();\n\n  // Le lecteur CDQ est une préférence interne au Selector, donc il reste\n  // sur le chemin interne. Les lecteurs Android passent par l'APK.\n  if(pref==='cdq'){\n    try{\n      if(typeof cdqOpenPdf==='function'){\n        markOpened(id);\n        Promise.resolve(cdqOpenPdf(id)).catch(function(err){\n          try{if(typeof afficherErreur==='function')afficherErreur(err);}catch(_){}\n        });\n        return true;\n      }\n    }catch(_){}\n  }\n\n  if(!nativeAndroid()){\n    try{\n      if(typeof cdqOpenPdf==='function'){\n        markOpened(id);\n        Promise.resolve(cdqOpenPdf(id)).catch(function(err){\n          try{if(typeof afficherErreur==='function')afficherErreur(err);}catch(_){}\n        });\n        return true;\n      }\n    }catch(_){}\n    return false;\n  }\n\n  const email=defaultGoogleEmail();\n  const accountMode=email?'default':'ask';\n  const fallback='https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view?usp=drivesdk';\n  const intent=\n    'intent://open?fileId='+encodeURIComponent(id)+\n    '&name='+encodeURIComponent(String(meta.nom||'Rapport.pdf'))+\n    '&account='+encodeURIComponent(email)+\n    '&accountMode='+encodeURIComponent(accountMode)+\n    '&reader='+encodeURIComponent(pref)+\n    '#Intent;scheme=cdqpdf;package=ca.balancecdq.android;'+\n    'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n\n  markOpened(id);\n  goIntent(intent);\n  return true;\n}\n\nfunction openSheet(id){\n  id=String(id||'');\n  if(!validId(id))return false;\n\n  const email=defaultGoogleEmail();\n  const accountMode=email?'default':'ask';\n  const fallback='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit';\n\n  if(!nativeAndroid()){\n    markOpened(id);\n    location.href=fallback;\n    return true;\n  }\n\n  const intent=\n    'intent://open?fileId='+encodeURIComponent(id)+\n    '&account='+encodeURIComponent(email)+\n    '&accountMode='+encodeURIComponent(accountMode)+\n    '#Intent;scheme=cdqsheet;package=ca.balancecdq.android;'+\n    'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n\n  markOpened(id);\n  goIntent(intent);\n  return true;\n}\n\nfunction typeFor(id,row){\n  const m=metaFor(id)||{};\n  const t=String(m.type||(row&&row.dataset.fileType)||'').toUpperCase();\n  if(t==='PDF')return 'PDF';\n  if(t==='GOOGLE_SHEETS'||t.includes('SHEET'))return 'GOOGLE_SHEETS';\n  return '';\n}\n\n// Source de vérité unique pour le clic normal de l'application.\nconst previousModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  const t=typeFor(id,null);\n  if(t==='PDF')return openPdf(id);\n  if(t==='GOOGLE_SHEETS')return openSheet(id);\n  if(typeof previousModify==='function')return previousModify.apply(this,arguments);\n};\ntry{modifierFichier=window.modifierFichier;}catch(_){}\n\ntry{\n  window.cdqV24OpenPdf=openPdf;\n  window.cdqOuvrirPdfCommeSheetV2275=openPdf;\n  window.cdqV19OpenOfflineSheet=openSheet;\n  window.cdqOpenSheetStableV2509=openSheet;\n}catch(_){}\n\n// Secours pour les lignes qui ne passent pas par modifierFichier.\n// On observe le mouvement sans bloquer pointerdown/pointerup, donc les gestes\n// gauche/droite et l'appui long restent au code historique.\nlet pointer=null;\nlet suppressClickUntil=0;\ndocument.addEventListener('pointerdown',function(e){\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  pointer={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};\n},true);\ndocument.addEventListener('pointermove',function(e){\n  if(!pointer||pointer.id!==e.pointerId)return;\n  if(Math.abs(e.clientX-pointer.x)>16||Math.abs(e.clientY-pointer.y)>16)pointer.moved=true;\n},true);\ndocument.addEventListener('pointerup',function(e){\n  if(!pointer||pointer.id!==e.pointerId)return;\n  if(pointer.moved)suppressClickUntil=Date.now()+700;\n  pointer=null;\n},true);\ndocument.addEventListener('pointercancel',function(){pointer=null;},true);\n\ndocument.addEventListener('click',function(e){\n  if(Date.now()<suppressClickUntil)return;\n  if(!e.target||!e.target.closest)return;\n  if(e.target.closest('button,a,input,select,textarea,label,[class*=\"swipe\"],[class*=\"file-action\"],.file-actions'))return;\n\n  const row=e.target.closest('.file-row');\n  if(!row)return;\n  if(row.classList.contains('cdq-swiped-left')||row.classList.contains('cdq-swiped-right'))return;\n\n  try{\n    if(document.body.classList.contains('selection-active'))return;\n    if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return;\n  }catch(_){}\n\n  const box=row.querySelector('.file-checkbox[data-file-id]');\n  const id=String(box&&box.dataset.fileId||'');\n  if(!validId(id))return;\n  const t=typeFor(id,row);\n  if(!t)return;\n\n  e.preventDefault();\n  e.stopImmediatePropagation();\n  if(t==='PDF')openPdf(id);else openSheet(id);\n},true);\n\nwindow.cdqV2509FileOpenContract={\n  defaultGoogleEmail:defaultGoogleEmail,\n  pdfReaderPreference:pdfReaderPreference,\n  openPdf:openPdf,\n  openSheet:openSheet\n};\n})();\n</script>\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V39",
+    "androidAppRequired": "Balance CDQ Android 25.10",
+    "contract": {
+      "pdfNoDefaultAccount": "Sélecteur de compte Google à chaque clic PDF.",
+      "pdfNoDefaultReader": "Après le compte, choix de l'application PDF à chaque clic.",
+      "pdfDefaultsPresent": "Ouverture directe sans question.",
+      "sheetNoDefaultAccount": "Sélecteur de compte Google à chaque clic Sheet.",
+      "sheetDefaultAccount": "Ouverture directe avec le compte configuré."
+    },
+    "sourceOfTruth": [
+      "Compte Google par défaut des réglages Balance CDQ.",
+      "Lecteur PDF par défaut des réglages Balance CDQ."
+    ],
+    "preserved": [
+      "Affichage/sliders V25.08.",
+      "Gestes gauche/droite et appui long.",
+      "Navigation et données existantes."
+    ]
+  }
+}
