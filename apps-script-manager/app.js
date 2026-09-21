@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V38';
+const APP_VERSION = 'V39';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -797,11 +797,32 @@ async function readProject(id, save = true) {
   id = normalizeScriptId(id);
   if (!id) throw Error('Choisis un projet ou colle son Script ID.');
   stat('Lecture du projet…');
-  const [meta, content, deps] = await Promise.all([
-    getProjectMetadata(id, cid()),
-    getProjectContent(id, cid()),
-    listDeployments(id, cid()).catch(() => []),
-  ]);
+
+  // V39 : charger d'abord le contenu, une seule requête critique à la fois.
+  // Le projet fait maintenant plusieurs Mo; trois appels Apps Script en
+  // parallèle étaient beaucoup plus fragiles sur Android/5G.
+  const content = await getProjectContent(id, cid());
+  if (!content || !Array.isArray(content.files) || !content.files.length) {
+    throw Error('Google a répondu, mais aucun fichier Apps Script n’a été reçu.');
+  }
+
+  let meta = null;
+  try {
+    meta = await getProjectMetadata(id, cid());
+  } catch (_) {
+    // Le titre est déjà connu par la liste Drive. Les métadonnées Apps Script
+    // ne doivent jamais bloquer la lecture du code.
+    const option = Array.from(projectSelect.options || []).find(o => o.value === id);
+    meta = { title: option ? String(option.textContent || '').split(' • ')[0] : 'Projet Apps Script' };
+  }
+
+  let deps = [];
+  try {
+    deps = await listDeployments(id, cid());
+  } catch (_) {
+    deps = [];
+  }
+
   S.id = id;
   S.meta = meta;
   S.files = clone(content.files);
