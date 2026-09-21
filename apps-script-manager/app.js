@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V33';
+const APP_VERSION = 'V34';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -272,6 +272,16 @@ function setQuickDeployProgress(value, text = '', state = 'working') {
   if (quickDeployProgressBar) quickDeployProgressBar.style.width = shown + '%';
   if (quickDeployProgressPercent) quickDeployProgressPercent.textContent = shown + ' %';
   if (quickDeployProgressText && text) quickDeployProgressText.textContent = text;
+
+  const railWrite=$('railWriteState'),railDeploy=$('railDeployState');
+  if(railWrite){
+    railWrite.textContent=shown<56?'En cours…':(shown>=100?'Terminé':'Écrit');
+    railWrite.className=state==='error'?'err':(shown>=56?'ok':'warn');
+  }
+  if(railDeploy){
+    railDeploy.textContent=shown<60?'En attente':(shown>=100?'Terminé':'En cours…');
+    railDeploy.className=state==='error'?'err':(shown>=100?'ok':(shown>=60?'warn':''));
+  }
 }
 
 function beginQuickDeployProgress(text = 'Préparation de la mise à jour…') {
@@ -359,7 +369,80 @@ function updateQuickUi() {
       quickApply.title='Déploiement de production Balance CDQ introuvable : mise à jour bloquée.';
     }else quickApply.title='';
   }
+  updateIndustrialRailV34();
 }
+
+function updateIndustrialRailV34(){
+  const railAccount=$('railAccountStatus');
+  const railProject=$('railProjectStatus');
+  const railPackage=$('railPackageStatus');
+  if(railAccount)railAccount.textContent=hasLiveToken()?'Connecté':'Non connecté';
+  if(railProject)railProject.textContent=S.meta?.title || (sid()?'Projet mémorisé':'Aucun projet chargé');
+  if(railPackage){
+    if(S.bundleAlreadyApplied)railPackage.textContent='Code déjà présent • prêt à déployer';
+    else if(S.pkg.size)railPackage.textContent=(S.pendingBuild||S.bundleLabel||S.pkg.size+' fichier(s)')+' • prêt';
+    else railPackage.textContent='Aucun package prêt';
+  }
+}
+
+function smSetActiveTabV34(name){
+  document.querySelectorAll('.sm-tab[data-sm-tab]').forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.smTab===name);
+  });
+}
+
+function smOpenCardV34(id,tab='settings'){
+  document.body.classList.add('show-advanced');
+  const card=document.getElementById(id);
+  if(card)card.scrollIntoView({behavior:'smooth',block:'start'});
+  smSetActiveTabV34(tab);
+}
+
+function installIndustrialUiV34(){
+  document.querySelectorAll('.sm-tab[data-sm-tab]').forEach(btn=>{
+    if(btn.dataset.smBound==='1')return;
+    btn.dataset.smBound='1';
+    btn.addEventListener('click',()=>{
+      const tab=btn.dataset.smTab;
+      if(tab==='deploy'){
+        document.body.classList.remove('show-advanced');
+        document.getElementById('quickCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+      }else if(tab==='projects'){
+        smOpenCardV34('projectCard','projects');
+      }else if(tab==='backups'){
+        smOpenCardV34('backupsCard','backups');
+      }else if(tab==='settings'){
+        smOpenCardV34('googleCard','settings');
+      }else if(tab==='about'){
+        document.body.classList.add('show-advanced');
+        document.querySelector('.sm-settings-rail')?.scrollIntoView({behavior:'smooth',block:'start'});
+      }
+      smSetActiveTabV34(tab);
+    });
+  });
+
+  document.querySelectorAll('[data-sm-jump]').forEach(btn=>{
+    if(btn.dataset.smBound==='1')return;
+    btn.dataset.smBound='1';
+    btn.addEventListener('click',()=>{
+      const id=btn.dataset.smJump;
+      if(id==='quickCard'){
+        document.body.classList.remove('show-advanced');
+        document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+        smSetActiveTabV34('deploy');
+      }else{
+        smOpenCardV34(id,id==='projectCard'?'projects':id==='backupsCard'?'backups':'settings');
+      }
+    });
+  });
+
+  updateIndustrialRailV34();
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',installIndustrialUiV34,{once:true});
+}else installIndustrialUiV34();
+window.addEventListener('load',()=>setTimeout(installIndustrialUiV34,100));
 
 function stat(text, kind = '') {
   status.textContent = text;
