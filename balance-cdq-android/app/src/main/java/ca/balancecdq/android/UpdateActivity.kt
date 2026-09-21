@@ -38,9 +38,15 @@ class UpdateActivity : Activity() {
     private var latestVersionName = ""
     private var forceInstall = false
 
+    private var autoInstall = false
+    private var installationIntentLaunched = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         forceInstall = intent?.data?.getQueryParameter("force") == "1"
+        autoInstall =
+            intent?.getBooleanExtra("auto", false) == true ||
+            intent?.data?.getQueryParameter("auto") == "1"
         buildUi()
         checkUpdate()
     }
@@ -62,7 +68,10 @@ class UpdateActivity : Activity() {
         root.addView(title, fullWidth())
 
         status = TextView(this).apply {
-            text = "Vérification de la dernière version…"
+            text = if (autoInstall)
+                "Vérification automatique de la dernière version…"
+            else
+                "Vérification de la dernière version…"
             setTextColor(Color.rgb(180, 213, 230))
             textSize = 15f
             gravity = Gravity.CENTER
@@ -79,7 +88,10 @@ class UpdateActivity : Activity() {
             text = "Mettre à jour"
             isEnabled = false
             setAllCaps(false)
-            setOnClickListener { beginInstallFlow() }
+            setOnClickListener {
+                installationIntentLaunched = false
+                beginInstallFlow()
+            }
         }
         val ap = fullWidth()
         ap.topMargin = dp(22)
@@ -114,8 +126,14 @@ class UpdateActivity : Activity() {
                         progress.visibility = ProgressBar.GONE
                         status.text =
                             "Balance CDQ Android est à jour.\nVersion installée : ${currentVersionName()}"
-                        action.text = "Réinstaller cette version"
-                        action.isEnabled = true
+                        if (autoInstall) {
+                            action.isEnabled = false
+                            action.text = "À jour"
+                            windowFinishSoon()
+                        } else {
+                            action.text = "Réinstaller cette version"
+                            action.isEnabled = true
+                        }
                     } else {
                         status.text =
                             (if (latestCode.toLong() > currentVersionCode())
@@ -139,10 +157,16 @@ class UpdateActivity : Activity() {
                     runOnUiThread {
                         progress.visibility = ProgressBar.GONE
                         status.text =
-                            "Balance CDQ Android $latestVersionName est prête.\n" +
-                            "Touchez « Installer / réinstaller »."
+                            if (autoInstall) {
+                                "Balance CDQ Android $latestVersionName est prête.\n" +
+                                "Ouverture automatique de l’installation Android…"
+                            } else {
+                                "Balance CDQ Android $latestVersionName est prête.\n" +
+                                "Touchez « Installer / réinstaller »."
+                            }
                         action.text = "Installer / réinstaller"
                         action.isEnabled = true
+                        if (autoInstall) beginInstallFlow()
                     }
                 }
             } catch (e: Exception) {
@@ -156,6 +180,7 @@ class UpdateActivity : Activity() {
     }
 
     private fun beginInstallFlow() {
+        if (installationIntentLaunched) return
         val apk = downloadedApk
         if (apk == null) {
             forceInstall = true
@@ -171,7 +196,7 @@ class UpdateActivity : Activity() {
         ) {
             Toast.makeText(
                 this,
-                "Autorisez une seule fois Balance CDQ à installer ses propres mises à jour.",
+                "Autorisez une seule fois Balance CDQ à installer ses mises à jour. Ensuite, l’application les préparera automatiquement à chaque ouverture.",
                 Toast.LENGTH_LONG
             ).show()
 
@@ -189,18 +214,20 @@ class UpdateActivity : Activity() {
     override fun onResume() {
         super.onResume()
         val apk = downloadedApk ?: return
+        if (installationIntentLaunched) return
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
             packageManager.canRequestPackageInstalls()
         ) {
-            if (action.isEnabled) {
-                installApk(apk)
+            if (action.isEnabled && autoInstall) {
+                beginInstallFlow()
             }
         }
     }
 
     private fun installApk(apk: File) {
         try {
+            installationIntentLaunched = true
             val uri = FileProvider.getUriForFile(
                 this,
                 "$packageName.updatefiles",
@@ -215,12 +242,19 @@ class UpdateActivity : Activity() {
 
             startActivity(intent)
         } catch (e: Exception) {
+            installationIntentLaunched = false
             Toast.makeText(
                 this,
                 e.message ?: "Impossible de lancer l’installation.",
                 Toast.LENGTH_LONG
             ).show()
         }
+    }
+
+    private fun windowFinishSoon() {
+        status.postDelayed({
+            if (!isFinishing) finish()
+        }, 500)
     }
 
     private fun fetchJson(url: String): JSONObject {
