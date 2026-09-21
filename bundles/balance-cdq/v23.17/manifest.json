@@ -1,0 +1,67 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.17",
+  "build": "2026.09.21-v23.17-fast-pdf-open",
+  "title": "Balance CDQ V23.17 — ouverture PDF rapide et visible",
+  "requiresBuild": [
+    "2026.09.21-v23.16-real-update-channels"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.16-real-update-channels",
+      "to": "2026.09.21-v23.17-fast-pdf-open"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.16-real-update-channels",
+      "to": "2026.09.21-v23.17-fast-pdf-open"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "const CDQ_DOCUMENT_CHUNK_BYTES_ = 1024 * 1024;",
+      "replacement": "const CDQ_DOCUMENT_CHUNK_BYTES_ = 3 * 1024 * 1024;",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "async function cdqEnsurePdf(id,refresh){\n  if(cdqDocumentDownloads.has(id))return cdqDocumentDownloads.get(id);\n  const op=(async function(){\n    const old=await cdqV19GetRecord('document-pdf',id);\n    if(!navigator.onLine){if(old&&old.blob)return old;throw new Error('Ce PDF n’a pas été préparé. Reconnectez Internet et ouvrez-le une fois, puis enregistrez-le sur le téléphone.');}\n    // Après une copie, le Blob exact du maître est déjà local. Ne pas attendre\n    // la cohérence éventuelle de Google Drive avant la première ouverture.\n    if(!refresh&&old&&old.blob&&old.instantCopy&&Number(old.localReadyUntil||0)>Date.now())return old;\n    let meta;\n    try{meta=await cdqV19Gs('obtenirMetaDocumentPdfCDQ',[id]);}\n    catch(e){if(old&&old.blob&&!refresh)return Object.assign({},old,{stale:true});throw e;}\n    if(old&&old.blob&&old.revision===meta.revision&&old.blob.size===meta.taille)return old;\n    if(meta.taille>CDQ_DOCUMENT_MAX_BYTES||meta.chunks!==Math.ceil(meta.taille/(1024*1024)))throw new Error('Taille PDF invalide.');\n    const parts=[];\n    for(let i=0;i<meta.chunks;i++){\n      const part=await cdqV19Gs('obtenirChunkDocumentPdfCDQ',[id,meta.revision,i]);\n      if(part.revision!==meta.revision)throw new Error('Le PDF a changé pendant la préparation. Réessayez.');\n      parts.push(cdqV2112Base64ToBytes(part.base64));\n    }\n    const blob=new Blob(parts,{type:'application/pdf'});\n    if(blob.size!==meta.taille||(await blob.slice(0,5).text())!=='%PDF-')throw new Error('Copie PDF incomplète. Réessayez.');\n    const rec=Object.assign({},meta,{blob:blob});\n    await cdqV19PutRecord('document-pdf',id,rec);return rec;\n  })();\n  cdqDocumentDownloads.set(id,op);\n  try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n}",
+      "replacement": "async function cdqEnsurePdf(id,refresh){\n  if(cdqDocumentDownloads.has(id))return cdqDocumentDownloads.get(id);\n  const op=(async function(){\n    const old=await cdqV19GetRecord('document-pdf',id);\n    if(!navigator.onLine){if(old&&old.blob)return old;throw new Error('Ce PDF n’a pas été préparé. Reconnectez Internet et ouvrez-le une fois, puis enregistrez-le sur le téléphone.');}\n\n    if(!refresh&&old&&old.blob&&old.instantCopy&&Number(old.localReadyUntil||0)>Date.now())return old;\n\n    let meta;\n    try{\n      afficherMessage('Préparation du PDF…',true);\n      meta=await cdqV19Gs('obtenirMetaDocumentPdfCDQ',[id]);\n    }catch(e){\n      if(old&&old.blob&&!refresh)return Object.assign({},old,{stale:true});\n      throw e;\n    }\n\n    if(old&&old.blob&&old.revision===meta.revision&&old.blob.size===meta.taille)return old;\n\n    const chunkBytes=3*1024*1024;\n    if(meta.taille>CDQ_DOCUMENT_MAX_BYTES||meta.chunks!==Math.ceil(meta.taille/chunkBytes)){\n      throw new Error('Taille PDF invalide.');\n    }\n\n    const parts=[];\n    for(let i=0;i<meta.chunks;i++){\n      afficherMessage('Préparation du PDF… '+(i+1)+' / '+meta.chunks,true);\n\n      const part=await Promise.race([\n        cdqV19Gs('obtenirChunkDocumentPdfCDQ',[id,meta.revision,i]),\n        new Promise(function(_,reject){\n          setTimeout(function(){reject(new Error('Le chargement du PDF prend trop de temps. Réessayez.'));},25000);\n        })\n      ]);\n\n      if(part.revision!==meta.revision)throw new Error('Le PDF a changé pendant la préparation. Réessayez.');\n      parts.push(cdqV2112Base64ToBytes(part.base64));\n    }\n\n    const blob=new Blob(parts,{type:'application/pdf'});\n    if(blob.size!==meta.taille||(await blob.slice(0,5).text())!=='%PDF-'){\n      throw new Error('Copie PDF incomplète. Réessayez.');\n    }\n\n    const rec=Object.assign({},meta,{blob:blob});\n    try{await cdqV19PutRecord('document-pdf',id,rec);}catch(_){}\n    return rec;\n  })();\n\n  cdqDocumentDownloads.set(id,op);\n  try{return await op;}finally{cdqDocumentDownloads.delete(id);}\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "async function cdqLoadPdfRecord(id){\n  let rec=await cdqEnsurePdf(id,false);\n  const pending=(await cdqV19QueueGet()).find(a=>a.kind==='pdf-import'&&a.targetId===id);\n  if(pending)rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n  rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  try{if(!pending)await cdqV19PutRecord('document-pdf',id,rec);}catch(e){}\n  return rec;\n}",
+      "replacement": "async function cdqLoadPdfRecord(id){\n  let rec=await cdqEnsurePdf(id,false);\n  const pending=(await cdqV19QueueGet()).find(a=>a.kind==='pdf-import'&&a.targetId===id);\n  if(pending){\n    rec=Object.assign({},rec,{blob:new Blob([cdqV2112Base64ToBytes(pending.data)],{type:'application/pdf'})});\n  }\n\n  // V23.17 : ne plus reconstruire tout le PDF avec PDF-Lib AVANT l'ouverture.\n  // Le lecteur PDF.js ouvre directement le fichier original; cela évite\n  // plusieurs secondes de blocage et une forte consommation mémoire Android.\n  return rec;\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "async function cdqOpenPdfInternal(id,preparedRecord){\n  if(document.getElementById('cdqReaderFrame'))return;\n  afficherMessage('Ouverture du PDF…',true);\n  let rec=preparedRecord||await cdqLoadPdfRecord(id);\n  rec=await cdqPersonnaliserRecordTechnicienPdf(rec);\n  if(document.getElementById('cdqReaderFrame'))return;",
+      "replacement": "async function cdqOpenPdfInternal(id,preparedRecord){\n  if(document.getElementById('cdqReaderFrame'))return;\n  afficherMessage('Ouverture du PDF…',true);\n  const rec=preparedRecord||await cdqLoadPdfRecord(id);\n  if(document.getElementById('cdqReaderFrame'))return;",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "androidAppRequired": "Aucun changement Android requis",
+    "rollbackBase": "V23.16",
+    "fixes": [
+      "PDF téléchargés par blocs de 3 Mo au lieu de 1 Mo, donc beaucoup moins d'appels Apps Script.",
+      "Progression visible bloc par bloc pendant la préparation.",
+      "Timeout de 25 s par bloc au lieu d'un chargement silencieux infini.",
+      "Suppression de la reconstruction PDF-Lib avant l'ouverture.",
+      "Le lecteur CDQ ouvre directement le PDF original récupéré."
+    ],
+    "sheets": [
+      "Ouverture Google Sheets laissée intacte car elle fonctionne.",
+      "Le choix de compte restant provient de l'application Google Sheets native."
+    ]
+  }
+}
