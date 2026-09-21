@@ -22,8 +22,8 @@
 
     <application
         android:allowBackup="false"
-        android:icon="@drawable/ic_balance_cdq"
-        android:roundIcon="@drawable/ic_balance_cdq"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="Balance CDQ"
         android:supportsRtl="true"
         android:theme="@style/Theme.BalanceCDQ"
