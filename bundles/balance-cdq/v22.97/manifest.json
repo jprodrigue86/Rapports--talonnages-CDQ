@@ -1,0 +1,55 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.97",
+  "build": "2026.09.21-v22.97-pwa-default-account-capture",
+  "title": "Balance CDQ V22.97 — compte par défaut persistant et interception Android",
+  "requiresBuild": [
+    "2026.09.21-v22.96-default-account-no-picker"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v22.96-default-account-no-picker",
+      "to": "2026.09.21-v22.97-pwa-default-account-capture"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v22.96-default-account-no-picker",
+      "to": "2026.09.21-v22.97-pwa-default-account-capture"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2296DefaultAccountNoPickerJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2297PwaDefaultAccountJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n\n<script id=\"cdqV2297PwaDefaultAccountJs\">\n(function(){\n'use strict';\n\nconst LEGACY_KEY='cdqDefaultGoogleAccountV2294';\nlet account='';\nlet reset=false;\nlet got=false;\n\nfunction norm(v){return String(v||'').trim().toLowerCase();}\nfunction current(){try{return norm(utilisateurCourantEmail||'');}catch(_){return '';}}\nfunction post(data){\n  try{\n    if(typeof cdqPostToPwa==='function')return cdqPostToPwa(data);\n  }catch(_){}\n  return false;\n}\nfunction getFromPwa(){\n  post({type:'CDQ_DEFAULT_GOOGLE_ACCOUNT_GET'});\n}\nfunction syncLegacy(){\n  try{\n    if(account)localStorage.setItem(LEGACY_KEY,account);\n    else localStorage.removeItem(LEGACY_KEY);\n  }catch(_){}\n}\nfunction save(email,isReset){\n  account=norm(email);\n  reset=!!isReset;\n  got=true;\n  syncLegacy();\n  post({type:'CDQ_DEFAULT_GOOGLE_ACCOUNT_SET',email:account,reset:reset});\n  paint();\n  return account;\n}\nfunction ensureAuto(){\n  if(!got||account||reset)return;\n  const e=current();\n  if(e)save(e,false);\n}\nfunction escapeHtml(v){\n  return String(v||'').replace(/[&<>\"]/g,function(c){\n    return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c];\n  });\n}\nfunction paint(){\n  const modal=document.getElementById('cdqSettingsModalV2294');\n  if(!modal)return;\n\n  const status=modal.querySelector('#cdqDefaultGoogleStatusV2294');\n  if(status){\n    status.innerHTML=account\n      ? 'Compte par défaut actif : <strong>'+escapeHtml(account)+'</strong><br><small>Le sélecteur Android de comptes Google sera évité.</small>'\n      : 'Compte par défaut : <strong>Aucun</strong><br><small>Google demandera de nouveau le compte à l’ouverture.</small>';\n  }\n\n  const input=modal.querySelector('#cdqDefaultGoogleEmailV2294');\n  if(input&&!input.matches(':focus'))input.value=account||current()||'';\n\n  const saveBtn=modal.querySelector('#cdqSaveGoogleDefaultV2294');\n  if(saveBtn && saveBtn.dataset.cdqV2297!=='1'){\n    saveBtn.dataset.cdqV2297='1';\n    saveBtn.dataset.cdqV2296='1';\n    saveBtn.onclick=function(){\n      const e=norm(input&&input.value||'');\n      if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(e)){\n        if(typeof afficherErreur==='function')afficherErreur(new Error('Entrez une adresse Google valide.'));\n        return;\n      }\n      save(e,false);\n      if(typeof afficherMessage==='function')afficherMessage('Compte Google par défaut : '+e,true);\n    };\n  }\n\n  const resetBtn=modal.querySelector('#cdqResetGoogleDefaultV2294');\n  if(resetBtn && resetBtn.dataset.cdqV2297!=='1'){\n    resetBtn.dataset.cdqV2297='1';\n    resetBtn.dataset.cdqV2296='1';\n    resetBtn.onclick=function(){\n      save('',true);\n      if(typeof afficherMessage==='function')afficherMessage('Compte par défaut réinitialisé. Google demandera de nouveau le compte.',true);\n    };\n  }\n\n  const row=modal.querySelector('#cdqCurrentGoogleRowV2294');\n  if(row && row.dataset.cdqV2297!=='1'){\n    row.dataset.cdqV2297='1';\n    row.addEventListener('click',function(e){\n      const b=e.target&&e.target.closest?e.target.closest('button'):null;\n      if(!b)return;\n      e.preventDefault();\n      e.stopImmediatePropagation();\n      const ecur=current();\n      if(ecur){\n        save(ecur,false);\n        if(typeof afficherMessage==='function')afficherMessage('Compte Google par défaut : '+ecur,true);\n      }\n    },true);\n  }\n}\n\nfunction markFile(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=id;\n    const meta=typeof cdqDocumentMeta==='function'?(cdqDocumentMeta(id)||{}):{};\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction openSheet(id){\n  if(!account)return false;\n  markFile(id);\n  post({type:'CDQ_OPEN_SHEET_DEFAULT_ACCOUNT',id:String(id||''),email:account});\n  return true;\n}\nasync function openPdf(id){\n  if(!account)return false;\n  markFile(id);\n  if(typeof afficherMessage==='function')afficherMessage('Ouverture du PDF…',false);\n  if(typeof cdqOpenPdf==='function'){\n    await cdqOpenPdf(id);\n    return true;\n  }\n  if(typeof cdqLoadPdfRecord==='function'&&typeof cdqOpenPdfInternal==='function'){\n    const rec=await cdqLoadPdfRecord(id);\n    await cdqOpenPdfInternal(id,rec);\n    return true;\n  }\n  throw new Error('Lecteur PDF CDQ indisponible.');\n}\nfunction metaFromRow(row,id){\n  try{\n    if(typeof cdqDocumentMeta==='function'){\n      const m=cdqDocumentMeta(id);\n      if(m)return m;\n    }\n  }catch(_){}\n  return {\n    id:id,\n    nom:String(row&&row.dataset.fileName||''),\n    type:String(row&&row.dataset.fileType||'')\n  };\n}\n\n// Protection principale : intercepter AVANT le gestionnaire de clic existant.\n// C'est ce gestionnaire existant qui lançait encore l'application Google et\n// donc la fenêtre \"Sélectionner un compte\" visible sur Android.\ndocument.addEventListener('click',function(e){\n  if(!account)return;\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  if(e.target&&e.target.closest&&e.target.closest('button'))return;\n  try{if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return;}catch(_){}\n  if(String(row.dataset.cdqSuppressClick||'')==='1')return;\n\n  const box=row.querySelector('.file-checkbox[data-file-id]');\n  if(!box)return;\n  const id=String(box.dataset.fileId||'');\n  if(!id)return;\n  const meta=metaFromRow(row,id);\n  const type=String(meta&&meta.type||'').toUpperCase();\n\n  if(type!=='GOOGLE_SHEETS'&&type!=='PDF')return;\n\n  e.preventDefault();\n  e.stopImmediatePropagation();\n\n  if(type==='GOOGLE_SHEETS'){\n    if(typeof afficherMessage==='function')afficherMessage('Ouverture avec '+account+'…',false);\n    openSheet(id);\n    return;\n  }\n\n  Promise.resolve(openPdf(id)).catch(function(err){\n    if(typeof afficherErreur==='function')afficherErreur(err);\n  });\n},true);\n\n// Les favoris et autres boutons peuvent appeler modifierFichier directement.\n// On garde donc aussi ce filet de sécurité.\nfunction installModifier(){\n  if(window.__cdqV2297ModifierInstalled||typeof window.modifierFichier!=='function')return;\n  const old=window.modifierFichier;\n  window.__cdqV2297ModifierInstalled=true;\n  window.modifierFichier=function(id){\n    if(!account)return old.apply(this,arguments);\n    let meta=null;\n    try{meta=typeof cdqDocumentMeta==='function'?cdqDocumentMeta(id):null;}catch(_){}\n    const type=String(meta&&meta.type||'').toUpperCase();\n    if(type==='GOOGLE_SHEETS'){\n      if(typeof afficherMessage==='function')afficherMessage('Ouverture avec '+account+'…',false);\n      return openSheet(id);\n    }\n    if(type==='PDF'){\n      return Promise.resolve(openPdf(id)).catch(function(err){\n        if(typeof afficherErreur==='function')afficherErreur(err);\n      });\n    }\n    return old.apply(this,arguments);\n  };\n}\n\nwindow.addEventListener('message',function(e){\n  if(typeof cdqFromPwa==='function'&&!cdqFromPwa(e))return;\n  const d=e.data||{};\n  if(d.type!=='CDQ_DEFAULT_GOOGLE_ACCOUNT_VALUE')return;\n  account=norm(d.email);\n  reset=!!d.reset;\n  got=true;\n  syncLegacy();\n  ensureAuto();\n  paint();\n  installModifier();\n});\n\nfunction boot(){\n  getFromPwa();\n  paint();\n  installModifier();\n}\nif(document.readyState==='loading'){\n  document.addEventListener('DOMContentLoaded',function(){boot();setTimeout(boot,650);},{once:true});\n}else{\n  boot();setTimeout(boot,650);\n}\nwindow.addEventListener('load',function(){setTimeout(boot,120);setTimeout(boot,1100);});\nwindow.addEventListener('cdq:access-ready',function(){setTimeout(function(){getFromPwa();ensureAuto();paint();installModifier();},80);});\ntry{\n  new MutationObserver(function(){\n    clearTimeout(window.__cdqV2297Mutation);\n    window.__cdqV2297Mutation=setTimeout(function(){paint();installModifier();},90);\n  }).observe(document.body,{childList:true,subtree:true});\n}catch(_){}\n\nwindow.cdqDefaultGoogleAccountV2297=function(){return account;};\n})();\n</script>\n\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V32",
+    "rollbackBase": "V22.96",
+    "fixes": [
+      "Compte par défaut stocké dans la PWA GitHub, pas dans le stockage du cadre Apps Script.",
+      "Interception capture-phase des clics .file-row avant l'ancien chemin Android.",
+      "Sheets ouverts via la PWA en forçant Chrome avec authuser=email, sans application Sheets native.",
+      "PDF ouverts via le moteur CDQ lorsque le compte par défaut est actif.",
+      "Réinitialiser dans Réglages restaure le comportement natif avec choix de compte."
+    ],
+    "preserved": [
+      "V22.95 noms Photos/Notes lisibles",
+      "V22.94 Réglages",
+      "V22.93 progression globale"
+    ]
+  }
+}
