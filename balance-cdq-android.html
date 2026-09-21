@@ -4,56 +4,42 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#050c14">
-<title>Balance CDQ Android</title>
+<title>Installer Balance CDQ Android</title>
 <style>
 html,body{margin:0;min-height:100%;background:#050c14;color:#f3fbff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
 body{display:grid;place-items:center;padding:22px;box-sizing:border-box}
 .card{width:min(520px,100%);padding:24px;border:1px solid #157fb2;border-radius:20px;background:#081b29;box-shadow:0 20px 60px rgba(0,0,0,.48)}
 h1{margin:0 0 10px;font-size:24px}p{line-height:1.5;color:#b7d0df}
-a,button{display:block;width:100%;box-sizing:border-box;margin-top:18px;padding:15px 16px;border-radius:12px;border:0;background:#20a9e6;color:white;text-align:center;text-decoration:none;font-weight:900;font-size:16px}
-a.disabled{pointer-events:none;opacity:.38}
+button,a{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;box-sizing:border-box;margin-top:14px;padding:14px 16px;border-radius:12px;border:1px solid #2baee4;background:#0b77aa;color:white;text-align:center;text-decoration:none;font-weight:900;font-size:16px}
+.secondary{background:#10283a;border-color:#31516a}
 .status{margin-top:14px;padding:11px 12px;border-radius:10px;background:#0d2738;color:#c8e1ee;font-weight:750}
 small{display:block;margin-top:14px;color:#7f9aac;line-height:1.45}
 </style>
 </head>
 <body>
 <div class="card">
-<h1 id="title">Balance CDQ Android</h1>
-<p>La version 25.09 rétablit la biométrie native Android. Les PDF et Google Sheets sont réparés séparément par Balance CDQ V25.05 dans Script Manager.</p>
-<div class="status" id="status">Vérification de la version Android disponible…</div>
-<a id="install" class="disabled" href="#" aria-disabled="true">25.09 en cours de publication…</a>
-<small>Le bouton s’active automatiquement dès que l’APK 25.09 est réellement publié. Ne réinstalle pas 25.06 par-dessus en attendant.</small>
+<h1>Balance CDQ Android 25.09</h1>
+<p>Installation propre de la dernière APK stable. Ce bouton force l'ouverture dans Google Chrome pour éviter que le navigateur intégré reste bloqué à la fin du téléchargement.</p>
+<div class="status" id="status">Version publiée : 25.09 ✓</div>
+<button id="chrome" type="button">Ouvrir dans Chrome et télécharger l’APK 25.09</button>
+<a id="direct" class="secondary" href="./downloads/Balance-CDQ-Android.apk?version=25.09">Téléchargement direct si Chrome est déjà ouvert</a>
+<small>Après le téléchargement dans Chrome, touche la notification « Balance-CDQ-Android.apk » ou ouvre Chrome → Téléchargements, puis touche le fichier pour lancer l’installation Android. Une confirmation système Android est normale.</small>
 </div>
 <script>
 (function(){
 'use strict';
-const status=document.getElementById('status');
-const install=document.getElementById('install');
-const title=document.getElementById('title');
-async function check(){
+const apk=new URL('./downloads/Balance-CDQ-Android.apk?version=25.09',location.href).href;
+function openChrome(){
   try{
-    const r=await fetch('./downloads/android-update.json?ts='+Date.now(),{cache:'no-store'});
-    if(!r.ok)throw new Error('manifest');
-    const j=await r.json();
-    const code=Number(j.versionCode||0);
-    const name=String(j.versionName||'');
-    title.textContent='Balance CDQ Android '+(name||'');
-    if(code>=2509){
-      status.textContent='Version '+name+' prête ✓';
-      install.classList.remove('disabled');
-      install.removeAttribute('aria-disabled');
-      install.href='./downloads/Balance-CDQ-Android.apk?version='+encodeURIComponent(name);
-      install.textContent='Installer / mettre à jour Balance CDQ Android '+name;
-      return;
-    }
-    status.textContent='Version publiée actuellement : '+(name||'inconnue')+' — attente de 25.09…';
-    install.textContent='25.09 en cours de publication…';
+    const u=new URL(apk);
+    const intent='intent://'+u.host+u.pathname+u.search+
+      '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(apk)+';end';
+    location.href=intent;
   }catch(e){
-    status.textContent='Vérification impossible. Réessai automatique…';
+    location.href=apk;
   }
-  setTimeout(check,5000);
 }
-check();
+document.getElementById('chrome').onclick=openChrome;
 })();
 </script>
 </body>
