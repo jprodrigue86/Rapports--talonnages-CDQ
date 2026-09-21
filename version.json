@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v22.93-progress-global",
+  "version": "2026.09.21-v22.94-default-google-account-settings",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v22.93-progress-global",
-  "backend_version": "2026.09.21-v22.93-progress-global",
+  "selector_version": "2026.09.21-v22.94-default-google-account-settings",
+  "backend_version": "2026.09.21-v22.94-default-google-account-settings",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -217,7 +217,13 @@
     "photo-drive-progress-v2293",
     "pdf-copy-progress-v2293",
     "note-progress-v2293",
-    "loading-not-frozen-indicator-v2293"
+    "loading-not-frozen-indicator-v2293",
+    "settings-gear-v2294",
+    "display-inside-settings-v2294",
+    "default-google-account-v2294",
+    "default-google-account-reset-v2294",
+    "sheets-authuser-v2294",
+    "pdf-authuser-v2294"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -230,5 +236,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v22.93-progress-global"
+  "pwa_version": "2026.09.21-v22.94-default-google-account-settings"
 }
