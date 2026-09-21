@@ -1,23 +1,28 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V23.01",
-  "build": "2026.09.21-v23.01-stable-file-open",
-  "title": "Balance CDQ V23.01 — ouverture PDF sans compte + Sheets fiable",
+  "version": "V23.02",
+  "build": "2026.09.21-v23.02-restore-stable-file-open",
+  "title": "Balance CDQ V23.02 — restauration ouverture stable Sheets et PDF",
   "requiresBuild": [
-    "2026.09.21-v23.00-no-native-account-picker"
+    "2026.09.21-v23.01-stable-file-open"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v23.00-no-native-account-picker",
-      "to": "2026.09.21-v23.01-stable-file-open"
+      "from": "2026.09.21-v23.01-stable-file-open",
+      "to": "2026.09.21-v23.02-restore-stable-file-open"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v23.00-no-native-account-picker",
-      "to": "2026.09.21-v23.01-stable-file-open"
+      "from": "2026.09.21-v23.01-stable-file-open",
+      "to": "2026.09.21-v23.02-restore-stable-file-open"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2300NoNativeGoogleAccountPickerJs"
     },
     {
       "file": "Selector.html",
@@ -26,47 +31,45 @@
     },
     {
       "file": "Selector.html",
-      "op": "insert_before_literal",
-      "before": "</body>",
-      "text": "\n\n<script id=\"cdqV2301OpenFilesStableJs\">\n(function(){\n'use strict';\n\nfunction cdqDefaultEmailV2301(){\n  try{\n    if(typeof cdqDefaultGoogleAccountV2299==='function'){\n      const e=String(cdqDefaultGoogleAccountV2299()||'').trim().toLowerCase();\n      if(e)return e;\n    }\n  }catch(_){}\n  try{\n    return String(\n      localStorage.getItem('cdqDefaultGoogleAccountV2299')||\n      localStorage.getItem('cdqDefaultGoogleAccountV2294')||\n      utilisateurCourantEmail||\n      ''\n    ).trim().toLowerCase();\n  }catch(_){return '';}\n}\n\nfunction cdqMarquerOuvertureV2301(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const m=typeof cdqDocumentMeta==='function'?(cdqDocumentMeta(id)||{}):{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(m.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction cdqOpenPdfNoGoogleAccountV2301(id){\n  cdqMarquerOuvertureV2301(id);\n\n  // Le lecteur PDF CDQ travaille avec le Blob du fichier.\n  // Aucun intent Google Drive, donc aucun sélecteur de compte Google.\n  try{\n    if(typeof cdqOpenPdf==='function'){\n      return cdqOpenPdf(id);\n    }\n  }catch(e){\n    try{afficherErreur(e);}catch(_){}\n  }\n  return false;\n}\n\nfunction cdqOpenSheetDefaultV2301(id){\n  const email=cdqDefaultEmailV2301();\n  if(!email)return false;\n  cdqMarquerOuvertureV2301(id);\n\n  // L'ouverture doit être exécutée par la coque PWA (top-level Android).\n  // Le Selector Apps Script ne tente plus de naviguer lui-même.\n  try{\n    if(typeof cdqPostToPwa==='function'){\n      return !!cdqPostToPwa({\n        type:'CDQ_OPEN_SHEET_DEFAULT_ACCOUNT',\n        id:String(id||''),\n        email:email,\n        version:2301\n      });\n    }\n  }catch(_){}\n  return false;\n}\n\nwindow.cdqOpenPdfNoGoogleAccountV2301=cdqOpenPdfNoGoogleAccountV2301;\nwindow.cdqOpenSheetDefaultV2301=cdqOpenSheetDefaultV2301;\n})();\n</script>\n\n"
-    },
-    {
-      "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "      cdqOuvrirPdfCommeSheetV2275(t.id);",
-      "replacement": "      cdqOpenPdfNoGoogleAccountV2301(t.id);",
+      "search": "function cdqV19OpenOfflineSheet(id){\n  if(cdqDefaultGoogleAccountV2299())return cdqOpenSheetDefaultV2301(id);\n  const a=document.createElement('a');a.href=cdqSheetAppUrl(id);a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',(cdqDocumentMeta(id)||{}).dateModification||'');\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n}",
+      "replacement": "function cdqV19OpenOfflineSheet(id){\n  const url='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(String(id||''))+'/edit';\n  const href=/Android/i.test(navigator.userAgent||'')\n    ? 'intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(String(id||''))+'/edit#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;S.browser_fallback_url='+encodeURIComponent(url)+';end'\n    : url;\n  const a=document.createElement('a');\n  a.href=href;\n  a.target='_blank';\n  a.rel='noopener';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',(cdqDocumentMeta(id)||{}).dateModification||'');\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n  return true;\n}",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "    return cdqOuvrirPdfCommeSheetV2275(id);",
-      "replacement": "    return cdqOpenPdfNoGoogleAccountV2301(id);",
+      "search": "      cdqOpenPdfNoGoogleAccountV2301(t.id);",
+      "replacement": "      cdqOpenPdf(t.id);",
       "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "  if(cdqDefaultGoogleAccountV2299())return cdqOpenSheetChromeV2299(id);",
-      "replacement": "  if(cdqDefaultGoogleAccountV2299())return cdqOpenSheetDefaultV2301(id);",
+      "search": "    return cdqOpenPdfNoGoogleAccountV2301(id);",
+      "replacement": "    return cdqOpenPdf(id);",
       "expected": 1
     }
   ],
   "audit": {
     "scriptManagerRequired": "V38",
-    "rollbackBase": "V23.00",
-    "directFixes": [
-      "Remplacement direct du callsite PDF pointerup hérité de V22.90.",
-      "Remplacement direct du callsite PDF modifierFichier hérité de V22.90.",
-      "PDF passe par cdqOpenPdf() et ne lance jamais Google Drive.",
-      "Sheets passe uniquement par la coque PWA avec le compte par défaut."
+    "rollbackBase": "V23.01",
+    "fixes": [
+      "Retire les surcouches V23.00/V23.01 qui interceptaient plusieurs fois le même clic.",
+      "Google Sheets revient au chemin Android natif stable qui ouvrait réellement Sheets.",
+      "PDF n'utilise plus Google Drive : ouverture via cdqOpenPdf(), lecteur CDQ ou choix de lecteur.",
+      "Le pointerup PDF historique continue de supprimer le double click mais ouvre maintenant le lecteur CDQ."
+    ],
+    "limitation": [
+      "Le sélecteur de compte de l'application Google Sheets est contrôlé par Android/Google, pas par la PWA Balance CDQ.",
+      "Le compte par défaut PWA ne peut donc pas forcer la sélection dans l'application Sheets native."
     ],
     "preserved": [
-      "Réglages compte par défaut/reset.",
-      "Lecteur PDF choisi par l'utilisateur.",
+      "Réglages et préférences existantes.",
       "Mode hors ligne.",
+      "Photos et Notes.",
       "Sélection multiple/appui long.",
-      "Photos, Notes et progression."
+      "Progression globale."
     ]
   }
 }
