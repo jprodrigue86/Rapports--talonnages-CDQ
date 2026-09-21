@@ -1,0 +1,76 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V23.05",
+  "build": "2026.09.21-v23.05-restore-native-file-open",
+  "title": "Balance CDQ V23.05 — restauration ouverture Android fiable",
+  "requiresBuild": [
+    "2026.09.21-v23.04-pwa-pdf-chrome-sheets"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.04-pwa-pdf-chrome-sheets",
+      "to": "2026.09.21-v23.05-restore-native-file-open"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v23.04-pwa-pdf-chrome-sheets",
+      "to": "2026.09.21-v23.05-restore-native-file-open"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2304NoFlashCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2305NoFlashCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<style id=\"cdqV2305NoFlashCss\">\nhtml.android .file-row,\nhtml.android .file-row *,\nhtml.android #filesContainer,\nhtml.android .selection-bar{\n  -webkit-tap-highlight-color:transparent!important;\n  transition:none!important;\n  animation:none!important;\n}\nhtml.android .file-row:hover,\nhtml.android .file-row:active,\nhtml.android .file-row:focus,\nhtml.android .file-row:focus-visible{\n  transform:none!important;\n  filter:none!important;\n  outline:none!important;\n  box-shadow:none!important;\n}\n</style>\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqV19OpenOfflineSheet(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]+$/.test(id))throw new Error('Identifiant de feuille invalide.');\n\n  let email='';\n  try{\n    if(typeof cdqDefaultGoogleAccountV2299==='function')email=String(cdqDefaultGoogleAccountV2299()||'').trim().toLowerCase();\n    if(!email)email=String(localStorage.getItem('cdqDefaultGoogleAccountV2299')||localStorage.getItem('cdqDefaultGoogleAccountV2294')||'').trim().toLowerCase();\n  }catch(e){}\n\n  const base='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit';\n  const web=email\n    ? base+'?usp=drivesdk&authuser='+encodeURIComponent(email)+'&login_hint='+encodeURIComponent(email)\n    : base;\n\n  let href=web;\n  let target='_blank';\n\n  if(/Android/i.test(navigator.userAgent||'')){\n    if(email){\n      // Compte par défaut actif : forcer explicitement Chrome depuis le vrai clic.\n      href='intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+\n        '/edit?usp=drivesdk&authuser='+encodeURIComponent(email)+\n        '&login_hint='+encodeURIComponent(email)+\n        '#Intent;scheme=https;package=com.android.chrome;'+\n        'S.browser_fallback_url='+encodeURIComponent(web)+';end';\n      target='_top';\n    }else{\n      // Sans compte par défaut, conserver le chemin Sheets natif historique.\n      href='intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+\n        '/edit#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;'+\n        'S.browser_fallback_url='+encodeURIComponent(base)+';end';\n    }\n  }\n\n  const a=document.createElement('a');\n  a.href=href;\n  a.target=target;\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n\n  // Repli Web uniquement si le lancement Chrome n'a réellement rien fait.\n  if(email&&/Android/i.test(navigator.userAgent||'')){\n    setTimeout(function(){\n      if(document.visibilityState!=='visible')return;\n      try{\n        const b=document.createElement('a');\n        b.href=web;b.target='_blank';b.rel='noopener';b.style.display='none';\n        document.body.appendChild(b);b.click();b.remove();\n      }catch(e){}\n    },900);\n  }\n\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',(cdqDocumentMeta(id)||{}).dateModification||'');\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n  return true;\n}",
+      "replacement": "function cdqV19OpenOfflineSheet(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]+$/.test(id))throw new Error('Identifiant de feuille invalide.');\n  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit';\n  const href=/Android/i.test(navigator.userAgent||'')\n    ? 'intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;S.browser_fallback_url='+encodeURIComponent(web)+';end'\n    : web;\n\n  const a=document.createElement('a');\n  a.href=href;\n  a.target='_blank';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',(cdqDocumentMeta(id)||{}).dateModification||'');\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n  return true;\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "      cdqOpenPdf(t.id);",
+      "replacement": "      cdqOuvrirPdfCommeSheetV2275(t.id);",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "    return cdqOpenPdf(id);",
+      "replacement": "    return cdqOuvrirPdfCommeSheetV2275(id);",
+      "expected": 1
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V38",
+    "rollbackBase": "V23.04",
+    "goal": "Rétablir immédiatement l'ouverture fiable des fichiers avant toute nouvelle tentative de compte par défaut.",
+    "restored": [
+      "Sheets : application Google Sheets native Android.",
+      "PDF : application Google Drive native puis lecteur PDF système.",
+      "Callsites pointerup et modifierFichier restaurés au chemin V22.90 connu."
+    ],
+    "removed": [
+      "Forçage Chrome du compte par défaut.",
+      "Pont PDF PWA expérimental V23.04."
+    ],
+    "limitation": "Le sélecteur de compte des applications Google natives ne peut pas être imposé par la PWA. Pour le supprimer réellement, il faut une couche Android native.",
+    "ui": "Anti-scintillement CSS conservé dans Balance CDQ."
+  }
+}
