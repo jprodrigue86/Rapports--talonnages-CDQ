@@ -1,34 +1,24 @@
 {
   "schema": "cdq-script-bundle-v2",
   "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
-  "version": "V25.04",
-  "build": "2026.09.21-v25.04-stable-mobile-file-open",
-  "title": "Balance CDQ V25.04 — récupération Android stable",
+  "version": "V25.05",
+  "build": "2026.09.21-v25.05-mobile-auth-file-recovery",
+  "title": "Balance CDQ V25.05 — interface, biométrie et fichiers Android",
   "requiresBuild": [
-    "2026.09.21-v25.03-mobile-ui-update-center-fix"
+    "2026.09.21-v25.04-stable-mobile-file-open"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v25.03-mobile-ui-update-center-fix",
-      "to": "2026.09.21-v25.04-stable-mobile-file-open"
+      "from": "2026.09.21-v25.04-stable-mobile-file-open",
+      "to": "2026.09.21-v25.05-mobile-auth-file-recovery"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v25.03-mobile-ui-update-center-fix",
-      "to": "2026.09.21-v25.04-stable-mobile-file-open"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2500NativePdfWorkflowJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2310SettingsButtonScaleCss"
+      "from": "2026.09.21-v25.04-stable-mobile-file-open",
+      "to": "2026.09.21-v25.05-mobile-auth-file-recovery"
     },
     {
       "file": "Selector.html",
@@ -37,25 +27,31 @@
     },
     {
       "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2505MobileRecoveryCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2505MobileRecoveryJs"
+    },
+    {
+      "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<script id=\"cdqV2504StableFileOpenJs\">\n(function(){\n'use strict';\n\nfunction markOpen(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const meta=(typeof cdqDocumentMeta==='function'&&cdqDocumentMeta(id))||{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction openSheet(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return false;\n  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit';\n  const href=/Android/i.test(navigator.userAgent||'')\n    ? 'intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;S.browser_fallback_url='+encodeURIComponent(web)+';end'\n    : web;\n  const a=document.createElement('a');\n  a.href=href;\n  a.target='_top';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n  markOpen(id);\n  return true;\n}\n\nfunction openPdfInternal(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return false;\n  markOpen(id);\n  try{\n    const p=window.cdqOpenPdf;\n    if(typeof p==='function'){\n      Promise.resolve(p(id)).catch(function(e){\n        try{if(typeof afficherErreur==='function')afficherErreur(e);}catch(_){}\n      });\n      return true;\n    }\n  }catch(_){}\n  try{\n    if(typeof afficherMessage==='function')afficherMessage('Impossible d’ouvrir le PDF avec le lecteur CDQ.',false);\n  }catch(_){}\n  return false;\n}\n\ntry{window.cdqV19OpenOfflineSheet=openSheet;}catch(_){}\ntry{window.cdqOpenSheetStableV2504=openSheet;}catch(_){}\ntry{window.cdqV24OpenPdf=openPdfInternal;}catch(_){}\ntry{window.cdqOuvrirPdfCommeSheetV2275=openPdfInternal;}catch(_){}\n\nconst previousModify=window.modifierFichier;\nwindow.modifierFichier=function(id){\n  let meta=null;\n  try{meta=typeof cdqDocumentMeta==='function'?cdqDocumentMeta(id):null;}catch(_){}\n  const type=String(meta&&meta.type||'').toUpperCase();\n\n  if(type==='GOOGLE_SHEETS'){\n    openSheet(id);\n    return;\n  }\n\n  if(type==='PDF'){\n    openPdfInternal(id);\n    return;\n  }\n\n  if(typeof previousModify==='function')return previousModify.apply(this,arguments);\n};\n\nfunction rowInfo(target){\n  if(!target||!target.closest)return null;\n  if(target.closest('button,input,select,textarea,label'))return null;\n  const row=target.closest('.file-row');\n  if(!row)return null;\n  const type=String(row.dataset.fileType||'').toUpperCase();\n  if(type!=='PDF'&&type!=='GOOGLE_SHEETS')return null;\n  const box=row.querySelector('.file-checkbox[data-file-id]');\n  if(!box)return null;\n  return {row:row,type:type,id:String(box.dataset.fileId||'')};\n}\n\ndocument.addEventListener('click',function(e){\n  const item=rowInfo(e.target);\n  if(!item)return;\n  try{\n    if(document.body.classList.contains('selection-active'))return;\n    if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return;\n  }catch(_){}\n  e.preventDefault();\n  e.stopImmediatePropagation();\n  if(item.type==='GOOGLE_SHEETS')openSheet(item.id); else openPdfInternal(item.id);\n},true);\n\n})();\n</script>\n\n"
+      "text": "\n<style id=\"cdqV2505MobileRecoveryCss\">\nhtml.cdq-auth-lock-v2505 .bottom-nav,\nhtml.cdq-auth-lock-v2505 #bottomNav,\nhtml.cdq-auth-lock-v2505 .bottom-navigation,\nhtml.cdq-auth-lock-v2505 nav.bottom-nav{\n  display:none!important;\n  visibility:hidden!important;\n  pointer-events:none!important;\n}\n</style>\n<script id=\"cdqV2505MobileRecoveryJs\">\n(function(){\n'use strict';\n\nlet tap=null;\nlet suppressClickUntil=0;\n\nfunction selectionActive(){\n  try{\n    if(document.body.classList.contains('selection-active'))return true;\n    if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return true;\n  }catch(_){}\n  return false;\n}\n\nfunction infoFromTarget(target){\n  if(!target||!target.closest)return null;\n  if(target.closest('button,a,input,select,textarea,label'))return null;\n  const row=target.closest('.file-row');\n  if(!row)return null;\n  const box=row.querySelector('.file-checkbox[data-file-id]');\n  if(!box)return null;\n  const id=String(box.dataset.fileId||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return null;\n  let meta=null;\n  try{meta=typeof cdqDocumentMeta==='function'?cdqDocumentMeta(id):null;}catch(_){}\n  const type=String((meta&&meta.type)||row.dataset.fileType||'').toUpperCase();\n  if(type!=='PDF' && type!=='GOOGLE_SHEETS' && !type.includes('SHEET'))return null;\n  return {row,id,type:type.includes('SHEET')?'GOOGLE_SHEETS':'PDF',meta:meta||{}};\n}\n\nfunction markOpened(id){\n  try{\n    if(String(utilisateurCourantRole||'')==='lecture')return;\n    fichierOuvertPourModification=String(id||'');\n    const meta=(typeof cdqDocumentMeta==='function'&&cdqDocumentMeta(id))||{};\n    sessionStorage.setItem('fichierEnModification',String(id||''));\n    sessionStorage.setItem('ancienneDateModification',String(meta.dateModification||''));\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }catch(_){}\n}\n\nfunction openSheet(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return false;\n  markOpened(id);\n  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit';\n  const intent='intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit'+\n    '#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;'+\n    'S.browser_fallback_url='+encodeURIComponent(web)+';end';\n  const a=document.createElement('a');\n  a.href=/Android/i.test(navigator.userAgent||'')?intent:web;\n  a.target='_top';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n  return true;\n}\n\nfunction openPdf(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]{10,200}$/.test(id))return false;\n  markOpened(id);\n  try{\n    const fn=(typeof window.cdqOpenPdfInternal==='function')\n      ? window.cdqOpenPdfInternal\n      : (typeof window.cdqOpenPdf==='function'?window.cdqOpenPdf:null);\n    if(fn){\n      Promise.resolve(fn(id)).catch(function(e){\n        try{if(typeof afficherErreur==='function')afficherErreur(e);}catch(_){}\n      });\n      return true;\n    }\n  }catch(_){}\n  try{if(typeof afficherMessage==='function')afficherMessage('Impossible d’ouvrir ce PDF.',false);}catch(_){}\n  return false;\n}\n\nfunction openItem(item){\n  return item.type==='GOOGLE_SHEETS'?openSheet(item.id):openPdf(item.id);\n}\n\n// Capturer le tap avant les anciens gestionnaires de sélection/swipe.\nwindow.addEventListener('pointerdown',function(e){\n  if(selectionActive())return;\n  const item=infoFromTarget(e.target);\n  if(!item)return;\n  tap={item,pointerId:e.pointerId,x:e.clientX,y:e.clientY,moved:false};\n  e.stopImmediatePropagation();\n},true);\n\nwindow.addEventListener('pointermove',function(e){\n  if(!tap||tap.pointerId!==e.pointerId)return;\n  if(Math.abs(e.clientX-tap.x)>18||Math.abs(e.clientY-tap.y)>18)tap.moved=true;\n},true);\n\nwindow.addEventListener('pointercancel',function(e){\n  if(tap&&tap.pointerId===e.pointerId)tap=null;\n},true);\n\nwindow.addEventListener('pointerup',function(e){\n  if(!tap||tap.pointerId!==e.pointerId)return;\n  const current=tap;tap=null;\n  if(current.moved){suppressClickUntil=Date.now()+700;return;}\n  e.preventDefault();\n  e.stopImmediatePropagation();\n  openItem(current.item);\n  suppressClickUntil=Date.now()+1200;\n},true);\n\nwindow.addEventListener('click',function(e){\n  const item=infoFromTarget(e.target);\n  if(!item)return;\n  if(selectionActive())return;\n  if(Date.now()<suppressClickUntil){\n    e.preventDefault();e.stopImmediatePropagation();return;\n  }\n  e.preventDefault();\n  e.stopImmediatePropagation();\n  openItem(item);\n  suppressClickUntil=Date.now()+900;\n},true);\n\ntry{\n  window.cdqV19OpenOfflineSheet=openSheet;\n  window.cdqOpenSheetStableV2505=openSheet;\n  window.cdqV24OpenPdf=openPdf;\n  window.cdqOuvrirPdfCommeSheetV2275=openPdf;\n}catch(_){}\n\n// Masquer la barre de navigation pendant le NIP/déverrouillage.\nfunction lockVisible(){\n  try{\n    const inputs=Array.from(document.querySelectorAll(\n      'input[type=\"password\"],input[inputmode=\"numeric\"],input[maxlength=\"4\"]'\n    ));\n    for(const input of inputs){\n      const r=input.getBoundingClientRect();\n      if(r.width<2||r.height<2)return false;\n      const box=input.closest('form,div,section,main')||input.parentElement;\n      const txt=String(box&&box.textContent||'');\n      if(/NIP|Déverrouiller|4 chiffres/i.test(txt))return true;\n    }\n  }catch(_){}\n  return false;\n}\nfunction syncLock(){\n  document.documentElement.classList.toggle('cdq-auth-lock-v2505',lockVisible());\n}\nsyncLock();\nsetTimeout(syncLock,150);\nsetTimeout(syncLock,700);\ntry{\n  new MutationObserver(function(){clearTimeout(window.__cdqV2505LockTimer);window.__cdqV2505LockTimer=setTimeout(syncLock,40);})\n    .observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class','hidden']});\n}catch(_){}\n})();\n</script>\n\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V39",
-    "androidAppRequired": "Balance CDQ Android 25.06 compatible",
-    "purpose": "Réparer sans rétrograder un projet déjà en V25.03.",
+    "androidAppRequired": "Balance CDQ Android 25.07 pour la biométrie native",
     "fixes": [
-      "Interface native Android remise à l'échelle externe 1.00 dans la PWA.",
-      "Google Sheets revient au chemin intent Android direct vers l'application Sheets.",
-      "PDF contourne temporairement l'activité Android défaillante et revient au lecteur PDF CDQ interne.",
-      "Le script V25.00 qui interceptait le PDF natif est retiré."
-    ],
-    "preserved": [
-      "Projet, données clients, navigation, modèles et mode hors ligne.",
-      "Mise à jour via Script Manager.",
-      "Partage/réinstallation APK V25.02."
+      "Interface Android réduite via l'enveloppe PWA à 0,88.",
+      "Préférences Affichage réinitialisées une fois à 50/50/50.",
+      "Barre du bas masquée pendant l'écran NIP.",
+      "Tap Google Sheets capturé avant les anciens gestionnaires et envoyé directement à l'application Sheets.",
+      "Tap PDF capturé avant les anciens gestionnaires et envoyé au lecteur PDF interne CDQ.",
+      "Biométrie Android native utilisée quand l'APK 25.07 est installée."
     ]
   }
 }
