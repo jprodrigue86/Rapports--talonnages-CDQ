@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v23.10-settings-button-scale",
+  "version": "2026.09.21-v23.11-native-default-account",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v23.10-settings-button-scale",
-  "backend_version": "2026.09.21-v23.10-settings-button-scale",
+  "selector_version": "2026.09.21-v23.11-native-default-account",
+  "backend_version": "2026.09.21-v23.11-native-default-account",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -274,7 +274,10 @@
     "file-row-no-active-scale-v2308",
     "selected-outline-no-border-v2308",
     "sheets-self-handoff-v2309",
-    "settings-button-icon-label-scale-v2310"
+    "settings-button-icon-label-scale-v2310",
+    "native-default-google-account-v2311",
+    "native-sheet-bridge-v2311",
+    "native-pdf-default-account-v2311"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -287,5 +290,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v23.10-settings-button-scale"
+  "pwa_version": "2026.09.21-v23.11-native-default-account"
 }
