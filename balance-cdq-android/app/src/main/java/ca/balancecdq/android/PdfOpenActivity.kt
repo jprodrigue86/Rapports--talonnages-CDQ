@@ -51,7 +51,10 @@ class PdfOpenActivity : Activity() {
     private var fileId = ""
     private var fileName = "Rapport.pdf"
     private var preferredEmail = ""
+    private var accountMode = "auto"
     private var readerHint = "ask"
+    private var selectedFromPicker = false
+    private var authorizationFallbackTried = false
     private var currentToken = ""
     private var selectedReader: PdfApp? = null
     private var localPdf: File? = null
@@ -108,27 +111,44 @@ class PdfOpenActivity : Activity() {
         fileId = data?.getQueryParameter("fileId").orEmpty()
         fileName = data?.getQueryParameter("name").orEmpty().ifBlank { "Rapport.pdf" }
         preferredEmail = data?.getQueryParameter("account").orEmpty().trim().lowercase()
+        accountMode = data?.getQueryParameter("accountMode").orEmpty().trim().lowercase().ifBlank { "auto" }
         readerHint = data?.getQueryParameter("reader").orEmpty().trim().lowercase().ifBlank { "ask" }
     }
 
     private fun isValid(): Boolean =
         fileId.matches(Regex("^[A-Za-z0-9_-]{10,200}$")) &&
             fileName.length <= 180 &&
+            accountMode in setOf("ask", "default", "auto") &&
             readerHint in setOf("ask", "ilovepdf", "acrobat", "cdq", "")
 
     private fun prepareAccount() {
-        if (preferredEmail.isNotBlank()) {
-            val account = DefaultGoogleAccountStore.account(this, preferredEmail)
-            if (account != null) {
-                DefaultGoogleAccountStore.save(this, preferredEmail)
-                authorize(account)
-                return
-            }
+        selectedFromPicker = false
+        authorizationFallbackTried = false
+
+        // "ask" signifie qu'aucun compte par défaut n'est configuré dans
+        // Balance CDQ. Le sélecteur doit donc apparaître à CHAQUE ouverture.
+        if (accountMode == "ask") {
+            chooseAccount()
+            return
         }
 
-        val saved = DefaultGoogleAccountStore.account(this)
-        if (saved != null) {
-            authorize(saved)
+        if (preferredEmail.isNotBlank()) {
+            if (accountMode == "default") {
+                DefaultGoogleAccountStore.save(this, preferredEmail)
+            }
+            authorize(android.accounts.Account(
+                preferredEmail,
+                DefaultGoogleAccountStore.GOOGLE_ACCOUNT_TYPE
+            ))
+            return
+        }
+
+        val savedEmail = DefaultGoogleAccountStore.email(this)
+        if (savedEmail.isNotBlank()) {
+            authorize(android.accounts.Account(
+                savedEmail,
+                DefaultGoogleAccountStore.GOOGLE_ACCOUNT_TYPE
+            ))
             return
         }
 
@@ -161,7 +181,12 @@ class PdfOpenActivity : Activity() {
                 }
             }
             .addOnFailureListener { error ->
-                fail(error.message ?: "Impossible d’autoriser Google Drive.")
+                if (!selectedFromPicker && !authorizationFallbackTried) {
+                    authorizationFallbackTried = true
+                    chooseAccount()
+                } else {
+                    fail(error.message ?: "Impossible d’autoriser Google Drive.")
+                }
             }
     }
 
@@ -202,13 +227,14 @@ class PdfOpenActivity : Activity() {
                     return
                 }
 
-                DefaultGoogleAccountStore.save(this, email)
-                val account = DefaultGoogleAccountStore.account(this, email)
-                if (account == null) {
-                    fail("Le compte Google sélectionné n’est plus disponible.")
-                    return
+                selectedFromPicker = true
+                if (accountMode != "ask") {
+                    DefaultGoogleAccountStore.save(this, email)
                 }
-                authorize(account)
+                authorize(android.accounts.Account(
+                    email,
+                    DefaultGoogleAccountStore.GOOGLE_ACCOUNT_TYPE
+                ))
             }
 
             REQ_AUTH -> {
@@ -250,6 +276,14 @@ class PdfOpenActivity : Activity() {
             return
         }
 
+        // "Demander" dans Balance CDQ = aucun lecteur par défaut.
+        // On demande donc l'application à CHAQUE PDF et on ne mémorise pas
+        // le choix fait pour ce document.
+        if (readerHint == "ask") {
+            showReaderChooser(apps, rememberChoice = false)
+            return
+        }
+
         val hintedPackage = when (readerHint) {
             "ilovepdf" -> ILOVEPDF_PACKAGE
             "acrobat" -> ACROBAT_PACKAGE
@@ -264,8 +298,13 @@ class PdfOpenActivity : Activity() {
                 downloadAndOpen()
                 return
             }
+
+            // Le lecteur configuré n'est plus installé : demander lequel utiliser.
+            showReaderChooser(apps, rememberChoice = false)
+            return
         }
 
+        // Compatibilité avec les anciens appels sans préférence explicite.
         val savedPackage = savedReader()
         val saved = apps.firstOrNull { it.packageName == savedPackage }
         if (saved != null) {
@@ -274,7 +313,7 @@ class PdfOpenActivity : Activity() {
             return
         }
 
-        showReaderChooser(apps)
+        showReaderChooser(apps, rememberChoice = true)
     }
 
     private fun availablePdfApps(): List<PdfApp> {
@@ -318,16 +357,21 @@ class PdfOpenActivity : Activity() {
         )
     }
 
-    private fun showReaderChooser(apps: List<PdfApp>) {
+    private fun showReaderChooser(apps: List<PdfApp>, rememberChoice: Boolean) {
         val labels = apps.map { it.label }.toTypedArray()
 
         AlertDialog.Builder(this)
-            .setTitle("Application PDF par défaut")
-            .setMessage("Choisis l’application à utiliser. Balance CDQ mémorisera ce choix.")
+            .setTitle("Ouvrir le PDF avec")
+            .setMessage(
+                if (rememberChoice)
+                    "Choisis l’application PDF à utiliser."
+                else
+                    "Aucun lecteur PDF par défaut n’est configuré dans Balance CDQ."
+            )
             .setItems(labels) { dialog, which ->
                 dialog.dismiss()
                 val app = apps.getOrNull(which) ?: return@setItems
-                saveReader(app.packageName)
+                if (rememberChoice) saveReader(app.packageName)
                 selectedReader = app
                 Toast.makeText(
                     this,
