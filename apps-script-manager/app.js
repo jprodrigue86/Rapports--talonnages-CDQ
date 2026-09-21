@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V34';
+const APP_VERSION = 'V35';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -385,13 +385,22 @@ function updateIndustrialRailV34(){
   }
 }
 
+function smIsMobileV35(){
+  return window.matchMedia('(max-width:700px)').matches;
+}
+
 function smSetActiveTabV34(name){
   document.querySelectorAll('.sm-tab[data-sm-tab]').forEach(btn=>{
     btn.classList.toggle('active',btn.dataset.smTab===name);
   });
 }
 
+function smCloseMobileSettingsV35(){
+  document.body.classList.remove('sm-mobile-settings-open');
+}
+
 function smOpenCardV34(id,tab='settings'){
+  smCloseMobileSettingsV35();
   document.body.classList.add('show-advanced');
   const card=document.getElementById(id);
   if(card)card.scrollIntoView({behavior:'smooth',block:'start'});
@@ -405,6 +414,7 @@ function installIndustrialUiV34(){
     btn.addEventListener('click',()=>{
       const tab=btn.dataset.smTab;
       if(tab==='deploy'){
+        smCloseMobileSettingsV35();
         document.body.classList.remove('show-advanced');
         document.getElementById('quickCard')?.scrollIntoView({behavior:'smooth',block:'start'});
       }else if(tab==='projects'){
@@ -412,10 +422,21 @@ function installIndustrialUiV34(){
       }else if(tab==='backups'){
         smOpenCardV34('backupsCard','backups');
       }else if(tab==='settings'){
-        smOpenCardV34('googleCard','settings');
+        if(smIsMobileV35()){
+          document.body.classList.remove('show-advanced');
+          document.body.classList.add('sm-mobile-settings-open');
+          window.scrollTo({top:0,behavior:'smooth'});
+        }else{
+          document.querySelector('.sm-settings-rail')?.scrollIntoView({behavior:'smooth',block:'start'});
+        }
       }else if(tab==='about'){
-        document.body.classList.add('show-advanced');
-        document.querySelector('.sm-settings-rail')?.scrollIntoView({behavior:'smooth',block:'start'});
+        if(smIsMobileV35()){
+          document.body.classList.remove('show-advanced');
+          document.body.classList.add('sm-mobile-settings-open');
+          window.scrollTo({top:0,behavior:'smooth'});
+        }else{
+          document.querySelector('.sm-settings-rail')?.scrollIntoView({behavior:'smooth',block:'start'});
+        }
       }
       smSetActiveTabV34(tab);
     });
@@ -427,6 +448,7 @@ function installIndustrialUiV34(){
     btn.addEventListener('click',()=>{
       const id=btn.dataset.smJump;
       if(id==='quickCard'){
+        smCloseMobileSettingsV35();
         document.body.classList.remove('show-advanced');
         document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
         smSetActiveTabV34('deploy');
