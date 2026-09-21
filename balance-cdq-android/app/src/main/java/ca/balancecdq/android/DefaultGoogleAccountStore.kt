@@ -18,9 +18,17 @@ object DefaultGoogleAccountStore {
             .trim()
             .lowercase()
 
-    fun account(context: Context): Account? {
-        val email = email(context)
-        return if (email.isBlank()) null else Account(email, GOOGLE_ACCOUNT_TYPE)
+    fun account(context: Context, preferredEmail: String = ""): Account? {
+        val wanted = preferredEmail.trim().lowercase().ifBlank { email(context) }
+        if (wanted.isBlank()) return null
+
+        return try {
+            AccountManager.get(context)
+                .getAccountsByType(GOOGLE_ACCOUNT_TYPE)
+                .firstOrNull { it.name.trim().equals(wanted, ignoreCase = true) }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun accountIndex(context: Context): Int {
@@ -55,11 +63,13 @@ object DefaultGoogleAccountStore {
             .apply()
     }
 
-    fun pickerIntent(context: Context): Intent {
+    fun pickerIntent(context: Context, preferredEmail: String = ""): Intent {
+        val selected = account(context, preferredEmail)
+
         val options = AccountPicker.AccountChooserOptions.Builder()
             .setAllowableAccountsTypes(listOf(GOOGLE_ACCOUNT_TYPE))
             .setAlwaysShowAccountPicker(true)
-            .setSelectedAccount(account(context))
+            .setSelectedAccount(selected)
             .setTitleOverrideText("Compte Google par défaut — Balance CDQ")
             .build()
 
