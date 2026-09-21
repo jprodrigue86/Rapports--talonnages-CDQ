@@ -340,3 +340,92 @@ body.show-advanced .advanced-section{display:block}
 .sm-tab,.sm-settings-action,#quickApply,#quickChooseZip,#quickConnect{
   -webkit-tap-highlight-color:transparent;
 }
+
+
+/* =========================================================
+   V35 — FIDÉLITÉ MOBILE AU MODÈLE VALIDÉ
+   - aucun grand vide sous la navigation
+   - panneau Réglages affiché seulement quand demandé
+   - zone Déployer compacte et continue
+========================================================= */
+@media(max-width:1050px){
+  .sm-center{min-height:0!important}
+  .sm-center main{
+    margin:0!important;
+    padding-top:0!important;
+    flex:0 0 auto!important;
+    align-self:stretch!important;
+  }
+}
+@media(max-width:700px){
+  .sm-shell{min-height:100dvh!important}
+  .sm-center{display:block!important;min-height:0!important}
+  .sm-center main{
+    margin:0!important;
+    padding:0 7px calc(18px + env(safe-area-inset-bottom))!important;
+  }
+  .sm-tabs{
+    position:sticky;
+    top:0;
+    z-index:80;
+    margin:6px 7px 8px!important;
+    background:#071522!important;
+    box-shadow:0 7px 20px rgba(0,0,0,.32)!important;
+  }
+  #quickCard{
+    margin-top:0!important;
+    margin-bottom:8px!important;
+  }
+  #browserWarning{margin-top:0!important}
+  .sm-settings-rail{
+    display:none!important;
+    margin:7px!important;
+    padding:10px!important;
+    border-radius:14px!important;
+    height:auto!important;
+    max-height:none!important;
+  }
+  body.sm-mobile-settings-open .sm-settings-rail{
+    display:block!important;
+  }
+  body.sm-mobile-settings-open .sm-center main,
+  body.sm-mobile-settings-open .sm-center .topbar{
+    display:none!important;
+  }
+  body.sm-mobile-settings-open .sm-tabs{
+    margin-top:6px!important;
+  }
+  body.sm-mobile-settings-open .sm-tab[data-sm-tab="settings"]{
+    background:linear-gradient(180deg,#19bbff,#0876e8)!important;
+    color:#04111d!important;
+  }
+  .sm-settings-head{
+    position:sticky;
+    top:67px;
+    z-index:85;
+    background:linear-gradient(180deg,#06131d,#06131df4);
+    padding:8px 4px 10px!important;
+  }
+  .sm-settings-card{
+    padding:12px!important;
+  }
+  .sm-settings-footer{
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  }
+  .quick-grid{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:7px!important;
+  }
+  .quick-line{
+    min-height:49px!important;
+    padding:8px 10px!important;
+    display:grid!important;
+    grid-template-columns:78px minmax(0,1fr)!important;
+    align-items:center!important;
+  }
+  .quick-line span{font-size:11px!important}
+  .quick-line b{font-size:12px!important;line-height:1.25!important}
+  .quick-result{margin-top:8px!important}
+  .quick-advanced{margin-top:8px!important}
+}
