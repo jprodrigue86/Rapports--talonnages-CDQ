@@ -81,7 +81,7 @@ jobs:
           {
             "versionName": "$VERSION_NAME",
             "versionCode": $VERSION_CODE,
-            "apkUrl": "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/downloads/Balance-CDQ-Android.apk",
+            "apkUrl": "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/Balance-CDQ-Android.apk",
             "sha256": "$APK_SHA256",
             "mandatory": false,
             "channel": "stable"
