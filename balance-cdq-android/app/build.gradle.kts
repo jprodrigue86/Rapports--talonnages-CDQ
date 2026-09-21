@@ -11,8 +11,8 @@ android {
         applicationId = "ca.balancecdq.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2508
-        versionName = "25.08"
+        versionCode = 2509
+        versionName = "25.09"
     }
 
     buildTypes {
