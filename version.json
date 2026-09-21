@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v25.05-mobile-auth-file-recovery",
+  "version": "2026.09.21-v25.06-personal-icon-pdf-swipe-fix",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v25.05-mobile-auth-file-recovery",
-  "backend_version": "2026.09.21-v25.05-mobile-auth-file-recovery",
+  "selector_version": "2026.09.21-v25.06-personal-icon-pdf-swipe-fix",
+  "backend_version": "2026.09.21-v25.06-personal-icon-pdf-swipe-fix",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -343,7 +343,12 @@
     "native-biometric-bridge-v2507",
     "auth-bottom-nav-hidden-v2505",
     "sheet-pointer-capture-native-intent-v2505",
-    "pdf-pointer-capture-internal-reader-v2505"
+    "pdf-pointer-capture-internal-reader-v2505",
+    "icon-baseline-personal-50-is-074-v2506",
+    "icon-slider-remains-adjustable-v2506",
+    "file-swipe-gestures-restored-v2506",
+    "pdf-internal-open-through-modifier-v2506",
+    "sheets-direct-intent-through-modifier-v2506"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -356,5 +361,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v25.05-mobile-auth-file-recovery"
+  "pwa_version": "2026.09.21-v25.06-personal-icon-pdf-swipe-fix"
 }
