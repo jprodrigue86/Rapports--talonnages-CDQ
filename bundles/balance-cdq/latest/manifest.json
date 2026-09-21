@@ -1,57 +1,48 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V23.07",
-  "build": "2026.09.21-v23.07-parent-viewport-freeze",
-  "title": "Balance CDQ V23.07 — suppression scintillement viewport parent",
+  "version": "V23.08",
+  "build": "2026.09.21-v23.08-zero-file-geometry-shift",
+  "title": "Balance CDQ V23.08 — suppression définitive du saut de ligne fichier",
   "requiresBuild": [
-    "2026.09.21-v23.06-no-flicker-native-open"
+    "2026.09.21-v23.07-parent-viewport-freeze"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v23.06-no-flicker-native-open",
-      "to": "2026.09.21-v23.07-parent-viewport-freeze"
+      "from": "2026.09.21-v23.07-parent-viewport-freeze",
+      "to": "2026.09.21-v23.08-zero-file-geometry-shift"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v23.06-no-flicker-native-open",
-      "to": "2026.09.21-v23.07-parent-viewport-freeze"
+      "from": "2026.09.21-v23.07-parent-viewport-freeze",
+      "to": "2026.09.21-v23.08-zero-file-geometry-shift"
     },
     {
       "file": "Selector.html",
       "op": "remove_style_id_if_present",
-      "id": "cdqV2307HandoffCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2307HandoffJs"
+      "id": "cdqV2308ZeroGeometryShiftCss"
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqV2307HandoffCss\">\nhtml:is(.android,.ios,.mobile-device) .file-row,\nhtml:is(.android,.ios,.mobile-device) .file-row *{\n  -webkit-tap-highlight-color:transparent!important;\n}\nhtml:is(.android,.ios,.mobile-device).cdq-file-open-freeze-v2306 .file-row,\nhtml:is(.android,.ios,.mobile-device).cdq-file-open-freeze-v2306 .file-row *,\nhtml:is(.android,.ios,.mobile-device).cdq-file-open-freeze-v2306 #filesContainer{\n  transition:none!important;\n  animation:none!important;\n  transform:none!important;\n  filter:none!important;\n}\n</style>\n<script id=\"cdqV2307HandoffJs\">\n(function(){\n'use strict';\n\nfunction notifyParentV2307(){\n  try{\n    if(typeof window.cdqFreezeFileOpenV2306==='function')window.cdqFreezeFileOpenV2306(4200);\n  }catch(_){}\n  try{\n    if(typeof cdqPostToPwa==='function'){\n      cdqPostToPwa({type:'CDQ_FILE_HANDOFF_FREEZE_V2307',duration:4200});\n    }\n  }catch(_){}\n}\n\ndocument.addEventListener('pointerdown',function(e){\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  if(e.target&&e.target.closest&&e.target.closest('button'))return;\n  notifyParentV2307();\n},true);\n\ndocument.addEventListener('click',function(e){\n  const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n  if(!row)return;\n  if(e.target&&e.target.closest&&e.target.closest('button'))return;\n  notifyParentV2307();\n},true);\n\nwindow.addEventListener('pageshow',function(){\n  try{cdqPostToPwa({type:'CDQ_FILE_HANDOFF_RELEASE_V2307'});}catch(_){}\n},true);\n\nwindow.addEventListener('focus',function(){\n  if((Number(window.__cdqFileOpenHandoffUntilV2306)||0)>Date.now()){\n    try{cdqPostToPwa({type:'CDQ_FILE_HANDOFF_RELEASE_V2307',delay:650});}catch(_){}\n  }\n},true);\n})();\n</script>\n"
-    },
-    {
-      "file": "Selector.html",
-      "op": "replace_literal_if_present",
-      "search": "  if(d.type===\"CDQ_VIEWPORT_VALUE\"){\n    const w=Number(d.width||0);",
-      "replacement": "  if(d.type===\"CDQ_VIEWPORT_VALUE\"){\n    if((Number(window.__cdqFileOpenFreezeUntilV2306)||0)>Date.now())return;\n    const w=Number(d.width||0);",
-      "expected": 1
+      "text": "\n<style id=\"cdqV2308ZeroGeometryShiftCss\">\n/* V23.08 — aucune variation géométrique d'une ligne fichier au toucher/sélection */\nhtml:is(.android,.ios,.mobile-device) .file-row{\n  transform:none!important;\n  transition:none!important;\n  animation:none!important;\n  box-sizing:border-box!important;\n  -webkit-tap-highlight-color:transparent!important;\n}\nhtml:is(.android,.ios,.mobile-device) .file-row:hover,\nhtml:is(.android,.ios,.mobile-device) .file-row:active,\nhtml:is(.android,.ios,.mobile-device) .file-row:focus,\nhtml:is(.android,.ios,.mobile-device) .file-row:focus-visible{\n  transform:none!important;\n  transition:none!important;\n  animation:none!important;\n  outline:none!important;\n  filter:none!important;\n}\n\n/* L'ancien border:2px de .file-row.selected changeait la taille réelle.\n   On garde le repère visuel avec un outline intérieur sans toucher au layout. */\nhtml:is(.android,.ios,.mobile-device) .file-row.selected{\n  border:0!important;\n  outline:2px solid #28b7ff!important;\n  outline-offset:-2px!important;\n  box-sizing:border-box!important;\n}\nhtml:is(.android,.ios,.mobile-device) body.light .file-row.selected{\n  border:0!important;\n  outline:2px solid #008bd4!important;\n  outline-offset:-2px!important;\n}\nhtml:is(.android,.ios,.mobile-device) body.cdq-theme-violet .file-row.selected{\n  border:0!important;\n  outline:2px solid #d264ff!important;\n  outline-offset:-2px!important;\n}\n</style>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V38",
-    "rollbackBase": "V23.06",
-    "scope": "Scintillement seulement; aucun changement au chemin natif Sheets/PDF.",
-    "rootCause": "La PWA parent continuait d'envoyer CDQ_VIEWPORT_VALUE pendant le handoff Android, ce qui pouvait relancer cdqFitGeneralScaleV92 malgré le gel interne.",
+    "rollbackBase": "V23.07",
+    "scope": "Correction visuelle uniquement; aucun changement d'ouverture Sheets/PDF.",
+    "rootCause": [
+      "CSS historique .file-row:active { transform:scale(.995) }.",
+      "CSS de sélection .file-row.selected { border:2px solid ... } modifiant la géométrie."
+    ],
     "fixes": [
-      "Le Selector ignore les mises à jour de viewport pendant l'ouverture d'un fichier.",
-      "Le Selector demande à la PWA parent de geler l'iframe avant le lancement de l'application externe.",
-      "Le parent relâche le gel après retour/focus et n'envoie qu'une seule mesure stabilisée."
+      "Transform/transition/animation supprimés en permanence sur les lignes fichiers mobiles.",
+      "La bordure de sélection est remplacée par un outline intérieur sans changement de dimensions.",
+      "Le style sélection reste visible en sombre, clair et violet."
     ]
   }
 }
