@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v23-02-restore-stable-file-open';
-const FORCE_BUILD='2026.09.21-v23.02-restore-stable-file-open';
+const CACHE = 'cdq-installable-v23-03-stable-pdf-reader';
+const FORCE_BUILD='2026.09.21-v23.03-stable-pdf-reader';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates-v2252.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
