@@ -22,14 +22,19 @@ import android.widget.Toast
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.Executors
 
 class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
         private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.08"
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.09"
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
+        private const val UPDATE_MANIFEST_URL =
+            "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/android-update.json"
     }
 
     private lateinit var webView: WebView
@@ -41,6 +46,9 @@ class MainActivity : Activity() {
 
     private var biometricCancellation: CancellationSignal? = null
     private var biometricRequestId = ""
+
+    private val startupUpdateExecutor = Executors.newSingleThreadExecutor()
+    @Volatile private var startupUpdateStarted = false
 
     inner class NativeBridge {
         @JavascriptInterface
@@ -104,7 +112,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.08"
+                settings.userAgentString + " BalanceCDQAndroid/25.09"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -174,6 +182,7 @@ class MainActivity : Activity() {
 
         if (savedInstanceState == null) {
             webView.loadUrl(APP_URL)
+            checkForNativeUpdateOnLaunch()
         } else {
             webView.restoreState(savedInstanceState)
         }
@@ -448,6 +457,57 @@ class MainActivity : Activity() {
         googleClientId = ""
     }
 
+    private fun checkForNativeUpdateOnLaunch() {
+        if (startupUpdateStarted) return
+        startupUpdateStarted = true
+
+        startupUpdateExecutor.execute {
+            try {
+                val conn = URL(UPDATE_MANIFEST_URL).openConnection() as HttpURLConnection
+                conn.connectTimeout = 6000
+                conn.readTimeout = 6000
+                conn.instanceFollowRedirects = true
+                conn.setRequestProperty("Cache-Control", "no-cache, no-store")
+                conn.setRequestProperty("Pragma", "no-cache")
+
+                val body = try {
+                    if (conn.responseCode !in 200..299) return@execute
+                    conn.inputStream.bufferedReader().use { it.readText() }
+                } finally {
+                    conn.disconnect()
+                }
+
+                val json = JSONObject(body)
+                val latestCode = json.optLong("versionCode", 0L)
+                if (latestCode <= currentVersionCodeForUpdate()) return@execute
+
+                runOnUiThread {
+                    try {
+                        startActivity(
+                            Intent(this, UpdateActivity::class.java)
+                                .putExtra("auto", true)
+                        )
+                    } catch (_: Exception) {
+                        // L'application continue normalement si l'updater Android
+                        // n'est pas disponible pour une raison exceptionnelle.
+                    }
+                }
+            } catch (_: Exception) {
+                // Hors ligne ou canal indisponible : ne jamais bloquer Balance CDQ.
+            }
+        }
+    }
+
+    private fun currentVersionCodeForUpdate(): Long {
+        val info = packageManager.getPackageInfo(packageName, 0)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            info.versionCode.toLong()
+        }
+    }
+
     private fun handleNavigation(url: String): Boolean {
         return try {
             when {
@@ -535,6 +595,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        startupUpdateExecutor.shutdownNow()
         biometricRequestId = ""
         biometricCancellation?.cancel()
         biometricCancellation = null
