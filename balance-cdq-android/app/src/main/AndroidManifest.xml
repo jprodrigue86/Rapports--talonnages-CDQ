@@ -43,6 +43,26 @@
         </provider>
 
         <activity
+            android:name=".AppShareActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.BalanceCDQ.Transparent">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="cdqapp" android:host="share" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="cdqapp" android:host="reinstall" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".UpdateActivity"
             android:exported="true"
             android:excludeFromRecents="true"
