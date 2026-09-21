@@ -1,47 +1,53 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V23.14",
-  "build": "2026.09.21-v23.14-pdf-internal-sheets-account-slot",
-  "title": "Balance CDQ V23.14 — PDF restaurés et compte Sheets renforcé",
+  "version": "V23.15",
+  "build": "2026.09.21-v23.15-updater-button-direct",
+  "title": "Balance CDQ V23.15 — bouton Mise à jour Android fixe dans Réglages",
   "requiresBuild": [
-    "2026.09.21-v23.13-android-self-update"
+    "2026.09.21-v23.14-pdf-internal-sheets-account-slot"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v23.13-android-self-update",
-      "to": "2026.09.21-v23.14-pdf-internal-sheets-account-slot"
+      "from": "2026.09.21-v23.14-pdf-internal-sheets-account-slot",
+      "to": "2026.09.21-v23.15-updater-button-direct"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v23.13-android-self-update",
-      "to": "2026.09.21-v23.14-pdf-internal-sheets-account-slot"
+      "from": "2026.09.21-v23.14-pdf-internal-sheets-account-slot",
+      "to": "2026.09.21-v23.15-updater-button-direct"
     },
     {
       "file": "Selector.html",
       "op": "replace_literal_if_present",
-      "search": "function cdqOuvrirPdfCommeSheetV2275(id){\n  const pref=cdqPdfReaderPreference();\n\n  if(pref==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n\n  const meta=cdqDocumentMeta(id)||{};\n  const fallback=cdqPdfDriveUrlV2275(id);\n  const nativeIntent=\n    'intent://open?fileId='+encodeURIComponent(String(id||''))+\n    '&name='+encodeURIComponent(String(meta.nom||'Rapport.pdf'))+\n    '&reader='+encodeURIComponent(String(pref||'ask'))+\n    '#Intent;scheme=cdqpdf;package=ca.balancecdq.android;'+\n    'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n\n  window.location.href=nativeIntent;\n  return true;\n}",
-      "replacement": "function cdqOuvrirPdfCommeSheetV2275(id){\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n\n  // V23.14 : le PDF repasse par le moteur PDF propre à Balance CDQ.\n  // Il est chargé par le backend/Drive déjà connecté de l'application,\n  // puis le lecteur configuré (CDQ / iLovePDF / Acrobat) est proposé.\n  // Aucun compte Google Android supplémentaire n'est nécessaire ici.\n  return cdqOpenPdf(id).catch(afficherErreur);\n}",
+      "search": "          '<div class=\"cdq-settings-row-v2294\">'+\n            '<button type=\"button\" id=\"cdqSaveGoogleDefaultV2294\">Enregistrer ce compte</button>'+\n            '<button type=\"button\" id=\"cdqResetGoogleDefaultV2294\" class=\"danger-v2294\">Réinitialiser le compte par défaut</button>'+\n          '</div>'+\n        '</section>'+\n      '</div></div>'+",
+      "replacement": "          '<div class=\"cdq-settings-row-v2294\">'+\n            '<button type=\"button\" id=\"cdqSaveGoogleDefaultV2294\">Enregistrer ce compte</button>'+\n            '<button type=\"button\" id=\"cdqResetGoogleDefaultV2294\" class=\"danger-v2294\">Réinitialiser le compte par défaut</button>'+\n          '</div>'+\n        '</section>'+\n        '<section class=\"cdq-settings-card-v2294\" id=\"cdqAndroidUpdateCardV2315\">'+\n          '<h3>⬆ Mise à jour Android</h3>'+\n          '<p>Vérifie et installe la dernière couche native Balance CDQ Android. Les mises à jour normales de l’interface continuent avec Script Manager.</p>'+\n          '<div class=\"cdq-settings-row-v2294\">'+\n            '<button type=\"button\" id=\"cdqAndroidUpdaterButtonV2315\">Vérifier la mise à jour Android</button>'+\n          '</div>'+\n        '</section>'+\n      '</div></div>'+",
       "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2315AndroidUpdaterDirectJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<script id=\"cdqV2315AndroidUpdaterDirectJs\">\n(function(){\n'use strict';\n\nfunction openAndroidUpdaterV2315(){\n  const fallback='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/balance-cdq-android.html';\n  const intent='intent://check#Intent;scheme=cdqupdate;package=ca.balancecdq.android;'+\n    'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n  window.location.href=intent;\n}\n\nwindow.cdqOpenAndroidUpdaterV2315=openAndroidUpdaterV2315;\n\ndocument.addEventListener('click',function(e){\n  const b=e.target&&e.target.closest?e.target.closest('#cdqAndroidUpdaterButtonV2315'):null;\n  if(!b)return;\n  e.preventDefault();\n  e.stopPropagation();\n  openAndroidUpdaterV2315();\n},true);\n})();\n</script>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V38",
-    "androidAppRequired": "Balance CDQ Android 23.14",
-    "rollbackBase": "V23.13",
-    "fixes": [
-      "PDF : retour au moteur PDF interne Balance CDQ, sans passage par Google Drive Android.",
-      "PDF : le lecteur configuré existant reste utilisé après chargement du vrai fichier.",
-      "Sheets : la correction du compte par défaut est dans Android 23.14 et utilise le slot Google /u/N/ du compte mémorisé."
-    ],
-    "preserved": [
-      "Compte Google Android par défaut.",
-      "Auto-mise-à-jour Android.",
-      "Corrections de scintillement.",
-      "Taille du bouton Réglages.",
-      "Toutes les autres fonctions existantes."
+    "androidAppRequired": "Balance CDQ Android 23.13 ou plus récent",
+    "rollbackBase": "V23.14",
+    "scope": "Selector/PWA seulement; aucune modification du code Android.",
+    "fix": [
+      "Ajoute un troisième bloc fixe Mise à jour Android directement dans la fenêtre Réglages.",
+      "Le bouton Vérifier la mise à jour Android n'est plus dépendant d'un MutationObserver.",
+      "Le bouton lance cdqupdate://check vers la couche Android auto-mise-à-jour.",
+      "Fallback vers la page d'installation si la couche Android installée est trop ancienne pour reconnaître cdqupdate://."
     ]
   }
 }
