@@ -4,6 +4,8 @@
 
     <queries>
         <package android:name="com.android.chrome" />
+        <package android:name="com.google.android.apps.docs" />
+        <package android:name="com.google.android.apps.docs.editors.sheets" />
         <package android:name="com.ilovepdf.www" />
         <package android:name="com.adobe.reader" />
         <intent>
