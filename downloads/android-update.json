@@ -2,7 +2,7 @@
   "versionName": "23.14",
   "versionCode": 2314,
   "apkUrl": "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/downloads/Balance-CDQ-Android.apk",
-  "sha256": "9503ac80b58ac4f92010cf025e59a35b096e39dda83048ca83bf0a2dfaf6da05",
+  "sha256": "0ace9e6856d3e7d3804ad84c933f3cc573b9790aa4caaefc4733e8e61b1a89f4",
   "mandatory": false,
   "channel": "stable"
 }
