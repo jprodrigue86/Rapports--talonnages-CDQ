@@ -25,7 +25,7 @@ import java.util.concurrent.Executors
 class UpdateActivity : Activity() {
     companion object {
         private const val MANIFEST_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/downloads/android-update.json"
+            "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/android-update.json"
     }
 
     private val executor = Executors.newSingleThreadExecutor()
@@ -36,9 +36,11 @@ class UpdateActivity : Activity() {
 
     private var downloadedApk: File? = null
     private var latestVersionName = ""
+    private var forceInstall = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        forceInstall = intent?.data?.getQueryParameter("force") == "1"
         buildUi()
         checkUpdate()
     }
@@ -108,20 +110,24 @@ class UpdateActivity : Activity() {
                 val sha256 = json.getString("sha256").lowercase()
 
                 runOnUiThread {
-                    if (latestCode.toLong() <= currentVersionCode()) {
+                    if (latestCode.toLong() <= currentVersionCode() && !forceInstall) {
                         progress.visibility = ProgressBar.GONE
                         status.text =
                             "Balance CDQ Android est à jour.\nVersion installée : ${currentVersionName()}"
-                        action.isEnabled = false
+                        action.text = "Réinstaller cette version"
+                        action.isEnabled = true
                     } else {
                         status.text =
-                            "Nouvelle version disponible : $latestVersionName\n" +
+                            (if (latestCode.toLong() > currentVersionCode())
+                                "Nouvelle version disponible : $latestVersionName\n"
+                             else
+                                "Réinstallation Balance CDQ Android $latestVersionName\n") +
                             "Version installée : ${currentVersionName()}\n\n" +
-                            "Préparation de la mise à jour…"
+                            "Préparation de l’APK…"
                     }
                 }
 
-                if (latestCode.toLong() > currentVersionCode()) {
+                if (latestCode.toLong() > currentVersionCode() || forceInstall) {
                     val apk = downloadApk(apkUrl)
                     val actual = sha256(apk)
                     if (!actual.equals(sha256, ignoreCase = true)) {
@@ -134,7 +140,8 @@ class UpdateActivity : Activity() {
                         progress.visibility = ProgressBar.GONE
                         status.text =
                             "Balance CDQ Android $latestVersionName est prête.\n" +
-                            "Touchez « Mettre à jour »."
+                            "Touchez « Installer / réinstaller »."
+                        action.text = "Installer / réinstaller"
                         action.isEnabled = true
                     }
                 }
@@ -149,7 +156,15 @@ class UpdateActivity : Activity() {
     }
 
     private fun beginInstallFlow() {
-        val apk = downloadedApk ?: return
+        val apk = downloadedApk
+        if (apk == null) {
+            forceInstall = true
+            status.text = "Préparation de la réinstallation…"
+            action.isEnabled = false
+            progress.visibility = ProgressBar.VISIBLE
+            checkUpdate()
+            return
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             !packageManager.canRequestPackageInstalls()
