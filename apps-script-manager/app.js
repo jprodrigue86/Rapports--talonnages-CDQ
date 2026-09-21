@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V35';
+const APP_VERSION = 'V36';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -256,7 +256,35 @@ const verifyProductionWebAppReadyV21=verifyProductionWebAppReadyV23;
 function setQuickResult(text, kind = '') {
   if (!quickResult) return;
   quickResult.textContent = text;
-  quickResult.className = `quick-result ${kind}`.trim();
+  quickResult.className = `quick-result sm-workflow-result ${kind}`.trim();
+}
+
+function stageStateV36(id,state,label){
+  const row=$(id);
+  if(!row)return;
+  row.classList.remove('done','active','error');
+  if(state)row.classList.add(state);
+  const icon=row.querySelector('span');
+  const statusText=row.querySelector('em');
+  if(icon)icon.textContent=state==='done'?'✓':state==='active'?'●':state==='error'?'!':'○';
+  if(statusText)statusText.textContent=label || (state==='done'?'Terminé':state==='active'?'En cours…':state==='error'?'Erreur':'En attente');
+}
+
+function updateWorkflowStagesV36(progress,state='working'){
+  const p=Math.max(0,Math.min(100,Number(progress)||0));
+  if(state==='error'){
+    const active=p<16?'smStagePrepare':p<28?'smStageRead':p<60?'smStageWrite':p<92?'smStageDeploy':'smStageVerify';
+    ['smStagePrepare','smStageRead','smStageWrite','smStageDeploy','smStageVerify'].forEach(id=>{
+      const row=$(id); if(row&&row.classList.contains('active'))stageStateV36(id,'error','Erreur');
+    });
+    if($(active)&&!$(active).classList.contains('done'))stageStateV36(active,'error','Erreur');
+    return;
+  }
+  stageStateV36('smStagePrepare',p>=16?'done':(p>0?'active':'')); 
+  stageStateV36('smStageRead',p>=28?'done':(p>=16?'active':''));
+  stageStateV36('smStageWrite',p>=60?'done':(p>=28?'active':''));
+  stageStateV36('smStageDeploy',p>=92?'done':(p>=60?'active':''));
+  stageStateV36('smStageVerify',p>=100?'done':(p>=92?'active':''));
 }
 
 function setQuickDeployProgress(value, text = '', state = 'working') {
@@ -266,7 +294,7 @@ function setQuickDeployProgress(value, text = '', state = 'working') {
 
   if (quickDeployProgress) {
     quickDeployProgress.hidden = false;
-    quickDeployProgress.className = `quick-deploy-progress ${state || 'working'}`.trim();
+    quickDeployProgress.className = `quick-deploy-progress sm-deploy-progress ${state || 'working'}`.trim();
     quickDeployProgress.setAttribute('aria-valuenow', String(shown));
   }
   if (quickDeployProgressBar) quickDeployProgressBar.style.width = shown + '%';
@@ -282,6 +310,8 @@ function setQuickDeployProgress(value, text = '', state = 'working') {
     railDeploy.textContent=shown<60?'En attente':(shown>=100?'Terminé':'En cours…');
     railDeploy.className=state==='error'?'err':(shown>=100?'ok':(shown>=60?'warn':''));
   }
+
+  updateWorkflowStagesV36(shown,state);
 }
 
 function beginQuickDeployProgress(text = 'Préparation de la mise à jour…') {
@@ -292,7 +322,7 @@ function beginQuickDeployProgress(text = 'Préparation de la mise à jour…') {
   if (quickApply) {
     quickApply.disabled = true;
     quickApply.classList.add('busy');
-    quickApply.textContent = 'ÉCRITURE EN COURS…';
+    quickApply.innerHTML = '<span class="sm-lock">🔒</span><span>ÉCRITURE EN COURS…</span>';
     quickApply.setAttribute('aria-busy', 'true');
   }
   const advancedDeploy = $('deployVersion');
@@ -316,7 +346,7 @@ function endQuickDeployProgress(ok, text = '') {
   if (quickApply) {
     quickApply.classList.remove('busy');
     quickApply.removeAttribute('aria-busy');
-    quickApply.textContent = '3. ÉCRIRE + DÉPLOYER';
+    quickApply.innerHTML = '<span class="sm-lock">🔒</span><span>ÉCRIRE + DÉPLOYER</span>';
   }
   const advancedDeploy = $('deployVersion');
   if (advancedDeploy) advancedDeploy.disabled = false;
@@ -368,6 +398,24 @@ function updateQuickUi() {
     if(isProductionProject() && S.id && !productionDeploymentReady()){
       quickApply.title='Déploiement de production Balance CDQ introuvable : mise à jour bloquée.';
     }else quickApply.title='';
+  }
+
+  const projectState=$('smProjectState');
+  const packageState=$('smPackageState');
+  const packageNote=$('smPackageNote');
+  if(projectState){
+    projectState.textContent=S.id?'✓ Projet détecté':'● Projet en attente';
+    projectState.className='sm-step-state '+(S.id?'ok':'warn');
+  }
+  if(packageState){
+    const ready=Boolean(S.pkg.size||S.bundleAlreadyApplied);
+    packageState.textContent=ready?'✓ Package prêt':'● Package en attente';
+    packageState.className='sm-step-state '+(ready?'ok':'warn');
+  }
+  if(packageNote){
+    if(S.bundleAlreadyApplied)packageNote.textContent='Le code est déjà présent dans Apps Script. Le déploiement peut être lancé.';
+    else if(S.pkg.size)packageNote.textContent=(S.pendingBuild||S.bundleLabel||'Package CDQ')+' • '+pendingChangeCount()+' modification(s) préparée(s).';
+    else packageNote.textContent='Le package chargé apparaîtra ici avec sa version et le nombre de modifications.';
   }
   updateIndustrialRailV34();
 }
@@ -455,6 +503,35 @@ function installIndustrialUiV34(){
       }else{
         smOpenCardV34(id,id==='projectCard'?'projects':id==='backupsCard'?'backups':'settings');
       }
+    });
+  });
+
+  const changeProject=$('smChangeProject');
+  if(changeProject && changeProject.dataset.smBound!=='1'){
+    changeProject.dataset.smBound='1';
+    changeProject.addEventListener('click',()=>smOpenCardV34('projectCard','projects'));
+  }
+
+  const advancedRail=$('smOpenAdvancedFromRail');
+  if(advancedRail && advancedRail.dataset.smBound!=='1'){
+    advancedRail.dataset.smBound='1';
+    advancedRail.addEventListener('click',()=>{
+      smCloseMobileSettingsV35();
+      document.body.classList.add('show-advanced');
+      document.getElementById('deployCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+      smSetActiveTabV34('settings');
+    });
+  }
+
+  document.querySelectorAll('.sm-settings-tab[data-sm-settings-tab]').forEach(btn=>{
+    if(btn.dataset.smBound==='1')return;
+    btn.dataset.smBound='1';
+    btn.addEventListener('click',()=>{
+      const name=btn.dataset.smSettingsTab;
+      document.querySelectorAll('.sm-settings-tab').forEach(x=>x.classList.toggle('active',x===btn));
+      document.querySelectorAll('.sm-settings-panel[data-sm-settings-panel]').forEach(panel=>{
+        panel.classList.toggle('active',panel.dataset.smSettingsPanel===name);
+      });
     });
   });
 
