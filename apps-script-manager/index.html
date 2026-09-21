@@ -13,19 +13,46 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">CDQ</div>
-      <div class="brand-text">
-        <strong>Apps Script Manager</strong>
-        <span>Android • lire • comparer • écrire • déployer</span>
+  <div class="sm-shell">
+    <aside class="sm-brand-rail" aria-label="Identité CDQ Script Manager">
+      <div class="sm-brand-frame">
+        <div class="sm-rail-kicker">AUTOMATISER<br>DÉPLOYER<br>SIMPLIFIER</div>
+        <img class="sm-rail-icon" src="icon-industrial.svg" alt="CDQ Script Manager">
+        <div class="sm-rail-wordmark"><strong>CDQ</strong><span>SCRIPT MANAGER</span></div>
+        <div class="sm-metal-plate">VOS APPLICATIONS GOOGLE APPS<br>EN TOUTE SIMPLICITÉ</div>
+        <ul class="sm-rail-benefits">
+          <li>Déploiement rapide</li>
+          <li>Sécurisé et fiable</li>
+          <li>Suivi en temps réel</li>
+          <li>Gestion de versions</li>
+          <li>Sauvegardes automatiques</li>
+        </ul>
+        <div class="sm-rail-motto">Toujours plus loin<br>avec CDQ !</div>
       </div>
-      <div class="version-chip" id="versionChip" title="Version de CDQ Script Manager">V33</div>
-      <button id="installApp" class="install-btn" type="button">Installer</button>
-    </div>
-  </header>
+    </aside>
 
-  <main>
+    <div class="sm-center">
+      <header class="topbar">
+        <div class="brand">
+          <img class="logo sm-mini-logo" src="icon-industrial.svg" alt="">
+          <div class="brand-text">
+            <strong>CDQ Script Manager</strong>
+            <span>Gestion et déploiement de vos applications Google Apps Script</span>
+          </div>
+          <div class="version-chip" id="versionChip" title="Version de CDQ Script Manager">V33</div>
+          <button id="installApp" class="install-btn" type="button">Installer</button>
+        </div>
+      </header>
+
+      <nav class="sm-tabs" aria-label="Navigation Script Manager">
+        <button class="sm-tab active" type="button" data-sm-tab="deploy">🚀 <span>Déployer</span></button>
+        <button class="sm-tab" type="button" data-sm-tab="projects">📁 <span>Projets</span></button>
+        <button class="sm-tab" type="button" data-sm-tab="backups">↶ <span>Sauvegardes</span></button>
+        <button class="sm-tab" type="button" data-sm-tab="settings">⚙ <span>Paramètres</span></button>
+        <button class="sm-tab" type="button" data-sm-tab="about">ⓘ <span>À propos</span></button>
+      </nav>
+
+      <main>
     <section id="browserWarning" class="card warning-card" hidden>
       <h2>Ouvrir dans Chrome</h2>
       <p>La connexion Google n’est pas prise en charge dans certains navigateurs intégrés. Ouvre cette adresse directement dans Google Chrome, puis installe l’application.</p>
@@ -69,7 +96,7 @@
       <button id="toggleAdvanced" class="secondary quick-advanced" type="button">Options avancées</button>
     </section>
 
-    <section class="card advanced-section">
+    <section class="card advanced-section" id="googleCard">
       <div class="section-title"><span>1</span><h2>Connexion Google</h2></div>
       <label for="clientId">OAuth Client ID</label>
       <input id="clientId" autocomplete="off" value="764508884818-u4qnjmflg2bbht0e8ja22m8blrbm8nmk.apps.googleusercontent.com">
@@ -90,7 +117,7 @@
       <pre id="topStatus" class="status">Prêt.</pre>
     </section>
 
-    <section class="card advanced-section">
+    <section class="card advanced-section" id="projectCard">
       <div class="section-title"><span>2</span><h2>Choisir le projet</h2></div>
       <label for="projectSelect">Mes projets Apps Script</label>
       <div class="inline-select">
@@ -119,7 +146,7 @@
       </div>
     </section>
 
-    <section class="card advanced-section accent-card">
+    <section class="card advanced-section accent-card" id="packageCard">
       <div class="section-title"><span>4</span><h2>Package CDQ</h2></div>
       <p class="muted">Quand je te donne plusieurs codes, colle tout ici une seule fois. Tu peux aussi parcourir ton téléphone et sélectionner directement un ou plusieurs fichiers.</p>
       <input id="localFiles" type="file" accept=".zip,.gs,.html,.htm,.txt,.cdq,.json,.js,application/zip,application/x-zip-compressed,text/plain,text/html,application/json" multiple hidden>
@@ -145,7 +172,7 @@
       <div id="packageResult" class="meta"></div>
     </section>
 
-    <section class="card advanced-section">
+    <section class="card advanced-section" id="compareCard">
       <div class="section-title"><span>5</span><h2>Comparer avant d’écrire</h2></div>
       <div id="diffList" class="diff-list"><div class="empty">Aucune modification préparée.</div></div>
       <div class="actions two">
@@ -155,7 +182,7 @@
       <p class="safe-note">Avant toute écriture, le projet est relu depuis Google et une sauvegarde complète est créée automatiquement. Les fichiers non modifiés et <b>appsscript.json</b> sont conservés.</p>
     </section>
 
-    <section class="card advanced-section">
+    <section class="card advanced-section" id="deployCard">
       <div class="section-title"><span>6</span><h2>Version et déploiement</h2></div>
       <label for="description">Description de version</label>
       <input id="description" placeholder="Mise à jour CDQ">
@@ -171,7 +198,7 @@
       </div>
     </section>
 
-    <section class="card advanced-section">
+    <section class="card advanced-section" id="backupsCard">
       <div class="section-title"><span>7</span><h2>Sauvegardes</h2></div>
       <div id="backupList" class="backup-list"><div class="empty">Aucune sauvegarde locale.</div></div>
       <div class="actions two">
@@ -181,7 +208,42 @@
     </section>
 
     <pre id="status" class="status bottom-status">Aucune modification envoyée.</pre>
-  </main>
+      </main>
+    </div>
+
+    <aside class="sm-settings-rail" aria-label="Réglages rapides">
+      <div class="sm-settings-head">
+        <div><span class="sm-settings-gear">⚙</span><strong>Réglages</strong><small>Votre environnement de déploiement</small></div>
+      </div>
+
+      <div class="sm-settings-card">
+        <div class="sm-settings-title">Compte Google</div>
+        <div class="sm-settings-state"><span class="sm-dot"></span><b id="railAccountStatus">Non connecté</b></div>
+        <button type="button" class="sm-settings-action" data-sm-jump="googleCard">Gérer la connexion Google</button>
+      </div>
+
+      <div class="sm-settings-card">
+        <div class="sm-settings-title">Projet cible</div>
+        <div class="sm-settings-value" id="railProjectStatus">Aucun projet chargé</div>
+        <button type="button" class="sm-settings-action" data-sm-jump="projectCard">Choisir / changer le projet</button>
+      </div>
+
+      <div class="sm-settings-card">
+        <div class="sm-settings-title">Package</div>
+        <div class="sm-settings-value" id="railPackageStatus">Aucun package prêt</div>
+        <button type="button" class="sm-settings-action" data-sm-jump="packageCard">Ouvrir le package</button>
+      </div>
+
+      <div class="sm-settings-card sm-settings-preview">
+        <div class="sm-settings-title">Écriture et déploiement</div>
+        <div class="sm-preview-row"><span>Code Apps Script</span><b id="railWriteState">En attente</b></div>
+        <div class="sm-preview-row"><span>Production</span><b id="railDeployState">En attente</b></div>
+        <button type="button" class="sm-settings-action primary-rail" data-sm-jump="quickCard">Retour au déploiement</button>
+      </div>
+
+      <div class="sm-settings-footer">CDQ • SIMPLE • RAPIDE • FIABLE</div>
+    </aside>
+  </div>
 
   <div id="confirmModal" class="modal" hidden>
     <div class="modal-box">
