@@ -1,8 +1,8 @@
 {
-  "version": "2026.09.21-v24.09-direct-drive-pdf",
+  "version": "2026.09.21-v25.00-native-pdf-workflow",
   "reader_version": "21.33",
-  "selector_version": "2026.09.21-v24.09-direct-drive-pdf",
-  "backend_version": "2026.09.21-v24.09-direct-drive-pdf",
+  "selector_version": "2026.09.21-v25.00-native-pdf-workflow",
+  "backend_version": "2026.09.21-v25.00-native-pdf-workflow",
   "date": "2026-09-21",
   "features": [
     "demarrage-verifie",
@@ -317,7 +317,12 @@
     "pdf-tap-priority-preserved-v2408",
     "pdf-direct-drive-no-preload-v2409",
     "pdf-no-block-download-v2409",
-    "pdf-stable-v2279-path-restored-v2409"
+    "pdf-stable-v2279-path-restored-v2409",
+    "android-25-complete-pdf-workflow",
+    "pdf-default-google-account-native-v2500",
+    "pdf-default-reader-native-v2500",
+    "pdf-direct-drive-single-stream-v2500",
+    "pdf-edit-return-sync-v2500"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
@@ -330,5 +335,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.21-v24.09-direct-drive-pdf"
+  "pwa_version": "2026.09.21-v25.00-native-pdf-workflow"
 }
