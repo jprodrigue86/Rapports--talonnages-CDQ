@@ -1,59 +1,47 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V23.13",
-  "build": "2026.09.21-v23.13-android-self-update",
-  "title": "Balance CDQ V23.13 — mises à jour Android intégrées",
+  "version": "V23.14",
+  "build": "2026.09.21-v23.14-pdf-internal-sheets-account-slot",
+  "title": "Balance CDQ V23.14 — PDF restaurés et compte Sheets renforcé",
   "requiresBuild": [
-    "2026.09.21-v23.11-native-default-account"
+    "2026.09.21-v23.13-android-self-update"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v23.11-native-default-account",
-      "to": "2026.09.21-v23.13-android-self-update"
+      "from": "2026.09.21-v23.13-android-self-update",
+      "to": "2026.09.21-v23.14-pdf-internal-sheets-account-slot"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v23.11-native-default-account",
-      "to": "2026.09.21-v23.13-android-self-update"
+      "from": "2026.09.21-v23.13-android-self-update",
+      "to": "2026.09.21-v23.14-pdf-internal-sheets-account-slot"
     },
     {
       "file": "Selector.html",
-      "op": "remove_style_id_if_present",
-      "id": "cdqV2313AndroidUpdaterCss"
-    },
-    {
-      "file": "Selector.html",
-      "op": "remove_script_id_if_present",
-      "id": "cdqV2313AndroidUpdaterJs"
-    },
-    {
-      "file": "Selector.html",
-      "op": "insert_before_literal",
-      "before": "</body>",
-      "text": "\n<style id=\"cdqV2313AndroidUpdaterCss\">\n#cdqAndroidUpdaterBoxV2313{\n  margin:10px 0 2px;\n  padding:11px;\n  border:1px solid #2c7ea5;\n  border-radius:10px;\n  background:#071d2b;\n}\n#cdqAndroidUpdaterBoxV2313 strong{\n  display:block;\n  color:#e2f7ff;\n  margin-bottom:4px;\n}\n#cdqAndroidUpdaterBoxV2313 p{\n  margin:4px 0 9px!important;\n  color:#9fc1d4!important;\n  font-size:12px!important;\n  line-height:1.4!important;\n}\n#cdqAndroidUpdaterButtonV2313{\n  width:100%;\n  min-height:46px;\n  border:1px solid #23afe8;\n  border-radius:9px;\n  background:#0c3650;\n  color:#fff;\n  font-weight:850;\n}\n</style>\n<script id=\"cdqV2313AndroidUpdaterJs\">\n(function(){\n'use strict';\n\nfunction installUpdaterV2313(){\n  const anchor=document.getElementById('cdqNativeAccountBoxV2311') ||\n               document.getElementById('cdqDefaultGoogleStatusV2294');\n  if(!anchor)return;\n  if(document.getElementById('cdqAndroidUpdaterBoxV2313'))return;\n\n  const box=document.createElement('div');\n  box.id='cdqAndroidUpdaterBoxV2313';\n  box.innerHTML=\n    '<strong>⬆ Mise à jour Android</strong>'+\n    '<p>Les mises à jour normales de Balance CDQ continuent avec Script Manager. '+\n    'Ce bouton sert seulement quand la petite couche Android native doit être mise à jour.</p>'+\n    '<button type=\"button\" id=\"cdqAndroidUpdaterButtonV2313\">Vérifier la mise à jour Android</button>';\n\n  anchor.insertAdjacentElement('afterend',box);\n\n  box.querySelector('#cdqAndroidUpdaterButtonV2313').onclick=function(){\n    const fallback='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/balance-cdq-android.html';\n    const intent='intent://check#Intent;scheme=cdqupdate;package=ca.balancecdq.android;'+\n      'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n    window.location.href=intent;\n  };\n}\n\nfunction scheduleUpdaterV2313(){\n  clearTimeout(window.__cdqUpdaterInstallV2313);\n  window.__cdqUpdaterInstallV2313=setTimeout(installUpdaterV2313,80);\n}\n\nif(document.readyState==='loading'){\n  document.addEventListener('DOMContentLoaded',function(){\n    scheduleUpdaterV2313();\n    setTimeout(scheduleUpdaterV2313,600);\n  },{once:true});\n}else{\n  scheduleUpdaterV2313();\n  setTimeout(scheduleUpdaterV2313,600);\n}\n\nwindow.addEventListener('load',function(){\n  setTimeout(scheduleUpdaterV2313,180);\n});\n\nwindow.addEventListener('cdq:access-ready',function(){\n  setTimeout(scheduleUpdaterV2313,180);\n});\n\ntry{\n  new MutationObserver(scheduleUpdaterV2313).observe(document.body,{childList:true,subtree:true});\n}catch(_){}\n})();\n</script>\n"
+      "op": "replace_literal_if_present",
+      "search": "function cdqOuvrirPdfCommeSheetV2275(id){\n  const pref=cdqPdfReaderPreference();\n\n  if(pref==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n\n  const meta=cdqDocumentMeta(id)||{};\n  const fallback=cdqPdfDriveUrlV2275(id);\n  const nativeIntent=\n    'intent://open?fileId='+encodeURIComponent(String(id||''))+\n    '&name='+encodeURIComponent(String(meta.nom||'Rapport.pdf'))+\n    '&reader='+encodeURIComponent(String(pref||'ask'))+\n    '#Intent;scheme=cdqpdf;package=ca.balancecdq.android;'+\n    'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n\n  window.location.href=nativeIntent;\n  return true;\n}",
+      "replacement": "function cdqOuvrirPdfCommeSheetV2275(id){\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n\n  // V23.14 : le PDF repasse par le moteur PDF propre à Balance CDQ.\n  // Il est chargé par le backend/Drive déjà connecté de l'application,\n  // puis le lecteur configuré (CDQ / iLovePDF / Acrobat) est proposé.\n  // Aucun compte Google Android supplémentaire n'est nécessaire ici.\n  return cdqOpenPdf(id).catch(afficherErreur);\n}",
+      "expected": 1
     }
   ],
   "audit": {
     "scriptManagerRequired": "V38",
-    "androidAppRequired": "Balance CDQ Android 23.13",
-    "rollbackBase": "V23.11",
-    "behavior": [
-      "Les mises à jour PWA/Apps Script restent gérées par Script Manager.",
-      "Réglages ajoute un bouton Vérifier la mise à jour Android.",
-      "Le bouton ouvre le nouvel updater natif via cdqupdate://check.",
-      "L'updater télécharge l'APK stable, vérifie son SHA-256 et lance la mise à jour Android.",
-      "Après la première autorisation Installer des applications inconnues pour Balance CDQ, cette autorisation reste sur l'appareil.",
-      "Android conserve toujours la confirmation système finale d'installation."
+    "androidAppRequired": "Balance CDQ Android 23.14",
+    "rollbackBase": "V23.13",
+    "fixes": [
+      "PDF : retour au moteur PDF interne Balance CDQ, sans passage par Google Drive Android.",
+      "PDF : le lecteur configuré existant reste utilisé après chargement du vrai fichier.",
+      "Sheets : la correction du compte par défaut est dans Android 23.14 et utilise le slot Google /u/N/ du compte mémorisé."
     ],
     "preserved": [
       "Compte Google Android par défaut.",
-      "Ouverture Sheets/PDF native.",
+      "Auto-mise-à-jour Android.",
       "Corrections de scintillement.",
       "Taille du bouton Réglages.",
-      "Toutes les fonctions Balance CDQ existantes."
+      "Toutes les autres fonctions existantes."
     ]
   }
 }
