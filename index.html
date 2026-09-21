@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v24.06-pdf-window-capture-native';
+const CDQ_PWA_BUILD = '2026.09.21-v25.03-mobile-ui-update-center-fix';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1047,11 +1047,22 @@ async function cdqVerifierMiseAJourLiveV2254(source,buildSelector,force){
   cdqLiveUpdateBusyV2254=true;
   try{
     const latest=await cdqLireDernierBundleV2254();
-    const available=!!latest.build && cdqComparerVersions(latest.build,selector)>0;
+    const publishedNewer=!!latest.build && cdqComparerVersions(latest.build,selector)>0;
+    let liveReady=!!(publishedNewer && backendBuild && backendBuild!=='inconnue' && cdqComparerVersions(backendBuild,latest.build)>=0);
+    let liveBuild=liveReady?backendBuild:'';
+    if(publishedNewer && !liveReady){
+      try{
+        const live=await cdqVerifierProductionV2254(latest.build,5000);
+        liveReady=!!(live&&live.ok);
+        liveBuild=String(live&&live.build||'');
+        if(liveBuild)backendBuild=liveBuild;
+      }catch(e){}
+    }
+    const available=publishedNewer && liveReady;
 
-    // La version PUBLIÉE est la source de vérité pour le centre de mise à jour.
-    // Le probe Apps Script est seulement informatif : il ne peut plus masquer
-    // une mise à jour réelle sur Android si Google bloque l'iframe caché.
+    // V25.03 : une version publiée dans GitHub n'est annoncée que lorsqu'elle
+    // est réellement déployée dans Apps Script. Cela supprime la bannière
+    // permanente qui ne pouvait rien installer.
     try{
       replyToSelector(cible,{
         type:'CDQ_UPDATE_STATUS',
@@ -1061,15 +1072,9 @@ async function cdqVerifierMiseAJourLiveV2254(source,buildSelector,force){
         current:selector,
         selectorCurrent:selector,
         pwaCurrent:CDQ_PWA_BUILD,
-        backendCurrent:backendBuild
+        backendCurrent:liveBuild||backendBuild
       });
     }catch(e){}
-
-    if(available){
-      cdqVerifierProductionV2254(latest.build,5000).then(function(live){
-        if(live&&live.build)backendBuild=String(live.build);
-      }).catch(function(){});
-    }
   }finally{
     cdqLiveUpdateBusyV2254=false;
   }
@@ -1097,6 +1102,22 @@ function cdqDemarrerSurveillanceMiseAJourV2254(){
   });
 }
 
+function cdqOpenScriptManagerFromSelectorV2503(rawUrl){
+  try{
+    const u=new URL(String(rawUrl||''),location.href);
+    const allowedPath='/Rapports--talonnages-CDQ/apps-script-manager/';
+    if(u.origin!==location.origin || !u.pathname.startsWith(allowedPath))return false;
+    if(/BalanceCDQAndroid\/\d+(?:\.\d+)?/i.test(String(navigator.userAgent||''))){
+      const target=u.host+u.pathname+u.search;
+      const intent='intent://'+target+'#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(u.href)+';end';
+      window.location.href=intent;
+    }else{
+      window.location.assign(u.href);
+    }
+    return true;
+  }catch(e){return false;}
+}
+
 async function forcerMiseAJour(source) {
   const selector=String(cdqSelectorBuildV2254||'');
   const latest=await cdqLireDernierBundleV2254();
@@ -1106,7 +1127,20 @@ async function forcerMiseAJour(source) {
     return;
   }
 
-  // Ne plus bloquer le redémarrage sur le probe iframe Apps Script.
+  // V25.03 : ne jamais relancer en boucle vers un bundle qui n'est pas encore déployé.
+  let liveReady=!!(backendBuild && backendBuild!=='inconnue' && cdqComparerVersions(backendBuild,latest.build)>=0);
+  if(!liveReady){
+    try{
+      const live=await cdqVerifierProductionV2254(latest.build,6000);
+      liveReady=!!(live&&live.ok);
+      if(live&&live.build)backendBuild=String(live.build);
+    }catch(e){}
+  }
+  if(!liveReady){
+    updateRequested=false;
+    try{replyToSelector(source,{type:'CDQ_UPDATE_STATUS',available:false,latest:'',current:selector,selectorCurrent:selector,pwaCurrent:CDQ_PWA_BUILD,backendCurrent:backendBuild});}catch(e){}
+    return;
+  }
   updateRequested=true;
   try{sessionStorage.setItem('cdq_update_target_v88',latest.build);}catch(e){}
   if('serviceWorker' in navigator){
@@ -1127,6 +1161,20 @@ CDQ V22.15 — PRÉFÉRENCES D’AFFICHAGE PWA + VIEWPORT RÉEL
 ===================================================== */
 const CDQ_DISPLAY_PREFS_PWA_KEY_V2215='cdq_display_prefs_by_email_v2215';
 const CDQ_DISPLAY_PREFS_LAST_KEY_V2216='cdq_display_prefs_last_v2216';
+const CDQ_NATIVE_DISPLAY_RESTORE_KEY_V2503='cdq_native_display_restore_v2503';
+function cdqNativeAndroidShellV2503(){
+  return /BalanceCDQAndroid\/\d+(?:\.\d+)?/i.test(String(navigator.userAgent||''));
+}
+function cdqNativeDisplayRestorePendingV2503(){
+  if(!cdqNativeAndroidShellV2503())return false;
+  try{return localStorage.getItem(CDQ_NATIVE_DISPLAY_RESTORE_KEY_V2503)!=='1';}catch(e){return false;}
+}
+function cdqPriorDisplayPrefsV2503(){
+  return {uiScale:50,uiTextScale:50,uiIconScale:54,uiScaleMapVersion:2202,uiUpdatedAt:Date.now()};
+}
+function cdqMarkNativeDisplayRestoredV2503(){
+  try{localStorage.setItem(CDQ_NATIVE_DISPLAY_RESTORE_KEY_V2503,'1');}catch(e){}
+}
 function cdqLastPrefsLoadV2216(){
   try{
     const v=JSON.parse(localStorage.getItem(CDQ_DISPLAY_PREFS_LAST_KEY_V2216)||'null');
@@ -1174,7 +1222,9 @@ function cdqReplyViewportV2215(source){
 }
 function cdqHandleDisplayPrefsV2215(data,source){
   if(data.type==='CDQ_DISPLAY_PREFS_BOOTSTRAP_GET'){
-    replyToSelector(source,{type:'CDQ_DISPLAY_PREFS_BOOTSTRAP',prefs:cdqLastPrefsLoadV2216()});
+    const prefs=cdqNativeDisplayRestorePendingV2503()?cdqPriorDisplayPrefsV2503():cdqLastPrefsLoadV2216();
+    if(cdqNativeDisplayRestorePendingV2503())cdqLastPrefsSaveV2216(prefs);
+    replyToSelector(source,{type:'CDQ_DISPLAY_PREFS_BOOTSTRAP',prefs});
     return true;
   }
 
@@ -1183,19 +1233,27 @@ function cdqHandleDisplayPrefsV2215(data,source){
 
   if(data.type==='CDQ_DISPLAY_PREFS_SET'){
     const map=cdqPrefsMapLoadV2215();
-    const incoming=cdqSanitizeDisplayPrefsV2215(data.prefs);
+    const restoreNative=cdqNativeDisplayRestorePendingV2503();
+    const incoming=restoreNative?cdqPriorDisplayPrefsV2503():cdqSanitizeDisplayPrefsV2215(data.prefs);
     const current=map[email]||null;
-    if(!current || Number(incoming.uiUpdatedAt||0)>=Number(current.uiUpdatedAt||0)){
+    if(restoreNative || !current || Number(incoming.uiUpdatedAt||0)>=Number(current.uiUpdatedAt||0)){
       map[email]=incoming;
       cdqPrefsMapSaveV2215(map);
     }
     cdqLastPrefsSaveV2216(map[email]||incoming);
+    if(restoreNative)cdqMarkNativeDisplayRestoredV2503();
     replyToSelector(source,{type:'CDQ_DISPLAY_PREFS_VALUE',prefs:map[email]||incoming});
     return true;
   }
 
   if(data.type==='CDQ_DISPLAY_PREFS_GET'){
     const map=cdqPrefsMapLoadV2215();
+    if(cdqNativeDisplayRestorePendingV2503()){
+      map[email]=cdqPriorDisplayPrefsV2503();
+      cdqPrefsMapSaveV2215(map);
+      cdqLastPrefsSaveV2216(map[email]);
+      cdqMarkNativeDisplayRestoredV2503();
+    }
     replyToSelector(source,{type:'CDQ_DISPLAY_PREFS_VALUE',prefs:map[email]||null});
     return true;
   }
@@ -1365,6 +1423,10 @@ if (data.type === 'CDQ_ACCESS_STATE') recevoirEtatAcces(data.state);
 if (data.type === 'CDQ_BACKEND_STATUS') backendBuild = String(data.build || 'inconnue');
 if(memoireConnexion(data,payload=>replyToSelector(event.source,payload)))return;
 
+if (data.type === 'CDQ_OPEN_SCRIPT_MANAGER') {
+cdqOpenScriptManagerFromSelectorV2503(data.url);
+return;
+}
 if (data.type === 'CDQ_CHECK_UPDATE') {
 repondreEtatMiseAJour(event.source, data.build);
 }
