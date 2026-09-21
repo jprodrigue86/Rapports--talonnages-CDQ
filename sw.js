@@ -1,6 +1,6 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v24-02-instant-native-pdf-choice';
-const FORCE_BUILD='2026.09.21-v24.02-instant-native-pdf-choice';
+const CACHE = 'cdq-installable-v24-04-direct-system-pdf-resolver';
+const FORCE_BUILD='2026.09.21-v24.04-direct-system-pdf-resolver';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = [
   './offline-templates-v2252.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
