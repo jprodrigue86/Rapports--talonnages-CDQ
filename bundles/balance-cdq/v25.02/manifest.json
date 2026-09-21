@@ -1,0 +1,44 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "version": "V25.02",
+  "build": "2026.09.21-v25.02-native-apk-file-share",
+  "title": "Balance CDQ V25.02 — partage natif du fichier APK",
+  "requiresBuild": [
+    "2026.09.21-v25.01-apk-share-update-center"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v25.01-apk-share-update-center",
+      "to": "2026.09.21-v25.02-native-apk-file-share"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v25.01-apk-share-update-center",
+      "to": "2026.09.21-v25.02-native-apk-file-share"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2502NativeApkShareJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<script id=\"cdqV2502NativeApkShareJs\">\n(function(){\n'use strict';\nfunction go(u){var a=document.createElement('a');a.href=u;a.target='_top';a.style.display='none';document.body.appendChild(a);a.click();a.remove();}\nfunction share(){go('intent://share#Intent;scheme=cdqapp;package=ca.balancecdq.android;end');}\nfunction reinstall(){go('intent://reinstall#Intent;scheme=cdqapp;package=ca.balancecdq.android;end');}\nfunction update(){go('intent://check#Intent;scheme=cdqupdate;package=ca.balancecdq.android;end');}\nfunction wire(){\n  var b=document.getElementById('cdqInstallShareSettingsButton')||document.getElementById('cdqAdminApkButtonV2501');\n  if(b&&!b.dataset.cdq2502){b.dataset.cdq2502='1';b.onclick=function(e){e&&e.preventDefault();share();};}\n}\nwindow.cdqOuvrirPartageApplication=share;\nwindow.cdqPartagerApkDirectV2502=share;\nwindow.cdqReinstallerApkV2502=reinstall;\nwindow.cdqMajApkV2502=update;\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(wire,100);setTimeout(wire,600);},{once:true});else{setTimeout(wire,30);setTimeout(wire,600);}\ntry{new MutationObserver(function(){setTimeout(wire,80);}).observe(document.body,{childList:true,subtree:true});}catch(_){}\n})();\n</script>\n"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V39",
+    "androidAppRequired": "Balance CDQ Android 25.02",
+    "behavior": [
+      "Le partage natif envoie le fichier APK installé, pas un lien Web.",
+      "Réinstallation et mise à jour passent par les activités Android de Balance CDQ.",
+      "Aucune page GitHub n'est nécessaire dans le parcours utilisateur."
+    ]
+  }
+}
