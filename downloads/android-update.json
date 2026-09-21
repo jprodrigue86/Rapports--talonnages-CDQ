@@ -1,8 +1,8 @@
 {
-  "versionName": "25.09",
-  "versionCode": 2509,
+  "versionName": "25.10",
+  "versionCode": 2510,
   "apkUrl": "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/Balance-CDQ-Android.apk",
-  "sha256": "e1e641792c2724fc60089c7e14107d08696338535c403228091e3970e6506b52",
+  "sha256": "7e3c4654ad1ff27b6e6e356ac7e00c5ee1cdfff962dc66b8ab6d39b469e1e472",
   "mandatory": false,
   "channel": "stable"
 }
