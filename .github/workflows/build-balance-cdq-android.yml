@@ -85,6 +85,16 @@ jobs:
           grep -q 'package=ca.balancecdq.android' android-auth.html
           grep -q 'android:scheme="cdqauth"' balance-cdq-android/app/src/main/AndroidManifest.xml
 
+      - name: Validate single-choice Google auth
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'google.accounts.id.prompt' android-auth.html
+          grep -q 'Retourner dans Balance CDQ' android-auth.html
+          grep -q 'use_fedcm_for_button:true' android-auth.html
+          grep -q 'location.replace(appIntent())' android-auth.html
+          grep -q 'backButton.onclick' android-auth.html
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
