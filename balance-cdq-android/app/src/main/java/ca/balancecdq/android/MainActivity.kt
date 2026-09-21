@@ -27,7 +27,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
         private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.07"
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.08"
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
     }
@@ -104,7 +104,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.07"
+                settings.userAgentString + " BalanceCDQAndroid/25.08"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
