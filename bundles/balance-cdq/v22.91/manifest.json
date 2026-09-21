@@ -1,0 +1,154 @@
+{
+  "schema": "cdq-script-bundle-v2",
+  "version": "V22.91",
+  "build": "2026.09.21-v22.91-plancher-pdf-integre",
+  "title": "Balance CDQ V22.91 — nouveau Balance de plancher intégré",
+  "requiresBuild": [
+    "2026.09.19-v22.90-restore-native-account-picker"
+  ],
+  "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.90-restore-native-account-picker",
+      "to": "2026.09.21-v22.91-plancher-pdf-integre"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.19-v22.90-restore-native-account-picker",
+      "to": "2026.09.21-v22.91-plancher-pdf-integre"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "<label class=\"copy-model-choice\"><input type=\"radio\" name=\"cdqModeleIntermediaire\" value=\"plancher\" onchange=\"choisirModeleIntermediaire(this.value)\"><span>Balance de Plancher</span></label>",
+      "replacement": "<label class=\"copy-model-choice\"><input type=\"radio\" name=\"cdqModeleIntermediaire\" value=\"plancher\" onchange=\"choisirModeleIntermediaire(this.value)\"><span>Balance de plancher</span></label>",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "plancher:\"Balance de Plancher\"",
+      "replacement": "plancher:\"Balance de plancher\"",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "const CDQ_TEMPLATE_REVISION = \"plancher-app-resource-v22.47-20260919\";",
+      "replacement": "const CDQ_TEMPLATE_REVISION = \"plancher-fillable-v22.91-20260921\";",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "const CDQ_TEMPLATE_BALANCE_INTERMEDIAIRE_ID_ = '10G4z6xhqjmNM5fXnjgyc_Qq3yRyHblQv';",
+      "replacement": "const CDQ_TEMPLATE_BALANCE_INTERMEDIAIRE_ID_ = '1Eyji-xHX69Wa0EQTx0nx-D8KEmfY_hhB';",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "const CDQ_TEMPLATE_BALANCE_INTERMEDIAIRE_NOM_ = 'Balance de Plancher.pdf';",
+      "replacement": "const CDQ_TEMPLATE_BALANCE_INTERMEDIAIRE_NOM_ = 'Balance de plancher.pdf';",
+      "expected": 1
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "plancher: {id:CDQ_TEMPLATE_BALANCE_INTERMEDIAIRE_ID_, nom:'Balance de Plancher.pdf'}",
+      "replacement": "plancher: {id:CDQ_TEMPLATE_BALANCE_INTERMEDIAIRE_ID_, nom:'Balance de plancher.pdf'}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2291PlancherEmbeddedWarmupJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "\n<script id=\"cdqV2291PlancherEmbeddedWarmupJs\">\n(function(){\n  'use strict';\n  let running=null,done=false;\n  async function warmPlancher(){\n    if(done||running||navigator.onLine===false||cdqAccessState!=='ready')return running;\n    const email=String(utilisateurCourantEmail||'');\n    if(!email)return;\n    running=(async function(){\n      try{\n        if(typeof cdqPublierSessionHorsLigne==='function')cdqPublierSessionHorsLigne();\n        await cdqV2112EnsureTemplateOfflineCached(false,'plancher');\n        const rec=await cdqV2112GetCachedTemplate('plancher');\n        if(!rec||!(rec.blob instanceof Blob)||rec.blob.type!=='application/pdf')return;\n        const blobRapport=typeof cdqPersonnaliserBlobTechnicienPdf==='function'\n          ? await cdqPersonnaliserBlobTechnicienPdf(rec.blob) : rec.blob;\n        if(email!==String(utilisateurCourantEmail||'')||cdqAccessState!=='ready')return;\n        cdqPostToPwa({type:'CDQ_OFFLINE_TEMPLATE',email:email,modeleId:'plancher',blob:blobRapport,\n          templateId:rec.templateId,modifieLe:rec.modifieLe,revision:rec.revision,sha256:'',name:'Balance de plancher'});\n        done=true;\n      }catch(e){console.warn('Préparation intégrée Balance de plancher :',e&&e.message?e.message:e);}\n      finally{running=null;}\n    })();\n    return running;\n  }\n  window.addEventListener('cdq:access-ready',function(){setTimeout(warmPlancher,900);});\n  window.addEventListener('online',function(){setTimeout(warmPlancher,700);});\n  if(document.readyState!=='loading')setTimeout(warmPlancher,1400);\n})();\n</script>\n"
+    }
+  ],
+  "extraFiles": [
+    {
+      "name": "CDQTemplates.gs",
+      "url": "files/CDQTemplates.gs"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_0.html",
+      "url": "files/CDQ_Model_plancher_v2291_0.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_1.html",
+      "url": "files/CDQ_Model_plancher_v2291_1.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_2.html",
+      "url": "files/CDQ_Model_plancher_v2291_2.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_3.html",
+      "url": "files/CDQ_Model_plancher_v2291_3.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_4.html",
+      "url": "files/CDQ_Model_plancher_v2291_4.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_5.html",
+      "url": "files/CDQ_Model_plancher_v2291_5.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_6.html",
+      "url": "files/CDQ_Model_plancher_v2291_6.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_7.html",
+      "url": "files/CDQ_Model_plancher_v2291_7.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_8.html",
+      "url": "files/CDQ_Model_plancher_v2291_8.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_9.html",
+      "url": "files/CDQ_Model_plancher_v2291_9.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_10.html",
+      "url": "files/CDQ_Model_plancher_v2291_10.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_11.html",
+      "url": "files/CDQ_Model_plancher_v2291_11.html"
+    },
+    {
+      "name": "CDQ_Model_plancher_v2291_12.html",
+      "url": "files/CDQ_Model_plancher_v2291_12.html"
+    }
+  ],
+  "audit": {
+    "scriptManagerRequired": "V32",
+    "rollbackBase": "V22.90",
+    "embeddedPdf": {
+      "name": "Balance de plancher.pdf",
+      "driveId": "1Eyji-xHX69Wa0EQTx0nx-D8KEmfY_hhB",
+      "size": 7878619,
+      "sha256": "d1c2c572f2041e813502c9f5b16034bdfdf51aa58c152d7c0ea6188e3e50ccac",
+      "chunks": 13,
+      "chunkSize": 645120
+    },
+    "behavior": [
+      "Balance intermédiaire conserve le menu de modèles.",
+      "Choisir Balance de plancher utilise le nouveau PDF intégré V22.91.",
+      "La copie créée va dans le dossier client sélectionné; l'original du modèle reste inchangé.",
+      "Le même PDF est conservé dans _CDQ_SYSTEME/Templates comme repli Drive.",
+      "Balance de plancher est préparé en arrière-plan après connexion pour accélérer la copie et le rendre disponible hors ligne.",
+      "Les autres modèles et le flux d'ouverture PDF V22.90 restent inchangés."
+    ]
+  }
+}
