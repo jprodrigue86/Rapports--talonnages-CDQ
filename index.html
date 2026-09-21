@@ -427,7 +427,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.21-v23.06-no-flicker-native-open';
+const CDQ_PWA_BUILD = '2026.09.21-v23.07-parent-viewport-freeze';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -465,6 +465,80 @@ cdqReloadOuterOnceV88();
 }
 
 const app = document.getElementById('app');
+
+let cdqFileHandoffStateV2307={until:0,timer:null,saved:null};
+
+function cdqFileHandoffFrozenV2307(){
+  return Number(cdqFileHandoffStateV2307.until||0)>Date.now();
+}
+
+function cdqStartFileHandoffFreezeV2307(duration){
+  duration=Math.max(1200,Math.min(12000,Number(duration)||4200));
+  const until=Date.now()+duration;
+  cdqFileHandoffStateV2307.until=Math.max(Number(cdqFileHandoffStateV2307.until)||0,until);
+
+  const frame=document.getElementById('app');
+  if(frame){
+    if(!cdqFileHandoffStateV2307.saved){
+      cdqFileHandoffStateV2307.saved={
+        width:frame.style.width,
+        height:frame.style.height,
+        maxWidth:frame.style.maxWidth,
+        maxHeight:frame.style.maxHeight,
+        transition:frame.style.transition,
+        willChange:frame.style.willChange,
+        contain:frame.style.contain
+      };
+    }
+
+    // Conserver exactement la taille de mise en page actuelle de l'iframe.
+    // Le transform CSS 1.20 reste inchangé : seul le viewport externe est gelé.
+    const layoutW=frame.offsetWidth;
+    const layoutH=frame.offsetHeight;
+    if(layoutW>0)frame.style.width=layoutW+'px';
+    if(layoutH>0)frame.style.height=layoutH+'px';
+    frame.style.maxWidth='none';
+    frame.style.maxHeight='none';
+    frame.style.transition='none';
+    frame.style.willChange='transform';
+    frame.style.contain='layout paint style';
+  }
+
+  document.documentElement.classList.add('cdq-file-handoff-freeze-v2307');
+
+  clearTimeout(cdqFileHandoffStateV2307.timer);
+  cdqFileHandoffStateV2307.timer=setTimeout(function(){
+    cdqReleaseFileHandoffFreezeV2307(0);
+  },duration+250);
+}
+
+function cdqReleaseFileHandoffFreezeV2307(delay){
+  delay=Math.max(0,Number(delay)||0);
+  clearTimeout(cdqFileHandoffStateV2307.timer);
+  cdqFileHandoffStateV2307.timer=setTimeout(function(){
+    const frame=document.getElementById('app');
+    const saved=cdqFileHandoffStateV2307.saved;
+    if(frame&&saved){
+      frame.style.width=saved.width;
+      frame.style.height=saved.height;
+      frame.style.maxWidth=saved.maxWidth;
+      frame.style.maxHeight=saved.maxHeight;
+      frame.style.transition=saved.transition;
+      frame.style.willChange=saved.willChange;
+      frame.style.contain=saved.contain;
+    }
+    cdqFileHandoffStateV2307.saved=null;
+    cdqFileHandoffStateV2307.until=0;
+    document.documentElement.classList.remove('cdq-file-handoff-freeze-v2307');
+
+    // Une seule mesure, après stabilisation du viewport Android.
+    setTimeout(function(){
+      if(selectorWindow)cdqReplyViewportV2215(selectorWindow);
+    },160);
+  },delay);
+}
+
+
 const loading = document.getElementById('loading');
 const loadHelp = document.getElementById('load-help');
 
@@ -1251,6 +1325,15 @@ if (data.authProtocol >= 24) recevoirEtatAcces(data.accessState || 'pending');
 else if (!selectorAwaitingAccess) masquerMurApresDelaiMinimum();
 }
 if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
+
+if(data.type==='CDQ_FILE_HANDOFF_FREEZE_V2307'){
+  cdqStartFileHandoffFreezeV2307(data.duration);
+  return;
+}
+if(data.type==='CDQ_FILE_HANDOFF_RELEASE_V2307'){
+  cdqReleaseFileHandoffFreezeV2307(data.delay||650);
+  return;
+}
 if(cdqHandleDefaultGoogleAccountV2297(data,event.source))return;
 if(data.type==='CDQ_OPEN_PDF_V2304'){cdqAfficherPdfV2304(data,event.source);return;}
 if(data.type==='CDQ_PDF_SAVE_RESULT_V2304'){cdqPdfSaveResultV2304(data,event.source);return;}
@@ -1313,13 +1396,24 @@ if (!data.requestId || (bioContext && data.requestId === bioContext.requestId)) 
 });
 
 window.addEventListener('resize',function(){
+  if(cdqFileHandoffFrozenV2307())return;
   if(selectorWindow)cdqReplyViewportV2215(selectorWindow);
 },{passive:true});
 if(window.visualViewport){
   visualViewport.addEventListener('resize',function(){
+    if(cdqFileHandoffFrozenV2307())return;
     if(selectorWindow)cdqReplyViewportV2215(selectorWindow);
   },{passive:true});
 }
+
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible' && cdqFileHandoffFrozenV2307()){
+    cdqReleaseFileHandoffFreezeV2307(650);
+  }
+},{passive:true});
+window.addEventListener('focus',function(){
+  if(cdqFileHandoffFrozenV2307())cdqReleaseFileHandoffFreezeV2307(650);
+},{passive:true});
 
 
 
