@@ -1,45 +1,73 @@
 {
   "schema": "cdq-script-bundle-v2",
-  "version": "V23.10",
-  "build": "2026.09.21-v23.10-settings-button-scale",
-  "title": "Balance CDQ V23.10 — bouton Réglages agrandi",
+  "version": "V23.11",
+  "build": "2026.09.21-v23.11-native-default-account",
+  "title": "Balance CDQ V23.11 — compte Google Android par défaut",
   "requiresBuild": [
-    "2026.09.21-v23.09-sheets-self-handoff"
+    "2026.09.21-v23.10-settings-button-scale"
   ],
   "patches": [
     {
       "file": "Selector.html",
       "op": "replace_build",
-      "from": "2026.09.21-v23.09-sheets-self-handoff",
-      "to": "2026.09.21-v23.10-settings-button-scale"
+      "from": "2026.09.21-v23.10-settings-button-scale",
+      "to": "2026.09.21-v23.11-native-default-account"
     },
     {
       "file": "Code.gs",
       "op": "replace_build",
-      "from": "2026.09.21-v23.09-sheets-self-handoff",
-      "to": "2026.09.21-v23.10-settings-button-scale"
+      "from": "2026.09.21-v23.10-settings-button-scale",
+      "to": "2026.09.21-v23.11-native-default-account"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqV19OpenOfflineSheet(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]+$/.test(id))throw new Error('Identifiant de feuille invalide.');\n  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit';\n  const href=/Android/i.test(navigator.userAgent||'')\n    ? 'intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit#Intent;scheme=https;package=com.google.android.apps.docs.editors.sheets;S.browser_fallback_url='+encodeURIComponent(web)+';end'\n    : web;\n\n  const a=document.createElement('a');\n  a.href=href;\n  a.target='_self';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',(cdqDocumentMeta(id)||{}).dateModification||'');\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n  return true;\n}",
+      "replacement": "function cdqV19OpenOfflineSheet(id){\n  id=String(id||'');\n  if(!/^[A-Za-z0-9_-]+$/.test(id))throw new Error('Identifiant de feuille invalide.');\n\n  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit';\n\n  let href=web;\n  if(/Android/i.test(navigator.userAgent||'')){\n    href='intent://open?fileId='+encodeURIComponent(id)+\n      '#Intent;scheme=cdqsheet;package=ca.balancecdq.android;'+\n      'S.browser_fallback_url='+encodeURIComponent(web)+';end';\n  }\n\n  const a=document.createElement('a');\n  a.href=href;\n  a.target='_self';\n  a.rel='noopener';\n  a.style.display='none';\n  document.body.appendChild(a);\n  a.click();\n  a.remove();\n\n  if(String(utilisateurCourantRole||'')!=='lecture'){\n    fichierOuvertPourModification=id;\n    sessionStorage.setItem('fichierEnModification',id);\n    sessionStorage.setItem('ancienneDateModification',(cdqDocumentMeta(id)||{}).dateModification||'');\n    sessionStorage.setItem('momentModification',String(Date.now()));\n  }\n  return true;\n}",
+      "expected": 1
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal_if_present",
+      "search": "function cdqOuvrirPdfCommeSheetV2275(id){\n  const pref=cdqPdfReaderPreference();\n\n  // Le lecteur CDQ reste volontairement interne.\n  if(pref==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n\n  // Même principe que Google Sheets : l'intent est lancé DIRECTEMENT\n  // pendant le geste utilisateur, sans Apps Script asynchrone, sans\n  // window.open tardif et sans page about:blank.\n  window.location.href=cdqPdfDriveIntentV2275(id);\n  return true;\n}",
+      "replacement": "function cdqOuvrirPdfCommeSheetV2275(id){\n  const pref=cdqPdfReaderPreference();\n\n  if(pref==='cdq'){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  if(navigator.onLine===false){\n    return cdqOpenPdf(id).catch(afficherErreur);\n  }\n\n  cdqMarquerPdfOuvertV2275(id);\n\n  const meta=cdqDocumentMeta(id)||{};\n  const fallback=cdqPdfDriveUrlV2275(id);\n  const nativeIntent=\n    'intent://open?fileId='+encodeURIComponent(String(id||''))+\n    '&name='+encodeURIComponent(String(meta.nom||'Rapport.pdf'))+\n    '&reader='+encodeURIComponent(String(pref||'ask'))+\n    '#Intent;scheme=cdqpdf;package=ca.balancecdq.android;'+\n    'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n\n  window.location.href=nativeIntent;\n  return true;\n}",
+      "expected": 1
     },
     {
       "file": "Selector.html",
       "op": "remove_style_id_if_present",
-      "id": "cdqV2310SettingsButtonScaleCss"
+      "id": "cdqV2311NativeAccountCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2311NativeAccountJs"
     },
     {
       "file": "Selector.html",
       "op": "insert_before_literal",
       "before": "</body>",
-      "text": "\n<style id=\"cdqV2310SettingsButtonScaleCss\">\n/* V23.10 — micro-correction : bouton Réglages de la rangée supérieure uniquement */\nhtml:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204{\n  gap:7px!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204 > span:first-child{\n  font-size:29px!important;\n  line-height:1!important;\n  width:29px!important;\n  min-width:29px!important;\n  height:29px!important;\n  display:inline-flex!important;\n  align-items:center!important;\n  justify-content:center!important;\n  overflow:visible!important;\n}\nhtml:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204 > span:last-child{\n  font-size:13px!important;\n  line-height:1.05!important;\n  font-weight:850!important;\n  letter-spacing:0!important;\n  overflow:visible!important;\n  text-overflow:clip!important;\n}\n@media(max-width:430px){\n  html:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204 > span:first-child{\n    font-size:27px!important;\n    width:27px!important;\n    min-width:27px!important;\n    height:27px!important;\n  }\n  html:is(.android,.ios,.mobile-device) #cdqTopDisplayButtonV2204 > span:last-child{\n    font-size:12px!important;\n  }\n}\n</style>\n"
+      "text": "\n<style id=\"cdqV2311NativeAccountCss\">\n#cdqNativeAccountBoxV2311{\n  margin:10px 0 2px;\n  padding:11px;\n  border:1px solid #287fa8;\n  border-radius:10px;\n  background:#071e2e;\n}\n#cdqNativeAccountBoxV2311 strong{display:block;color:#dff7ff;margin-bottom:4px}\n#cdqNativeAccountBoxV2311 p{margin:4px 0 9px!important;color:#9fc3d8!important;font-size:12px!important}\n#cdqNativeAccountChooseV2311{\n  width:100%;\n  min-height:46px;\n  border:1px solid #22aee9;\n  border-radius:9px;\n  background:#0c3650;\n  color:#fff;\n  font-weight:850;\n}\n</style>\n<script id=\"cdqV2311NativeAccountJs\">\n(function(){\n'use strict';\n\nfunction installNativeAccountV2311(){\n  const status=document.getElementById('cdqDefaultGoogleStatusV2294');\n  if(!status)return;\n  const card=status.closest('.cdq-settings-card-v2294');\n  if(!card||document.getElementById('cdqNativeAccountBoxV2311'))return;\n\n  const box=document.createElement('div');\n  box.id='cdqNativeAccountBoxV2311';\n  box.innerHTML=\n    '<strong>📱 Compte Android par défaut</strong>'+\n    '<p>Choisissez le compte une seule fois. Balance CDQ Android le réutilisera ensuite automatiquement pour les Google Sheets et les PDF.</p>'+\n    '<button type=\"button\" id=\"cdqNativeAccountChooseV2311\">Choisir / changer le compte Android</button>';\n\n  status.insertAdjacentElement('afterend',box);\n\n  box.querySelector('#cdqNativeAccountChooseV2311').onclick=function(){\n    const fallback='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/balance-cdq-android.html';\n    const intent='intent://pick#Intent;scheme=cdqaccount;package=ca.balancecdq.android;'+\n      'S.browser_fallback_url='+encodeURIComponent(fallback)+';end';\n    window.location.href=intent;\n  };\n}\n\nfunction scheduleV2311(){\n  clearTimeout(window.__cdqNativeAccountInstallV2311);\n  window.__cdqNativeAccountInstallV2311=setTimeout(installNativeAccountV2311,80);\n}\n\nif(document.readyState==='loading'){\n  document.addEventListener('DOMContentLoaded',function(){scheduleV2311();setTimeout(scheduleV2311,600);},{once:true});\n}else{\n  scheduleV2311();\n  setTimeout(scheduleV2311,600);\n}\nwindow.addEventListener('load',function(){setTimeout(scheduleV2311,200);});\ntry{\n  new MutationObserver(scheduleV2311).observe(document.body,{childList:true,subtree:true});\n}catch(_){}\n})();\n</script>\n"
     }
   ],
   "audit": {
     "scriptManagerRequired": "V38",
-    "rollbackBase": "V23.09",
-    "scope": "Micro-correction visuelle uniquement sur #cdqTopDisplayButtonV2204.",
-    "changes": [
-      "Icône ⚙ Réglages portée à 29 px sur mobile standard.",
-      "Texte Réglages porté à 13 px et plus gras.",
-      "Adaptation petits écrans à 27 px / 12 px.",
-      "Aucun changement aux autres boutons, aux fichiers, au PDF ou à Google Sheets."
+    "androidAppRequired": "Balance CDQ Android 23.11",
+    "rollbackBase": "V23.10",
+    "behavior": [
+      "Réglages ajoute un bouton pour choisir le compte Android par défaut.",
+      "Google Sheets Android passe par SheetOpenActivity au lieu de l'application Sheets native.",
+      "PDF Android repasse par PdfOpenActivity avec le compte enregistré.",
+      "Le premier fichier demande le compte si aucun défaut n'existe; les suivants réutilisent ce compte.",
+      "PDF : AuthorizationRequest.setAccount(account) remplace SELECT_ACCOUNT.",
+      "Sheets : ouverture Chrome/Custom Tab avec authuser et login_hint du compte choisi.",
+      "Fallback Web conservé si l'application Android 23.11 n'est pas installée."
+    ],
+    "preserved": [
+      "V23.10 taille du bouton Réglages.",
+      "V23.09 suppression du saut Sheets.",
+      "V23.08 suppression du saut PDF.",
+      "Toutes les autres fonctions PWA."
     ]
   }
 }
