@@ -1,0 +1,133 @@
+[
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "function shell(){if($('#cdqPcV16'))return;",
+    "replacement": "const pc17Bridge={stats,fmt,nativeExplorerIcon,statusHtml,show,quick,createClient,loadClients,openExplorerClient,explorerFileObject,explorerOpenFolder,\n  loadFolder:loadExplorerFolder,openFile,rename:renameReportPC,duplicate:duplicateReportPC,copy:copyReportPC,download:downloadFile,fileMenu,\n  armSelection:pc16ArmLongPressSelection,send:pc16OpenSendModal,\n  legacy:(v,m)=>({nonconformities:renderNonConformities,watchlist:renderWatchlist,invoices:renderInvoices,models:renderModels,tools:renderTools}[v]||renderHome)(m),\n  openSharedSettings:()=>{if(window.cdqOpenSettingsV2294)window.cdqOpenSettingsV2294();else if(window.ouvrirReglagesAffichage)window.ouvrirReglagesAffichage()},\n  sync:()=>{if(window.cdqLoadSharedPreferencesV72)window.cdqLoadSharedPreferencesV72(true)}\n};\nfunction shell(){if($('#cdqPcV16'))return;"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "document.body.appendChild(r);pc16AutoFitV21_65();",
+    "replacement": "document.body.appendChild(r);window.cdqDesktopV2517.mount(st,pc17Bridge);pc16AutoFitV21_65();"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "function scaleStage(){\n  const r=$('#cdqPcV16'),stage=$('.pc16-stage',r);if(!r||!stage)return;\n  const BASE_W=1536,BASE_H=864;\n  const v=pc16ViewportV21_65();\n\n  // Keep the width full, but deliberately use only 94% of the visible height.\n  // This fixes the PC dashboard looking too tall while preserving the width.\n  const scaleX=Math.max(.10,Math.min(5,v.w/BASE_W));\n  const scaleY=Math.max(.10,Math.min(5,(v.h*.94)/BASE_H));\n\n  r.style.setProperty('left','0px','important');\n  r.style.setProperty('top',v.oy+'px','important');\n  r.style.setProperty('width',v.w+'px','important');\n  r.style.setProperty('height',v.h+'px','important');\n  r.style.setProperty('max-width','none','important');\n  r.style.setProperty('max-height','none','important');\n  r.style.setProperty('margin','0','important');\n  r.style.setProperty('overflow','hidden','important');\n  r.style.background='#020911';\n\n  stage.style.setProperty('left','0px','important');\n  stage.style.setProperty('top','0px','important');\n  stage.style.setProperty('width',BASE_W+'px','important');\n  stage.style.setProperty('height',BASE_H+'px','important');\n  stage.style.setProperty('transform-origin','0 0','important');\n  stage.style.setProperty('transform','scale('+scaleX+','+scaleY+')','important');\n\n  const sig=v.w+'x'+v.h+'@'+scaleX.toFixed(4)+'x'+scaleY.toFixed(4);\n  if(pc16LastFitV21_65!==sig){\n    pc16LastFitV21_65=sig;\n    stage.dataset.fit=sig;\n    stage.dataset.viewport=v.w+'x'+v.h;\n  }\n}\n",
+    "replacement": "function scaleStage(){window.cdqDesktopV2517.scale();}\n"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "function renderMain(){\n  const m=$('#pc16Main');",
+    "replacement": "function renderMain(){\n  if(window.cdqDesktopV2517){window.cdqDesktopV2517.render(st,pc17Bridge);return;}\n  const m=$('#pc16Main');"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "function renderKpis(){\n  const x=$('#pc16Kpis');",
+    "replacement": "function renderKpis(){\n  if(window.cdqDesktopV2517){window.cdqDesktopV2517.kpis();return;}\n  const x=$('#pc16Kpis');"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "function reportClientId(f){return String((st.client&&st.client.id)||(f&&f.clientId)||'')}",
+    "replacement": "function reportClientId(f){return String((f&&f.clientId)||(st.client&&st.client.id)||'')}"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "async function refreshReportListPC(force){\n  if(st.client)return loadClientReportsFast(st.client,!!force);",
+    "replacement": "async function refreshReportListPC(force){\n  if(st.view==='explorer'&&st.explorer.client)return loadExplorerFolder(st.explorer.folderId,st.explorer.client.id,!!force);\n  if(st.view==='home')return loadClients(!!force);\n  if(st.client)return loadClientReportsFast(st.client,!!force);"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "st.client=c;st.explorer.client=c;",
+    "replacement": "st.client=c;try{compagnieSelectionnee=c.id;nomCompagnieSelectionnee=c.nom;}catch(_){}st.explorer.client=c;"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "if(r&&r.id)await selectClient(r.id,true)",
+    "replacement": "if(r&&r.id)await openExplorerClient(r.id)"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "window.cdqIconThemesV2514 = {synchronize};",
+    "replacement": "window.cdqIconThemesV2514 = {synchronize,mount,choose,sprite,getStyle:()=>state.style};"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "    refreshChoices();\n  }\n  function accept(user, result, sequence)",
+    "replacement": "    refreshChoices();\n    document.dispatchEvent(new CustomEvent('cdq:icons-changed',{detail:{style:state.style}}));\n  }\n  function accept(user, result, sequence)"
+  },
+  {
+    "file": "Selector.html",
+    "op": "remove_script_id",
+    "id": "cdqPcV2244UpdateBannerJs"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "root.dataset.build='v22.47-plancher-app-resource';",
+    "replacement": "root.dataset.build='V25.17';"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "if(v)v.textContent='V22.47';",
+    "replacement": "if(v)v.textContent='V25.17';"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "version:'V22.47'",
+    "replacement": "version:'V25.17'"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "<span id=\"cdqPcUpdateVersionV2244\">V22.47</span>",
+    "replacement": "<span id=\"cdqPcUpdateVersionV2244\">V25.17</span>"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "const cid=st.client?st.client.id:f.clientId;if(!cid)",
+    "replacement": "const cid=reportClientId(f);if(!cid)"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "[[f.id],next,st.client?st.client.id:f.clientId||'']",
+    "replacement": "[[f.id],next,reportClientId(f)]"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "if(st.client&&st.client.id===cid)await loadClientReportsFast(st.client,true);await loadClients(false)",
+    "replacement": "st.pcSelectedFiles.delete(String(f.id));await refreshReportListPC(true);await loadClients(false)"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "if(st.client&&String(st.client.id)===String(dest.id))await loadClientReportsFast(st.client,true);",
+    "replacement": "if(st.client&&String(st.client.id)===String(dest.id))await refreshReportListPC(true);"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "String(c.nom||'').toLowerCase().includes(q)).slice(0,80)",
+    "replacement": "String(c.nom||'').toLowerCase().includes(q))"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "else if(a==='refresh'){loadClients(true);if(st.client)loadClient(st.client.id,true);toast('Actualisation Drive lancée.')}",
+    "replacement": "else if(a==='refresh'){loadClients(true);if(st.explorer.client)loadExplorerFolder(st.explorer.folderId,st.explorer.client.id,true);toast('Actualisation Drive lancée.')}"
+  }
+]

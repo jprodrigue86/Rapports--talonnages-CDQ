@@ -1,0 +1,21 @@
+name: Desktop workspace
+on:
+  push:
+    paths: ['bundles/balance-cdq/v25.17/**', 'pc/**', 'scripts/build-desktop-refresh.mjs', 'tests/desktop-workspace*', 'tests/helpers/desktop-workspace*', '.github/workflows/test-desktop-workspace.yml']
+  pull_request:
+    paths: ['bundles/balance-cdq/v25.17/**', 'pc/**', 'scripts/build-desktop-refresh.mjs', 'tests/desktop-workspace*', 'tests/helpers/desktop-workspace*', '.github/workflows/test-desktop-workspace.yml']
+permissions:
+  contents: read
+jobs:
+  desktop-workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-desktop-refresh.mjs && git diff --exit-code
+      - run: node --test tests/desktop-workspace.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/desktop-workspace-browser.test.mjs
