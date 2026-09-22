@@ -117,6 +117,30 @@ test('cleanup refuses a caller added to the fresh project after preparation',()=
   const {context}=cleanupContext(files,[{...files[1],source:'',remove:true}]);
   assert.throws(()=>context.buildUpdatedFileSet([...files,{name:'NewCaller',type:'SERVER_JS',source:'cdqTemplateEmbarque_("plancher")'}]),/encore utilisé/);
 });
+test('published update preserves installed model helpers and chunks still used by Code',async()=>{
+  const installed=new Map();
+  for(const version of ['v22.46','v22.91']){
+    const dir='bundles/balance-cdq/'+version+'/files/';
+    for(const name of fs.readdirSync(dir)){
+      if(!/^(CDQTemplates\.gs|CDQ_Model_plancher(?:_v2291)?_\d+\.html)$/.test(name))continue;
+      installed.set(name,{name:name.replace(/\.(gs|html)$/,''),type:name.endsWith('.gs')?'SERVER_JS':'HTML',source:fs.readFileSync(dir+name,'utf8')});
+    }
+  }
+  const files=[{name:'appsscript',type:'JSON',source:'{}'},
+    {name:'Code',type:'SERVER_JS',source:'function copier(){return cdqBlobEmbarque_("plancher");}\nfunction diagnostic(){throw new Error("CDQTemplates.gs est manquant.");}'},
+    ...installed.values(),{name:'ClientNotes',type:'HTML',source:'keep client content'}];
+  for(const path of ['bundles/balance-cdq/v25.10/manifest.json','bundles/balance-cdq/latest/manifest.json','bundles/balance-cdq/v25.10/Balance_CDQ_V25_10.cdq','bundles/balance-cdq/v25.10/Balance_CDQ_V25_10_R2.cdq']){
+    const manifest=JSON.parse(fs.readFileSync(path,'utf8'));
+    const staged=[{...files[1],source:files[1].source+'\n// unrelated update'}];
+    const {context,state}=cleanupContext(files,staged);
+    const removals=await context.prepareEmbeddedModelRemovals(manifest.removeFiles||[],staged,files);
+    removals.forEach(e=>state.pkg.set(e.type+':'+e.name.toLowerCase(),e));
+    const updated=context.buildUpdatedFileSet(files);
+    assert.equal(updated.length,files.length,path+' must retain installed files');
+    for(const original of files.slice(2))assert.deepEqual(updated.find(f=>f.name===original.name),original);
+    assert.equal(updated.find(f=>f.name==='Code').source,staged[0].source);
+  }
+});
 for(const healthy of [false,true])test(`production confirmation reflects the actual health check (${healthy})`,async()=>{
   const deployed={deploymentId:'production',deploymentConfig:{versionNumber:99}};
   const previous={deploymentId:'production',deploymentConfig:{versionNumber:98}};

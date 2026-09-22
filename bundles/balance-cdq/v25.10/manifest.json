@@ -3,7 +3,7 @@
   "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
   "version": "V25.10",
   "build": "2026.09.21-v25.10-display-document-cleanup",
-  "title": "Balance CDQ V25.10 — affichage, documents et modèle Drive",
+  "title": "Balance CDQ V25.10 — affichage et documents, modèles conservés",
   "requiresBuild": [
     "2026.09.21-v25.09-native-file-open-contract"
   ],
@@ -129,164 +129,14 @@
       "text": "<style id=\"cdqDisplayLayout\">\nhtml.android .container,html.mobile-device .container{box-sizing:border-box!important;}\nhtml.android #cdqTopDisplayButtonV2204,html.mobile-device #cdqTopDisplayButtonV2204{\n  flex-direction:column!important;gap:4px!important;min-width:0!important;\n}\nhtml.android #cdqTopDisplayButtonV2204>span:last-child,html.mobile-device #cdqTopDisplayButtonV2204>span:last-child{\n  white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;font-size:12px!important;\n}\n</style>\n<script id=\"cdqDocumentOpenJs\">\n(function () {\n  'use strict';\n  // All document entry points share the preferences shown in Settings.\n  function account() {\n    try { return String(localStorage.getItem('cdqDefaultGoogleAccountV2294') || '').trim().toLowerCase(); }\n    catch (_) { return ''; }\n  }\n  function reader() {\n    let value = 'ask';\n    try { value = localStorage.getItem('cdqPdfReaderPreferenceV1') || 'ask'; } catch (_) {}\n    return ['ask', 'cdq', 'ilovepdf', 'acrobat'].includes(value) ? value : 'ask';\n  }\n  function meta(id) {\n    const box = document.querySelector('.file-checkbox[data-file-id=\"' + id + '\"]');\n    const row = box && box.closest('.file-row');\n    if (row) return {name: row.dataset.fileName || '', type: row.dataset.fileType || '', modified: row.dataset.fileDate || ''};\n    try {\n      const m = typeof cdqDocumentMeta === 'function' ? cdqDocumentMeta(id) : null;\n      if (m) return {name: m.nom || m.name || '', type: m.type || '', modified: m.dateModification || ''};\n    } catch (_) {}\n    return {};\n  }\n  function kind(m) {\n    const type = String(m.type || '').toUpperCase();\n    if (type === 'PDF' || /\\.pdf$/i.test(m.name || '')) return 'pdf';\n    if (type.includes('SHEET')) return 'sheet';\n    if (type === 'TEXT' || type === 'TXT' || type === 'TEXT/PLAIN' || /\\.txt$/i.test(m.name || '')) return 'note';\n    return '';\n  }\n  function native() { return /BalanceCDQAndroid\\/\\d+(?:\\.\\d+)?/i.test(navigator.userAgent || ''); }\n  let lastOpen = {id: '', at: 0};\n  function open(id, requestedKind) {\n    id = String(id || '');\n    if (!/^[A-Za-z0-9_-]{10,200}$/.test(id)) return false;\n    const m = meta(id), type = requestedKind || kind(m);\n    if (!type || !native()) return false;\n    // Keep an explicitly selected CDQ reader on its established internal route.\n    if (type === 'pdf' && reader() === 'cdq') return false;\n    if (lastOpen.id === id && Date.now() - lastOpen.at < 800) return true;\n    lastOpen = {id: id, at: Date.now()};\n    try {\n      if (typeof utilisateurCourantRole !== 'undefined' && utilisateurCourantRole !== 'lecture') {\n        fichierOuvertPourModification = id;\n        sessionStorage.setItem('fichierEnModification', id);\n        sessionStorage.setItem('ancienneDateModification', m.modified || '');\n        sessionStorage.setItem('momentModification', String(Date.now()));\n      }\n    } catch (_) {}\n    const email = account();\n    const query = new URLSearchParams({\n      fileId: id,\n      name: String(m.name || (type === 'note' ? 'Note.txt' : 'Rapport.pdf')).slice(0, 180),\n      account: email,\n      accountMode: email ? 'default' : 'ask',\n      reader: type === 'pdf' ? reader() : 'system',\n      readOnly: typeof utilisateurCourantRole !== 'undefined' && utilisateurCourantRole === 'lecture' ? '1' : '0'\n    });\n    // No browser fallback: a failed native handoff must not open a Drive viewer.\n    const a = document.createElement('a');\n    a.href = 'intent://open?' + query.toString() + '#Intent;scheme=cdq' + type + ';package=ca.balancecdq.android;end';\n    a.target = '_top';\n    a.style.display = 'none';\n    document.body.appendChild(a);\n    a.click();\n    a.remove();\n    return true;\n  }\n  const legacy = window.modifierFichier;\n  window.modifierFichier = function (id) {\n    if (open(id)) return true;\n    return typeof legacy === 'function' ? legacy.apply(this, arguments) : false;\n  };\n  try { modifierFichier = window.modifierFichier; } catch (_) {}\n\n  // Buttons and offline lists can call these functions without clicking a row.\n  // Preserve their Promise contract and the explicit internal-reader route.\n  ['cdqOpenPdf', 'cdqV24OpenPdf', 'cdqOuvrirPdfCommeSheetV2275', 'cdqV19OpenOfflineSheet'].forEach(function (name) {\n    const previous = window[name];\n    if (typeof previous !== 'function') return;\n    window[name] = function (id) {\n      if (open(id, name === 'cdqV19OpenOfflineSheet' ? 'sheet' : 'pdf')) return Promise.resolve(true);\n      return previous.apply(this, arguments);\n    };\n  });\n\n  // The old PDF pointerup interceptor is removed from the package.\n  // A click opens a document; a drag/long press continues to select or swipe.\n  let pointer = null, suppressUntil = 0;\n  document.addEventListener('pointerdown', function (e) {\n    if (!e.target.closest || !e.target.closest('.file-row')) return;\n    pointer = {id: e.pointerId, x: e.clientX, y: e.clientY, at: Date.now(), moved: false};\n  }, true);\n  document.addEventListener('pointermove', function (e) {\n    if (pointer && pointer.id === e.pointerId && (Math.abs(e.clientX-pointer.x)>16 || Math.abs(e.clientY-pointer.y)>16)) pointer.moved = true;\n  }, true);\n  document.addEventListener('pointerup', function (e) {\n    if (!pointer || pointer.id !== e.pointerId) return;\n    const longPress = Math.max(300, Number(localStorage.getItem('cdqLongPressMs')) || 1000);\n    if (pointer.moved || Date.now()-pointer.at >= longPress) suppressUntil = Date.now()+700;\n    pointer = null;\n  }, true);\n  document.addEventListener('pointercancel', function () { pointer = null; suppressUntil = Date.now()+700; }, true);\n  window.addEventListener('click', function (e) {\n    if (!native() || !e.target.closest) return;\n    if (e.target.closest('button,a,input,select,textarea,label,.file-actions,[class*=\"swipe\"]')) return;\n    const row = e.target.closest('.file-row');\n    if (!row) return;\n    if (Date.now() < suppressUntil || row.classList.contains('cdq-swiped-left') || row.classList.contains('cdq-swiped-right')) {\n      e.preventDefault();\n      e.stopImmediatePropagation();\n      return;\n    }\n    if (document.body.classList.contains('selection-active') || (typeof modeSelectionFichiers !== 'undefined' && modeSelectionFichiers)) return;\n    const box = row.querySelector('.file-checkbox[data-file-id]');\n    if (!box || !open(box.dataset.fileId)) return;\n    e.preventDefault();\n    e.stopImmediatePropagation();\n  }, true);\n  window.cdqDocumentOpen = {open: open, account: account, reader: reader, kind: kind};\n})();\n\n</script>\n"
     }
   ],
-  "removeFiles": [
-    {
-      "name": "CDQ_Model_plancher_2.html",
-      "sha256": [
-        "78899b7d42dd176de2bef021290bd4181e7c26d9226b4b3dc676a1762c3dc857"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_6.html",
-      "sha256": [
-        "15116202192bb38984a4c34794b1830820eb69a63d86082f4cd2355cad2f5ca4"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_4.html",
-      "sha256": [
-        "f9b08d3dba46d5013cddce401e408aff9f9cfd06b2a5459a8baae2987cc23b7f"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_9.html",
-      "sha256": [
-        "3007b6b11bafb0a207b809e479b02e1bc8b216f1d42d9401ea2509b5a12467e0"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_3.html",
-      "sha256": [
-        "e350ab2cbc2ef583562a3dbe6f5e11a773a08ad7e3ec2d7178b1dd022e277819"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_1.html",
-      "sha256": [
-        "6382556480408f0a4de38022c6886fc5d62b944a8b747b0ed59dd343a15d489f"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_7.html",
-      "sha256": [
-        "9c002b12c9b86d6b7f37dd5551498041581d8b242ba848dde36b56a86c2e232a"
-      ]
-    },
-    {
-      "name": "CDQTemplates.gs",
-      "sha256": [
-        "b308d59e5ff5dc2edcbd0a847e43c74fdc41a076742e06a0ff9f39540dc5855f",
-        "341a13064c78dba5c6a75ec5bc076f2217bd952269ab3baa6cc331c964323c9e"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_10.html",
-      "sha256": [
-        "f90520e75beb7a4ae0de0489dfffe4a3db1a4ed57c8260cf66da8f55a9855201"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_0.html",
-      "sha256": [
-        "15081b4970d733abe1b105e64b5014480618665d320f187db06be23b07a436d6"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_5.html",
-      "sha256": [
-        "fc5aa46c97a1f242d7dfbc3904c5b640f6845ca6e3fc4579935cad4b720e3d14"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_8.html",
-      "sha256": [
-        "757b23e884aa1dc14b8470dce3e62c4928da63a3bf58b3340766110941d88e35"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_11.html",
-      "sha256": [
-        "ef7145e4f6556cfd6aee8a7db4ee3f6704ce452a9b130f889edde14c9121ef4e"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_0.html",
-      "sha256": [
-        "e99c58cbb7efac0eb365ce2573b29cbfa672923dbe84a3e528a147dd7b24c95e"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_3.html",
-      "sha256": [
-        "22cdd945c199b74a2287e4ce4c381a6238304771f9c83bb6b18d7adc792b9ff2"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_4.html",
-      "sha256": [
-        "41ac9a2e2cb6420c0932f4f4915139f8e6deb9c856aa0896caca051f24a1cfd2"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_7.html",
-      "sha256": [
-        "f2d89884fe8ddafafa60a9fb7be1ac2285426e004c0b471e4d4d0ea6aeb99d1e"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_8.html",
-      "sha256": [
-        "d5d1eece60a4b1cb0b62e95d27998315138a80ee68f1d4d2602e65e0b536684e"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_2.html",
-      "sha256": [
-        "89b35f423ed463340468257116db14e49dfdd7bc54ec260b423cfda848574cc5"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_12.html",
-      "sha256": [
-        "c7d67c8faf04f9605d926898b37623c0a1df9e2c56e608fbb957ef4f9bfa9a1a"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_5.html",
-      "sha256": [
-        "5a1ac35a2721a305d1413cba0a3405387afab83819cbeb6371375827b09cb82a"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_10.html",
-      "sha256": [
-        "54c9ad462872dae0218fb1c5286ef226518d44cc59fe615c3ef3a6729457b23c"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_9.html",
-      "sha256": [
-        "0b10961aef95301acdbff2175387a39f1483bbaf382533a70058e8bec914341f"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_1.html",
-      "sha256": [
-        "57cb4a333aae39fd5362fbfd407fc6520feef9092591a1fb7df3353fee2e5005"
-      ]
-    },
-    {
-      "name": "CDQ_Model_plancher_v2291_6.html",
-      "sha256": [
-        "4dba03338ef4e4bd76a633a47c95bca8f5dc17c424179d360478e1f3efbf1534"
-      ]
-    }
-  ],
+  "removeFiles": [],
   "audit": {
     "scriptManagerRequired": "V40",
     "androidAppRequired": "Balance CDQ Android 25.11",
     "productionVerified": false,
     "source": "V25.09 reconstructed from archived V22.26 and repository patches; live source is checked by Script Manager before writing.",
-    "modelSource": "Drive template 1Eyji-xHX69Wa0EQTx0nx-D8KEmfY_hhB; existing offline preparation retained."
+    "modelSource": "Drive template 1Eyji-xHX69Wa0EQTx0nx-D8KEmfY_hhB; existing offline preparation retained.",
+    "packageRevision": 2,
+    "modelCleanup": "Deferred: retain CDQTemplates and every installed model fragment because copy and diagnostic functions still reference them."
   }
 }
