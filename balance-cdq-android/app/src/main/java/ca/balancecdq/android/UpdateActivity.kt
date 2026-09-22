@@ -22,7 +22,7 @@ import java.net.URL
 import java.security.MessageDigest
 import java.util.concurrent.Executors
 
-class UpdateActivity : Activity() {
+open class UpdateActivity : Activity() {
     companion object {
         private const val MANIFEST_URL =
             "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/android-update.json"
@@ -36,13 +36,24 @@ class UpdateActivity : Activity() {
 
     private var downloadedApk: File? = null
     private var latestVersionName = ""
+    private var latestVersionCode = 0L
     private var forceInstall = false
 
     private var autoInstall = false
     private var installationIntentLaunched = false
+    private var waitingForInstallPermission = false
+
+    private val updatePolicy by lazy {
+        NativeUpdatePolicy(getSharedPreferences(NativeUpdatePolicy.PREFERENCES, MODE_PRIVATE))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installationIntentLaunched = savedInstanceState?.getBoolean("installationIntentLaunched") == true
+        if (installationIntentLaunched) {
+            finish()
+            return
+        }
         forceInstall = intent?.data?.getQueryParameter("force") == "1"
         autoInstall =
             intent?.getBooleanExtra("auto", false) == true ||
@@ -109,20 +120,29 @@ class UpdateActivity : Activity() {
         setContentView(root)
     }
 
-    private fun checkUpdate() {
+    protected open fun checkUpdate() {
         progress.visibility = ProgressBar.VISIBLE
         action.isEnabled = false
 
         executor.execute {
             try {
                 val json = fetchJson(MANIFEST_URL)
-                val latestCode = json.getInt("versionCode")
+                val latestCode = json.getLong("versionCode")
+                latestVersionCode = latestCode
                 latestVersionName = json.optString("versionName", latestCode.toString())
                 val apkUrl = json.getString("apkUrl")
                 val sha256 = json.getString("sha256").lowercase()
+                val installed = currentVersionCode()
+                val shouldPrepare = NativeUpdatePolicy.shouldPrepare(installed, latestCode, autoInstall, forceInstall)
+
+                if (autoInstall && shouldPrepare && !updatePolicy.claimAutomaticPrompt(installed, latestCode)) {
+                    runOnUiThread { finish() }
+                    return@execute
+                }
 
                 runOnUiThread {
-                    if (latestCode.toLong() <= currentVersionCode() && !forceInstall) {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    if (!shouldPrepare) {
                         progress.visibility = ProgressBar.GONE
                         status.text =
                             "Balance CDQ Android est à jour.\nVersion installée : ${currentVersionName()}"
@@ -130,9 +150,11 @@ class UpdateActivity : Activity() {
                             action.isEnabled = false
                             action.text = "À jour"
                             windowFinishSoon()
-                        } else {
+                        } else if (latestCode == installed) {
                             action.text = "Réinstaller cette version"
                             action.isEnabled = true
+                        } else {
+                            action.text = "À jour"
                         }
                     } else {
                         status.text =
@@ -145,16 +167,18 @@ class UpdateActivity : Activity() {
                     }
                 }
 
-                if (latestCode.toLong() > currentVersionCode() || forceInstall) {
+                if (shouldPrepare && !isFinishing && !isDestroyed) {
                     val apk = downloadApk(apkUrl)
                     val actual = sha256(apk)
                     if (!actual.equals(sha256, ignoreCase = true)) {
                         apk.delete()
                         throw IllegalStateException("La vérification de sécurité de l’APK a échoué.")
                     }
+                    validateApkVersion(apk, latestCode)
 
                     downloadedApk = apk
                     runOnUiThread {
+                        if (isFinishing || isDestroyed) return@runOnUiThread
                         progress.visibility = ProgressBar.GONE
                         status.text =
                             if (autoInstall) {
@@ -171,6 +195,7 @@ class UpdateActivity : Activity() {
                 }
             } catch (e: Exception) {
                 runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
                     progress.visibility = ProgressBar.GONE
                     status.text = e.message ?: "Impossible de vérifier la mise à jour Android."
                     action.isEnabled = false
@@ -180,7 +205,7 @@ class UpdateActivity : Activity() {
     }
 
     private fun beginInstallFlow() {
-        if (installationIntentLaunched) return
+        if (installationIntentLaunched || isFinishing || isDestroyed) return
         val apk = downloadedApk
         if (apk == null) {
             forceInstall = true
@@ -191,12 +216,17 @@ class UpdateActivity : Activity() {
             return
         }
 
+        if (!NativeUpdatePolicy.shouldPrepare(currentVersionCode(), latestVersionCode, autoInstall, forceInstall)) {
+            finish()
+            return
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             !packageManager.canRequestPackageInstalls()
         ) {
             Toast.makeText(
                 this,
-                "Autorisez une seule fois Balance CDQ à installer ses mises à jour. Ensuite, l’application les préparera automatiquement à chaque ouverture.",
+                "Autorisez Balance CDQ à installer cette mise à jour, puis revenez dans l’application.",
                 Toast.LENGTH_LONG
             ).show()
 
@@ -204,6 +234,7 @@ class UpdateActivity : Activity() {
                 Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                 Uri.parse("package:$packageName")
             )
+            waitingForInstallPermission = true
             startActivity(intent)
             return
         }
@@ -213,13 +244,14 @@ class UpdateActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        val apk = downloadedApk ?: return
-        if (installationIntentLaunched) return
+        if (!waitingForInstallPermission || installationIntentLaunched) return
+        waitingForInstallPermission = false
+        if (downloadedApk == null) return
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
             packageManager.canRequestPackageInstalls()
         ) {
-            if (action.isEnabled && autoInstall) {
+            if (action.isEnabled) {
                 beginInstallFlow()
             }
         }
@@ -241,6 +273,9 @@ class UpdateActivity : Activity() {
             }
 
             startActivity(intent)
+            // Do not leave an updater Activity behind Android's confirmation.
+            // Cancel/Back must return to Balance CDQ, not an auto-install screen.
+            finish()
         } catch (e: Exception) {
             installationIntentLaunched = false
             Toast.makeText(
@@ -248,6 +283,26 @@ class UpdateActivity : Activity() {
                 e.message ?: "Impossible de lancer l’installation.",
                 Toast.LENGTH_LONG
             ).show()
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("installationIntentLaunched", installationIntentLaunched)
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun validateApkVersion(apk: File, expected: Long) {
+        val archive = packageManager.getPackageArchiveInfo(apk.absolutePath, 0)
+            ?: throw IllegalStateException("Le fichier reçu n’est pas une APK valide.")
+        val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            archive.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            archive.versionCode.toLong()
+        }
+        if (archive.packageName != packageName || code != expected) {
+            apk.delete()
+            throw IllegalStateException("La version de l’APK ne correspond pas à la mise à jour annoncée.")
         }
     }
 
@@ -274,8 +329,7 @@ class UpdateActivity : Activity() {
 
     private fun downloadApk(url: String): File {
         val dir = File(cacheDir, "updates").apply { mkdirs() }
-        val out = File(dir, "Balance-CDQ-Android-update.apk")
-        if (out.exists()) out.delete()
+        val out = File.createTempFile("Balance-CDQ-Android-update-", ".apk", dir)
 
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 15000
@@ -294,6 +348,9 @@ class UpdateActivity : Activity() {
                     var read: Int
                     var done = 0L
                     while (input.read(buffer).also { read = it } >= 0) {
+                        if (Thread.currentThread().isInterrupted || isFinishing || isDestroyed) {
+                            throw InterruptedException("Téléchargement interrompu.")
+                        }
                         if (read == 0) continue
                         output.write(buffer, 0, read)
                         done += read
@@ -301,6 +358,7 @@ class UpdateActivity : Activity() {
                         if (total > 0L) {
                             val pct = ((done * 100L) / total).toInt().coerceIn(0, 100)
                             runOnUiThread {
+                                if (isFinishing || isDestroyed) return@runOnUiThread
                                 status.text =
                                     "Téléchargement Balance CDQ Android $latestVersionName… $pct %"
                             }
