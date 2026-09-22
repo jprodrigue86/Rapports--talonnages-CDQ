@@ -123,7 +123,7 @@
     const dialog=document.createElement('dialog');dialog.className='pc18-report-dialog';
     dialog.innerHTML='<h2>Nouveau rapport</h2><p>Choisis le type de balance pour ce client.</p><div class="pc18-models">'+[['camion','Balance à camion'],['precision','Balance de précision'],['plancher','Balance de plancher'],['intermediaire','Autres balances intermédiaires'],['multitete','Balance multi-tête']].map(([id,name])=>`<button type="button" data-model="${id}">${esc(name)}</button>`).join('')+'</div><button type="button" class="pc18-cancel">Annuler</button>';
     document.body.append(dialog);dialog.showModal();$('.pc18-cancel',dialog).onclick=()=>dialog.close();dialog.onclose=()=>dialog.remove();
-    $$('[data-model]',dialog).forEach(b=>b.onclick=()=>{dialog.close();api.startModel(b.dataset.model)});
+    $$('[data-model]',dialog).forEach(b=>b.onclick=()=>{dialog.close();state.client=state.explorer.client;api.startModel(b.dataset.model)});
   }
   function showFileMenu(f,anchor){
     $('.pc17-menu')?.remove();const menu=document.createElement('div');menu.className='pc17-menu';menu.setAttribute('role','menu');

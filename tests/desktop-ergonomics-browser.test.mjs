@@ -12,6 +12,7 @@ try{
  if(process.env.CDQ_SELECTOR_SOURCE)assert.equal(await page.evaluate(()=>completed.includes('obtenirRapportsRecentsPC')),false,'clients ready while recent files still loading');
  assert.equal(await page.$('[data-view="models"]'),null);assert.equal(await page.$$eval('button',es=>es.some(e=>e.textContent.includes('Importer'))),false);
  await page.click('[data-client="c0"] .pc17-open-client');await page.waitForSelector('[data-file="f95"]');assert.ok(await page.$('#pc18NewReport'));assert.equal(await page.$('#pc17Multi'),null);assert.equal(await page.$('#pc17BackClients'),null);
+ await page.click('[data-view="clients"]');await page.click('[data-client="c1"] b');await page.click('[data-view="reports"]');
  await page.click('#pc18NewReport');await page.click('[data-model="multitete"]');assert.equal(await page.evaluate(()=>calls.at(-1).args[0]),'multitete');
  if(process.env.CDQ_SELECTOR_SOURCE)assert.equal(await page.evaluate(()=>calls.at(-1).args[1]),'c0');
  const row='[data-file="f0"] b';let box=await page.$eval(row,e=>{const r=e.getBoundingClientRect();return{x:r.x+10,y:r.y+8}});
