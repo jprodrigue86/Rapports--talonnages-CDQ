@@ -5,6 +5,8 @@ on:
     paths:
       - 'bundles/balance-cdq/v25.11/**'
       - 'tests/mobile-layout.test.mjs'
+      - 'tests/fixtures/**'
+      - 'tests/helpers/**'
       - '.github/workflows/test-mobile-layout.yml'
 jobs:
   phone-layout:

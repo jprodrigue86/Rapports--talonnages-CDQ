@@ -3,10 +3,10 @@ import fs from 'node:fs';
 import http from 'node:http';
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
+import {buildDisplayControls} from './helpers/settings-fixture.mjs';
 const script = fs.readFileSync('bundles/balance-cdq/v25.11/mobile-layout.js', 'utf8');
 const css = fs.readFileSync('bundles/balance-cdq/v25.11/mobile-layout.css', 'utf8');
-const manifest = JSON.parse(fs.readFileSync('bundles/balance-cdq/v25.11/manifest.json'));
-const displayControls = manifest.patches.find(p=>p.replacement?.startsWith('function cdqOpenDisplaySettings(){')).replacement;
+const displayControls = buildDisplayControls();
 const fixture = `<!doctype html><html class="android"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>
 *{box-sizing:border-box}body{margin:0;background:#07131d;color:white;font:14px Arial}.bottom-nav{position:fixed;bottom:0;width:100%;display:grid;height:78px!important;background:#123;border:1px solid #456}.bottom-nav-item{display:flex;flex-direction:column;align-items:center;color:white;border:1px solid #367;background:#123}.bottom-nav-item>span{height:32px!important;min-height:32px!important}#cdqTopActionsV2204{display:grid;grid-template-columns:repeat(4,1fr)}.cdq-top-action{display:flex;flex-direction:column;align-items:center}.modal-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0008}.modal{background:#102536;border:1px solid #456}.cdq-ui-scale-box{padding:5px}.modal-buttons{display:flex}.modal-buttons button{flex:1}button{color:white;background:#18384b;border:1px solid #567}
 </style><style>${css}</style></head><body>
