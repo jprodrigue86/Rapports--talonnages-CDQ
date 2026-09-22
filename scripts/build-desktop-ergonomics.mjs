@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(p,'utf8'),folder='bundles/balance-cdq/v25.18';
+const base=JSON.parse(read('bundles/balance-cdq/v25.17/manifest.json'));
+const build='2026.09.23-v25.18-pc-ergonomie-performance';
+const patches=['Code.gs','Selector.html'].map(file=>({file,op:'replace_build_any',from:[base.build],to:build}));
+for(const ext of ['js','css'])patches.push({file:'Selector.html',op:'replace_literal',search:read(`bundles/balance-cdq/v25.17/desktop.${ext}`),replacement:read(`${folder}/desktop.${ext}`)});
+patches.push(...JSON.parse(read(`${folder}/integration-patches.json`)));
+const result={schema:base.schema,projectScriptId:base.projectScriptId,version:'V25.18',build,title:'Balance CDQ V25.18 — PC lisible et plus rapide',requiresBuild:[base.build],patches,removeFiles:[],audit:{scriptManagerRequired:'V40',androidAppRequired:'APK Android 25.15 conservée',scope:'Menus simplifiés, nouveau rapport dans Rapports, sélection par clic maintenu 700 ms, textes et icônes agrandis, réglages PC unifiés; chargements progressifs et téléchargements directs.',preservation:'Authentification, droits Drive, données et modèles PDF conservés. Cache par compte; aucune suppression de fichiers clients.',validation:'Intégration au Selector réel, tests navigateur des interactions et tests des accès/chargements avec données simulées.'}};
+for(const name of ['manifest.json','Balance_CDQ_V25_18.cdq'])fs.writeFileSync(`${folder}/${name}`,JSON.stringify(result,null,2)+'\n');
+console.log(`Built ${result.version}, ${patches.length} patches`);
