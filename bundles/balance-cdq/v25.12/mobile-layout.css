@@ -1,0 +1,44 @@
+#cdqSettingsModalV2294 .modal{width:calc(100vw - 16px)!important;max-width:580px!important;max-height:calc(100dvh - 24px)!important;display:flex!important;flex-direction:column!important;padding:12px!important;overflow:hidden!important;border-radius:14px!important}
+#cdqSettingsModalV2294 .cdq-modal-title{font-size:18px!important;margin:0 0 10px!important}
+#cdqSettingsModalV2294 .cdq-modal-body{min-height:0!important;overflow:hidden!important;display:flex!important}
+#cdqSettingsModalV2294 .cdq-settings-v2294{width:100%;min-height:0;display:flex;flex-direction:column;gap:10px;padding:0}
+#cdqSettingsModalV2294 .cdq-settings-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;flex-shrink:0}
+#cdqSettingsModalV2294 .cdq-settings-tabs button{min-width:0;min-height:40px;font-size:12px!important;line-height:1.2!important;padding:6px!important;border:1px solid #31516a;border-radius:8px;background:#0b1c2b;color:#c9deeb}
+#cdqSettingsModalV2294 .cdq-settings-tabs button[aria-selected=true]{background:#0b597f;color:white;border-color:#46c7ff}
+#cdqSettingsModalV2294 .cdq-settings-panel{overflow:auto;overscroll-behavior:contain;min-height:0;padding:0 2px 8px;touch-action:pan-y}
+#cdqSettingsModalV2294 [hidden]{display:none!important}
+#cdqSettingsModalV2294 .cdq-display-group,#cdqSettingsModalV2294 .cdq-settings-card-v2294{margin:0 0 10px!important;padding:10px!important;border-radius:10px!important}
+#cdqSettingsModalV2294 .cdq-display-label{font-size:14px!important;margin-bottom:8px!important}
+#cdqSettingsModalV2294 .cdq-ui-scale-head,#cdqSettingsModalV2294 .cdq-setting-row{font-size:13px!important}
+#cdqSettingsModalV2294 .cdq-ui-scale-note,#cdqSettingsModalV2294 .cdq-v20-note{font-size:12px!important;line-height:1.4!important}
+#cdqSettingsModalV2294 input[type=range]{width:100%!important;height:32px!important;margin:4px 0!important;touch-action:pan-x}
+#cdqSettingsModalV2294 .cdq-ui-scale-ticks{font-size:10px!important}
+#cdqSettingsModalV2294 .cdq-phone-preset{width:100%;min-height:44px;margin-bottom:10px;border:1px solid #2b99c9;border-radius:10px;background:#123c50;color:#fff;font-size:13px!important}
+#cdqSettingsModalV2294 .cdq-setting-buttons,#cdqSettingsModalV2294 .cdq-theme-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+#cdqSettingsModalV2294 .cdq-setting-buttons button,#cdqSettingsModalV2294 .cdq-theme-grid button{min-height:40px!important;padding:7px!important;font-size:12px!important;white-space:normal!important}
+#cdqSettingsModalV2294 .modal-buttons{flex-shrink:0;margin-top:8px!important}
+#cdqSettingsModalV2294 .modal-buttons button{min-height:40px!important;font-size:13px!important}
+#cdqSettingsModalV2294 .cdq-settings-email-v2294{font-size:14px!important}
+html.cdq-mobile-layout .file-row{touch-action:pan-y pinch-zoom}
+html.cdq-mobile-layout #cdqTopActionsV2204,html.cdq-mobile-layout .quick-buttons{gap:5px!important;margin-top:7px!important;margin-bottom:7px!important}
+/* One phone baseline, with space for the Android edge-to-edge system bars. */
+html.cdq-mobile-layout{--cdq-safe-top:env(safe-area-inset-top,0px);--cdq-safe-bottom:env(safe-area-inset-bottom,0px)}
+html.cdq-mobile-layout.cdq-native-edge{--cdq-safe-top:max(24px,env(safe-area-inset-top,0px));--cdq-safe-bottom:max(24px,env(safe-area-inset-bottom,0px))}
+html.cdq-mobile-layout .container{padding-top:0!important;padding-bottom:10px!important}
+html.cdq-mobile-layout .bottom-nav{box-sizing:border-box!important;z-index:1000!important}
+html.cdq-mobile-layout .file-info{min-width:0!important;flex:1 1 0!important}
+html.cdq-mobile-layout .file-date{white-space:normal!important;overflow-wrap:anywhere!important}
+html.cdq-mobile-layout .folder-header{gap:8px!important}
+html.cdq-mobile-layout .folder-name{min-width:0!important;flex:1 1 0!important}
+html.cdq-mobile-layout #clientInfoBar{padding:8px 10px!important;margin:7px 0!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294{padding:calc(8px + var(--cdq-safe-top)) 8px calc(8px + var(--cdq-safe-bottom))!important;box-sizing:border-box!important;z-index:100000!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .modal{box-sizing:border-box!important;width:100%!important;max-height:calc(100dvh - 16px - var(--cdq-safe-top) - var(--cdq-safe-bottom))!important;margin:0!important;padding:10px!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .cdq-modal-title{flex:0 0 auto!important;font-size:17px!important;margin-bottom:8px!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .cdq-modal-body{flex:1 1 auto!important;padding:0!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .cdq-settings-v2294{gap:8px!important;overflow:hidden!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .cdq-settings-panel{flex:1 1 auto!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .cdq-ui-scale-box{padding:10px!important;margin-bottom:10px!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .cdq-ui-scale-head strong{font-size:14px!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .cdq-phone-preset{font-size:12px!important;min-height:42px!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .modal-buttons{flex:0 0 auto!important;margin:8px 0 0!important;padding:0!important}
+html.cdq-mobile-layout #cdqSettingsModalV2294 .modal-buttons button{min-height:44px!important;width:100%!important}
