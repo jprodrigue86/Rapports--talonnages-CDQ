@@ -32,7 +32,9 @@ subprocess.run([
     "java", "-jar", str(args.apksigner), "sign",
     "--ks", str(args.keystore), "--ks-key-alias", identity["alias"],
     "--ks-pass", "file:" + str(args.password_file),
-    "--key-pass", "file:" + str(args.password_file),
+    # PKCS12 uses the store password for its key. Reusing the same password
+    # file for --key-pass would consume a second (missing) line.
+    "--debuggable-apk-permitted", "false", "--alignment-preserved", "true",
     "--v1-signing-enabled", "false", "--v2-signing-enabled", "true",
     "--v3-signing-enabled", "true", "--v4-signing-enabled", "false",
     "--out", str(args.output), str(args.input),
