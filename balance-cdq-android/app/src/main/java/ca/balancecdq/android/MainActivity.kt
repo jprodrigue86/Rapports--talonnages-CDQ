@@ -30,7 +30,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
         private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.12"
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.13"
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
         private const val UPDATE_MANIFEST_URL =
@@ -116,7 +116,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.12"
+                settings.userAgentString + " BalanceCDQAndroid/25.13"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -492,9 +492,13 @@ class MainActivity : Activity() {
 
                 val json = JSONObject(body)
                 val latestCode = json.optLong("versionCode", 0L)
-                if (latestCode <= currentVersionCodeForUpdate()) return@execute
+                val updatePolicy = NativeUpdatePolicy(
+                    getSharedPreferences(NativeUpdatePolicy.PREFERENCES, MODE_PRIVATE)
+                )
+                if (!updatePolicy.mayPromptAutomatically(currentVersionCodeForUpdate(), latestCode)) return@execute
 
                 runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
                     try {
                         startActivity(
                             Intent(this, UpdateActivity::class.java)

@@ -106,7 +106,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.12
+          name: Balance-CDQ-Android-25.13
           path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
