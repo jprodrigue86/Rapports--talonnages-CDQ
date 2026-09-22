@@ -2,6 +2,8 @@
 
 Correctif préparé le 21 septembre 2026 pour l'affichage, les documents et le modèle de balance de plancher. Le fonctionnement sur le téléphone et le déploiement Apps Script restent à confirmer.
 
+Révision 2 du package, 22 septembre 2026 : le blocage « Le modèle CDQTemplates est encore référencé par Code » est corrigé en conservant le chargeur et tous les fragments de modèles installés. Des fonctions de copie et de diagnostic les référencent encore. Le package ne demande plus leur suppression; les contrôles du Manager restent actifs. Les correctifs du logo et des documents sont inchangés. Aucune nouvelle APK n'est requise pour cette correction du package.
+
 ## Problèmes identifiés et corrections
 
 | Problème | Correction préparée |
@@ -12,7 +14,7 @@ Correctif préparé le 21 septembre 2026 pour l'affichage, les documents et le m
 | Ancien compte réutilisé après effacement du défaut | Lecture du réglage visible V22.94 uniquement, sans déduction à partir du compte connecté. Retrait de la seconde carte de compte Android. |
 | Choix du lecteur trop tardif | Choix du compte, puis du lecteur, avant l'autorisation Drive et la récupération du document. Les défauts explicites sautent les choix correspondants. |
 | Ancien modèle de plancher prioritaire | Utilisation du modèle Drive existant; maintien du mécanisme de préparation hors ligne. |
-| Multiples fichiers de modèle dans Apps Script | Retrait conditionnel de 24 fragments connus et de leur chargeur, selon leur présence et leur SHA-256. Aucun document client concerné. |
+| Chargeur et fragments de modèles encore référencés | Conservation de CDQTemplates et de tous les fragments présents. Le nettoyage est reporté; aucun fichier du projet n'est supprimé par ce package. |
 | Risque d'écraser une modification récente | Manager relit le projet et bloque les écritures si un fichier ciblé a changé; sauvegarde complète avant écriture et vérification après. |
 | Réglages qui réécrivent continuellement leur DOM | Mise à jour des boutons uniquement lorsque leur contenu change. Retrait d'un bloc CSS strictement dupliqué. |
 | Confirmation de production trompeuse | Une vérification web échouée reste signalée comme en attente; le Manager ne la remplace plus par une confirmation verte. |
@@ -24,19 +26,22 @@ Correctif préparé le 21 septembre 2026 pour l'affichage, les documents et le m
 - Tests du résultat de déploiement : confirmation Google avec vérification de production réussie ou échouée; le statut final reflète le contrôle réel.
 - Les 21 correctifs ont été appliqués avec le moteur réel du Manager sur une reconstruction V25.09; `Code.gs` et les 40 scripts JavaScript intégrés résultants passent l'analyse syntaxique.
 - Les sources privées complètes restent hors du dépôt. La reconstruction provient de l'export V22.26 archivé et des correctifs du dépôt; elle ne prouve pas l'état du projet actuellement déployé.
-- Les boutons d'ouverture et les listes sans ligne visible passent aussi par le parcours commun, avec conservation du lecteur CDQ explicitement choisi. Seize tests de routage et de protection réussissent après cette extension.
+- Les boutons d'ouverture et les listes sans ligne visible passent aussi par le parcours commun, avec conservation du lecteur CDQ explicitement choisi. Dix-sept tests de routage et de protection réussissent avec la régression de la révision 2.
 - Le fichier `Balance_CDQ_V25_10.cdq` contient le même correctif que le lien direct. Script Manager V40 accepte son import ou son texte collé et applique les mêmes contrôles de projet, de version et d'empreintes.
+- Régression reproduite avec le chargeur et les fragments réellement archivés : l'ancien package produit exactement le message de la capture. La révision 2 permet de préparer les modifications et conserve tous les fichiers existants; le contrôle des références n'est pas désactivé. Le moteur réel du Manager a aussi été exécuté sur la reconstruction complète de 28 fichiers : Code et Selector modifiés, zéro suppression, 25 fichiers de modèles inchangés, syntaxe de Code et des 40 scripts intégrés valide.
 
 ## Charger le correctif
 
 Ouvrir [Script Manager avec V25.10](https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/?bundle=v25.10), charger le projet puis utiliser **ÉCRIRE + DÉPLOYER**. Le package est préparé automatiquement. Autre possibilité : importer `Balance_CDQ_V25_10.cdq`, ou coller son contenu dans Package CDQ et utiliser **Préparer les modifications**.
+
+Pour remplacer explicitement le premier téléchargement, utiliser `Balance_CDQ_V25_10_R2.cdq`, identique au manifeste corrigé et au fichier canonique.
 
 L'icône et les ouvertures natives font partie d'Android 25.11. Installer aussi cette mise à jour depuis la [page Android habituelle](https://jprodrigue86.github.io/Rapports--talonnages-CDQ/balance-cdq-android.html). Le package Apps Script seul ne modifie pas les ressources de l'APK.
 
 ## Conditions avant utilisation
 
 1. Compiler et installer Android 25.11, puis vérifier le logo et l'écran de démarrage sur le téléphone. Les deux captures reçues confirment un logo coupé dans l'icône d'accueil et un petit logo dans un large cadre blanc au démarrage. Le correctif conserve le PNG original, protège le cadrage de l'icône adaptative et utilise une ressource de démarrage distincte avec un fond d'icône transparent sur la fenêtre sombre.
-2. Ouvrir Script Manager V40 et charger le vrai projet. Le package accepte seulement la base V25.09. Les recherches littérales et empreintes doivent correspondre; tout écart bloque l'opération.
+2. Ouvrir Script Manager V40 et charger le vrai projet. Le package accepte seulement la base V25.09. Les recherches littérales doivent correspondre; tout écart bloque l'opération. Le chargeur et les fragments de modèles sont conservés.
 3. Vérifier le modèle Drive `1Eyji-xHX69Wa0EQTx0nx-D8KEmfY_hhB`, puis appliquer le package avec sauvegarde et mettre à jour le déploiement existant.
 4. Sur le téléphone, tester les valeurs 0/50/100 des trois curseurs et le retour à 50, les quatre combinaisons compte/lecteur, deux comptes Google, une note TXT, un Sheet, puis le retour d'une modification PDF.
 
