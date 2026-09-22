@@ -59,7 +59,7 @@ jobs:
 
       - name: Build APK
         working-directory: balance-cdq-android
-        run: gradle --no-daemon clean :app:assembleDebug
+        run: gradle --no-daemon clean :app:testDebugUnitTest :app:assembleDebug
 
       - name: Validate APK
         shell: bash
@@ -106,7 +106,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.11
+          name: Balance-CDQ-Android-25.12
           path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7

@@ -15,6 +15,7 @@ import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.AuthorizationResult
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.Scope
+import com.google.android.gms.common.api.ApiException
 import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
@@ -38,15 +39,10 @@ open class DriveDocumentActivity : Activity() {
         private const val ACROBAT_PACKAGE = "com.adobe.reader"
     }
 
-    private data class PdfMeta(
-        val name: String,
-        val size: Long,
-        val modifiedTime: String
-    )
-
     private data class PdfApp(
         val label: String,
-        val packageName: String
+        val packageName: String,
+        val importOnly: Boolean = false
     )
 
     private val executor = Executors.newSingleThreadExecutor()
@@ -59,13 +55,19 @@ open class DriveDocumentActivity : Activity() {
     private var readOnly = false
     private var accountMode = "auto"
     private var readerHint = "ask"
-    private var selectedFromPicker = false
-    private var authorizationFallbackTried = false
     private var currentToken = ""
     private var selectedReader: PdfApp? = null
     private var localPdf: File? = null
     private var hashBeforeEdit = ""
     private var syncing = false
+    private var authorizationStarted = false
+    private var pendingAuthorization: PendingIntent? = null
+    private var opening = false
+    private var cacheRecordKey = ""
+    private var importCopy = false
+    private var pendingEdits = false
+    private var statusDialog: AlertDialog? = null
+    private var readerDialog: AlertDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -111,6 +113,11 @@ open class DriveDocumentActivity : Activity() {
         localPdf = null
         hashBeforeEdit = ""
         syncing = false
+        authorizationStarted = false
+        pendingAuthorization = null
+        opening = false
+        importCopy = false
+        pendingEdits = false
     }
 
     private fun parseIntent(source: Intent) {
@@ -130,8 +137,6 @@ open class DriveDocumentActivity : Activity() {
             readerHint in setOf("ask", "ilovepdf", "acrobat", "cdq", "system", "")
 
     private fun prepareAccount() {
-        selectedFromPicker = false
-        authorizationFallbackTried = false
 
         // "ask" signifie qu'aucun compte par défaut n'est configuré dans
         // Balance CDQ. Le sélecteur doit donc apparaître à CHAQUE ouverture.
@@ -177,13 +182,28 @@ open class DriveDocumentActivity : Activity() {
 
     private fun accountChosen(email: String) {
         sessionEmail = email
-        // The account and reader choices are UI-only. Do not wait for Drive
-        // authorization or metadata before displaying the application list.
-        if (selectedReader == null) chooseReaderBeforeDownload() else authorizeSelectedAccount()
+        // A cached Google grant is obtained while the user selects a reader.
+        // Interactive consent is deferred until the chooser has closed.
+        authorizeSelectedAccount()
+        if (selectedReader == null) chooseReaderBeforeDownload() else continueOpening()
     }
 
     private fun authorizeSelectedAccount() {
+        if (authorizationStarted) { continueOpening(); return }
+        authorizationStarted = true
         authorize(android.accounts.Account(sessionEmail, DefaultGoogleAccountStore.GOOGLE_ACCOUNT_TYPE))
+    }
+
+    private fun continueOpening() {
+        if (selectedReader == null || isFinishing || isDestroyed) return
+        val consent = pendingAuthorization
+        if (consent != null) {
+            pendingAuthorization = null
+            launchAuthorization(consent)
+        } else if (currentToken.isNotBlank()) {
+            if (pendingEdits && localPdf != null) syncEditedPdf()
+            else if (!opening) downloadAndOpen()
+        }
     }
 
     private fun authorize(account: android.accounts.Account) {
@@ -195,18 +215,18 @@ open class DriveDocumentActivity : Activity() {
         authClient.authorize(request)
             .addOnSuccessListener { result ->
                 if (result.hasResolution()) {
-                    launchAuthorization(result.pendingIntent)
+                    pendingAuthorization = result.pendingIntent
+                    continueOpening()
                 } else {
                     consumeAuthorization(result)
                 }
             }
             .addOnFailureListener { error ->
-                if (!selectedFromPicker && !authorizationFallbackTried) {
-                    authorizationFallbackTried = true
-                    chooseAccount()
-                } else {
-                    fail(error.message ?: "Impossible d’autoriser Google Drive.")
-                }
+                authorizationStarted = false
+                val detail = if (error is ApiException && error.statusCode == 10)
+                    "La configuration Google de l’application Android ne permet pas l’accès Drive (code 10). Le client OAuth Android doit correspondre au nom ca.balancecdq.android et à la signature de cet APK."
+                else "Google Drive n’a pas autorisé le compte $sessionEmail. " + (error.message ?: "Réessayez la connexion.")
+                fail(detail, allowDrive = true)
             }
     }
 
@@ -247,7 +267,6 @@ open class DriveDocumentActivity : Activity() {
                     return
                 }
 
-                selectedFromPicker = true
                 if (accountMode != "ask") {
                     DefaultGoogleAccountStore.save(this, email)
                 }
@@ -283,7 +302,7 @@ open class DriveDocumentActivity : Activity() {
         }
 
         currentToken = token
-        downloadAndOpen()
+        continueOpening()
     }
 
     private fun chooseReaderBeforeDownload() {
@@ -350,50 +369,27 @@ open class DriveDocumentActivity : Activity() {
     }
 
     private fun availablePdfApps(): List<PdfApp> {
-        val seen = LinkedHashSet<String>()
-        val apps = ArrayList<PdfApp>()
-
-        fun addFrom(action: String) {
-            val probe = Intent(action).apply {
-                setDataAndType(Uri.parse("content://$packageName.updatefiles/probe/document$documentExtension"), documentMime)
-                addCategory(Intent.CATEGORY_DEFAULT)
-            }
-
-            packageManager.queryIntentActivities(
-                probe,
-                PackageManager.MATCH_DEFAULT_ONLY
-            ).forEach { info ->
+        val apps = LinkedHashMap<String, PdfApp>()
+        val uri = Uri.parse("content://$packageName.updatefiles/probe/document$documentExtension")
+        for (probe in DocumentIntents.candidates(uri, documentMime, readOnly)) {
+            packageManager.queryIntentActivities(probe, PackageManager.MATCH_DEFAULT_ONLY).forEach { info ->
                 val pkg = info.activityInfo?.packageName.orEmpty()
-                if (pkg.isBlank() || pkg == packageName || !seen.add(pkg)) return@forEach
-
-                val label = try {
-                    info.loadLabel(packageManager)?.toString().orEmpty().ifBlank { pkg }
-                } catch (_: Exception) {
-                    pkg
-                }
-
-                apps.add(PdfApp(label, pkg))
+                if (pkg.isBlank() || pkg == packageName || apps.containsKey(pkg)) return@forEach
+                // Generic share targets (mail, messaging, storage) are not PDF readers.
+                if (DocumentIntents.importsCopy(probe) && pkg !in setOf(ILOVEPDF_PACKAGE, ACROBAT_PACKAGE)) return@forEach
+                val label = try { info.loadLabel(packageManager).toString().ifBlank { pkg } } catch (_: Exception) { pkg }
+                apps[pkg] = PdfApp(label, pkg, DocumentIntents.importsCopy(probe))
             }
         }
-
-        if (!readOnly) addFrom(Intent.ACTION_EDIT)
-        addFrom(Intent.ACTION_VIEW)
-
-        return apps.sortedWith(
-            compareBy<PdfApp> {
-                when (it.packageName) {
-                    ILOVEPDF_PACKAGE -> 0
-                    ACROBAT_PACKAGE -> 1
-                    else -> 2
-                }
-            }.thenBy { it.label.lowercase() }
-        )
+        return apps.values.sortedWith(compareBy<PdfApp> {
+            when (it.packageName) { ILOVEPDF_PACKAGE -> 0; ACROBAT_PACKAGE -> 1; else -> 2 }
+        }.thenBy { it.label.lowercase() })
     }
 
     private fun showReaderChooser(apps: List<PdfApp>, rememberChoice: Boolean) {
-        val labels = apps.map { it.label }.toTypedArray()
+        val labels = apps.map { it.label + if (it.importOnly) " — importer une copie" else "" }.toTypedArray()
 
-        AlertDialog.Builder(this)
+        readerDialog = AlertDialog.Builder(this)
             .setTitle("Ouvrir le document avec")
             .setItems(labels) { dialog, which ->
                 dialog.dismiss()
@@ -438,15 +434,21 @@ open class DriveDocumentActivity : Activity() {
             return
         }
 
+        opening = true
+        statusDialog?.dismiss()
+        statusDialog = AlertDialog.Builder(this).setTitle("Ouverture du document")
+            .setMessage("Connexion à Google Drive…")
+            .setNegativeButton("Annuler") { _, _ -> finish() }
+            .setOnCancelListener { finish() }.show()
         executor.execute {
             try {
-                val meta = fetchMetadata(token)
-                val file = obtainLocalPdf(token, meta)
+                val file = obtainLocalDocument(token)
                 localPdf = file
                 hashBeforeEdit = sha256(file)
 
                 runOnUiThread {
-                    launchEditor(file, app)
+                    statusDialog?.dismiss()
+                    if (!isFinishing && !isDestroyed) launchEditor(file, app)
                 }
             } catch (e: Exception) {
                 runOnUiThread {
@@ -456,128 +458,52 @@ open class DriveDocumentActivity : Activity() {
         }
     }
 
-    private fun fetchMetadata(token: String): PdfMeta {
-        val url = URL(
-            "https://www.googleapis.com/drive/v3/files/" +
-                Uri.encode(fileId) +
-                "?fields=name,size,mimeType,modifiedTime&supportsAllDrives=true"
-        )
-
-        val conn = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 8000
-            readTimeout = 12000
-            setRequestProperty("Authorization", "Bearer $token")
-            setRequestProperty("Accept", "application/json")
-        }
-
-        try {
-            val code = conn.responseCode
-            val body = (if (code in 200..299) conn.inputStream else conn.errorStream)
-                ?.bufferedReader()
-                ?.use { it.readText() }
-                .orEmpty()
-
-            if (code !in 200..299) {
-                throw IllegalStateException(
-                    when (code) {
-                        401 -> "L’autorisation Google Drive a expiré."
-                        403, 404 -> "Le compte Google par défaut n’a pas accès à ce PDF."
-                        else -> "Google Drive a refusé le PDF ($code)."
-                    }
-                )
-            }
-
-            val json = JSONObject(body)
-            val mime = json.optString("mimeType")
-            val name = json.optString("name", fileName)
-            val size = json.optLong("size", 0L)
-            val modified = json.optString("modifiedTime", "")
-
-            if (size < 0L || (documentMime == "application/pdf" && size < 5L)) throw IllegalStateException("Le document est vide.")
-            if (mime != documentMime) {
-                throw IllegalStateException("Le type du document sélectionné ne correspond pas à la demande.")
-            }
-
-            return PdfMeta(name, size, modified)
-        } finally {
-            conn.disconnect()
-        }
-    }
-
-    private fun obtainLocalPdf(token: String, meta: PdfMeta): File {
+    private fun obtainLocalDocument(token: String): File {
         val accountKey = MessageDigest.getInstance("SHA-256").digest(sessionEmail.toByteArray()).joinToString("") { "%02x".format(it) }
         val dir = File(cacheDir, "pdf-cache/$accountKey").apply { mkdirs() }
-        val safeName = meta.name
-            .replace(Regex("[\\/:*?\"<>|\\u0000-\\u001f]"), "_")
-            .take(120)
-            .ifBlank { defaultName }
+        val records = getSharedPreferences("cdq_document_cache_v2512", MODE_PRIVATE)
+        cacheRecordKey = "$accountKey/$fileId"
+        val record = try { JSONObject(records.getString(cacheRecordKey, "{}").orEmpty()) } catch (_: Exception) { JSONObject() }
+        val savedName = record.optString("name")
+        val safeName = fileName.replace(Regex("[^\\p{L}\\p{N}._ -]"), "_").take(120).ifBlank { defaultName }
             .let { if (it.endsWith(documentExtension, true)) it else "$it$documentExtension" }
-
-        val rev = meta.modifiedTime
-            .replace(Regex("[^A-Za-z0-9._-]"), "_")
-            .take(48)
-            .ifBlank { "current" }
-
-        val finalFile = File(dir, "${fileId}-$rev-$safeName")
-
-        if (finalFile.isFile && finalFile.length() == meta.size && isDocument(finalFile)) {
-            cleanupOlderCopies(dir, finalFile)
-            return finalFile
+        val cached = File(dir, if (savedName.isNotBlank() && !savedName.contains('/') && !savedName.contains('\\')) savedName else "$fileId-$safeName")
+        if (cached.isFile && record.optString("hash").isNotBlank() && sha256(cached) != record.optString("hash")) {
+            pendingEdits = true
+            localPdf = cached
+            hashBeforeEdit = record.optString("hash")
+            throw IllegalStateException("Ce document contient des modifications non envoyées. Utilisez Réessayer l’enregistrement avant de télécharger une autre version.")
         }
-
-        cleanupOlderCopies(dir, finalFile)
-
-        val temp = File(dir, finalFile.name + ".part")
-        if (temp.exists()) temp.delete()
-
-        val url = URL(
-            "https://www.googleapis.com/drive/v3/files/" +
-                Uri.encode(fileId) +
-                "?alt=media&supportsAllDrives=true"
-        )
-
-        val conn = (url.openConnection() as HttpURLConnection).apply {
+        val reusable = cached.isFile && isDocument(cached) && record.optString("etag").isNotBlank()
+        val connection = (URL("https://www.googleapis.com/drive/v3/files/" + Uri.encode(fileId) + "?alt=media&supportsAllDrives=true").openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
-            connectTimeout = 10000
-            readTimeout = 45000
+            connectTimeout = 8000
+            readTimeout = 30000
             setRequestProperty("Authorization", "Bearer $token")
             setRequestProperty("Accept", documentMime)
+            if (reusable) setRequestProperty("If-None-Match", record.optString("etag"))
         }
-
+        val part = File(dir, cached.name + ".part")
         try {
-            val code = conn.responseCode
-            if (code !in 200..299) {
-                throw IllegalStateException("Google Drive a refusé le PDF ($code).")
-            }
-
-            conn.inputStream.use { input ->
-                temp.outputStream().buffered(256 * 1024).use { output ->
-                    input.copyTo(output, 256 * 1024)
-                }
-            }
-
-            if (temp.length() != meta.size || !isDocument(temp)) {
-                temp.delete()
-                throw IllegalStateException("Le PDF reçu est incomplet.")
-            }
-
-            if (finalFile.exists()) finalFile.delete()
-            if (!temp.renameTo(finalFile)) {
-                temp.copyTo(finalFile, overwrite = true)
-                temp.delete()
-            }
-
-            return finalFile
+            val code = connection.responseCode
+            if (code == 304 && reusable) return cached
+            if (code !in 200..299) throw IllegalStateException(when (code) {
+                401 -> "L’autorisation Google Drive a expiré. Réessayez."
+                403, 404 -> "Le compte $sessionEmail n’a pas accès à ce document (Drive $code)."
+                else -> "Google Drive ne peut pas fournir le document ($code)."
+            })
+            runOnUiThread { statusDialog?.setMessage("Téléchargement du document…") }
+            connection.inputStream.use { input -> part.outputStream().buffered(256 * 1024).use { input.copyTo(it, 256 * 1024) } }
+            val expected = connection.contentLengthLong
+            if ((expected >= 0 && part.length() != expected) || !isDocument(part)) throw IllegalStateException("Le document reçu est incomplet ou n’est pas un $documentExtension.")
+            if (!part.renameTo(cached)) { part.copyTo(cached, overwrite = true); part.delete() }
+            val next = JSONObject().put("name", cached.name).put("etag", connection.getHeaderField("ETag").orEmpty()).put("hash", sha256(cached))
+            records.edit().putString(cacheRecordKey, next.toString()).apply()
+            return cached
         } finally {
-            conn.disconnect()
+            part.delete()
+            connection.disconnect()
         }
-    }
-
-    private fun cleanupOlderCopies(dir: File, keep: File) {
-        dir.listFiles()
-            ?.filter { it != keep && it.name.startsWith(fileId + "-") }
-            ?.forEach { it.delete() }
     }
 
     private fun isDocument(file: File): Boolean =
@@ -591,53 +517,32 @@ open class DriveDocumentActivity : Activity() {
         }
 
     private fun launchEditor(file: File, app: PdfApp) {
-        try {
-            val uri = FileProvider.getUriForFile(
-                this,
-                "$packageName.updatefiles",
-                file
-            )
-
-            val flags =
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                    (if (readOnly) 0 else Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-
-            grantUriPermission(app.packageName, uri, flags)
-
-            val editIntent = Intent(Intent.ACTION_EDIT).apply {
-                setDataAndType(uri, documentMime)
-                setPackage(app.packageName)
-                addFlags(flags)
-                clipData = ClipData.newRawUri(file.name, uri)
-            }
-
-            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, documentMime)
-                setPackage(app.packageName)
-                addFlags(flags)
-                clipData = ClipData.newRawUri(file.name, uri)
-            }
-
-            val chosen = if (!readOnly && editIntent.resolveActivity(packageManager) != null) {
-                editIntent
-            } else {
-                viewIntent
-            }
-
-            if (chosen.resolveActivity(packageManager) == null) {
-                clearReader()
-                throw ActivityNotFoundException("Le lecteur PDF choisi n’est plus disponible.")
-            }
-
-            startActivityForResult(chosen, REQ_EDITOR)
-        } catch (e: Exception) {
-            clearReader()
-            fail(e.message ?: "Impossible d’ouvrir le lecteur PDF.")
+        val uri = FileProvider.getUriForFile(this, "$packageName.updatefiles", file)
+        val intents = DocumentIntents.candidates(uri, documentMime, readOnly, app.packageName)
+        var lastError: Exception? = null
+        for (candidate in intents) {
+            if (candidate.resolveActivity(packageManager) == null) continue
+            try {
+                importCopy = DocumentIntents.importsCopy(candidate)
+                if (importCopy && !readOnly) {
+                    AlertDialog.Builder(this).setTitle("Importer dans ${app.label}")
+                        .setMessage("Ce lecteur importe une copie. Ses modifications devront être enregistrées ou partagées vers Google Drive depuis le lecteur.")
+                        .setPositiveButton("Ouvrir") { _, _ ->
+                            try { startActivityForResult(candidate, REQ_EDITOR) }
+                            catch (_: Exception) { fail("${app.label} n’a pas accepté le document.") }
+                        }
+                        .setNegativeButton("Autre lecteur") { _, _ -> selectedReader = null; opening = false; chooseReaderBeforeDownload() }
+                        .setOnCancelListener { finish() }.show()
+                } else startActivityForResult(candidate, REQ_EDITOR)
+                return
+            } catch (error: Exception) { lastError = error }
         }
+        clearReader()
+        fail(lastError?.message ?: "${app.label} n’a pas accepté ce document. Choisissez un autre lecteur.")
     }
 
     private fun syncEditedPdf() {
-        if (readOnly) { finish(); return }
+        if (readOnly || importCopy) { finish(); return }
         if (syncing) return
         val file = localPdf ?: run {
             finish()
@@ -658,7 +563,11 @@ open class DriveDocumentActivity : Activity() {
                     return@execute
                 }
 
+                pendingEdits = true
                 uploadPdf(currentToken, file)
+                pendingEdits = false
+                getSharedPreferences("cdq_document_cache_v2512", MODE_PRIVATE).edit()
+                    .putString(cacheRecordKey, JSONObject().put("name", file.name).put("etag", "").put("hash", after).toString()).apply()
 
                 runOnUiThread {
                     Toast.makeText(
@@ -672,12 +581,7 @@ open class DriveDocumentActivity : Activity() {
             } catch (e: Exception) {
                 runOnUiThread {
                     syncing = false
-                    Toast.makeText(
-                        this,
-                        e.message ?: "Impossible d’enregistrer le PDF dans Drive.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    finish()
+                    fail(e.message ?: "Impossible d’enregistrer le document dans Drive.")
                 }
             }
         }
@@ -752,12 +656,52 @@ open class DriveDocumentActivity : Activity() {
         finish()
     }
 
-    private fun fail(message: String) {
-        Toast.makeText(this, if (documentMime == "text/plain") message.replace("PDF", "document") else message, Toast.LENGTH_LONG).show()
-        finish()
+    private fun fail(message: String, allowDrive: Boolean = false) {
+        if (isFinishing || isDestroyed) return
+        opening = false
+        statusDialog?.dismiss()
+        readerDialog?.dismiss()
+        val dialog = AlertDialog.Builder(this).setTitle("Le document n’a pas pu être ouvert")
+            .setMessage(message)
+            .setNegativeButton("Fermer") { _, _ -> finish() }
+            .setOnCancelListener { finish() }
+        if (pendingEdits && localPdf != null && hashBeforeEdit.isNotBlank()) {
+            dialog.setTitle("Modifications à enregistrer")
+            dialog.setPositiveButton("Réessayer l’enregistrement") { _, _ ->
+                currentToken = ""; authorizationStarted = false; pendingAuthorization = null
+                authorizeSelectedAccount()
+            }
+            dialog.setNeutralButton("Sauvegarder une copie") { _, _ ->
+                val file = localPdf ?: return@setNeutralButton
+                val uri = FileProvider.getUriForFile(this, "$packageName.updatefiles", file)
+                val send = Intent(Intent.ACTION_SEND).setType(documentMime).putExtra(Intent.EXTRA_STREAM, uri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                send.clipData = ClipData.newRawUri(file.name, uri)
+                try { startActivity(Intent.createChooser(send, "Sauvegarder le document")) }
+                catch (_: Exception) { fail("Aucune application disponible pour sauvegarder la copie.") }
+            }
+        } else {
+            dialog.setPositiveButton("Réessayer") { _, _ ->
+                currentToken = ""; authorizationStarted = false; pendingAuthorization = null
+                if (sessionEmail.isBlank()) prepareAccount() else {
+                    authorizeSelectedAccount()
+                    if (selectedReader == null) chooseReaderBeforeDownload()
+                }
+            }
+            if (allowDrive) dialog.setNeutralButton("Ouvrir dans Drive") { _, _ ->
+                val uri = Uri.parse("https://drive.google.com/file/d/" + Uri.encode(fileId) + "/view?authuser=" + Uri.encode(sessionEmail))
+                val drive = Intent(Intent.ACTION_VIEW, uri).setPackage("com.google.android.apps.docs")
+                    .putExtra("authAccount", sessionEmail)
+                try { startActivity(drive); finish() }
+                catch (_: Exception) { fail("Google Drive n’est pas installé. L’autorisation Android doit être corrigée pour utiliser le lecteur choisi.") }
+            }
+        }
+        dialog.show()
     }
 
     override fun onDestroy() {
+        statusDialog?.dismiss()
+        readerDialog?.dismiss()
         executor.shutdownNow()
         super.onDestroy()
     }
