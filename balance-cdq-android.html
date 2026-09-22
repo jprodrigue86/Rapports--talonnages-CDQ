@@ -18,29 +18,12 @@ small{display:block;margin-top:14px;color:#7f9aac;line-height:1.45}
 </head>
 <body>
 <div class="card">
-<h1>Balance CDQ Android 25.12</h1>
-<p>Mise à jour de l’application existante : il n’est pas nécessaire de la désinstaller. Ce bouton force l'ouverture dans Google Chrome pour éviter que le navigateur intégré reste bloqué à la fin du téléchargement.</p>
-<div class="status" id="status">Version publiée : 25.12 ✓</div>
-<button id="chrome" type="button">Ouvrir dans Chrome et télécharger l’APK 25.12</button>
-<a id="direct" class="secondary" href="https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/Balance-CDQ-Android.apk?version=25.12">Téléchargement direct si Chrome est déjà ouvert</a>
-<small>Après le téléchargement dans Chrome, touche la notification « Balance-CDQ-Android.apk » ou ouvre Chrome → Téléchargements, puis touche le fichier pour lancer l’installation Android. Une confirmation système Android est normale.</small>
+<h1>Balance CDQ Android</h1>
+<p>Les propositions automatiques de mise à jour sont temporairement suspendues pour corriger un problème de signature de l’application.</p>
+<div class="status">Tu peux continuer à utiliser l’application déjà installée.</div>
+<p>Si la demande d’installation est encore affichée, touche « Annuler », puis « Fermer ». Ferme complètement Balance CDQ et rouvre-la.</p>
+<small>La nouvelle APK sera proposée une fois sa compatibilité avec l’application existante vérifiée.</small>
 </div>
-<script>
-(function(){
-'use strict';
-const apk=new URL('https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/Balance-CDQ-Android.apk?version=25.12',location.href).href;
-function openChrome(){
-  try{
-    const u=new URL(apk);
-    const intent='intent://'+u.host+u.pathname+u.search+
-      '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(apk)+';end';
-    location.href=intent;
-  }catch(e){
-    location.href=apk;
-  }
-}
-document.getElementById('chrome').onclick=openChrome;
-})();
-</script>
+
 </body>
 </html>

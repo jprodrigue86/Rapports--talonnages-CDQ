@@ -1,8 +1,11 @@
 {
-  "versionName": "25.12",
-  "versionCode": 2512,
+  "versionName": "Mises à jour suspendues",
+  "versionCode": 0,
   "apkUrl": "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/Balance-CDQ-Android.apk",
   "sha256": "417d3c4f31d95a6757c28476c6b43cee76b7aeb24139f6d82f053a7733b84324",
   "mandatory": false,
-  "channel": "stable"
+  "channel": "paused",
+  "reason": "signing-key-recovery",
+  "lastPublishedVersionName": "25.12",
+  "lastPublishedVersionCode": 2512
 }

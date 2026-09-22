@@ -111,8 +111,34 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Publish APK + update channel
+      - name: Gate Android publication
+        id: publication
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANNEL=$(python3 -c 'import json; print(json.load(open("downloads/android-update.json")).get("channel", "stable"))')
+          if [ "$CHANNEL" = "paused" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Android publication paused pending recovery of the original signing key."
+            exit 0
+          fi
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          APK='balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk'
+          "$APKSIGNER" verify --print-certs downloads/Balance-CDQ-Android.apk > /tmp/cdq-previous-cert.txt
+          "$APKSIGNER" verify --print-certs "$APK" > /tmp/cdq-next-cert.txt
+          sed -n '/^Signer #[0-9][0-9]* certificate SHA-256 digest:/p' /tmp/cdq-previous-cert.txt | sort > /tmp/cdq-previous-signers.txt
+          sed -n '/^Signer #[0-9][0-9]* certificate SHA-256 digest:/p' /tmp/cdq-next-cert.txt | sort > /tmp/cdq-next-signers.txt
+          test -s /tmp/cdq-previous-signers.txt
+          test -s /tmp/cdq-next-signers.txt
+          if ! cmp -s /tmp/cdq-previous-signers.txt /tmp/cdq-next-signers.txt; then
+            echo "::error::Signing certificate changed. Refusing to publish an incompatible Android update."
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish APK + update channel
+        if: steps.publication.outputs.enabled == 'true'
         shell: bash
         run: |
           set -euo pipefail
