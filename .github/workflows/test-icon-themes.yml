@@ -1,0 +1,30 @@
+name: Personal icon themes
+on:
+  push:
+    paths:
+      - 'bundles/balance-cdq/v25.14/**'
+      - 'scripts/build-icon-themes.mjs'
+      - 'tests/icon-themes*'
+      - '.github/workflows/test-icon-themes.yml'
+  pull_request:
+    paths:
+      - 'bundles/balance-cdq/v25.14/**'
+      - 'scripts/build-icon-themes.mjs'
+      - 'tests/icon-themes*'
+      - '.github/workflows/test-icon-themes.yml'
+permissions:
+  contents: read
+jobs:
+  themes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-icon-themes.mjs && git diff --exit-code
+      - run: node --test tests/icon-themes.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/icon-themes-browser.test.mjs
+      # Screenshots stay in the runner: no extra Actions storage is consumed.
