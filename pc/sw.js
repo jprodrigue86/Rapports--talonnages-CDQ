@@ -1,6 +1,6 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE='cdq-pc-v25-17-desktop-workspace';
-const FORCE_BUILD='2026.09.23-v25.17-desktop-workspace';
+const CACHE='cdq-pc-v25-18-ergonomics';
+const FORCE_BUILD='2026.09.23-v25.18-pc-ergonomie-performance';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;

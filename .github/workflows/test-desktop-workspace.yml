@@ -1,9 +1,9 @@
 name: Desktop workspace
 on:
   push:
-    paths: ['bundles/balance-cdq/v25.17/**', 'pc/**', 'scripts/build-desktop-refresh.mjs', 'tests/desktop-workspace*', 'tests/helpers/desktop-workspace*', '.github/workflows/test-desktop-workspace.yml']
+    paths: ['bundles/balance-cdq/v25.17/**', 'bundles/balance-cdq/v25.18/**', 'pc/**', 'scripts/build-desktop-refresh.mjs', 'scripts/build-desktop-ergonomics.mjs', 'tests/desktop-workspace*', 'tests/desktop-ergonomics*', 'tests/helpers/desktop-workspace*', 'tests/helpers/desktop-ergonomics*', '.github/workflows/test-desktop-workspace.yml']
   pull_request:
-    paths: ['bundles/balance-cdq/v25.17/**', 'pc/**', 'scripts/build-desktop-refresh.mjs', 'tests/desktop-workspace*', 'tests/helpers/desktop-workspace*', '.github/workflows/test-desktop-workspace.yml']
+    paths: ['bundles/balance-cdq/v25.17/**', 'bundles/balance-cdq/v25.18/**', 'pc/**', 'scripts/build-desktop-refresh.mjs', 'scripts/build-desktop-ergonomics.mjs', 'tests/desktop-workspace*', 'tests/desktop-ergonomics*', 'tests/helpers/desktop-workspace*', 'tests/helpers/desktop-ergonomics*', '.github/workflows/test-desktop-workspace.yml']
 permissions:
   contents: read
 jobs:
@@ -15,7 +15,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node scripts/build-desktop-refresh.mjs && git diff --exit-code
-      - run: node --test tests/desktop-workspace.test.mjs
+      - run: node scripts/build-desktop-refresh.mjs && node scripts/build-desktop-ergonomics.mjs && git diff --exit-code
+      - run: node --test tests/desktop-workspace.test.mjs tests/desktop-ergonomics.test.mjs
       - run: npm install --no-save puppeteer-core@24
       - run: node tests/desktop-workspace-browser.test.mjs
+      - run: node tests/desktop-ergonomics-browser.test.mjs
