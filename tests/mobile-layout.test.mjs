@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
 const script = fs.readFileSync('bundles/balance-cdq/v25.11/mobile-layout.js', 'utf8');
 const css = fs.readFileSync('bundles/balance-cdq/v25.11/mobile-layout.css', 'utf8');
+const manifest = JSON.parse(fs.readFileSync('bundles/balance-cdq/v25.11/manifest.json'));
+const displayControls = manifest.patches.find(p=>p.replacement?.startsWith('function cdqOpenDisplaySettings(){')).replacement;
 const fixture = `<!doctype html><html class="android"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>
 *{box-sizing:border-box}body{margin:0;background:#07131d;color:white;font:14px Arial}.bottom-nav{position:fixed;bottom:0;width:100%;display:grid;height:78px!important;background:#123;border:1px solid #456}.bottom-nav-item{display:flex;flex-direction:column;align-items:center;color:white;border:1px solid #367;background:#123}.bottom-nav-item>span{height:32px!important;min-height:32px!important}#cdqTopActionsV2204{display:grid;grid-template-columns:repeat(4,1fr)}.cdq-top-action{display:flex;flex-direction:column;align-items:center}.modal-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0008}.modal{background:#102536;border:1px solid #456}.cdq-ui-scale-box{padding:5px}.modal-buttons{display:flex}.modal-buttons button{flex:1}button{color:white;background:#18384b;border:1px solid #567}
 </style><style>${css}</style></head><body>
@@ -14,15 +16,26 @@ const fixture = `<!doctype html><html class="android"><head><meta name="viewport
 <div id="cdqDisplayModal" style="display:none"><div class="cdq-modal-body"></div></div>
 <div id="cdqSettingsModalV2294" class="modal-overlay" style="display:none"><div class="modal"><h2 class="cdq-modal-title">Réglages</h2><div class="cdq-modal-body"><div class="cdq-settings-v2294"><section><div id="cdqDefaultGoogleStatusV2294">Aucun compte par défaut</div><input type="email"></section><section id="cdqAndroidUpdateCardV2315"><button>Mise à jour Android</button></section></div></div><div class="modal-buttons"><button id="cdqSettingsCloseV2294" onclick="document.getElementById('cdqSettingsModalV2294').style.display='none'">Fermer</button></div></div></div>
 <script>
-window.saved=0;window.readerClicks=0;
-window.ouvrirReglagesAffichage=function(){
- const host=document.querySelector('#cdqDisplayModal .cdq-modal-body');host.innerHTML='<div class="cdq-display-options"></div>';const options=host.firstChild;
- for(const title of ['Thème','Ajustement de l’affichage','Gestes','Lecteur PDF par défaut','Mise à jour','Administration']){
- const group=document.createElement('div');group.className='cdq-display-group';group.innerHTML='<div class="cdq-display-label">'+title+'</div>';options.appendChild(group);
- if(title.startsWith('Ajustement'))for(const name of ['General','Text','Icon']){const range=document.createElement('input');range.type='range';range.min=0;range.max=100;range.value=localStorage.getItem('cdqUi'+name+'ScaleV89')??50;range.id='cdq'+name+'ScaleRange';range.oninput=()=>{localStorage.setItem('cdqUi'+name+'ScaleV89',range.value);window.cdqMobileLayout.apply()};range.onchange=()=>window.saved++;group.appendChild(range)}
- if(title==='Lecteur PDF par défaut'){const b=document.createElement('button');b.textContent='iLovePDF';b.onclick=()=>{readerClicks++;localStorage.setItem('cdqPdfReaderPreferenceV1','ilovepdf')};group.appendChild(b)}
- }
-};
+window.saved=0;
+window.cdqClampScaleV89=v=>Math.max(0,Math.min(100,Number(v)));
+for(const name of ['General','Text','Icon']){
+ window['cdq'+name+'ValueV89']=()=>Number(localStorage.getItem('cdqUi'+name+'ScaleV89')??50);
+ window['cdqApply'+name+'ScaleV89']=(value)=>{localStorage.setItem('cdqUi'+name+'ScaleV89',value);window.cdqMobileLayout.apply()};
+}
+window.cdqApplyVisibleIconScaleV2208=window.cdqApplyIconScaleV89;
+window.cdqMarkDisplayLocalEditV2212=()=>{};
+window.cdqSaveDisplayPreferencesNowV2212=()=>window.saved++;
+window.cdqScheduleSavePreferencesV72=()=>{};
+window.cdqDetachBottomNavV96=()=>window.cdqMobileLayout.apply();
+window.cdqFitGeneralScaleV92=()=>window.cdqMobileLayout.apply();
+window.utilisateurCourantRole='technicien';window.CDQ_BUILD='V25.11';
+window.cdqVersionLabelV87=v=>v;window.cdqRefreshUpdateCenterUI=()=>{};
+window.cdqApplyTheme=theme=>localStorage.setItem('cdqTheme',theme);
+window.cdqSetLongPress=v=>localStorage.setItem('cdqLongPressMs',v);
+window.cdqSetSwipeSensitivity=v=>localStorage.setItem('cdqSwipeSensitivity',v);
+window.cdqUpdateInfo={};window.cdqForceUpdate=()=>{};window.cdqCheckUpdate=()=>{};window.afficherMessage=()=>{};
+${displayControls}
+window.ouvrirReglagesAffichage=cdqOpenDisplaySettings;
 </script><script>${script}</script></body></html>`;
 const server = http.createServer((req,res)=>{res.setHeader('Content-Type','text/html; charset=utf-8');res.end(fixture)});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -49,8 +62,11 @@ try {
     assert.ok(iconBig.nav.height>iconSmall.nav.height,'footer grows to fit larger icons');
     await page.evaluate(()=>{const m=document.getElementById('cdqSettingsModalV2294');cdqOrganizeSettings(m);m.style.display='flex'});
     await page.click('[data-settings-tab=files]');
-    await page.click('#cdq-settings-panel-files button');
+    await page.click('#cdq-settings-panel-files [data-pdf-reader=ilovepdf]');
+    assert.equal(await page.$eval('[data-pdf-reader=ilovepdf]',el=>el.classList.contains('active')),true,'reader selection remains visible after moving controls');
     assert.equal(await page.evaluate(()=>localStorage.getItem('cdqPdfReaderPreferenceV1')),'ilovepdf');
+    await page.click('[data-settings-tab=appearance]');await page.click('[data-theme=light]');
+    assert.equal(await page.$eval('[data-theme=light]',el=>el.classList.contains('active')),true);
     await page.click('[data-settings-tab=sizes]');await page.click('.cdq-phone-preset');
     assert.deepEqual(await page.evaluate(()=>['General','Text','Icon'].map(n=>localStorage.getItem('cdqUi'+n+'ScaleV89'))),['25','35','35']);
     assert.equal(await page.evaluate(()=>window.saved),3,'existing save handlers remain connected');
