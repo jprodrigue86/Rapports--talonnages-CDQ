@@ -106,8 +106,16 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.13
+          name: Balance-CDQ-Android-25.14
           path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload reader preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: Balance-CDQ-reader-preview
+          path: balance-cdq-android/app/build/reports/pdf-reader-preview.png
           if-no-files-found: error
           retention-days: 7
 
