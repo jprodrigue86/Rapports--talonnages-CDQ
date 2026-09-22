@@ -22,13 +22,13 @@ small{display:block;margin-top:14px;color:#7f9aac;line-height:1.45}
 <p>Mise à jour de l’application existante : il n’est pas nécessaire de la désinstaller. Ce bouton force l'ouverture dans Google Chrome pour éviter que le navigateur intégré reste bloqué à la fin du téléchargement.</p>
 <div class="status" id="status">Version publiée : 25.12 ✓</div>
 <button id="chrome" type="button">Ouvrir dans Chrome et télécharger l’APK 25.12</button>
-<a id="direct" class="secondary" href="./downloads/Balance-CDQ-Android.apk?version=25.12">Téléchargement direct si Chrome est déjà ouvert</a>
+<a id="direct" class="secondary" href="https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/Balance-CDQ-Android.apk?version=25.12">Téléchargement direct si Chrome est déjà ouvert</a>
 <small>Après le téléchargement dans Chrome, touche la notification « Balance-CDQ-Android.apk » ou ouvre Chrome → Téléchargements, puis touche le fichier pour lancer l’installation Android. Une confirmation système Android est normale.</small>
 </div>
 <script>
 (function(){
 'use strict';
-const apk=new URL('./downloads/Balance-CDQ-Android.apk?version=25.12',location.href).href;
+const apk=new URL('https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/Balance-CDQ-Android.apk?version=25.12',location.href).href;
 function openChrome(){
   try{
     const u=new URL(apk);
