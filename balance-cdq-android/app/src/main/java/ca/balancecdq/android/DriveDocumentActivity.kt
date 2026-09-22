@@ -39,12 +39,6 @@ open class DriveDocumentActivity : Activity() {
         private const val ACROBAT_PACKAGE = "com.adobe.reader"
     }
 
-    private data class PdfMeta(
-        val name: String,
-        val size: Long,
-        val modifiedTime: String
-    )
-
     private data class PdfApp(
         val label: String,
         val packageName: String,
@@ -61,8 +55,6 @@ open class DriveDocumentActivity : Activity() {
     private var readOnly = false
     private var accountMode = "auto"
     private var readerHint = "ask"
-    private var selectedFromPicker = false
-    private var authorizationFallbackTried = false
     private var currentToken = ""
     private var selectedReader: PdfApp? = null
     private var localPdf: File? = null
@@ -75,6 +67,7 @@ open class DriveDocumentActivity : Activity() {
     private var importCopy = false
     private var pendingEdits = false
     private var statusDialog: AlertDialog? = null
+    private var readerDialog: AlertDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -124,6 +117,7 @@ open class DriveDocumentActivity : Activity() {
         pendingAuthorization = null
         opening = false
         importCopy = false
+        pendingEdits = false
     }
 
     private fun parseIntent(source: Intent) {
@@ -143,8 +137,6 @@ open class DriveDocumentActivity : Activity() {
             readerHint in setOf("ask", "ilovepdf", "acrobat", "cdq", "system", "")
 
     private fun prepareAccount() {
-        selectedFromPicker = false
-        authorizationFallbackTried = false
 
         // "ask" signifie qu'aucun compte par défaut n'est configuré dans
         // Balance CDQ. Le sélecteur doit donc apparaître à CHAQUE ouverture.
@@ -208,7 +200,10 @@ open class DriveDocumentActivity : Activity() {
         if (consent != null) {
             pendingAuthorization = null
             launchAuthorization(consent)
-        } else if (currentToken.isNotBlank() && !opening) downloadAndOpen()
+        } else if (currentToken.isNotBlank()) {
+            if (pendingEdits && localPdf != null) syncEditedPdf()
+            else if (!opening) downloadAndOpen()
+        }
     }
 
     private fun authorize(account: android.accounts.Account) {
@@ -272,7 +267,6 @@ open class DriveDocumentActivity : Activity() {
                     return
                 }
 
-                selectedFromPicker = true
                 if (accountMode != "ask") {
                     DefaultGoogleAccountStore.save(this, email)
                 }
@@ -381,6 +375,8 @@ open class DriveDocumentActivity : Activity() {
             packageManager.queryIntentActivities(probe, PackageManager.MATCH_DEFAULT_ONLY).forEach { info ->
                 val pkg = info.activityInfo?.packageName.orEmpty()
                 if (pkg.isBlank() || pkg == packageName || apps.containsKey(pkg)) return@forEach
+                // Generic share targets (mail, messaging, storage) are not PDF readers.
+                if (DocumentIntents.importsCopy(probe) && pkg !in setOf(ILOVEPDF_PACKAGE, ACROBAT_PACKAGE)) return@forEach
                 val label = try { info.loadLabel(packageManager).toString().ifBlank { pkg } } catch (_: Exception) { pkg }
                 apps[pkg] = PdfApp(label, pkg, DocumentIntents.importsCopy(probe))
             }
@@ -393,7 +389,7 @@ open class DriveDocumentActivity : Activity() {
     private fun showReaderChooser(apps: List<PdfApp>, rememberChoice: Boolean) {
         val labels = apps.map { it.label + if (it.importOnly) " — importer une copie" else "" }.toTypedArray()
 
-        AlertDialog.Builder(this)
+        readerDialog = AlertDialog.Builder(this)
             .setTitle("Ouvrir le document avec")
             .setItems(labels) { dialog, which ->
                 dialog.dismiss()
@@ -527,7 +523,6 @@ open class DriveDocumentActivity : Activity() {
         for (candidate in intents) {
             if (candidate.resolveActivity(packageManager) == null) continue
             try {
-                grantUriPermission(app.packageName, uri, candidate.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION))
                 importCopy = DocumentIntents.importsCopy(candidate)
                 if (importCopy && !readOnly) {
                     AlertDialog.Builder(this).setTitle("Importer dans ${app.label}")
@@ -665,12 +660,17 @@ open class DriveDocumentActivity : Activity() {
         if (isFinishing || isDestroyed) return
         opening = false
         statusDialog?.dismiss()
+        readerDialog?.dismiss()
         val dialog = AlertDialog.Builder(this).setTitle("Le document n’a pas pu être ouvert")
             .setMessage(message)
             .setNegativeButton("Fermer") { _, _ -> finish() }
             .setOnCancelListener { finish() }
         if (pendingEdits && localPdf != null && hashBeforeEdit.isNotBlank()) {
-            dialog.setPositiveButton("Réessayer l’enregistrement") { _, _ -> syncEditedPdf() }
+            dialog.setTitle("Modifications à enregistrer")
+            dialog.setPositiveButton("Réessayer l’enregistrement") { _, _ ->
+                currentToken = ""; authorizationStarted = false; pendingAuthorization = null
+                authorizeSelectedAccount()
+            }
             dialog.setNeutralButton("Sauvegarder une copie") { _, _ ->
                 val file = localPdf ?: return@setNeutralButton
                 val uri = FileProvider.getUriForFile(this, "$packageName.updatefiles", file)
@@ -683,7 +683,10 @@ open class DriveDocumentActivity : Activity() {
         } else {
             dialog.setPositiveButton("Réessayer") { _, _ ->
                 currentToken = ""; authorizationStarted = false; pendingAuthorization = null
-                if (sessionEmail.isBlank()) prepareAccount() else authorizeSelectedAccount()
+                if (sessionEmail.isBlank()) prepareAccount() else {
+                    authorizeSelectedAccount()
+                    if (selectedReader == null) chooseReaderBeforeDownload()
+                }
             }
             if (allowDrive) dialog.setNeutralButton("Ouvrir dans Drive") { _, _ ->
                 val uri = Uri.parse("https://drive.google.com/file/d/" + Uri.encode(fileId) + "/view?authuser=" + Uri.encode(sessionEmail))
@@ -698,6 +701,7 @@ open class DriveDocumentActivity : Activity() {
 
     override fun onDestroy() {
         statusDialog?.dismiss()
+        readerDialog?.dismiss()
         executor.shutdownNow()
         super.onDestroy()
     }

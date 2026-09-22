@@ -125,6 +125,11 @@
     });
     panels.files.appendChild(accountCard);
     if (androidCard) panels.updates.appendChild(androidCard);
+    if (typeof window.cdqOuvrirPartageApplication === 'function') {
+      const share = document.createElement('button'); share.type = 'button'; share.id = 'cdqInstallShareSettingsButton';
+      share.textContent = 'Installer / partager Balance CDQ'; share.onclick = window.cdqOuvrirPartageApplication;
+      panels.advanced.appendChild(share);
+    }
     const preset = document.createElement('button'); preset.type = 'button'; preset.className = 'cdq-phone-preset';
     preset.textContent = 'Appliquer le format téléphone compact';
     preset.onclick = () => {
@@ -137,6 +142,15 @@
     panels.sizes.prepend(preset);
     tabs.firstChild.click();
     modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-label', 'Réglages');
+    if (!modal.dataset.cdqCategoryNavigation) {
+      modal.dataset.cdqCategoryNavigation = '1';
+      modal.addEventListener('click', e => {
+        if (e.target.closest('#cdqAdminSettingsButton,#cdqDiagnosticSettingsButton,#cdqInstallShareSettingsButton')) modal.style.display = 'none';
+      }, true);
+      modal.querySelector('#cdqSettingsCloseV2294').onclick = () => {
+        modal.style.display = 'none'; document.getElementById('cdqTopDisplayButtonV2204')?.focus();
+      };
+    }
     modal.onkeydown = e => {
       if (e.key === 'Escape') modal.querySelector('#cdqSettingsCloseV2294').click();
       if (e.key !== 'Tab') return;

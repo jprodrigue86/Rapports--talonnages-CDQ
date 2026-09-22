@@ -3,11 +3,131 @@
   "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
   "version": "V25.11",
   "build": "2026.09.22-v25.11-mobile-readers-settings",
-  "title": "Balance CDQ V25.11 — téléphone, réglages et documents",
+  "title": "Balance CDQ V25.11 — téléphone, réglages et documents — depuis V25.09",
   "requiresBuild": [
-    "2026.09.21-v25.10-display-document-cleanup"
+    "2026.09.21-v25.09-native-file-open-contract"
   ],
   "patches": [
+    {
+      "file": "Selector.html",
+      "op": "replace_build",
+      "from": "2026.09.21-v25.09-native-file-open-contract",
+      "to": "2026.09.21-v25.10-display-document-cleanup"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_build",
+      "from": "2026.09.21-v25.09-native-file-open-contract",
+      "to": "2026.09.21-v25.10-display-document-cleanup"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2508DisplayFitCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2508DisplayFitJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2509NativeFileOpenJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_script_id_if_present",
+      "id": "cdqV2311NativeAccountJs"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqV2311NativeAccountCss"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "// Filet de sécurité Android : certains anciens gestionnaires de swipe\n// consomment le click synthétique après pointerup. On déclenche donc le PDF\n// au pointerup, pendant le vrai geste, puis on supprime seulement le click\n// qui suit afin d'éviter une double ouverture.\n(function(){\n  if(!/Android/i.test(navigator.userAgent||''))return;\n\n  let tap=null;\n\n  document.addEventListener('pointerdown',function(e){\n    if(e.target&&e.target.closest&&e.target.closest('button'))return;\n    const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n    if(!row)return;\n    const box=row.querySelector('.file-checkbox[data-file-id]');\n    if(!box)return;\n    const id=String(box.dataset.fileId||'');\n    const meta=cdqDocumentMeta(id);\n    if(!meta||meta.type!=='PDF')return;\n    tap={row:row,id:id,pointerId:e.pointerId,x:e.clientX,y:e.clientY,moved:false};\n  },true);\n\n  document.addEventListener('pointermove',function(e){\n    if(!tap||tap.pointerId!==e.pointerId)return;\n    if(Math.abs(e.clientX-tap.x)>18||Math.abs(e.clientY-tap.y)>18)tap.moved=true;\n  },true);\n\n  document.addEventListener('pointercancel',function(e){\n    if(tap&&tap.pointerId===e.pointerId)tap=null;\n  },true);\n\n  document.addEventListener('pointerup',function(e){\n    if(!tap||tap.pointerId!==e.pointerId)return;\n    const t=tap;tap=null;\n\n    if(t.moved)return;\n    if(typeof modeSelectionFichiers!=='undefined'&&modeSelectionFichiers)return;\n    if(e.target&&e.target.closest&&e.target.closest('button'))return;\n\n    t.row.dataset.cdqPdfOpenedV2275='1';\n    try{\n      cdqOuvrirPdfCommeSheetV2275(t.id);\n    }catch(err){\n      try{afficherErreur(err);}catch(_){}\n    }\n\n    setTimeout(function(){\n      try{delete t.row.dataset.cdqPdfOpenedV2275;}catch(_){}\n    },800);\n  },true);\n\n  document.addEventListener('click',function(e){\n    const row=e.target&&e.target.closest?e.target.closest('.file-row'):null;\n    if(!row||row.dataset.cdqPdfOpenedV2275!=='1')return;\n    e.preventDefault();\n    e.stopImmediatePropagation();\n    delete row.dataset.cdqPdfOpenedV2275;\n  },true);\n})();\n\n",
+      "replacement": "// Document taps are handled by cdqDocumentOpen; swipe/selection keep their own handlers.\n\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "        // Mémoriser la valeur choisie sans recalculer le layout pendant le glissement.\n        localStorage.setItem(\"cdqUiGeneralScaleV89\",String(v));\n        localStorage.setItem(\"cdqUiScaleV86\",String(v));\n        cdqMarkDisplayLocalEditV2212();",
+      "replacement": "        cdqApplyGeneralScaleV89(v,true);\n        cdqDetachBottomNavV96();\n        cdqMarkDisplayLocalEditV2212();"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "  const iconValue=typeof cdqIconValueV89===\"function\"?cdqIconValueV89():50;",
+      "replacement": "  const density=cdqGeneralDensityFactorV2221(cdqGeneralValueV89());\n  const navHeight='calc('+Math.round(78*density)+'px + env(safe-area-inset-bottom,0px))';\n  nav.style.setProperty(\"height\",navHeight,\"important\");\n  nav.style.setProperty(\"min-height\",navHeight,\"important\");\n  nav.style.setProperty(\"max-height\",navHeight,\"important\");\n  document.body.style.setProperty(\"padding-bottom\",navHeight,\"important\");\n\n  const iconValue=typeof cdqIconValueV89===\"function\"?cdqIconValueV89():50;"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "  if(!noSync)cdqScheduleSavePreferencesV72();\n}\n// Compatibilité avec d'anciens appels.",
+      "replacement": "  if(typeof cdqDetachBottomNavV96===\"function\")cdqDetachBottomNavV96();\n  if(!noSync)cdqScheduleSavePreferencesV72();\n}\n// Compatibilité avec d'anciens appels."
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "function cdqDefaultGoogleAccountV2299(){\n  try{\n    if(localStorage.getItem(CDQ_DEFAULT_GOOGLE_ACCOUNT_RESET_V2299)==='1')return '';\n    const saved=String(\n      localStorage.getItem(CDQ_DEFAULT_GOOGLE_ACCOUNT_KEY_V2299)||\n      localStorage.getItem('cdqDefaultGoogleAccountV2294')||\n      ''\n    ).trim().toLowerCase();\n    if(saved)return saved;\n  }catch(e){}\n  try{return String(utilisateurCourantEmail||'').trim().toLowerCase();}catch(e){return '';}\n}\n",
+      "replacement": "function cdqDefaultGoogleAccountV2299(){\n  try{return String(localStorage.getItem('cdqDefaultGoogleAccountV2294')||'').trim().toLowerCase();}\n  catch(e){return '';}\n}\n"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "  refreshSettings();\n  if(typeof afficherMessage==='function'){",
+      "replacement": "  // Clear obsolete native/web account copies when the visible setting changes.\n  ['cdqDefaultGoogleAccountV2296','cdqDefaultGoogleAccountV2297','cdqDefaultGoogleAccountV2298','cdqDefaultGoogleAccountV2299'].forEach(function(k){try{localStorage.removeItem(k);}catch(_){}});\n  try{cdqPostToPwa({type:'CDQ_DEFAULT_GOOGLE_ACCOUNT_SET',email:email,reset:!email});}catch(_){}\n  refreshSettings();\n  if(typeof afficherMessage==='function'){"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "    top.innerHTML='<span aria-hidden=\"true\" style=\"font-size:22px;line-height:1\">⚙</span><span>Réglages</span>';",
+      "replacement": "    const markup='<span aria-hidden=\"true\" style=\"font-size:22px;line-height:1\">⚙</span><span>Réglages</span>';\n    if(top.innerHTML!==markup)top.innerHTML=markup;"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "    const small=bottom.querySelector('small');if(small)small.textContent='Réglages';\n    const icon=bottom.querySelector('span');if(icon)icon.textContent='⚙';",
+      "replacement": "    const small=bottom.querySelector('small');if(small&&small.textContent!=='Réglages')small.textContent='Réglages';\n    const icon=bottom.querySelector('span');if(icon&&icon.textContent!=='⚙')icon.textContent='⚙';"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_literal",
+      "search": "      btn.innerHTML='<span class=\"side-icon\">⚙</span><span>Réglages</span>';",
+      "replacement": "      const markup='<span class=\"side-icon\">⚙</span><span>Réglages</span>';\n      if(btn.innerHTML!==markup)btn.innerHTML=markup;"
+    },
+    {
+      "file": "Selector.html",
+      "op": "remove_style_id_if_present",
+      "id": "cdqPcV2244UpdateBannerCss"
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal",
+      "search": "  const embarque=(typeof cdqTemplateEmbarque_==='function') ? cdqTemplateEmbarque_(modele.cle) : null;\n  if(embarque)return embarque;\n",
+      "replacement": ""
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal",
+      "search": "    sha256:(typeof cdqMetaEmbarquee_==='function' ? (cdqMetaEmbarquee_(String(modeleId||'plancher'))||{}).sha256 : '')||''",
+      "replacement": "    sha256:'' // Drive revision (id + modified time) invalidates the offline cache."
+    },
+    {
+      "file": "Code.gs",
+      "op": "replace_literal",
+      "search": "  if(fichier.cdqEmbedded){\n    const bytes=cdqChunkEmbarque_(String(modeleId||'plancher'),index);\n    return {ok:true,index:index,debut:index*CDQ_TEMPLATE_OFFLINE_CHUNK_BYTES_,fin:index*CDQ_TEMPLATE_OFFLINE_CHUNK_BYTES_+bytes.length,total:Number(fichier.getSize()),base64:Utilities.base64Encode(bytes)};\n  }\n",
+      "replacement": ""
+    },
+    {
+      "file": "Selector.html",
+      "op": "insert_before_literal",
+      "before": "</body>",
+      "text": "<style id=\"cdqDisplayLayout\">\nhtml.android .container,html.mobile-device .container{box-sizing:border-box!important;}\nhtml.android #cdqTopDisplayButtonV2204,html.mobile-device #cdqTopDisplayButtonV2204{\n  flex-direction:column!important;gap:4px!important;min-width:0!important;\n}\nhtml.android #cdqTopDisplayButtonV2204>span:last-child,html.mobile-device #cdqTopDisplayButtonV2204>span:last-child{\n  white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;font-size:12px!important;\n}\n</style>\n<script id=\"cdqDocumentOpenJs\">\n(function () {\n  'use strict';\n  // All document entry points share the preferences shown in Settings.\n  function account() {\n    try { return String(localStorage.getItem('cdqDefaultGoogleAccountV2294') || '').trim().toLowerCase(); }\n    catch (_) { return ''; }\n  }\n  function reader() {\n    let value = 'ask';\n    try { value = localStorage.getItem('cdqPdfReaderPreferenceV1') || 'ask'; } catch (_) {}\n    return ['ask', 'cdq', 'ilovepdf', 'acrobat'].includes(value) ? value : 'ask';\n  }\n  function meta(id) {\n    const box = document.querySelector('.file-checkbox[data-file-id=\"' + id + '\"]');\n    const row = box && box.closest('.file-row');\n    if (row) return {name: row.dataset.fileName || '', type: row.dataset.fileType || '', modified: row.dataset.fileDate || ''};\n    try {\n      const m = typeof cdqDocumentMeta === 'function' ? cdqDocumentMeta(id) : null;\n      if (m) return {name: m.nom || m.name || '', type: m.type || '', modified: m.dateModification || ''};\n    } catch (_) {}\n    return {};\n  }\n  function kind(m) {\n    const type = String(m.type || '').toUpperCase();\n    if (type === 'PDF' || /\\.pdf$/i.test(m.name || '')) return 'pdf';\n    if (type.includes('SHEET')) return 'sheet';\n    if (type === 'TEXT' || type === 'TXT' || type === 'TEXT/PLAIN' || /\\.txt$/i.test(m.name || '')) return 'note';\n    return '';\n  }\n  function native() { return /BalanceCDQAndroid\\/\\d+(?:\\.\\d+)?/i.test(navigator.userAgent || ''); }\n  let lastOpen = {id: '', at: 0};\n  function open(id, requestedKind) {\n    id = String(id || '');\n    if (!/^[A-Za-z0-9_-]{10,200}$/.test(id)) return false;\n    const m = meta(id), type = requestedKind || kind(m);\n    if (!type || !native()) return false;\n    // Keep an explicitly selected CDQ reader on its established internal route.\n    if (type === 'pdf' && reader() === 'cdq') return false;\n    if (lastOpen.id === id && Date.now() - lastOpen.at < 800) return true;\n    lastOpen = {id: id, at: Date.now()};\n    try {\n      if (typeof utilisateurCourantRole !== 'undefined' && utilisateurCourantRole !== 'lecture') {\n        fichierOuvertPourModification = id;\n        sessionStorage.setItem('fichierEnModification', id);\n        sessionStorage.setItem('ancienneDateModification', m.modified || '');\n        sessionStorage.setItem('momentModification', String(Date.now()));\n      }\n    } catch (_) {}\n    const email = account();\n    const query = new URLSearchParams({\n      fileId: id,\n      name: String(m.name || (type === 'note' ? 'Note.txt' : 'Rapport.pdf')).slice(0, 180),\n      account: email,\n      accountMode: email ? 'default' : 'ask',\n      reader: type === 'pdf' ? reader() : 'system',\n      readOnly: typeof utilisateurCourantRole !== 'undefined' && utilisateurCourantRole === 'lecture' ? '1' : '0'\n    });\n    // No browser fallback: a failed native handoff must not open a Drive viewer.\n    const a = document.createElement('a');\n    a.href = 'intent://open?' + query.toString() + '#Intent;scheme=cdq' + type + ';package=ca.balancecdq.android;end';\n    a.target = '_top';\n    a.style.display = 'none';\n    document.body.appendChild(a);\n    a.click();\n    a.remove();\n    return true;\n  }\n  const legacy = window.modifierFichier;\n  window.modifierFichier = function (id) {\n    if (open(id)) return true;\n    return typeof legacy === 'function' ? legacy.apply(this, arguments) : false;\n  };\n  try { modifierFichier = window.modifierFichier; } catch (_) {}\n\n  // Buttons and offline lists can call these functions without clicking a row.\n  // Preserve their Promise contract and the explicit internal-reader route.\n  ['cdqOpenPdf', 'cdqV24OpenPdf', 'cdqOuvrirPdfCommeSheetV2275', 'cdqV19OpenOfflineSheet'].forEach(function (name) {\n    const previous = window[name];\n    if (typeof previous !== 'function') return;\n    window[name] = function (id) {\n      if (open(id, name === 'cdqV19OpenOfflineSheet' ? 'sheet' : 'pdf')) return Promise.resolve(true);\n      return previous.apply(this, arguments);\n    };\n  });\n\n  // The old PDF pointerup interceptor is removed from the package.\n  // A click opens a document; a drag/long press continues to select or swipe.\n  let pointer = null, suppressUntil = 0;\n  document.addEventListener('pointerdown', function (e) {\n    if (!e.target.closest || !e.target.closest('.file-row')) return;\n    pointer = {id: e.pointerId, x: e.clientX, y: e.clientY, at: Date.now(), moved: false};\n  }, true);\n  document.addEventListener('pointermove', function (e) {\n    if (pointer && pointer.id === e.pointerId && (Math.abs(e.clientX-pointer.x)>16 || Math.abs(e.clientY-pointer.y)>16)) pointer.moved = true;\n  }, true);\n  document.addEventListener('pointerup', function (e) {\n    if (!pointer || pointer.id !== e.pointerId) return;\n    const longPress = Math.max(300, Number(localStorage.getItem('cdqLongPressMs')) || 1000);\n    if (pointer.moved || Date.now()-pointer.at >= longPress) suppressUntil = Date.now()+700;\n    pointer = null;\n  }, true);\n  document.addEventListener('pointercancel', function () { pointer = null; suppressUntil = Date.now()+700; }, true);\n  window.addEventListener('click', function (e) {\n    if (!native() || !e.target.closest) return;\n    if (e.target.closest('button,a,input,select,textarea,label,.file-actions,[class*=\"swipe\"]')) return;\n    const row = e.target.closest('.file-row');\n    if (!row) return;\n    if (Date.now() < suppressUntil || row.classList.contains('cdq-swiped-left') || row.classList.contains('cdq-swiped-right')) {\n      e.preventDefault();\n      e.stopImmediatePropagation();\n      return;\n    }\n    if (document.body.classList.contains('selection-active') || (typeof modeSelectionFichiers !== 'undefined' && modeSelectionFichiers)) return;\n    const box = row.querySelector('.file-checkbox[data-file-id]');\n    if (!box || !open(box.dataset.fileId)) return;\n    e.preventDefault();\n    e.stopImmediatePropagation();\n  }, true);\n  window.cdqDocumentOpen = {open: open, account: account, reader: reader, kind: kind};\n})();\n\n</script>\n"
+    },
     {
       "file": "Code.gs",
       "op": "replace_build",
@@ -134,7 +254,7 @@
     "scriptManagerRequired": "V40",
     "androidAppRequired": "Balance CDQ Android 25.12",
     "productionVerified": false,
-    "source": "Patch checked against reconstructed V25.10 R2; Script Manager verifies the installed source before writing.",
+    "source": "Cumulative V25.09 → V25.10 R2 → V25.11; exact patches validated by Script Manager.",
     "modelCleanup": "No removal: installed model helper and fragments retained.",
     "deviceValidation": "Android build and automated browser tests; physical reader/OAuth/biometric validation still required."
   }

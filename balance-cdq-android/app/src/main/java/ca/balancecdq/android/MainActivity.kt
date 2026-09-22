@@ -325,6 +325,7 @@ class MainActivity : Activity() {
     @Suppress("DEPRECATION")
     private fun startNativeBiometric(requestId: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            biometricRequestId = requestId
             deliverNativeBiometric(requestId, false, "Biométrie Android indisponible.")
             return
         }
