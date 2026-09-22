@@ -11,6 +11,14 @@
         <package android:name="com.ilovepdf.www" />
         <package android:name="com.adobe.reader" />
         <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="application/pdf" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND_MULTIPLE" />
+            <data android:mimeType="application/pdf" />
+        </intent>
+        <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="application/pdf" />
         </intent>
@@ -117,6 +125,7 @@
 
         <activity
             android:name=".NoteOpenActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="true"
             android:excludeFromRecents="true"
             android:launchMode="singleTop"
@@ -131,6 +140,7 @@
 
         <activity
             android:name=".PdfOpenActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="true"
             android:excludeFromRecents="true"
             android:launchMode="singleTop"
