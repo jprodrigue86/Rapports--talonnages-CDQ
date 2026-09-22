@@ -1,0 +1,29 @@
+name: Mobile keyboard navigation and themes
+on:
+  push:
+    paths:
+      - 'bundles/balance-cdq/v25.16/**'
+      - 'scripts/build-mobile-fit.mjs'
+      - 'tests/mobile-fit*'
+      - '.github/workflows/test-mobile-fit.yml'
+  pull_request:
+    paths:
+      - 'bundles/balance-cdq/v25.16/**'
+      - 'scripts/build-mobile-fit.mjs'
+      - 'tests/mobile-fit*'
+      - '.github/workflows/test-mobile-fit.yml'
+permissions:
+  contents: read
+jobs:
+  mobile-fit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-mobile-fit.mjs && git diff --exit-code
+      - run: node --test tests/mobile-fit.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/mobile-fit-browser.test.mjs
