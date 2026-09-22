@@ -1,0 +1,118 @@
+name: Remove 11 approved old Pages archives
+on:
+  push:
+    branches: [maintenance/approved-pages-cleanup-20260922]
+    paths: [.github/workflows/approved-pages-cleanup-20260922.yml]
+permissions:
+  actions: write
+  contents: read
+concurrency:
+  group: approved-pages-cleanup-20260922
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    if: github.repository == 'jprodrigue86/Rapports--talonnages-CDQ' && github.ref == 'refs/heads/maintenance/approved-pages-cleanup-20260922'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate all targets, remove only approved IDs, verify preservation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+          from pathlib import Path
+          
+          REPO = "jprodrigue86/Rapports--talonnages-CDQ"
+          BRANCH = "maintenance/approved-pages-cleanup-20260922"
+          TARGETS = [[35682130555,10675189690,35040879],[35679812883,10674131327,35037079],[35679628855,10674156032,35037414],[35679475497,10674400420,35038300],[35679384559,10674775111,35037413],[35678287282,10673783412,35034284],[35675331539,10672288526,35041736],[35675253974,10672672954,35038849],[35671843735,10671706544,34979852],[35671142752,10671655391,34981728],[35671074928,10671670257,34976486]]
+          KEEP = [(35688617215, 10678076033, 35053565), (35722021492, 10692255955, 35068041)]
+          BASE_SHA = "b47f5447875cb0347569074587299a370384e3f5"
+          
+          def require(ok, message):
+              if not ok:
+                  raise RuntimeError(message)
+          
+          def api(path, method="GET"):
+              require(path.startswith(("actions/artifacts/", "actions/runs/", "git/ref/heads/main")), "Unexpected API path")
+              if method == "DELETE":
+                  require(path in {f"actions/artifacts/{i}" for _, i, _ in TARGETS}, "Unapproved deletion")
+              request = urllib.request.Request(
+                  "https://api.github.com/repos/" + REPO + "/" + path,
+                  headers={"Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                           "Accept": "application/vnd.github+json",
+                           "X-GitHub-Api-Version": "2022-11-28"},
+                  method=method)
+              try:
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      code = response.status
+                      require(code == (204 if method == "DELETE" else 200), "Unexpected response")
+                      payload = response.read()
+                      return json.loads(payload) if payload else None
+              except urllib.error.HTTPError as error:
+                  if error.code == 404 and method == "GET" and path.startswith("actions/artifacts/"):
+                      return None
+                  raise RuntimeError(f"{method} {path}: HTTP {error.code}") from None
+          
+          def check_artifact(item, row):
+              run, artifact, size = row
+              require(item["id"] == artifact and item["name"] == "github-pages"
+                      and item["size_in_bytes"] == size
+                      and item["workflow_run"]["id"] == run
+                      and item["workflow_run"]["head_branch"] == "main"
+                      and item["workflow_run"]["repository_id"] == 1359358501,
+                      f"Artifact metadata mismatch: {artifact}")
+          
+          def main():
+              require(os.environ.get("GITHUB_REPOSITORY") == REPO, "Wrong repository")
+              require(os.environ.get("GITHUB_REF") == "refs/heads/" + BRANCH, "Wrong branch")
+              require(os.environ.get("GITHUB_EVENT_NAME") == "push", "Wrong event")
+              require(len(TARGETS) == len({i for _, i, _ in TARGETS}) == 11, "Invalid target list")
+              require(sum(size for _, _, size in TARGETS) == 385244020, "Invalid byte total")
+              require(not ({i for _, i, _ in TARGETS} & {i for _, i, _ in KEEP}), "Protected target")
+              require(api("git/ref/heads/main")["object"]["sha"] == BASE_SHA, "Main has changed; inspect before cleanup")
+          
+              # Complete all checks before any irreversible deletion.
+              for row in KEEP:
+                  item = api(f"actions/artifacts/{row[1]}")
+                  require(item is not None and not item["expired"], "Protected deployment archive missing")
+                  check_artifact(item, row)
+              present = []
+              for row in TARGETS:
+                  run, artifact, size = row
+                  item = api(f"actions/artifacts/{artifact}")
+                  if item is None:
+                      print(f"Already absent: {artifact}")
+                      continue
+                  check_artifact(item, row)
+                  result = api(f"actions/runs/{run}")
+                  require(result["id"] == run and result["status"] == "completed"
+                          and result["conclusion"] == "success"
+                          and result["head_branch"] == "main"
+                          and result["name"] == "pages build and deployment",
+                          f"Deployment not eligible: {run}")
+                  present.append(row)
+              print(f"Validated {len(present)} approved archives before deleting")
+              removed_bytes = 0
+              for run, artifact, size in present:
+                  api(f"actions/artifacts/{artifact}", "DELETE")
+                  require(api(f"actions/artifacts/{artifact}") is None, f"Deletion not verified: {artifact}")
+                  removed_bytes += size
+                  print(f"Deleted and verified: {artifact} ({size} bytes)")
+              for _, artifact, _ in TARGETS:
+                  require(api(f"actions/artifacts/{artifact}") is None, f"Approved archive remains: {artifact}")
+              for row in KEEP:
+                  item = api(f"actions/artifacts/{row[1]}")
+                  require(item is not None, "Protected archive changed")
+                  check_artifact(item, row)
+              require(api("git/ref/heads/main")["object"]["sha"] == BASE_SHA, "Main changed during cleanup")
+              report = (f"Removed {len(present)} approved github-pages archives, {removed_bytes} bytes.\n"
+                        "All 11 target IDs are absent. Both recent deployment archives remain.\n"
+                        "Main, source files, release assets, APKs, caches, and signing keys were not modified.\n")
+              print(report)
+              Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(report, encoding="utf-8")
+          
+          if __name__ == "__main__":
+              main()
+          PY
