@@ -5,6 +5,9 @@ on:
       - 'bundles/balance-cdq/v25.10/**'
       - 'bundles/balance-cdq/v25.11/**'
       - 'tests/mobile-patch.test.mjs'
+      - 'tests/mobile-compat.test.mjs'
+      - 'tests/fixtures/**'
+      - 'tests/helpers/**'
       - 'apps-script-manager/app.js'
       - 'tests/document-flow-cleanup.test.mjs'
   pull_request:
@@ -16,4 +19,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/document-flow-cleanup.test.mjs tests/mobile-patch.test.mjs
+      - run: node --test tests/document-flow-cleanup.test.mjs tests/mobile-patch.test.mjs tests/mobile-compat.test.mjs
