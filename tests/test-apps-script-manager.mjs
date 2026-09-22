@@ -232,6 +232,29 @@ try {
   assert(selector?.source==='<main>selector zip</main>','ZIP Selector.html was not written');
   assert(!!manifestFile,'appsscript.json was not preserved');
 
+  const localPatchResult=await page.evaluate(async()=>{
+    const before='2026.09.21-v25.09-native-file-open-contract';
+    const after='2026.09.21-v25.10-display-document-cleanup';
+    S.files=[{name:'Code',type:'SERVER_JS',source:"const CDQ_PACKAGE_BUILD = '"+before+"';"},
+      {name:'appsscript',type:'JSON',source:'{"timeZone":"America/Toronto"}'}];
+    S.id='TEST_SCRIPT_ID';S.pkg.clear();S.draft.clear();
+    const patch={schema:'cdq-script-bundle-v3',projectScriptId:S.id,version:'V25.10',build:after,
+      requiresBuild:[before],patches:[{file:'Code.gs',op:'replace_build',from:before,to:after}],removeFiles:[]};
+    const file=new File([JSON.stringify(patch)],'Balance_CDQ_V25_10.cdq',{type:'application/json'});
+    await importPhoneFiles([file]);
+    const imported=Array.from(S.pkg.values()).some(f=>f.source.includes(after));
+    S.pkg.clear();
+    packageEditor.value=JSON.stringify(patch);
+    await preparePackage();
+    const pasted=Array.from(S.pkg.values()).some(f=>f.source.includes(after));
+    let wrongProject=false,wrongVersion=false;
+    try{await importLocalBundleV40(JSON.stringify({...patch,projectScriptId:'OTHER_SCRIPT_ID'}));}catch(_){wrongProject=true;}
+    try{await importLocalBundleV40(JSON.stringify({...patch,requiresBuild:['2026.09.21-v25.00-old']}));}catch(_){wrongVersion=true;}
+    return {imported,pasted,wrongProject,wrongVersion};
+  });
+  assert(Object.values(localPatchResult).every(Boolean),'Local .cdq import/paste guards failed: '+JSON.stringify(localPatchResult));
+  console.log('PASS: .cdq file import and pasted patch use project/version guards');
+
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');

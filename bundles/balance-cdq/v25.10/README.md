@@ -24,10 +24,18 @@ Correctif préparé le 21 septembre 2026 pour l'affichage, les documents et le m
 - Tests du résultat de déploiement : confirmation Google avec vérification de production réussie ou échouée; le statut final reflète le contrôle réel.
 - Les 21 correctifs ont été appliqués avec le moteur réel du Manager sur une reconstruction V25.09; `Code.gs` et les 40 scripts JavaScript intégrés résultants passent l'analyse syntaxique.
 - Les sources privées complètes restent hors du dépôt. La reconstruction provient de l'export V22.26 archivé et des correctifs du dépôt; elle ne prouve pas l'état du projet actuellement déployé.
+- Les boutons d'ouverture et les listes sans ligne visible passent aussi par le parcours commun, avec conservation du lecteur CDQ explicitement choisi. Seize tests de routage et de protection réussissent après cette extension.
+- Le fichier `Balance_CDQ_V25_10.cdq` contient le même correctif que le lien direct. Script Manager V40 accepte son import ou son texte collé et applique les mêmes contrôles de projet, de version et d'empreintes.
+
+## Charger le correctif
+
+Ouvrir [Script Manager avec V25.10](https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/?bundle=v25.10), charger le projet puis utiliser **ÉCRIRE + DÉPLOYER**. Le package est préparé automatiquement. Autre possibilité : importer `Balance_CDQ_V25_10.cdq`, ou coller son contenu dans Package CDQ et utiliser **Préparer les modifications**.
+
+L'icône et les ouvertures natives font partie d'Android 25.11. Installer aussi cette mise à jour depuis la [page Android habituelle](https://jprodrigue86.github.io/Rapports--talonnages-CDQ/balance-cdq-android.html). Le package Apps Script seul ne modifie pas les ressources de l'APK.
 
 ## Conditions avant utilisation
 
-1. Compiler et installer Android 25.11, puis vérifier le logo et l'écran de démarrage sur le téléphone. La capture annoncée par l'utilisateur n'a pas encore été reçue.
+1. Compiler et installer Android 25.11, puis vérifier le logo et l'écran de démarrage sur le téléphone. Les deux captures reçues confirment un logo coupé dans l'icône d'accueil et un petit logo dans un large cadre blanc au démarrage. Le correctif conserve le PNG original, protège le cadrage de l'icône adaptative et utilise une ressource de démarrage distincte avec un fond d'icône transparent sur la fenêtre sombre.
 2. Ouvrir Script Manager V40 et charger le vrai projet. Le package accepte seulement la base V25.09. Les recherches littérales et empreintes doivent correspondre; tout écart bloque l'opération.
 3. Vérifier le modèle Drive `1Eyji-xHX69Wa0EQTx0nx-D8KEmfY_hhB`, puis appliquer le package avec sauvegarde et mettre à jour le déploiement existant.
 4. Sur le téléphone, tester les valeurs 0/50/100 des trois curseurs et le retour à 50, les quatre combinaisons compte/lecteur, deux comptes Google, une note TXT, un Sheet, puis le retour d'une modification PDF.

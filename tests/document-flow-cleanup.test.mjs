@@ -13,6 +13,7 @@ function routing(initial={},userAgent='BalanceCDQAndroid/25.11'){
     document:{querySelector:()=>({closest:()=>row}),createElement:()=>({style:{},click(){launches.push(this.href)},remove(){}}),body:{appendChild(){},classList:{contains:()=>false}},addEventListener:(name,fn)=>{(handlers[name]??=[]).push(fn)}},
     utilisateurCourantRole:'technicien', modeSelectionFichiers:false});
   context.window=context;
+  context.addEventListener=context.document.addEventListener;
   vm.runInContext(routeSource,context);
   return {context,api:context.cdqDocumentOpen,launches,handlers,row,store};
 }
@@ -62,6 +63,21 @@ test('read-only role is carried to Android; invalid ids never leave the page',()
 test('PC and explicit internal reader retain their established entry point',()=>{
   assert.equal(routing({},'Windows').api.open('FILE_1234567890'),false);
   assert.equal(routing({cdqPdfReaderPreferenceV1:'cdq'}).api.open('FILE_1234567890'),false);
+});
+test('document buttons use native routing even without a visible file row',async()=>{
+  const r=routing();
+  let legacyCalls=0;
+  r.context.cdqOpenPdf=()=>{legacyCalls++;return Promise.resolve('internal');};
+  r.context.document.querySelector=()=>null;
+  r.context.cdqDocumentMeta=()=>({nom:'Long name '.repeat(25)+'.pdf',type:'PDF'});
+  vm.runInContext(routeSource,r.context);
+  await r.context.cdqOpenPdf('FILE_1234567890');
+  assert.equal(legacyCalls,0);
+  assert.equal(r.launches.length,1);
+  const params=new URLSearchParams(r.launches[0].split('?')[1].split('#')[0]);
+  assert.equal(params.get('name').length,180);
+  r.store.set('cdqPdfReaderPreferenceV1','cdq');
+  assert.equal(await r.context.cdqOpenPdf('FILE_1234567890'),'internal');
 });
 
 function cleanupContext(files,entries=[]){

@@ -3,7 +3,7 @@
     <background android:drawable="@color/ic_launcher_background" />
     <foreground>
         <inset android:drawable="@drawable/ic_balance_cdq"
-            android:insetLeft="19.444444%" android:insetRight="19.444444%"
-            android:insetTop="19.444444%" android:insetBottom="19.444444%" />
+            android:insetLeft="20.5%" android:insetRight="20.5%"
+            android:insetTop="20.5%" android:insetBottom="20.5%" />
     </foreground>
 </adaptive-icon>

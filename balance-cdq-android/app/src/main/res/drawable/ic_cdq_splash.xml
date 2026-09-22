@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The splash has its own 288 dp canvas / 192 dp safe circle.
+     Use the original artwork once; do not nest the launcher adaptive icon. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="18%"
+    android:insetRight="18%"
+    android:insetTop="18%"
+    android:insetBottom="18%">
+    <bitmap
+        android:src="@drawable/ic_balance_cdq"
+        android:gravity="fill"
+        android:filter="true"
+        android:antialias="true" />
+</inset>

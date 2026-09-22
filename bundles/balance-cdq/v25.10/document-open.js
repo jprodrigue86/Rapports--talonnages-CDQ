@@ -13,7 +13,12 @@
   function meta(id) {
     const box = document.querySelector('.file-checkbox[data-file-id="' + id + '"]');
     const row = box && box.closest('.file-row');
-    return row ? {name: row.dataset.fileName || '', type: row.dataset.fileType || '', modified: row.dataset.fileDate || ''} : {};
+    if (row) return {name: row.dataset.fileName || '', type: row.dataset.fileType || '', modified: row.dataset.fileDate || ''};
+    try {
+      const m = typeof cdqDocumentMeta === 'function' ? cdqDocumentMeta(id) : null;
+      if (m) return {name: m.nom || m.name || '', type: m.type || '', modified: m.dateModification || ''};
+    } catch (_) {}
+    return {};
   }
   function kind(m) {
     const type = String(m.type || '').toUpperCase();
@@ -44,7 +49,7 @@
     const email = account();
     const query = new URLSearchParams({
       fileId: id,
-      name: String(m.name || (type === 'note' ? 'Note.txt' : 'Rapport.pdf')),
+      name: String(m.name || (type === 'note' ? 'Note.txt' : 'Rapport.pdf')).slice(0, 180),
       account: email,
       accountMode: email ? 'default' : 'ask',
       reader: type === 'pdf' ? reader() : 'system',
@@ -67,6 +72,17 @@
   };
   try { modifierFichier = window.modifierFichier; } catch (_) {}
 
+  // Buttons and offline lists can call these functions without clicking a row.
+  // Preserve their Promise contract and the explicit internal-reader route.
+  ['cdqOpenPdf', 'cdqV24OpenPdf', 'cdqOuvrirPdfCommeSheetV2275', 'cdqV19OpenOfflineSheet'].forEach(function (name) {
+    const previous = window[name];
+    if (typeof previous !== 'function') return;
+    window[name] = function (id) {
+      if (open(id, name === 'cdqV19OpenOfflineSheet' ? 'sheet' : 'pdf')) return Promise.resolve(true);
+      return previous.apply(this, arguments);
+    };
+  });
+
   // The old PDF pointerup interceptor is removed from the package.
   // A click opens a document; a drag/long press continues to select or swipe.
   let pointer = null, suppressUntil = 0;
@@ -84,7 +100,7 @@
     pointer = null;
   }, true);
   document.addEventListener('pointercancel', function () { pointer = null; suppressUntil = Date.now()+700; }, true);
-  document.addEventListener('click', function (e) {
+  window.addEventListener('click', function (e) {
     if (!native() || !e.target.closest) return;
     if (e.target.closest('button,a,input,select,textarea,label,.file-actions,[class*="swipe"]')) return;
     const row = e.target.closest('.file-row');

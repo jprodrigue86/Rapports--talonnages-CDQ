@@ -970,9 +970,13 @@ function parsePackage(text) {
   });
 }
 
-function preparePackage() {
+async function preparePackage() {
   try {
     if (!S.files.length) throw Error('Charge d’abord le projet.');
+    if (/^\s*\{/.test(packageEditor.value)) {
+      await importLocalBundleV40(packageEditor.value);
+      return;
+    }
     const files = parsePackage(packageEditor.value);
     S.pkg.clear();
     files.forEach(entry => {
@@ -1260,7 +1264,22 @@ function buildEntriesFromPatchesV25(manifest){
   return entries;
 }
 
-async function importBundleManifestV24(url){
+async function importLocalBundleV40(text){
+  if(!S.files.length)throw new Error('Charge d’abord le projet.');
+  if(String(text).length>3_000_000)throw new Error('Fichier package trop volumineux.');
+  let manifest;
+  try{manifest=JSON.parse(text);}catch(_){throw new Error('Package CDQ invalide.');}
+  if(!manifest || !['cdq-script-bundle-v2','cdq-script-bundle-v3'].includes(manifest.schema)){
+    throw new Error('Format du correctif CDQ non reconnu.');
+  }
+  if((manifest.extraFiles||[]).length || (manifest.files||[]).length){
+    throw new Error('Ce correctif contient des fichiers distants : utilise son lien de mise à jour.');
+  }
+  // Use exactly the same project, version, fingerprint and write guards as a direct link.
+  return importBundleManifestV24('latest',manifest);
+}
+
+async function importBundleManifestV24(url,suppliedManifest=null){
   url=bundleUrlFromValueV24(url);
   S.bundleUrl=url;
 
@@ -1277,9 +1296,11 @@ async function importBundleManifestV24(url){
   setQuickResult('Chargement du package direct…','warn');
   setZipVisual('processing','Package direct','Lecture du manifeste sécurisé…',15);
 
-  const manifestText=await fetchBundleTextV24(url);
-  let manifest;
-  try{manifest=JSON.parse(manifestText);}catch(e){throw new Error('Manifeste package invalide.');}
+  let manifest=suppliedManifest;
+  if(!manifest){
+    const manifestText=await fetchBundleTextV24(url);
+    try{manifest=JSON.parse(manifestText);}catch(e){throw new Error('Manifeste package invalide.');}
+  }
 
   if(!['cdq-script-bundle-v1','cdq-script-bundle-v2','cdq-script-bundle-v3'].includes(manifest.schema)){
     throw new Error('Format package non reconnu.');
@@ -1551,6 +1572,11 @@ async function importPhoneFiles(fileList) {
       }
 
       const text = await file.text();
+      if (/\.(cdq|json|txt)$/i.test(file.name) && /^\s*\{/.test(text)) {
+        if(selected.length!==1)throw new Error('Importe le correctif CDQ seul pour vérifier sa version et ses fichiers.');
+        await importLocalBundleV40(text);
+        return;
+      }
       if (/\.(txt|cdq)$/i.test(file.name) && /^\s*===\s*FILE\s*:/mi.test(text)) {
         entries.push(...parsePackage(text));
         continue;
