@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V39';
+const APP_VERSION = 'V40';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -336,10 +336,10 @@ function beginQuickDeployProgress(text = 'Préparation de la mise à jour…') {
   return true;
 }
 
-function endQuickDeployProgress(ok, text = '') {
+function endQuickDeployProgress(ok, text = '', verified = true) {
   if (ok) {
-    S.deployProgress = 100;
-    setQuickDeployProgress(100, text || 'Mise à jour terminée.', 'success');
+    S.deployProgress = verified ? 100 : 98;
+    setQuickDeployProgress(S.deployProgress, text || 'Mise à jour terminée.', verified ? 'success' : 'warning');
   } else {
     if (!S.deployProgress) S.deployProgress = 2;
     setQuickDeployProgress(S.deployProgress, text || 'La mise à jour a échoué.', 'error');
@@ -359,8 +359,11 @@ function endQuickDeployProgress(ok, text = '') {
 async function runQuickDeployAction() {
   if (!beginQuickDeployProgress()) return;
   try {
-    await writePendingAndDeploy();
-    endQuickDeployProgress(true, '100 % — écriture, déploiement et vérification terminés.');
+    const result=await writePendingAndDeploy();
+    const verified=!result?.verificationPending;
+    endQuickDeployProgress(true, verified
+      ? '100 % — écriture, déploiement et vérification terminés.'
+      : 'Déploiement Google confirmé — vérification de la production encore en attente.', verified);
   } catch (e) {
     const message = e && e.message ? e.message : String(e);
     stat('Échec : ' + message, 'err');
@@ -967,9 +970,13 @@ function parsePackage(text) {
   });
 }
 
-function preparePackage() {
+async function preparePackage() {
   try {
     if (!S.files.length) throw Error('Charge d’abord le projet.');
+    if (/^\s*\{/.test(packageEditor.value)) {
+      await importLocalBundleV40(packageEditor.value);
+      return;
+    }
     const files = parsePackage(packageEditor.value);
     S.pkg.clear();
     files.forEach(entry => {
@@ -1257,7 +1264,22 @@ function buildEntriesFromPatchesV25(manifest){
   return entries;
 }
 
-async function importBundleManifestV24(url){
+async function importLocalBundleV40(text){
+  if(!S.files.length)throw new Error('Charge d’abord le projet.');
+  if(String(text).length>3_000_000)throw new Error('Fichier package trop volumineux.');
+  let manifest;
+  try{manifest=JSON.parse(text);}catch(_){throw new Error('Package CDQ invalide.');}
+  if(!manifest || !['cdq-script-bundle-v2','cdq-script-bundle-v3'].includes(manifest.schema)){
+    throw new Error('Format du correctif CDQ non reconnu.');
+  }
+  if((manifest.extraFiles||[]).length || (manifest.files||[]).length){
+    throw new Error('Ce correctif contient des fichiers distants : utilise son lien de mise à jour.');
+  }
+  // Use exactly the same project, version, fingerprint and write guards as a direct link.
+  return importBundleManifestV24('latest',manifest);
+}
+
+async function importBundleManifestV24(url,suppliedManifest=null){
   url=bundleUrlFromValueV24(url);
   S.bundleUrl=url;
 
@@ -1274,11 +1296,13 @@ async function importBundleManifestV24(url){
   setQuickResult('Chargement du package direct…','warn');
   setZipVisual('processing','Package direct','Lecture du manifeste sécurisé…',15);
 
-  const manifestText=await fetchBundleTextV24(url);
-  let manifest;
-  try{manifest=JSON.parse(manifestText);}catch(e){throw new Error('Manifeste package invalide.');}
+  let manifest=suppliedManifest;
+  if(!manifest){
+    const manifestText=await fetchBundleTextV24(url);
+    try{manifest=JSON.parse(manifestText);}catch(e){throw new Error('Manifeste package invalide.');}
+  }
 
-  if(!['cdq-script-bundle-v1','cdq-script-bundle-v2'].includes(manifest.schema)){
+  if(!['cdq-script-bundle-v1','cdq-script-bundle-v2','cdq-script-bundle-v3'].includes(manifest.schema)){
     throw new Error('Format package non reconnu.');
   }
   if(manifest.projectScriptId && normalizeScriptId(manifest.projectScriptId)!==normalizeScriptId(S.id)){
@@ -1321,7 +1345,7 @@ async function importBundleManifestV24(url){
     throw new Error('Le projet chargé est déjà plus récent ('+currentBuild+') que ce package ('+targetBuild+').');
   }
 
-  if(manifest.schema==='cdq-script-bundle-v2'){
+  if(manifest.schema==='cdq-script-bundle-v2'||manifest.schema==='cdq-script-bundle-v3'){
     setZipVisual('processing','Package direct '+String(manifest.version||manifest.build||''),'Application des correctifs audités…',45);
     resolved=buildEntriesFromPatchesV25(manifest);
 
@@ -1376,6 +1400,10 @@ async function importBundleManifestV24(url){
       html:raw.filter(x=>/\.html?$/i.test(x.displayName)).length
     };
     resolved=raw.map(x=>resolveImportedEntry(x,counts)).filter(Boolean);
+  }
+  if(manifest.schema==='cdq-script-bundle-v3'){
+    const removals=await prepareEmbeddedModelRemovals(manifest.removeFiles||[],resolved,S.files);
+    resolved.push(...removals);
   }
   if(!resolved.length)throw new Error('Aucun fichier du package ne correspond au projet.');
 
@@ -1544,6 +1572,11 @@ async function importPhoneFiles(fileList) {
       }
 
       const text = await file.text();
+      if (/\.(cdq|json|txt)$/i.test(file.name) && /^\s*\{/.test(text)) {
+        if(selected.length!==1)throw new Error('Importe le correctif CDQ seul pour vérifier sa version et ses fichiers.');
+        await importLocalBundleV40(text);
+        return;
+      }
       if (/\.(txt|cdq)$/i.test(file.name) && /^\s*===\s*FILE\s*:/mi.test(text)) {
         entries.push(...parsePackage(text));
         continue;
@@ -1636,7 +1669,7 @@ function renderDiff() {
     quickApply.disabled=!ready;
   }
   diffList.innerHTML = list.length ? list.map(x =>
-    `<div class="diff-item"><div class="diff-head"><span class="diff-name">${esc(x.entry.displayName || displayNameForFile(x.entry))}</span><span class="diff-kind ${x.base ? 'changed' : 'new'}">${x.base ? 'MODIFIÉ' : 'NOUVEAU'}</span></div><div class="diff-stats">Avant : ${lines(x.base?.source)} lignes • Après : ${lines(x.entry.source)} lignes</div></div>`
+    `<div class="diff-item"><div class="diff-head"><span class="diff-name">${esc(x.entry.displayName || displayNameForFile(x.entry))}</span><span class="diff-kind ${x.base ? 'changed' : 'new'}">${x.entry.remove ? 'RETIRÉ (SAUVEGARDÉ)' : x.base ? 'MODIFIÉ' : 'NOUVEAU'}</span></div><div class="diff-stats">Avant : ${lines(x.base?.source)} lignes • Après : ${lines(x.entry.source)} lignes</div></div>`
   ).join('') : '<div class="empty">Aucune modification préparée.</div>';
 }
 
@@ -1664,15 +1697,70 @@ function validateChanges() {
   return count;
 }
 
+async function prepareEmbeddedModelRemovals(specs,staged,files){
+  if(!Array.isArray(specs)||specs.length>32)throw Error('Nettoyage de modèles invalide.');
+  const removals=[];
+  const seen=new Set();
+  for(const spec of specs){
+    const name=String(spec.name||'');
+    if(!/^(CDQTemplates\.gs|CDQ_Model_plancher(?:_v2291)?_\d+\.html)$/.test(name)){
+      throw Error('Suppression de fichier non autorisée : '+name);
+    }
+    const parsed=importedFileSpec(name);
+    const k=key(parsed);
+    if(seen.has(k))throw Error('Suppression répétée : '+name);
+    seen.add(k);
+    const file=files.find(f=>key(f)===k);
+    if(!file)continue;
+    const accepted=Array.isArray(spec.sha256)?spec.sha256:[];
+    const actual=await sha256HexV24(String(file.source||'').replace(/\r\n/g,'\n'));
+    if(!accepted.includes(actual))throw Error(name+' a été modifié : nettoyage bloqué pour préserver son contenu.');
+    removals.push({...file,displayName:name,source:'',remove:true});
+  }
+  const deleted=new Set(removals.map(key));
+  const replacement=new Map(staged.map(f=>[key(f),f]));
+  for(const f of files){
+    if(deleted.has(key(f)))continue;
+    const source=String((replacement.get(key(f))||f).source||'');
+    for(const removed of removals){
+      if(source.includes(removed.name))throw Error('Le modèle '+removed.name+' est encore référencé par '+f.name+'.');
+    }
+    if(removals.some(f=>f.name==='CDQTemplates')&&/\b(cdqTemplateEmbarque_|cdqMetaEmbarquee_|cdqChunkEmbarque_|cdqBlobEmbarque_)\b/.test(source)){
+      throw Error('Le chargeur de modèles intégrés est encore utilisé par '+f.name+'.');
+    }
+  }
+  return removals;
+}
+
 function buildUpdatedFileSet(freshFiles) {
   const out = clone(freshFiles);
   for (const [, entry] of changes()) {
+    const base=S.files.find(x=>key(x)===key(entry));
     const found = out.find(x => x.type === entry.type && String(x.name).toLowerCase() === String(entry.name).toLowerCase());
+    if((base && (!found || found.source!==base.source)) || (!base && found)){
+      throw Error('Le fichier '+entry.name+' a changé depuis sa lecture. Recharge le projet et le package avant d’écrire.');
+    }
+    if(entry.remove){
+      if(found)out.splice(out.indexOf(found),1);
+      continue;
+    }
     if (found) found.source = entry.source;
     else out.push({ name: entry.name, type: entry.type, source: entry.source });
   }
   if (!out.some(f => f.type === 'JSON' && f.name === 'appsscript')) {
     throw Error('appsscript.json absent après modification.');
+  }
+  // Recheck the freshly read project: another editor may have added a caller
+  // in an unrelated file after the package was prepared.
+  const removals=Array.from(changes().values()).filter(f=>f.remove);
+  for(const f of out){
+    const source=String(f.source||'');
+    for(const removed of removals){
+      if(source.includes(removed.name))throw Error('Le modèle '+removed.name+' est encore référencé par '+f.name+'.');
+    }
+    if(removals.some(f=>f.name==='CDQTemplates')&&/\b(cdqTemplateEmbarque_|cdqMetaEmbarquee_|cdqChunkEmbarque_|cdqBlobEmbarque_)\b/.test(source)){
+      throw Error('Le chargeur de modèles intégrés est encore utilisé par '+f.name+'.');
+    }
   }
   return out;
 }
@@ -1682,17 +1770,22 @@ async function writeProjectChanges() {
   setQuickDeployProgress(8, 'Lecture de la version actuelle depuis Google…');
   stat('1/4 Relecture depuis Google…');
   const fresh = await getProjectContent(S.id, cid());
+  const updatedFiles=buildUpdatedFileSet(fresh.files);
   setQuickDeployProgress(16, 'Création de la sauvegarde complète…');
   stat('2/4 Sauvegarde complète…');
   await saveBackup(S.id, fresh, `Avant écriture (${count} fichier${count > 1 ? 's' : ''})`);
   setQuickDeployProgress(28, 'Écriture du nouveau code dans Apps Script…');
   stat('3/4 Écriture…');
-  await updateProjectContent(S.id, buildUpdatedFileSet(fresh.files), cid());
+  await updateProjectContent(S.id, updatedFiles, cid());
   setQuickDeployProgress(46, 'Code écrit — relecture et vérification Google…');
   stat('4/4 Vérification…');
   const checked = await getProjectContent(S.id, cid());
   for (const [k, entry] of changes()) {
     const f = (checked.files || []).find(x => key(x) === k);
+    if(entry.remove){
+      if(f)throw Error('Le fichier retiré est encore présent : '+entry.name);
+      continue;
+    }
     if (!f || f.source !== entry.source) {
       throw Error('Vérification Google échouée pour ' + (entry.displayName || entry.name));
     }
@@ -1986,21 +2079,27 @@ async function deployNewVersion(targetOverride = null) {
   if (all.some(d => d.deploymentId === target)) deployment.value = target;
   updateDeploymentUi();
   saveSettings();
-  S.lastDeploymentResult = { version: v.versionNumber, deploymentId: target, createdNew: false, healthChecked:isProductionProject() };
+  const verificationPending=isProductionProject()&&!productionHealth;
+  S.lastDeploymentResult = { version: v.versionNumber, deploymentId: target, createdNew: false, healthChecked:Boolean(productionHealth), verificationPending };
 
   S.pkg.clear();
   S.pendingBuild = '';
   S.bundleAlreadyApplied=false;
   S.bundleTargetBuild='';
   S.redeploySource=false;
-  S.productionBuild=sourceBuild||S.productionBuild;
+  if(productionHealth)S.productionBuild=sourceBuild||S.productionBuild;
   renderDiff();
   updateQuickUi();
 
-  setQuickDeployProgress(99, isProductionProject() ? 'Production vérifiée — finalisation…' : 'Déploiement vérifié — finalisation…');
-  if(isProductionProject()){
+  if(verificationPending){
+    setQuickDeployProgress(98, 'Déploiement conservé — production encore à vérifier.', 'warning');
+    stat(`DÉPLOIEMENT GOOGLE CONFIRMÉ ✓ Apps Script v${v.versionNumber} • production encore à vérifier.`,'warn');
+  }else if(isProductionProject()){
+    setQuickDeployProgress(99, 'Production vérifiée — finalisation…');
     stat(`MISE À JOUR TERMINÉE ✓ Apps Script v${v.versionNumber} • production vérifiée côté serveur • même URL.`,'ok');
   }else{
+    setQuickDeployProgress(99, 'Déploiement vérifié — finalisation…');
+    setQuickResult(`MISE À JOUR CONFIRMÉE ✓ Apps Script v${v.versionNumber} • déploiement existant relu.`,'ok');
     stat(`MISE À JOUR TERMINÉE ✓ Déploiement actuel conservé • nouvelle version Apps Script v${v.versionNumber}.`,'ok');
   }
   return S.lastDeploymentResult;
@@ -2220,7 +2319,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=30').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=40').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;

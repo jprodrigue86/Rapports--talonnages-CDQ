@@ -1,6 +1,10 @@
 name: Build Balance CDQ Android APK
 
 on:
+  pull_request:
+    paths:
+      - 'balance-cdq-android/**'
+      - '.github/workflows/build-balance-cdq-android.yml'
   push:
     branches: [main]
     paths:
@@ -12,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: balance-cdq-android-apk
+  group: balance-cdq-android-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -102,12 +106,13 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.10
+          name: Balance-CDQ-Android-25.11
           path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
 
       - name: Publish APK + update channel
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail

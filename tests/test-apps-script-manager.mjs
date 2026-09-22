@@ -1,5 +1,8 @@
 import puppeteer from 'puppeteer-core';
 import {spawn} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+
+const expectedVersion=readFileSync('apps-script-manager/app.js','utf8').match(/const APP_VERSION = '(V\d+)'/)[1];
 
 const chrome = process.env.CHROME_PATH || '/usr/bin/google-chrome';
 const server = spawn('python3',['-m','http.server','8080','--bind','127.0.0.1'],{stdio:'inherit'});
@@ -26,15 +29,22 @@ try {
     top:document.querySelector('#versionChip')?.textContent,
     badge:document.querySelector('#versionBadge')?.textContent
   }));
-  assert(visibleVersion.top==='V18','Top version chip must show V18');
-  assert(visibleVersion.badge?.includes('V18'),'Version badge must show V18');
+  assert(visibleVersion.top===expectedVersion,'Top version chip must show '+expectedVersion);
+  assert(visibleVersion.badge?.includes(expectedVersion),'Version badge must show '+expectedVersion);
 
   const manifest = await client.send('Page.getAppManifest');
   assert(!manifest.errors?.length,'Manifest errors: '+JSON.stringify(manifest.errors));
   const parsed = JSON.parse(manifest.data || '{}');
-  const icons = (parsed.icons||[]).map(i=>i.src);
-  assert(icons.some(x=>x.includes('icon-192.png')),'Manifest missing 192 PNG icon');
-  assert(icons.some(x=>x.includes('icon-512.png')),'Manifest missing 512 PNG icon');
+  const icons = parsed.icons||[];
+  assert(icons.some(x=>x.purpose==='any'),'Manifest missing standard icon');
+  assert(icons.some(x=>x.purpose==='maskable'),'Manifest missing maskable icon');
+  for(const icon of icons){
+    const valid=await page.evaluate(async src=>{
+      const image=new Image();image.src=src;
+      await image.decode();return image.naturalWidth>0&&image.naturalHeight>0;
+    },icon.src);
+    assert(valid,'Manifest icon does not decode: '+icon.src);
+  }
 
   const dims = await page.evaluate(async()=>{
     async function dim(src){ const r=await fetch(src); if(!r.ok) throw new Error(src+' HTTP '+r.status); const b=await r.blob(); const bm=await createImageBitmap(b); return [bm.width,bm.height]; }
@@ -67,7 +77,7 @@ try {
     }}};
     const realFetch=window.fetch.bind(window);
     window.fetch=async (url,opts={})=>{
-      const s=String(url),method=opts.method||'GET';
+      const s=String(url).replace('https://scriptmanagement.googleapis.com/v1','https://script.googleapis.com/v1'),method=opts.method||'GET';
       window.__mockFetchLog.push(method+' '+s);
       const ok=data=>new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
       if(s.startsWith('https://www.googleapis.com/drive/v3/files')) return ok({files:[{id:'TEST_SCRIPT_ID',name:'Projet Test CDQ',modifiedTime:'2026-09-17T16:00:00Z',webViewLink:'https://script.google.com/'}]});
@@ -222,13 +232,36 @@ try {
   assert(selector?.source==='<main>selector zip</main>','ZIP Selector.html was not written');
   assert(!!manifestFile,'appsscript.json was not preserved');
 
+  const localPatchResult=await page.evaluate(async()=>{
+    const before='2026.09.21-v25.09-native-file-open-contract';
+    const after='2026.09.21-v25.10-display-document-cleanup';
+    S.files=[{name:'Code',type:'SERVER_JS',source:"const CDQ_PACKAGE_BUILD = '"+before+"';"},
+      {name:'appsscript',type:'JSON',source:'{"timeZone":"America/Toronto"}'}];
+    S.id='TEST_SCRIPT_ID';S.pkg.clear();S.draft.clear();
+    const patch={schema:'cdq-script-bundle-v3',projectScriptId:S.id,version:'V25.10',build:after,
+      requiresBuild:[before],patches:[{file:'Code.gs',op:'replace_build',from:before,to:after}],removeFiles:[]};
+    const file=new File([JSON.stringify(patch)],'Balance_CDQ_V25_10.cdq',{type:'application/json'});
+    await importPhoneFiles([file]);
+    const imported=Array.from(S.pkg.values()).some(f=>f.source.includes(after));
+    S.pkg.clear();
+    packageEditor.value=JSON.stringify(patch);
+    await preparePackage();
+    const pasted=Array.from(S.pkg.values()).some(f=>f.source.includes(after));
+    let wrongProject=false,wrongVersion=false;
+    try{await importLocalBundleV40(JSON.stringify({...patch,projectScriptId:'OTHER_SCRIPT_ID'}));}catch(_){wrongProject=true;}
+    try{await importLocalBundleV40(JSON.stringify({...patch,requiresBuild:['2026.09.21-v25.00-old']}));}catch(_){wrongVersion=true;}
+    return {imported,pasted,wrongProject,wrongVersion};
+  });
+  assert(Object.values(localPatchResult).every(Boolean),'Local .cdq import/paste guards failed: '+JSON.stringify(localPatchResult));
+  console.log('PASS: .cdq file import and pasted patch use project/version guards');
+
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');
   console.log('PASS: Google OAuth callback path works');
-  console.log('PASS: V18 remembers the Google connection preference for 7 days without storing a permanent token');
+  console.log('PASS: Manager remembers the Google connection preference for 7 days with expiry on the retained access token');
   console.log('PASS: Drive project listing works');
-  console.log('PASS: V18 is visibly displayed in the app');
-  console.log('PASS: V18 keeps ÉCRIRE + DÉPLOYER enabled when ZIP matches code already present');
+  console.log('PASS: Manager is visibly displayed in the app');
+  console.log('PASS: Manager keeps ÉCRIRE + DÉPLOYER enabled when ZIP matches code already present');
   console.log('PASS: ZIP import shows received/decoding/success visual state');
   console.log('PASS: ZIP import finds nested GS and Selector files and maps them to the project');
   console.log('PASS: read-only HEAD deployment is excluded');

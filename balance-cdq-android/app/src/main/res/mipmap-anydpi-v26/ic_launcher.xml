@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
-    <foreground android:drawable="@drawable/ic_balance_cdq" />
+    <foreground>
+        <!-- Keep the complete artwork inside Android's 66 / 108 safe zone. -->
+        <inset android:drawable="@drawable/ic_balance_cdq"
+            android:insetLeft="20.5%" android:insetRight="20.5%"
+            android:insetTop="20.5%" android:insetBottom="20.5%" />
+    </foreground>
 </adaptive-icon>

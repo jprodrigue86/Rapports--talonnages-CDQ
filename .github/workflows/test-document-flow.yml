@@ -1,0 +1,17 @@
+name: Document flow and guarded cleanup
+on:
+  push:
+    paths:
+      - 'bundles/balance-cdq/v25.10/**'
+      - 'apps-script-manager/app.js'
+      - 'tests/document-flow-cleanup.test.mjs'
+  pull_request:
+jobs:
+  document-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/document-flow-cleanup.test.mjs

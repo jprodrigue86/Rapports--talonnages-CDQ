@@ -30,7 +30,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
         private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.10"
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.11"
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
         private const val UPDATE_MANIFEST_URL =
@@ -92,6 +92,7 @@ class MainActivity : Activity() {
 
     @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_BalanceCDQ)
         super.onCreate(savedInstanceState)
 
         webView = WebView(this).apply {
@@ -101,6 +102,9 @@ class MainActivity : Activity() {
 
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = false
+            settings.textZoom = 100
             settings.databaseEnabled = true
             settings.loadsImagesAutomatically = true
             settings.cacheMode = WebSettings.LOAD_DEFAULT
@@ -112,7 +116,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.10"
+                settings.userAgentString + " BalanceCDQAndroid/25.11"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -121,7 +125,15 @@ class MainActivity : Activity() {
                     view: WebView,
                     request: WebResourceRequest
                 ): Boolean {
-                    if (!request.isForMainFrame) return false
+                    if (!request.isForMainFrame) {
+                        val uri = request.url.toString()
+                        val internal = uri.startsWith("cdqpdf://open?") ||
+                            uri.startsWith("cdqsheet://open?") ||
+                            uri.startsWith("cdqnote://open?") ||
+                            (uri.startsWith("intent://open?") &&
+                                uri.contains("package=ca.balancecdq.android;"))
+                        if (!internal || !request.hasGesture()) return false
+                    }
                     return handleNavigation(request.url.toString())
                 }
 
@@ -534,6 +546,7 @@ class MainActivity : Activity() {
 
                 url.startsWith("cdqpdf://", true) ||
                     url.startsWith("cdqsheet://", true) ||
+                    url.startsWith("cdqnote://", true) ||
                     url.startsWith("cdqupdate://", true) ||
                     url.startsWith("cdqaccount://", true) ||
                     url.startsWith("cdqapp://", true) -> {

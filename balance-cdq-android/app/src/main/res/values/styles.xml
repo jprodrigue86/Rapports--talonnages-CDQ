@@ -1,4 +1,5 @@
 <resources>
+    <style name="Theme.BalanceCDQ.Starting" parent="Theme.BalanceCDQ" />
     <style name="Theme.BalanceCDQ" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowBackground">#050C14</item>
