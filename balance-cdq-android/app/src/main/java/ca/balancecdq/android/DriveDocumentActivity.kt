@@ -2,6 +2,7 @@ package ca.balancecdq.android
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.Dialog
 import android.app.PendingIntent
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -39,12 +40,6 @@ open class DriveDocumentActivity : Activity() {
         private const val ACROBAT_PACKAGE = "com.adobe.reader"
     }
 
-    private data class PdfApp(
-        val label: String,
-        val packageName: String,
-        val importOnly: Boolean = false
-    )
-
     private val executor = Executors.newSingleThreadExecutor()
     private val authClient by lazy { Identity.getAuthorizationClient(this) }
 
@@ -56,7 +51,7 @@ open class DriveDocumentActivity : Activity() {
     private var accountMode = "auto"
     private var readerHint = "ask"
     private var currentToken = ""
-    private var selectedReader: PdfApp? = null
+    private var selectedReader: DocumentReader? = null
     private var localPdf: File? = null
     private var hashBeforeEdit = ""
     private var syncing = false
@@ -67,7 +62,7 @@ open class DriveDocumentActivity : Activity() {
     private var importCopy = false
     private var pendingEdits = false
     private var statusDialog: AlertDialog? = null
-    private var readerDialog: AlertDialog? = null
+    private var readerDialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -184,8 +179,8 @@ open class DriveDocumentActivity : Activity() {
         sessionEmail = email
         // A cached Google grant is obtained while the user selects a reader.
         // Interactive consent is deferred until the chooser has closed.
-        authorizeSelectedAccount()
-        if (selectedReader == null) chooseReaderBeforeDownload() else continueOpening()
+        if (selectedReader == null) chooseReaderBeforeDownload()
+        if (!isFinishing && !isDestroyed) authorizeSelectedAccount()
     }
 
     private fun authorizeSelectedAccount() {
@@ -274,8 +269,14 @@ open class DriveDocumentActivity : Activity() {
             }
 
             REQ_AUTH -> {
+                pendingAuthorization = null
                 if (resultCode != RESULT_OK || data == null) {
-                    finish()
+                    authorizationStarted = false
+                    fail(
+                        "L’autorisation Google a été fermée sans donner accès au document. " +
+                            "Aucun PDF n’a été envoyé au lecteur. Réessayez pour autoriser l’accès.",
+                        allowDrive = true
+                    )
                     return
                 }
 
@@ -368,42 +369,20 @@ open class DriveDocumentActivity : Activity() {
         showReaderChooser(apps, rememberChoice = true)
     }
 
-    private fun availablePdfApps(): List<PdfApp> {
-        val apps = LinkedHashMap<String, PdfApp>()
-        val uri = Uri.parse("content://$packageName.updatefiles/probe/document$documentExtension")
-        for (probe in DocumentIntents.candidates(uri, documentMime, readOnly)) {
-            packageManager.queryIntentActivities(probe, PackageManager.MATCH_DEFAULT_ONLY).forEach { info ->
-                val pkg = info.activityInfo?.packageName.orEmpty()
-                if (pkg.isBlank() || pkg == packageName || apps.containsKey(pkg)) return@forEach
-                // Generic share targets (mail, messaging, storage) are not PDF readers.
-                if (DocumentIntents.importsCopy(probe) && pkg !in setOf(ILOVEPDF_PACKAGE, ACROBAT_PACKAGE)) return@forEach
-                val label = try { info.loadLabel(packageManager).toString().ifBlank { pkg } } catch (_: Exception) { pkg }
-                apps[pkg] = PdfApp(label, pkg, DocumentIntents.importsCopy(probe))
-            }
-        }
-        return apps.values.sortedWith(compareBy<PdfApp> {
-            when (it.packageName) { ILOVEPDF_PACKAGE -> 0; ACROBAT_PACKAGE -> 1; else -> 2 }
-        }.thenBy { it.label.lowercase() })
-    }
+    private fun availablePdfApps(): List<DocumentReader> =
+        DocumentReaders.available(this, documentMime, readOnly)
 
-    private fun showReaderChooser(apps: List<PdfApp>, rememberChoice: Boolean) {
-        val labels = apps.map { it.label + if (it.importOnly) " — importer une copie" else "" }.toTypedArray()
-
-        readerDialog = AlertDialog.Builder(this)
-            .setTitle("Ouvrir le document avec")
-            .setItems(labels) { dialog, which ->
-                dialog.dismiss()
-                val app = apps.getOrNull(which) ?: return@setItems
+    private fun showReaderChooser(apps: List<DocumentReader>, rememberChoice: Boolean) {
+        readerDialog?.dismiss()
+        readerDialog = DocumentReaderDialog.show(
+            this, fileName, apps, rememberChoice,
+            onSelected = { app ->
                 if (rememberChoice) saveReader(app.packageName)
                 selectedReader = app
                 authorizeSelectedAccount()
-            }
-            .setNegativeButton("Annuler") { dialog, _ ->
-                dialog.dismiss()
-                finish()
-            }
-            .setOnCancelListener { finish() }
-            .show()
+            },
+            onCancel = { finish() }
+        )
     }
 
     private fun savedReader(): String =
@@ -516,7 +495,7 @@ open class DriveDocumentActivity : Activity() {
             false
         }
 
-    private fun launchEditor(file: File, app: PdfApp) {
+    private fun launchEditor(file: File, app: DocumentReader) {
         val uri = FileProvider.getUriForFile(this, "$packageName.updatefiles", file)
         val intents = DocumentIntents.candidates(uri, documentMime, readOnly, app.packageName)
         var lastError: Exception? = null
@@ -683,10 +662,7 @@ open class DriveDocumentActivity : Activity() {
         } else {
             dialog.setPositiveButton("Réessayer") { _, _ ->
                 currentToken = ""; authorizationStarted = false; pendingAuthorization = null
-                if (sessionEmail.isBlank()) prepareAccount() else {
-                    authorizeSelectedAccount()
-                    if (selectedReader == null) chooseReaderBeforeDownload()
-                }
+                if (sessionEmail.isBlank()) prepareAccount() else accountChosen(sessionEmail)
             }
             if (allowDrive) dialog.setNeutralButton("Ouvrir dans Drive") { _, _ ->
                 val uri = Uri.parse("https://drive.google.com/file/d/" + Uri.encode(fileId) + "/view?authuser=" + Uri.encode(sessionEmail))
@@ -696,7 +672,7 @@ open class DriveDocumentActivity : Activity() {
                 catch (_: Exception) { fail("Google Drive n’est pas installé. L’autorisation Android doit être corrigée pour utiliser le lecteur choisi.") }
             }
         }
-        dialog.show()
+        statusDialog = dialog.show()
     }
 
     override fun onDestroy() {
