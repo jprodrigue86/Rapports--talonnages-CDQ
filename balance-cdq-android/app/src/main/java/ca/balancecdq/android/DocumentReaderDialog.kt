@@ -6,6 +6,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.text.TextUtils
@@ -78,9 +79,9 @@ internal object DocumentReaderDialog {
                 }
             }
             row.addView(ImageView(activity).apply {
-                val icon = try { activity.packageManager.getApplicationIcon(reader.packageName) }
-                    catch (_: Exception) { activity.packageManager.defaultActivityIcon }
-                setImageDrawable(icon)
+                val icon: Drawable? = try { activity.packageManager.getApplicationIcon(reader.packageName) }
+                    catch (_: Exception) { null }
+                setImageDrawable(icon ?: activity.getDrawable(android.R.drawable.ic_menu_agenda))
                 importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }, LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginEnd = dp(14) })
             val labels = LinearLayout(activity).apply {

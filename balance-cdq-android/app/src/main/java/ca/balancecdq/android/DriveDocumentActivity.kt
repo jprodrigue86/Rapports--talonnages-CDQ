@@ -662,10 +662,7 @@ open class DriveDocumentActivity : Activity() {
         } else {
             dialog.setPositiveButton("Réessayer") { _, _ ->
                 currentToken = ""; authorizationStarted = false; pendingAuthorization = null
-                if (sessionEmail.isBlank()) prepareAccount() else {
-                    authorizeSelectedAccount()
-                    if (selectedReader == null) chooseReaderBeforeDownload()
-                }
+                if (sessionEmail.isBlank()) prepareAccount() else accountChosen(sessionEmail)
             }
             if (allowDrive) dialog.setNeutralButton("Ouvrir dans Drive") { _, _ ->
                 val uri = Uri.parse("https://drive.google.com/file/d/" + Uri.encode(fileId) + "/view?authuser=" + Uri.encode(sessionEmail))
@@ -675,7 +672,7 @@ open class DriveDocumentActivity : Activity() {
                 catch (_: Exception) { fail("Google Drive n’est pas installé. L’autorisation Android doit être corrigée pour utiliser le lecteur choisi.") }
             }
         }
-        dialog.show()
+        statusDialog = dialog.show()
     }
 
     override fun onDestroy() {
