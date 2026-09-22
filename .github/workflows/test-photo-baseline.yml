@@ -1,0 +1,30 @@
+name: Photo midpoint and clean icons
+on:
+  push:
+    paths:
+      - 'bundles/balance-cdq/v25.15/**'
+      - 'scripts/build-photo-baseline.mjs'
+      - 'tests/photo-baseline*'
+      - '.github/workflows/test-photo-baseline.yml'
+  pull_request:
+    paths:
+      - 'bundles/balance-cdq/v25.15/**'
+      - 'scripts/build-photo-baseline.mjs'
+      - 'tests/photo-baseline*'
+      - '.github/workflows/test-photo-baseline.yml'
+permissions:
+  contents: read
+jobs:
+  photo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-photo-baseline.mjs && git diff --exit-code
+      - run: node --test tests/photo-baseline.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/photo-baseline-browser.test.mjs
+      # No screenshot artifacts: avoid extra Actions storage.
