@@ -20,6 +20,7 @@ function replace(source,search,replacement){
   return source.replace(search,replacement);
 }
 let shell=read('index.html');
+shell=replace(shell,'<head>','<head>\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">');
 shell=replace(shell,"const CDQ_PWA_BUILD = '2026.09.23-v25.27-demarrage-dossiers';","const CDQ_PWA_BUILD = '2026.09.23-v25.28-apk-embarquee';");
 shell=replace(shell,"if ('serviceWorker' in navigator) {","if (false && 'serviceWorker' in navigator) {");
 shell=replace(shell,"function cdqFreshAppUrl(reason='boot'){","function cdqFreshAppUrl(reason='boot'){\n  return new URL('./Selector.html',location.href).href;\n}");
@@ -34,7 +35,7 @@ shell=replace(shell,"function cdqDemarrerSurveillanceMiseAJourV2254(){","functio
 shell=replace(shell,"if(cdqSelectorBuildV2254)setTimeout(function(){cdqVerifierMiseAJourLiveV2254(selectorWindow,cdqSelectorBuildV2254,true)},1200);",'// Native release checks run outside the initial interface render.');
 files.set('index.html',Buffer.from(shell));
 let selector=gunzipSync(fs.readFileSync(source+'Selector.html.gz')).toString('utf8');
-selector=replace(selector,'<head>','<head>\n<script src="./embedded-rpc.js"></script>');
+selector=replace(selector,'<head>','<head>\n<meta charset="utf-8">\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">\n<script src="./embedded-rpc.js"></script>');
 selector=selector.replaceAll('2026.09.23-v25.27-demarrage-dossiers','2026.09.23-v25.28-apk-embarquee');
 selector=selector.replaceAll('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',local+'vendor/pdf-lib-1.17.1.min.js');
 // Later display modules already call these helpers across script boundaries.
