@@ -25,7 +25,7 @@ export async function fillPdf(values,{blob,strict=true}={}){
   }
   if(changed)bytes=await lib.save({updateFieldAppearances:false});
   engine||=import(assets+'build/pdf.mjs');const api=await engine;api.GlobalWorkerOptions.workerSrc=assets+'build/pdf.worker.mjs';
-  const doc=await api.getDocument({data:bytes,standardFontDataUrl:assets+'standard_fonts/',cMapUrl:assets+'cmaps/',cMapPacked:true,wasmUrl:assets+'wasm/',isEvalSupported:false}).promise;
+  const task=api.getDocument({data:bytes,standardFontDataUrl:assets+'standard_fonts/',cMapUrl:assets+'cmaps/',cMapPacked:true,wasmUrl:assets+'wasm/',isEvalSupported:false});const doc=await task.promise;
   let sandbox;const valid=new Set();
   const update=e=>{const {id,siblings,...detail}=e.detail||{};for(const key of [id,...(siblings||[])])if(valid.has(key))doc.annotationStorage.setValue(key,detail);};
   try{
@@ -47,5 +47,5 @@ export async function fillPdf(values,{blob,strict=true}={}){
     await new Promise(r=>setTimeout(r,80));
     const output=new Blob([await doc.saveDocument()],{type:'application/pdf'});
     return output;
-  }finally{window.removeEventListener('updatefromsandbox',update);sandbox?.nukeSandbox();await doc.destroy();}
+  }finally{window.removeEventListener('updatefromsandbox',update);sandbox?.nukeSandbox();await task.destroy();}
 }
