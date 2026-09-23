@@ -9,5 +9,11 @@ try{const page=await browser.newPage();page.on('console',m=>{if(['error','log'].
  console.log('Calculated values:',JSON.stringify(Object.fromEntries(Object.entries(result.fields).filter(([k])=>/charge_point_1|tolerance_excentricite|prochain_etalonnage/.test(k)))));
  assert.equal(String(result.fields.charge_point_1_erreur_avant),'2');assert.equal(String(result.fields.charge_point_1_erreur_apres),'0');assert.ok(result.fields.charge_point_1_tolerance);assert.equal(result.fields.prochain_etalonnage_1,'');assert.ok(result.actions);
  await assert.rejects(page.evaluate(async()=>{const {fillInFrame}=await import('/pdf-fill-client-v2523.mjs');await fillInFrame({charge_point_1_tolerance:'999'});}),/Champ de transfert refusé/);
+ await page.goto('http://127.0.0.1:'+server.address().port+'/reader-v2523.html');
+ await page.waitForFunction(()=>document.getElementById('status').textContent==='Choisissez un PDF.');
+ await (await page.$('#file')).uploadFile('/tmp/cdq-v2523-filled.pdf');
+ await page.waitForSelector('#viewer[data-ready="true"] input[name="client_nom"]');
+ for(const key of ['client_nom','prochain_etalonnage_1','prochain_etalonnage_2','prochain_etalonnage_3'])assert.equal(await page.$eval('input[name="'+key+'"]',e=>e.value),values[key]||'',key+' after interactive reopen');
+ const style=await page.$eval('input[name="client_nom"]',e=>({color:getComputedStyle(e).color,weight:getComputedStyle(e).fontWeight}));assert.equal(style.color,'rgb(0, 0, 0)');assert.equal(style.weight,'700');
  console.log('PASS: saved/reopened PDF preserves raw inputs, original calculations, partial date, scripts and historical choices.');
 }finally{await browser.close();await new Promise(r=>server.close(r));}

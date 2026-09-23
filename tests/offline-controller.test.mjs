@@ -64,7 +64,7 @@ test('Plancher : première copie hors ligne sans préparation, ancien maître ig
  assert.deepEqual(Buffer.from(await c.blob.arrayBuffer()),Buffer.from(await master.blob.arrayBuffer()));
  assert.equal(h.opened.length,1);assert.equal(h.opened[0].fileId,c.id);assert.equal(h.opened[0].readOnly,false);
  assert.equal(h.sent.filter(m=>m.type==='CDQ_OFFLINE_COPY'||m.type==='CDQ_OFFLINE_PREPARE').length,0);
- assert.equal(h.nodes().find(n=>n.id==='cdq-offline-launch').hidden,false);
+ assert.equal(h.nodes().find(n=>n.id==='cdq-offline-launch').hidden,true);
  await h.ctl.handle(request);assert.equal(h.tables.get('copies').size,1);
  const filled=new Blob(['%PDF-1.7\nfilled-floor\n%%EOF'],{type:'application/pdf'});await h.opened[0].onSave(filled,'save-floor123');
  navigator.onLine=true;await h.session();const copy=h.sent.at(-1);assert.equal(copy.type,'CDQ_OFFLINE_COPY');assert.equal(copy.templateId,meta.templateId);

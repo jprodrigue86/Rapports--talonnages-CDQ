@@ -1,4 +1,5 @@
 import {floorTemplate} from './floor-template-v2519.mjs';
+import {fillInFrame} from './pdf-fill-client-v2523.mjs';
 // Private PDFs are account-scoped in IndexedDB, never published in the shell cache.
 const DB_NAME = 'cdq-offline-templates-v1';
 export const MODELS = Object.freeze({plancher:'Balance de plancher',cuve4:'Balance Quvre 4',precision:'Balance de précision',camion:'Balance à camion',cuve3:'Balance de cuve 3 points'});
@@ -114,7 +115,7 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf,storage=nati
     profile=p;
     const copiesHere=p?(await all('copies')).some(c=>c.email===p.email):false;
     if(stamp!==epoch)return;
-    launch.hidden=!p||(!copiesHere&&navigator.onLine!==false);
+    launch.hidden=true;
     launch.style.display=launch.hidden?'none':'block';launch.textContent=copiesHere?'Mes copies locales':'Documents hors ligne';
     if(panel.hidden)return;
     content.replaceChildren();
@@ -191,6 +192,7 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf,storage=nati
   }
   async function handleNow(data,stamp) {
     if(stamp!==epoch)return;
+    if(data.type==='CDQ_OFFLINE_SHOW_LOCAL'){panel.hidden=false;await refresh();return;}
     if(data.type==='CDQ_OFFLINE_SESSION'){
       if(typeof data.email!=='string'||!data.email||data.email.length>320)return;
       if(session?.email!==data.email)for(const job of inflight.values())clearTimeout(job.timer);
@@ -222,13 +224,13 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf,storage=nati
         let c=await get('copies',id);
         if(c&&(c.email!==current.email||c.modeleId!==data.modeleId||c.destination.clientId!==d.clientId||c.destination.folderId!==d.folderId))throw new Error('Identifiant déjà utilisé pour une autre copie.');
         if(stamp!==epoch)return;
-        if(!c){c=makeCopy(t,d,current.email,id);await put('copies',c);}
+        if(!c){c=makeCopy(t,d,current.email,id);if(data.prefill&&Object.keys(data.prefill).length){c.blob=await fillInFrame(data.prefill,{blob:c.blob,strict:false});c.uploadId=id+'_prefill';c.editVersion=1;}if(stamp!==epoch||session!==current)return;await put('copies',c);}
         await put('destinations',{id:current.email+':'+d.folderId,email:current.email,...d,savedAt:Date.now()});
         await refresh();
         if(stamp!==epoch||session!==current)return;
         send({type:'CDQ_OFFLINE_CREATE_LOCAL_RESULT',requestId:id,ok:true,modeleId:c.modeleId,name:c.name});
         // The PDF is durable before the reader opens. Never wait for a network copy.
-        if(data.open===true)Promise.resolve().then(()=>{
+        if(data.open===true&&!data.prefill)Promise.resolve().then(()=>{
           if(stamp!==epoch||session!==current)return;
           return openPdf({blob:c.blob,name:c.name,fileId:c.id,modeleId:c.modeleId,readOnly:false,
             onSave:(blob,requestId)=>saveCopy(c.id,current.email,blob,requestId)});

@@ -17,7 +17,7 @@ function fixture(){
  return {c,data,calls,add,props,setRole:x=>role=x,setEmail:x=>email=x,fail:()=>failCopy=true,locked:()=>locked};
 }
 test('V25.22 package applies to actual V25.21 sources and pins the helper',()=>{
- const m=JSON.parse(read(dir+'/manifest.json'));assert.deepEqual(m,JSON.parse(read(dir+'/Balance_CDQ_V25_22.cdq')));assert.deepEqual(m,JSON.parse(read('bundles/balance-cdq/latest/manifest.json')));
+ const m=JSON.parse(read(dir+'/manifest.json'));assert.deepEqual(m,JSON.parse(read(dir+'/Balance_CDQ_V25_22.cdq')));const latest=JSON.parse(read('bundles/balance-cdq/latest/manifest.json'));assert.deepEqual(latest,JSON.parse(read('bundles/balance-cdq/'+latest.version.toLowerCase()+'/manifest.json')));
  assert.equal(m.extraFiles[0].sha256,crypto.createHash('sha256').update(read(dir+'/files/CDQCopy.gs')).digest('hex'));
  for(const name of ['feedback','copy','desktop']){new vm.Script(read(dir+'/'+name+'.js'));assert.ok(m.patches.some(p=>p.replacement?.includes(read(dir+'/'+name+'.js'))));}
  if(process.env.CDQ_V2521_SOURCE)for(const file of ['Selector.html','Code.gs']){let s=read(process.env.CDQ_V2521_SOURCE+'-'+file);for(const p of m.patches.filter(x=>x.file===file))s=applyPatch(s,p);fs.writeFileSync('/tmp/cdq-v2522-'+file,s);if(file==='Code.gs')new vm.Script(s);else for(const b of s.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi))if(!b[1].includes('application/json'))new vm.Script(b[2]);}

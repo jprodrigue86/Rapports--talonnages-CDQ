@@ -1,0 +1,20 @@
+#accessOverlay:not([data-state="pending"]):not([data-state="loading"]) .access-card{width:min(320px,calc(100vw - 32px))!important;max-width:320px!important;padding:18px 16px!important;border-radius:16px!important;box-sizing:border-box!important;max-height:calc(100dvh - 32px);overflow:auto}
+#accessOverlay .access-card h2{font-size:19px!important;margin:0 0 10px!important;line-height:1.2!important}
+#accessOverlay .access-card p{font-size:14px!important;line-height:1.4!important;margin:8px 0!important}
+#accessOverlay .cdq-access-lock{width:23px!important;height:23px!important;flex-basis:23px!important}
+#accessOverlay .access-card input{font-size:22px!important;padding:9px!important;min-height:42px!important;box-sizing:border-box}
+#accessOverlay .access-card button{font-size:14px!important;min-height:40px!important;padding:9px 12px!important;margin-top:8px!important}
+#accessOverlay[data-state="pending"]::before,#accessOverlay[data-state="loading"]::before{top:auto!important;bottom:max(22px,env(safe-area-inset-bottom))!important;transform:translateX(-50%)!important}
+.cdq-swipe-action.copy svg,.cdq-swipe-action.copy .icon{width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important}
+.cdq-swipe-action.copy{font-size:14px!important}
+.cdq23-row-spinner{display:inline-block!important;flex:0 0 16px!important;width:16px!important;height:16px!important;border:2px solid #86929a66!important;border-top-color:#53d5ff!important;border-radius:50%!important;margin:0 8px!important;animation:cdq23-spin .7s linear infinite!important;vertical-align:middle}
+@keyframes cdq23-spin{to{transform:rotate(360deg)}}
+#cdqMigration23{background:#191d23;color:#eef3f8;border:1px solid #596571;border-radius:16px;width:min(620px,calc(100vw - 28px));max-height:calc(100dvh - 36px);overflow:auto;box-sizing:border-box;padding:20px;font:15px/1.5 system-ui}
+#cdqMigration23::backdrop{background:#000a}#cdqMigration23 h2{font-size:21px;margin:0 0 12px}#cdqMigration23 progress{width:100%;height:16px;accent-color:#47c4f0}#cdqMigration23 footer{display:flex;flex-wrap:wrap;gap:8px}#cdqMigration23 button,.cdq23-drive-main button{background:#242e39;color:#eef3f8;border:1px solid #667483;border-radius:8px;padding:9px 12px;font:inherit;cursor:pointer}#cdqMigration23 .cdq23-note{font-size:13px;color:#bfcbd5}#cdqMigration23 li{overflow-wrap:anywhere}
+.cdq23-drive-main{display:flex;flex-direction:column;min-height:160px;height:100%;overflow:hidden;color:inherit;box-sizing:border-box;padding:12px}.cdq23-drive-main header{display:flex;gap:12px;align-items:center;justify-content:space-between}.cdq23-drive-main h2{font:600 20px system-ui;margin:0;overflow-wrap:anywhere}.cdq23-drive-status{font:14px system-ui;color:inherit;margin:8px 0}.cdq23-drive-list{overflow:auto;min-height:0;flex:1}.cdq23-drive-row{display:flex;gap:6px;align-items:center;border-bottom:1px solid #74829144;min-height:54px}.cdq23-drive-row>button{flex:0 0 auto}.cdq23-drive-row>.cdq23-drive-item{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left;background:transparent;border:0;color:inherit}.cdq23-drive-item>span:last-child{overflow-wrap:anywhere}.cdq23-file-icon{font:600 16px system-ui;width:28px;flex:0 0 28px;color:#efc148}.cdq23-highlight{outline:2px solid #4acaff;outline-offset:-2px}
+html:not(.windows) #filesContainer:has(#cdqDriveMain23){display:block!important;height:auto!important;max-height:none!important;overflow:visible!important}.cdq23-drive-main .cdq-drive-crumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.cdq23-drive-item>.cdq23-file-icon{min-width:30px;margin-right:10px}
+html:not(.windows) .cdq23-drive-main{height:auto;overflow:visible}html:not(.windows) .cdq23-drive-list{overflow:visible;flex:none}
+@media(prefers-reduced-motion:reduce){.cdq23-row-spinner{animation-duration:1.5s!important}}
+
+@media(max-width:899px){#accessOverlay{background-size:100% 100%!important;background-position:top center!important}}

@@ -27,7 +27,7 @@ export async function fillPdf(values,{blob,strict=true}={}){
   engine||=import(assets+'build/pdf.mjs');const api=await engine;api.GlobalWorkerOptions.workerSrc=assets+'build/pdf.worker.mjs';
   const task=api.getDocument({data:bytes,standardFontDataUrl:assets+'standard_fonts/',cMapUrl:assets+'cmaps/',cMapPacked:true,wasmUrl:assets+'wasm/',isEvalSupported:false});const doc=await task.promise;
   let sandbox;const valid=new Map(),errors=[];
-  const update=e=>{const {id,siblings,...detail}=e.detail||{};if(detail.command==='error'){errors.push(detail.value);console.error(detail.value);return;}for(const key of [id,...(siblings||[])])if(valid.has(key)){const value={...detail},def=valid.get(key);if(def.type==='checkbox'&&typeof value.value==='string')value.value=value.value!=='Off'&&value.value===def.exportValues;doc.annotationStorage.setValue(key,value);}};
+  const update=e=>{const {id,siblings,...detail}=e.detail||{};if(detail.command==='error'){errors.push(detail.value);console.error(detail.value);return;}for(const key of [id,...(siblings||[])])if(valid.has(key)){const value={...detail},def=valid.get(key);if(def.type==='text'&&typeof value.value==='number')value.value=String(value.value);if(def.type==='checkbox'&&typeof value.value==='string')value.value=value.value!=='Off'&&value.value===def.exportValues;doc.annotationStorage.setValue(key,value);}};
   try{
     const objects=await doc.getFieldObjects();if(!objects)throw Error('Ce PDF ne contient pas de formulaire.');
     const fields=objects instanceof Map?objects:new Map(Object.entries(objects));
@@ -42,7 +42,6 @@ export async function fillPdf(values,{blob,strict=true}={}){
       sandbox.dispatchEvent({id,name:'Keystroke',value,willCommit:true,commitKey:1,selStart:0,selEnd:value.length});
       sandbox.dispatchEvent({id,name:'Blur',value});
     }
-    console.log('FILL_DIAG',JSON.stringify(['echelon','charge_point_1_tolerance','charge_point_1_erreur_avant'].map(k=>({key:k,definitions:fields.get(k),stored:doc.annotationStorage.getValue(fields.get(k)?.[0].id,{})}))));
     sandbox.dispatchEvent({id:'doc',name:'WillSave'});
     // Allow document timers to finish; Enter navigation is not triggered by this transfer.
     await new Promise(r=>setTimeout(r,80));

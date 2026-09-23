@@ -41,7 +41,7 @@ try{
   await page.setRequestInterception(true);page.on('request',r=>r.url().startsWith('http://127.0.0.1:')||r.url().startsWith('blob:')||r.url().startsWith('data:')?r.continue():r.abort());
   await page.goto('http://127.0.0.1:'+server.address().port+(mobile?'/host':'/pc/host'));
   const s=page.frames().find(f=>f.url().endsWith('/selector'));await s.waitForFunction(()=>!!window.cdqOpenPdfV2520);
-  async function open(){if(mobile)await s.click('.file-row span');else await s.evaluate(()=>cdqOpenPdfV2520('PDF_CLIENT_123456'));await page.waitForSelector('#legacy-pdf-reader');const f=await page.waitForFrame(f=>f.url().includes('reader-v2520.html'));await f.waitForSelector('#viewer[data-ready="true"] input[name="client_nom"]',{timeout:20000});return f;}
+  async function open(){if(mobile)await s.click('.file-row span');else await s.evaluate(()=>cdqOpenPdfV2520('PDF_CLIENT_123456'));await page.waitForSelector('#legacy-pdf-reader');const f=await page.waitForFrame(f=>f.url().includes('reader-v2523.html'));await f.waitForSelector('#viewer[data-ready="true"] input[name="client_nom"]',{timeout:20000});return f;}
   let f=await open();assert.ok(await f.$$eval('.annotationLayer input',x=>x.length)>100);
   const input=async(value)=>{await f.$eval('input[name="client_nom"]',(e,v)=>{e.focus();e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));e.blur();},value)};
   const colors=await f.$eval('input[name="client_nom"]',e=>({inline:e.style.backgroundColor,computed:getComputedStyle(e).backgroundColor,image:getComputedStyle(e).backgroundImage}));assert.equal(colors.image,'none');assert.equal(colors.computed,colors.inline==='transparent'?'rgba(0, 0, 0, 0)':colors.inline);

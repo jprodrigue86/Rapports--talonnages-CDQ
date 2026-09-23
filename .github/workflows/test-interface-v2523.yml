@@ -15,8 +15,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: node scripts/build-interface-v2523.mjs && git diff --exit-code
+      - run: node --test tests/migration-v2523.test.mjs tests/reader-v2523.test.mjs tests/offline-controller.test.mjs tests/offline-templates.test.mjs
       - run: npm install --no-save puppeteer-core@24
       - run: node tests/pdf-fill-v2523-browser.test.mjs
+      - run: node tests/interface-v2523-browser.test.mjs
+      - run: node tests/pdf-reader-browser.test.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
