@@ -18,10 +18,14 @@ Utiliser **ÉCRIRE + DÉPLOYER**, puis fermer et rouvrir Balance CDQ avec Intern
 
 ## Vérification
 
-Le générateur applique les 18 modifications gardées aux sources V25.26 et vérifie la syntaxe de tous les scripts obtenus. Les tests couvrent la priorité, la déduplication, la limite des requêtes, le cache, les changements de contexte, les badges Drive et le démarrage depuis le cache avec un réseau bloqué. Un test Chrome utilise le véritable rendu mobile des dossiers et vérifie l’apparition des Sheets après préchargement et pendant une requête partagée. Les parcours existants vérifient aussi le redémarrage hors ligne, la biométrie simulée, les documents persistants et le lecteur PDF.
+Le générateur applique les 20 modifications gardées aux sources V25.26 et vérifie la syntaxe de tous les scripts obtenus. Les tests couvrent la priorité, la déduplication, la limite des requêtes, le cache, les changements de contexte, les badges Drive et le démarrage depuis le cache avec un réseau bloqué. Un test Chrome utilise le véritable rendu mobile des dossiers et vérifie l’apparition des Sheets après préchargement et pendant une requête partagée. Les parcours existants vérifient aussi le redémarrage hors ligne, la biométrie simulée, les documents persistants et le lecteur PDF.
 
 Les gains en secondes sur le téléphone et sur le Drive réel restent à mesurer après le déploiement privé par le propriétaire. Le paquet ne désactive aucune étape de validation biométrique ou serveur. Les métadonnées de version ne déclarent pas ce déploiement privé comme déjà vérifié.
 
 ## Paquet révision 2
 
 Script Manager V42 normalise les fins de ligne CRLF avant la comparaison. Les trois blocs de fonctions anciennes acceptent aussi uniquement les variations d’espaces en fin de ligne; les caractères du code, le nombre de correspondances, la version et le projet restent vérifiés. Toute autre divergence affiche maintenant le nom du correctif concerné. Le problème est reproduit sur une copie V25.26 à fins de ligne mixtes; la variante exacte du projet privé ne peut pas être confirmée depuis la capture seule. Aucun déploiement privé n’est effectué par cette publication.
+
+## Paquet révision 3 — commentaires du projet éditable
+
+Le fichier source archivé contient deux commentaires dans `chargerClients` absents de la version HTML servie. La révision 3 normalise ces deux commentaires exacts, puis exige toujours le bloc de code entier. Elle arrête aussi les trois remplacements de fonctions immédiatement après leur accolade finale, afin de préserver les commentaires de section suivants. Script Manager V42 suffit. Les tests utilisent les passages archivés avec leurs commentaires, les passages sans commentaires et les variantes de fins de ligne; les instructions modifiées restent refusées.

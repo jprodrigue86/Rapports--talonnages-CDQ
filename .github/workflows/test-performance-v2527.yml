@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/build-performance-v2527.mjs && git diff --exit-code
-      - run: node --test tests/performance-v2527.test.mjs
+      - run: node --test tests/performance-v2527.test.mjs tests/performance-v2527-package.test.mjs tests/script-manager-patches-v42.test.mjs
       - run: CDQ_OFFLINE_MODULE=../offline-templates-v2527.mjs node --test tests/offline-controller.test.mjs
       - run: npm install --no-save puppeteer-core@24
       - run: node tests/performance-v2527-browser.test.mjs

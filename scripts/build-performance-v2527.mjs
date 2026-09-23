@@ -10,11 +10,17 @@ function replace(id,search,replacement,file='Selector.html',expected=1){patches.
 // Keep exactly the same artwork; download/cache each asset independently of HTML.
 patches.push({file:'Selector.html',op:'remove_style_id',id:'cdqIconThemesCssV2514'});
 patches.push({id:'cached-artwork',file:'Selector.html',op:'insert_before_literal',before:'<script id="cdqIconThemesJsV2514">',text:'<style id="cdqIconThemesCssV2514">'+read(dir+'/icon-themes.css')+'</style>\n'});
-replace('company-list',read(dir+'/clients-previous.js'),read(dir+'/clients.js')+'\n\n');
+// Apps Script's served HTML omits comments retained by the editable project.
+// Normalize only these two archived comments, then require the complete code.
+for(const [id,search] of [
+  ['legacy-company-cache-comment',"// Si le cache local est déjà affiché, on ne bloque pas l'application."],
+  ['legacy-company-refresh-comment','// La liste locale apparaît tout de suite, puis Drive est vérifié silencieusement.']
+])patches.push({id,file:'Selector.html',op:'replace_literal_if_present',search,replacement:''});
+replace('company-list',read(dir+'/clients-previous.js').trimEnd()+'\n',read(dir+'/clients.js').trimEnd()+'\n');
 replace('startup-priority','  nettoyerAncienCache();\n  chargerClients();\n  cdqSetAccessState("ready");',
   '  cdqSetAccessState("ready");\n  chargerClients(false,etat.compagniesInitiales);\n  setTimeout(function(){if(cdqAccessState==="ready")nettoyerAncienCache();},3000);');
-replace('folder-priority',read(dir+'/folder-load-previous.js'),read(dir+'/folder-loader.js')+'\n'+read(dir+'/folder-integration.js')+'\n');
-replace('client-refresh-keeps-preloads',read(dir+'/client-refresh-previous.js'),read(dir+'/client-refresh.js'));
+replace('folder-priority',read(dir+'/folder-load-previous.js').trimEnd()+'\n',(read(dir+'/folder-loader.js')+'\n'+read(dir+'/folder-integration.js')).trimEnd()+'\n');
+replace('client-refresh-keeps-preloads',read(dir+'/client-refresh-previous.js').trimEnd()+'\n',read(dir+'/client-refresh.js').trimEnd()+'\n');
 replace('mobile-renders-prepared-folder','if(sousDossier && sousDossier.charge === false && typeof window.cdqLazyOpenFolder === "function"){','if(vaOuvrir && sousDossier && typeof window.cdqLazyOpenFolder === "function"){');
 replace('desktop-prepares-next-level','if(node && node.charge === false){','if(node){');
 replace('lock-cancels-preload',"  cdqPostToPwa({type:'CDQ_ACCESS_STATE',state:state,authProtocol:42});", "  cdqPostToPwa({type:'CDQ_ACCESS_STATE',state:state,authProtocol:42});\n  window.dispatchEvent(new CustomEvent('cdq:access-state-v2527',{detail:state}));");
@@ -41,10 +47,10 @@ for(const p of patches.filter(p=>['company-list','folder-priority','client-refre
 const extraFiles=['CDQPerformance.gs','CDQSessionResume.gs'].map(name=>({name,sha256:crypto.createHash('sha256').update(read(dir+'/files/'+name)).digest('hex'),url:'https://jprodrigue86.github.io/Rapports--talonnages-CDQ/'+dir+'/files/'+name}));
 const manifest={schema:base.schema,projectScriptId:base.projectScriptId,version:'V25.27',build,
  title:'Balance CDQ V25.27 — démarrage et dossiers plus rapides',requiresBuild:[base.build],patches,extraFiles,removeFiles:[],
- audit:{scriptManagerRequired:'V42',packageRevision:2,androidAppRequired:'APK 25.26 existante compatible; aucune nouvelle APK nécessaire',productionVerified:false,
+ audit:{scriptManagerRequired:'V42',packageRevision:3,androidAppRequired:'APK 25.26 existante compatible; aucune nouvelle APK nécessaire',productionVerified:false,
  scope:'Images inchangées mises en cache séparément, accueil local immédiat, connexion avec liste de clients en cache, métadonnées Drive groupées et préchargement limité aux prochains sous-dossiers du client actif.',
  security:'Biométrie et validation serveur maintenues. Préchargement uniquement après déverrouillage; réponses tardives abandonnées lors du changement de compte ou de client.'}};
-for(const f of ['manifest.json','Balance_CDQ_V25_27.cdq'])fs.writeFileSync(dir+'/'+f,JSON.stringify(manifest,null,2)+'\n');
+for(const f of ['manifest.json','manifest-r3.json','Balance_CDQ_V25_27.cdq'])fs.writeFileSync(dir+'/'+f,JSON.stringify(manifest,null,2)+'\n');
 if(!process.env.CDQ_SKIP_LATEST)fs.writeFileSync('bundles/balance-cdq/latest/manifest.json',JSON.stringify(manifest,null,2)+'\n');
 for(const f of extraFiles)new vm.Script(read(dir+'/files/'+f.name));
 if(process.env.CDQ_V2526_SOURCE){
