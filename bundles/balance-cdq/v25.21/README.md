@@ -15,7 +15,9 @@ Compatible avec V25.19 et V25.20. Dans Script Manager, charger le projet, vérif
 
 ## Écran de démarrage Android natif
 
-Le code Android V25.21 utilise un fond noir pour le splash, la fenêtre et le WebView. La publication des mises à jour APK reste **suspendue** dans `downloads/android-update.json` (`signing-key-recovery`). Les contrôles de signature existants ne sont pas contournés. Le fond du tout premier écran d’une APK déjà installée ne change donc pas par Script Manager; il exige une nouvelle APK signée avec la clé compatible. Les autres changements sont livrés par le package web.
+[APK Android 25.21 signée](https://jprodrigue86.github.io/Rapports--talonnages-CDQ/downloads/Balance-CDQ-Android-25.21.apk) : fond noir pour le splash, la fenêtre et le WebView. La clé durable de la 25.15 a été restaurée depuis `Balance_CDQ_SIGNATURE_PRIVEE_2026.zip` et son certificat vérifié. Cette APK est une mise à jour de la 25.15 signée avec cette même clé.
+
+Le canal des anciennes APK debug (`android-update.json`) reste suspendu; il ne représente pas la disponibilité de la nouvelle clé. Le canal de signature durable est `android-release-update.json`. Voir `balance-cdq-android/signing/README.md` pour les prochaines signatures. La clé privée reste hors dépôt.
 
 ## Vérification
 

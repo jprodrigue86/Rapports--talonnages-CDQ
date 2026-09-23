@@ -1,0 +1,6 @@
+*.p12
+*.jks
+*.keystore
+*.password
+mot-de-passe*
+*PRIVEE*

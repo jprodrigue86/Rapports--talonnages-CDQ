@@ -25,7 +25,7 @@ import java.util.concurrent.Executors
 open class UpdateActivity : Activity() {
     companion object {
         private const val MANIFEST_URL =
-            "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/android-update.json"
+            "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/android-release-update.json"
     }
 
     private val executor = Executors.newSingleThreadExecutor()
