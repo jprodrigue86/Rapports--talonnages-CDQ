@@ -234,7 +234,7 @@ isolation:isolate;
 position:absolute;
 inset:0;
 z-index:-3;
-background-image:url("assets/music-wall-android-v2521.webp");
+background-image:url("assets/music-wall-android-v2523.webp");
 background-size:contain;
 background-position:center center;
 background-repeat:no-repeat;
@@ -395,6 +395,14 @@ moins de groupes mais des noms plus lisibles.
   pointer-events:none;
 }
 </style>
+<style id="cdqStartup23">
+#loading{align-items:end!important;padding-bottom:max(18px,env(safe-area-inset-bottom))!important;box-sizing:border-box}
+#loading .box{position:relative!important;top:auto!important;bottom:auto!important;transform:none!important;max-width:280px!important;padding:10px 14px!important;border-radius:14px!important;margin:0 auto!important}
+#loading .box img{display:none!important}#loading .loading-title{font-size:15px!important}#loading .loading-bar{margin-top:8px!important}
+#loading .music-wall-image{background-size:100% 100%!important;background-position:top center!important;filter:brightness(.83)!important}
+#loading::after{background:linear-gradient(transparent 75%,#0006)!important;box-shadow:none!important}#loading::before{background:none!important}
+@media(min-width:900px){#loading .music-wall-image{background-size:cover!important}}
+</style>
 </head>
 <body>
 <div id="cdq-auth-bottom-mask-v2507" aria-hidden="true"></div>
@@ -452,7 +460,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.23-v25.21-drive-favoris-interface';
+const CDQ_PWA_BUILD = '2026.09.23-v25.23-lecteur-conversion';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -587,7 +595,7 @@ send:data=>replyToSelector(selectorWindow,data),
 openPdf:data=>cdqAfficherPdf(data),
 warmPdf:data=>{
 if(document.getElementById('cdq-warm-reader'))return;
-const frame=document.createElement('iframe');frame.id='cdq-warm-reader';frame.src='./reader-v2520.html';
+const frame=document.createElement('iframe');frame.id='cdq-warm-reader';frame.src='./reader-v2523.html';
 frame.title='Préparation du lecteur hors ligne';frame.tabIndex=-1;frame.setAttribute('aria-hidden','true');
 frame.style.cssText='position:fixed;left:-12000px;top:0;width:800px;height:1000px;pointer-events:none;opacity:0';
 function warm(event){
@@ -1513,12 +1521,13 @@ window.addEventListener('focus',function(){
 // Lecteur commun PC/Android, hébergé dans la fenêtre de l’application.
 let cdqPdfV2304Context=null;
 function cdqAfficherPdf(data){
-  return import('./reader-host-v2520.mjs').then(m=>m.openReader(data));
+  return import('./reader-host-v2523.mjs').then(m=>m.openReader(data));
 }
 function cdqAfficherPdfV2304(data,source){
   if(cdqPdfV2304Context)return false;
   const ctx={source,fileId:String(data.fileId||''),pending:new Map()};cdqPdfV2304Context=ctx;
   cdqAfficherPdf({...data,
+    onOpened:()=>replyToSelector(source,{type:'CDQ_PDF_OPENED_V2523',fileId:ctx.fileId}),
     onClose:()=>{if(cdqPdfV2304Context===ctx)cdqPdfV2304Context=null;replyToSelector(source,{type:'CDQ_PDF_CLOSED_V2520',fileId:ctx.fileId});},
     onError:error=>{cdqPdfV2304Context=null;replyToSelector(source,{type:'CDQ_PDF_CLOSED_V2520',fileId:ctx.fileId,error:error.message});},
     onDiscard:data.readerProtocol>=2520?()=>new Promise((resolve,reject)=>{
