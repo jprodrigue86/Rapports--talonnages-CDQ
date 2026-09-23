@@ -37,6 +37,10 @@ let selector=gunzipSync(fs.readFileSync(source+'Selector.html.gz')).toString('ut
 selector=replace(selector,'<head>','<head>\n<script src="./embedded-rpc.js"></script>');
 selector=selector.replaceAll('2026.09.23-v25.27-demarrage-dossiers','2026.09.23-v25.28-apk-embarquee');
 selector=selector.replaceAll('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',local+'vendor/pdf-lib-1.17.1.min.js');
+// Later display modules already call these helpers across script boundaries.
+// Explicit exports keep preference restoration working in the installed page.
+selector=replace(selector,'window.cdqApplyAllScalesV89=cdqApplyAllScalesV89;',`window.cdqApplyAllScalesV89=cdqApplyAllScalesV89;
+Object.assign(window,{cdqGeneralValueV89,cdqTextValueV89,cdqIconValueV89,cdqGeneralZoomV89,cdqTextZoomV89,cdqIconZoomV89,cdqClampScaleV89,cdqPwaGetDisplayPrefsV2215});`);
 files.set('Selector.html',Buffer.from(selector));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
