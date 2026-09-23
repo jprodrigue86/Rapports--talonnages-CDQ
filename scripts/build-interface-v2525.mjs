@@ -1,0 +1,27 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import vm from 'node:vm';
+const dir='bundles/balance-cdq/v25.25',read=p=>fs.readFileSync(p,'utf8'),base=JSON.parse(read('bundles/balance-cdq/v25.24/manifest.json')),build='2026.09.23-v25.25-lecteur-hors-ligne';
+const patches=['Code.gs','Selector.html'].map(file=>({file,op:'replace_build_any',from:[base.build],to:build}));
+const replace=(id,search,replacement,file='Selector.html')=>patches.push({id,file,op:'replace_literal',search,replacement});
+replace('offline-one-storage',read('bundles/balance-cdq/v25.24/offline.js'),read(dir+'/offline.js'));
+replace('offline-open-canonical',"rec=preparedRecord||await cdqLoadPdfRecord(id);", "rec=await cdqOffline24.load(id)||preparedRecord||await cdqLoadPdfRecord(id);");
+replace('offline-save-canonical',"async function save(d){\n    valid();", "async function save(d){\n    valid();if(rec.offlinePrepared&&rec.offlineVersion!==undefined)return cdqOffline24.save(rec,d.blob,d.requestId);\n    valid();");
+// Ordinary online caching must retain an existing explicit offline preparation flag.
+replace('keep-offline-status',"await cdqV19PutRecord('document-pdf',id,rec);cdqReaderGuardV2520(email);return rec;", "const prior=await cdqV19GetRecord('document-pdf',id);if(prior?.offlinePrepared)rec.offlinePrepared=true;\n  await cdqV19PutRecord('document-pdf',id,rec);cdqReaderGuardV2520(email);return rec;");
+replace('legacy-save-mirror',"window.dispatchEvent(new CustomEvent('cdq:pdf-saved',{detail:r}));return r;","await cdqOffline24.legacySaved({...a,expectedRevision:revision},r).catch(afficherErreur);\n  window.dispatchEvent(new CustomEvent('cdq:pdf-saved',{detail:r}));return r;");
+replace('share-menu-reference','window.cdqOuvrirPartageApplication=ouvrirPartage;','window.cdqOuvrirPartageApplication=ouvrirPartage;window.cdqOpenShareMenu25=ouvrirPartage;');
+replace('share-no-top-navigation',"function share(){go('intent://share#Intent;scheme=cdqapp;package=ca.balancecdq.android;end');}","function share(){window.cdqOpenShareMenu25();}");
+replace('share-close-cleanup',"body.querySelector('#cdqShareNative').onclick=partagerLien;", "const closeShare=()=>{o.hidden=true;o.remove();};\n    o.querySelector('.cancel-button').onclick=closeShare;\n    o.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();closeShare();}};\n    o.onclick=e=>{if(e.target===o)closeShare();};\n    body.querySelector('#cdqShareNative').onclick=partagerLien;");
+replace('integrated-busy-status',"document.body.append(indicator);}", "(document.querySelector('#cdqPcV16 .pc16-side-status')||document.getElementById('pc16Main')||document.body).append(indicator);}\n const indicatorHost=document.querySelector('#cdqPcV16 .pc16-side-status');if(indicatorHost&&indicator.parentElement!==indicatorHost)indicatorHost.append(indicator);");
+replace('pdf-row-loading-only',"afficherMessage('Ouverture du PDF…',true);rec=", "rec=");
+replace('reader25','reader-v2523.html','reader-v2525.html');
+replace('server-migration-menu',read('bundles/balance-cdq/v25.23/migration.js'),read(dir+'/migration.js'));
+replace('interface25','</body>','<style id="cdqInterfaceV2525">\n'+read(dir+'/interface.css')+'\n</style>\n</body>');
+// Explicit-scope manifests need the clock-trigger permission; inferred scopes update automatically.
+patches.push({id:'background-trigger-scope',file:'appsscript.json',op:'replace_literal_if_present',search:'"https://www.googleapis.com/auth/drive"',replacement:'"https://www.googleapis.com/auth/script.scriptapp", "https://www.googleapis.com/auth/drive"'});
+const extraFiles=['CDQFloorMapping.gs','CDQFloorMigration.gs','CDQFloorPdf.gs','CDQPdfLib.gs'].map(name=>({name,sha256:crypto.createHash('sha256').update(read(dir+'/files/'+name)).digest('hex'),url:'https://jprodrigue86.github.io/Rapports--talonnages-CDQ/'+dir+'/files/'+name}));
+const bundle={schema:base.schema,projectScriptId:base.projectScriptId,version:'V25.25',build,title:'Balance CDQ V25.25 — lecteur, synchronisation et conversion serveur',requiresBuild:[base.build],patches,extraFiles,removeFiles:[],audit:{scriptManagerRequired:'V40',androidAppRequired:'APK existante compatible',productionVerified:false,scope:'Menu de partage, hors ligne depuis la liste principale, lecteur pleine page, conversion du client sélectionné exécutée par déclencheur Google.',migration:'Originaux conservés. Un Sheet par passage serveur; même titre PDF; Charge utilisée → Charge de contrainte. Autorisation Google du déclencheur requise au premier démarrage.'}};
+for(const file of ['manifest.json','Balance_CDQ_V25_25.cdq'])fs.writeFileSync(dir+'/'+file,JSON.stringify(bundle,null,2)+'\n');
+if(!process.env.CDQ_SKIP_LATEST)fs.writeFileSync('bundles/balance-cdq/latest/manifest.json',JSON.stringify(bundle,null,2)+'\n');
+if(process.env.CDQ_V2524_SOURCE){const {applyPatch}=await import('../tests/helpers/settings-fixture.mjs');for(const file of ['Code.gs','Selector.html']){let source=read(process.env.CDQ_V2524_SOURCE+'-'+file);for(const p of patches.filter(p=>p.file===file))source=applyPatch(source,p);fs.writeFileSync(process.env.CDQ_V2524_SOURCE.replace(/v2524$/,'v2525')+'-'+file,source);if(file==='Code.gs')new vm.Script(source);else for(const m of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi))if(!m[1].includes('application/json'))new vm.Script(m[2]);}}
+for(const f of extraFiles)new vm.Script(read(dir+'/files/'+f.name));
+console.log('Built V25.25:',patches.length,'patches and',extraFiles.length,'server files.');

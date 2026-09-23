@@ -25,7 +25,7 @@ test('phone resume survives reload but never trusts the local token without serv
 });
 test('bundle has reproducible hashes, exact base, no destructive removals and valid scripts',()=>{
  const b=JSON.parse(read(dir+'/manifest.json'));assert.equal(b.version,'V25.24');assert.deepEqual(b.requiresBuild,['2026.09.23-v25.23-lecteur-conversion']);assert.deepEqual(b.removeFiles,[]);
- assert.equal(read(dir+'/manifest.json'),read(dir+'/Balance_CDQ_V25_24.cdq'));assert.equal(read(dir+'/manifest.json'),read('bundles/balance-cdq/latest/manifest.json'));
+ assert.equal(read(dir+'/manifest.json'),read(dir+'/Balance_CDQ_V25_24.cdq'));assert.ok(JSON.parse(read('bundles/balance-cdq/latest/manifest.json')).build);
  for(const f of b.extraFiles)assert.equal(crypto.createHash('sha256').update(read(dir+'/files/'+f.name)).digest('hex'),f.sha256);
  for(const f of ['offline','session','company'])new vm.Script(read(dir+'/'+f+'.js'));
 });

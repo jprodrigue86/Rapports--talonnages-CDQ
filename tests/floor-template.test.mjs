@@ -15,7 +15,7 @@ test('PDF approuvé : même contenu dans le navigateur, le package et Apps Scrip
  vm.runInContext('function floorGetter(modeleId){'+p.replacement+'}',context);assert.equal(context.floorGetter('plancher').getId(),meta.templateId);assert.equal(driveCalls,0);
 });
 test('Installation complète et cache hors ligne du moteur et du modèle pour PC et téléphone',()=>{
- for(const [path,relative] of [['index.html','./'],['pc/index.html','../']])assert.ok(read(path).includes("import('"+relative+"offline-templates-v2524.mjs')"));
- for(const path of ['sw.js','pc/sw.js'])for(const file of ['offline-templates-v2524.mjs','floor-template-v2519.mjs'])assert.ok(read(path).includes(file));
+ for(const [path,relative] of [['index.html','./'],['pc/index.html','../']])assert.ok(read(path).includes("import('"+relative+"offline-templates-v2525.mjs')"));
+ for(const path of ['sw.js','pc/sw.js'])for(const file of ['offline-templates-v2525.mjs','floor-template-v2519.mjs'])assert.ok(read(path).includes(file));
  assert.equal(m.requiresBuild[0],'2026.09.23-v25.18-pc-ergonomie-performance');assert.equal(m.extraFiles.length,2);
 });

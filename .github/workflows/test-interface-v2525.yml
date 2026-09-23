@@ -1,0 +1,30 @@
+name: Reader offline and server conversion V25.25
+on:
+  push:
+    paths: ['*v2525*', 'index.html', 'pc/**', 'sw.js', 'bundles/balance-cdq/v25.25/**', 'tests/*v2525*', 'tests/fixtures/share-v2524.html', 'scripts/*v2525*', '.github/workflows/test-interface-v2525.yml']
+  pull_request:
+    paths: ['*v2525*', 'index.html', 'pc/**', 'sw.js', 'bundles/balance-cdq/v25.25/**', 'tests/*v2525*', 'tests/fixtures/share-v2524.html', 'scripts/*v2525*', '.github/workflows/test-interface-v2525.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-interface-v2525.mjs && git diff --exit-code
+      - run: node --test tests/migration-v2525.test.mjs tests/offline-documents-v2525.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/offline-v2525-browser.test.mjs
+      - run: node tests/interface-v2525-browser.test.mjs
+      - run: node tests/startup-v2525-browser.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: V25.25-verification
+          path: /tmp/cdq-v2525-*
+          if-no-files-found: ignore
+          retention-days: 3

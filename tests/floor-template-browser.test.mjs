@@ -40,7 +40,7 @@ try{
  // Real reader checks are opt-in for networked validation; unit tests never depend on the CDN.
  if(process.env.CDQ_TEST_READER==='1'){
   await page.waitForFunction(()=>{const f=document.querySelector('#legacy-pdf-reader');return f?.contentDocument?.querySelectorAll('.annotationLayer input').length>100},{timeout:20000}).catch(async e=>{console.log('Reader state',await page.evaluate(()=>document.querySelector('#legacy-pdf-reader')?.contentDocument?.body.innerText));throw e;});
-  const frame=page.frames().find(f=>f.url().includes('/reader-v2523.html'));
+  const frame=page.frames().find(f=>f.url().includes('/reader-v2525.html'));
   assert.ok((await frame.$$eval('.annotationLayer input',e=>e.length))>100);
   await frame.$eval('input[name="client_nom"]',e=>{e.value='Essai hors ligne';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))});
   await frame.click('#save');await frame.waitForFunction(()=>document.querySelector('#status').textContent.includes('Conservé'),{timeout:20000});
