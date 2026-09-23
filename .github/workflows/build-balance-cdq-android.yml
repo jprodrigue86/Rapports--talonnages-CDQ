@@ -4,16 +4,20 @@ on:
   pull_request:
     paths:
       - 'balance-cdq-android/**'
+      - 'downloads/android-release-update.json'
+      - 'downloads/Balance-CDQ-Android-25.21.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   push:
     branches: [main]
     paths:
       - 'balance-cdq-android/**'
+      - 'downloads/android-release-update.json'
+      - 'downloads/Balance-CDQ-Android-25.21.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: balance-cdq-android-apk-${{ github.ref }}
@@ -39,12 +43,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Preserve Balance CDQ debug signing key
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: balance-cdq-android-debug-keystore-v1
-
       - name: Install Android SDK packages
         shell: bash
         run: |
@@ -59,7 +57,7 @@ jobs:
 
       - name: Build APK
         working-directory: balance-cdq-android
-        run: gradle --no-daemon clean :app:testDebugUnitTest :app:assembleDebug
+        run: gradle --no-daemon clean :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
 
       - name: Validate APK
         shell: bash
@@ -115,10 +113,39 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.21
+          name: Balance-CDQ-Android-25.21-debug-CI-only
           path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
+
+      - name: Prepare unsigned release for private signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk'
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          test -s "$APK"
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          mkdir -p /tmp/cdq-release-handoff
+          "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-release-handoff/badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2521' versionName='25.21'" /tmp/cdq-release-handoff/badging.txt
+          if grep -q 'application-debuggable' /tmp/cdq-release-handoff/badging.txt; then
+            echo '::error::Release APK must not be debuggable.'
+            exit 1
+          fi
+          cp "$APK" /tmp/cdq-release-handoff/Balance-CDQ-Android-25.21-unsigned.apk
+          cp "$TOOLS/lib/apksigner.jar" /tmp/cdq-release-handoff/apksigner.jar
+          cp "$TOOLS/zipalign" /tmp/cdq-release-handoff/zipalign
+          git rev-parse HEAD > /tmp/cdq-release-handoff/source-commit.txt
+          sha256sum "$APK" > /tmp/cdq-release-handoff/unsigned-sha256.txt
+
+      - name: Upload unsigned release handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: Balance-CDQ-Android-25.21-release-handoff
+          path: /tmp/cdq-release-handoff/*
+          if-no-files-found: error
+          retention-days: 2
 
       - name: Upload reader preview
         uses: actions/upload-artifact@v4
@@ -128,74 +155,17 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Gate Android publication
-        id: publication
+      - name: Verify published durable release
+        run: python3 balance-cdq-android/signing/verify-published-release.py --tools "$ANDROID_HOME/build-tools/35.0.0"
+
+      - name: Keep legacy Android publication suspended
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           CHANNEL=$(python3 -c 'import json; print(json.load(open("downloads/android-update.json")).get("channel", "stable"))')
-          if [ "$CHANNEL" = "paused" ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Android publication paused pending recovery of the original signing key."
-            exit 0
-          fi
-          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          APK='balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk'
-          "$APKSIGNER" verify --print-certs downloads/Balance-CDQ-Android.apk > /tmp/cdq-previous-cert.txt
-          "$APKSIGNER" verify --print-certs "$APK" > /tmp/cdq-next-cert.txt
-          sed -n '/^Signer #[0-9][0-9]* certificate SHA-256 digest:/p' /tmp/cdq-previous-cert.txt | sort > /tmp/cdq-previous-signers.txt
-          sed -n '/^Signer #[0-9][0-9]* certificate SHA-256 digest:/p' /tmp/cdq-next-cert.txt | sort > /tmp/cdq-next-signers.txt
-          test -s /tmp/cdq-previous-signers.txt
-          test -s /tmp/cdq-next-signers.txt
-          if ! cmp -s /tmp/cdq-previous-signers.txt /tmp/cdq-next-signers.txt; then
-            echo "::error::Signing certificate changed. Refusing to publish an incompatible Android update."
+          if [ "$CHANNEL" != "paused" ]; then
+            echo '::error::Legacy update channel must remain paused during the signing-key replacement.'
             exit 1
           fi
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
-
-      - name: Publish APK + update channel
-        if: steps.publication.outputs.enabled == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          APK_SRC='balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk'
-          VERSION_NAME=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' balance-cdq-android/app/build.gradle.kts | head -1)
-          VERSION_CODE=$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' balance-cdq-android/app/build.gradle.kts | head -1)
-
-          cp "$APK_SRC" /tmp/Balance-CDQ-Android.apk
-          APK_SHA256=$(sha256sum /tmp/Balance-CDQ-Android.apk | awk '{print $1}')
-
-          cat > /tmp/android-update.json <<JSON
-          {
-            "versionName": "$VERSION_NAME",
-            "versionCode": $VERSION_CODE,
-            "apkUrl": "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/Balance-CDQ-Android.apk",
-            "sha256": "$APK_SHA256",
-            "mandatory": false,
-            "channel": "stable"
-          }
-          JSON
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Repartir du main le plus récent APRÈS le build afin d'éviter les
-          # conflits lorsque d'autres corrections ont été publiées pendant la compilation.
-          git fetch origin main
-          git reset --hard origin/main
-
-          mkdir -p downloads
-          cp /tmp/Balance-CDQ-Android.apk downloads/Balance-CDQ-Android.apk
-          cp /tmp/android-update.json downloads/android-update.json
-
-          git add downloads/Balance-CDQ-Android.apk downloads/android-update.json
-
-          if git diff --cached --quiet; then
-            echo "APK and Android update manifest unchanged"
-            exit 0
-          fi
-
-          git commit -m "Publish Balance CDQ Android $VERSION_NAME + update channel [skip ci]"
-          git push origin HEAD:main
+          echo '::notice::Unsigned release retained for private signing; no APK or update manifest is published.'

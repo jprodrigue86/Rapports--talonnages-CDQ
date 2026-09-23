@@ -34,7 +34,7 @@ class MainActivity : Activity() {
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
         private const val UPDATE_MANIFEST_URL =
-            "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/android-update.json"
+            "https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/android-release-update.json"
     }
 
     private lateinit var webView: WebView
