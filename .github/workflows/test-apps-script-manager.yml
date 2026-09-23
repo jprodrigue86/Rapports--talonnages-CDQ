@@ -6,6 +6,7 @@ on:
       - 'apps-script-manager/**'
       - 'tests/test-apps-script-manager.mjs'
       - 'tests/script-manager-network-v41.test.mjs'
+      - 'tests/script-manager-patches-v42.test.mjs'
       - '.github/workflows/test-apps-script-manager.yml'
   workflow_dispatch:
 
@@ -29,7 +30,7 @@ jobs:
           elif command -v chromium >/dev/null; then echo "path=$(command -v chromium)" >> "$GITHUB_OUTPUT";
           else echo 'Chrome/Chromium not found'; exit 1; fi
       - name: Verify Google request deadlines and write recovery
-        run: node --test tests/script-manager-network-v41.test.mjs
+        run: node --test tests/script-manager-network-v41.test.mjs tests/script-manager-patches-v42.test.mjs
       - name: Install browser test dependency
         run: npm install --no-save puppeteer-core@24
       - name: Run Chrome validation

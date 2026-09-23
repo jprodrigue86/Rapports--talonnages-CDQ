@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V41';
+const APP_VERSION = 'V42';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -1206,16 +1206,30 @@ function removeTaggedBlockV25(source,tag,id){
 
 function applyPatchV25(source,patch,fileLabel){
   const op=String(patch.op||'');
+  // API project reads can mix Windows CRLF with patches previously inserted as LF.
+  // Match the normalization already used by ZIP imports and source fingerprints.
+  source=String(source).replace(/\r\n/g,'\n');
+  fileLabel=String(fileLabel||patch.file||'Fichier')+' ['+String(patch.id||op)+']';
   if(op==='replace_literal'){
-    const search=String(patch.search||'');
+    const search=String(patch.search||'').replace(/\r\n/g,'\n');
     const replacement=String(patch.replacement||'');
     const found=countLiteralV25(source,search);
     const expected=patch.expected==null?1:Number(patch.expected);
+    if(patch.ignoreLineTrailingSpaces===true){
+      // Opt-in only for audited function blocks without multiline string values.
+      // Keep every code character, indentation, line break and occurrence guard.
+      if(!search||search.includes('`')||/\\[ \t]*\n/.test(search))throw new Error(fileLabel+' : bloc incompatible avec la comparaison des espaces.');
+      const lines=search.split('\n');
+      const pattern=lines.map((line,index)=>line===''&&index===lines.length-1?'':line.replace(/[ \t]+$/,'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[ \\t]*').join('\n');
+      const matches=Array.from(source.matchAll(new RegExp(pattern,'g')));
+      if(matches.length!==expected)throw new Error(fileLabel+' : replace_literal attendu '+expected+', trouvé '+matches.length+'.');
+      return source.replace(new RegExp(pattern,'g'),()=>replacement);
+    }
     if(found!==expected)throw new Error(fileLabel+' : replace_literal attendu '+expected+', trouvé '+found+'.');
     return source.split(search).join(replacement);
   }
   if(op==='replace_literal_if_present'){
-    const search=String(patch.search||'');
+    const search=String(patch.search||'').replace(/\r\n/g,'\n');
     const replacement=String(patch.replacement||'');
     const found=countLiteralV25(source,search);
     if(found===0)return source;
@@ -2359,7 +2373,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=41').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=42').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;
