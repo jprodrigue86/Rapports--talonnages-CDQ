@@ -396,6 +396,10 @@ moins de groupes mais des noms plus lisibles.
 }
 </style>
 <style id="cdqStartup23">
+#cdq-auth-bottom-mask-v2507{display:none!important;pointer-events:none!important}
+#loading{inset:0!important;height:100%!important;min-height:100%!important}
+#loading .box{z-index:5!important}
+
 #loading{align-items:end!important;padding-bottom:max(18px,env(safe-area-inset-bottom))!important;box-sizing:border-box}
 #loading .box{position:relative!important;top:auto!important;bottom:auto!important;transform:none!important;max-width:280px!important;padding:10px 14px!important;border-radius:14px!important;margin:0 auto!important}
 #loading .box img{display:none!important}#loading .loading-title{font-size:15px!important}#loading .loading-bar{margin-top:8px!important}
@@ -460,7 +464,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.23-v25.23-lecteur-conversion';
+const CDQ_PWA_BUILD = '2026.09.23-v25.24-hors-ligne-session';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -590,7 +594,7 @@ let accessWaitTimer = null;
 let selectorWindow = null;
 let selectorOrigin = '';
 let backendBuild = '';
-const cdqOffline = import('./offline-templates-v2519.mjs').then(module=>module.createOfflineTemplates({
+const cdqOffline = import('./offline-templates-v2524.mjs').then(module=>module.createOfflineTemplates({
 send:data=>replyToSelector(selectorWindow,data),
 openPdf:data=>cdqAfficherPdf(data),
 warmPdf:data=>{
@@ -606,6 +610,17 @@ window.addEventListener('message',warm);document.body.append(frame);
 setTimeout(()=>{window.removeEventListener('message',warm);frame.remove();},30000);
 },
 unlock:async email=>{
+if(window.BalanceCDQNative&&typeof BalanceCDQNative.biometric==='function'){
+  return new Promise((resolve,reject)=>{
+    const id='offline-unlock-'+crypto.randomUUID(),previous=window.cdqNativeBiometricResultV2507;
+    const cleanup=()=>{clearTimeout(timer);if(window.cdqNativeBiometricResultV2507===receive)window.cdqNativeBiometricResultV2507=previous;};
+    const receive=(rid,ok,message)=>{if(rid!==id){previous?.(rid,ok,message);return;}cleanup();ok?resolve():reject(Error(message||'Déverrouillage annulé.'));};
+    const timer=setTimeout(()=>{cleanup();reject(Error('Déverrouillage expiré. Réessayez.'));},60000);
+    window.cdqNativeBiometricResultV2507=receive;
+    try{BalanceCDQNative.biometric(id);}catch(e){cleanup();reject(e);}
+  });
+}
+
 const saved=bioLoadMap()[email];
 if(!saved?.id)throw new Error('Activez la biométrie dans CDQ avec Internet pour déverrouiller les copies au prochain démarrage hors ligne.');
 const assertion=await navigator.credentials.get({mediation:'required',publicKey:{
