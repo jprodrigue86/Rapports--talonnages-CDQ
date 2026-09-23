@@ -97,7 +97,7 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf,openSheetFil
   const content=document.createElement('div');panel.append(content);document.body.append(launch,panel);
   const serial=fn=>{const p=chain.then(fn);chain=p.catch(()=>{});return p;};
   const allowed=email=>localEmail===email||session?.email===email;
-  function notifyDocument(c){if(c?.kind==='prepared'&&!c.removed)send({type:'CDQ_OFFLINE_DOCUMENT_UPDATED',email:c.email,fileId:c.driveId,blob:c.blob,revision:c.revision,name:c.name,clientId:c.destination.clientId,clientName:c.destination.name,editVersion:c.editVersion||0,pending:c.uploadId!==c.syncedUploadId});}
+  function notifyDocument(c){if(session?.email===c?.email&&c?.kind==='prepared'&&!c.removed)send({type:'CDQ_OFFLINE_DOCUMENT_UPDATED',email:c.email,fileId:c.driveId,blob:c.blob,revision:c.revision,name:c.name,clientId:c.destination.clientId,clientName:c.destination.name,editVersion:c.editVersion||0,pending:c.uploadId!==c.syncedUploadId});}
   function button(parent,label,fn) {
     const b=document.createElement('button');b.type='button';b.textContent=label;
     b.style.cssText='padding:12px 16px;margin:6px 8px 6px 0;border:1px solid #7896a5;border-radius:9px;background:#193545;color:white;font:inherit';
@@ -171,7 +171,7 @@ export function createOfflineTemplates({send,unlock,openPdf,warmPdf,openSheetFil
           if(stamp!==epoch||!allowed(email))throw Error('Déverrouillez CDQ.');
           const latest=await get('copies',c.id);if(latest.uploadId!==latest.syncedUploadId||inflight.has(c.id))throw Error('Synchronisez les modifications avant de retirer ce PDF.');
           await put('copies',{...latest,removed:true,blob:null});
-          send({type:'CDQ_OFFLINE_DOCUMENT_REMOVED',fileId:c.driveId,email});await refresh();
+          if(session?.email===email)send({type:'CDQ_OFFLINE_DOCUMENT_REMOVED',fileId:c.driveId,email});await refresh();
         }));
       }
     }
