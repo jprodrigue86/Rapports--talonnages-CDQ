@@ -34,6 +34,9 @@ class SheetReturnTest {
 
     @Test fun `recreating the handoff while Sheets is open never launches a second editor`() {
         val controller = Robolectric.buildActivity(SheetOpenActivity::class.java, request()).create().start().resume()
+        // Robolectric's started-intent queue is shared across activity instances.
+        assertNotNull(shadowOf(controller.get()).nextStartedActivity)
+        assertNull(shadowOf(controller.get()).nextStartedActivity)
         val state = Bundle()
         controller.saveInstanceState(state).pause().stop().destroy()
         assertTrue(state.getBoolean("sheetLaunched"))

@@ -80,7 +80,8 @@ const cdqOffline24 = (() => {
   function status(){
     const count=records.filter(r=>!company()||String(r.clientId)===company().id).length;
     const running=job?.running;
-    const label=running?'Préparation '+percent()+' %':count+' PDF disponibles hors ligne';
+    const sheetCount=sheets.filter(r=>!company()||String(r.clientId)===company().id).length;
+    const label=running?'Préparation '+percent()+' %':count+' PDF disponibles hors ligne'+(sheetCount?' • '+sheetCount+' Google Sheets sélectionnés':'');
     cdqV19OfflineStatus(label,running?'pending':count?'ready':'',company()?.id);
     const b=document.getElementById('cdqV19OfflineStatus');
     if(b){b.disabled=false;const s=b.querySelector('span:last-child');if(s&&s.textContent!==(running?'Hors ligne '+percent()+' %':'Hors ligne'))s.textContent=running?'Hors ligne '+percent()+' %':'Hors ligne';}
@@ -196,7 +197,7 @@ const cdqOffline24 = (() => {
         catch(e){if(e.name==='AbortError')throw e;j.failures.push((f.nom||f.id)+' : '+(e.message||e));}
         j.finished++;j.fraction=0;progress();
       }
-      j.message=j.failures.length?'Certains fichiers n’ont pas été préparés. Décochez les fichiers prêts et réessayez.':'PDF conservés. Pour les Google Sheets sélectionnés, ouvrez chaque feuille ci-dessous et activez Disponible hors connexion.';
+      j.message=j.failures.length?'Certains fichiers n’ont pas été préparés. Décochez les fichiers prêts et réessayez.':(files.some(f=>f.type==='GOOGLE_SHEETS')?'PDF conservés. Pour les Google Sheets sélectionnés, ouvrez chaque feuille ci-dessous et activez Disponible hors connexion.':'Les PDF cochés sont conservés, même après fermeture de CDQ.');
     }catch(e){j.error=e.name!=='AbortError';j.message=e.message;}
     finally{j.running=false;progress();renderStored();paintDots();}
   }
