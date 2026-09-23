@@ -1,0 +1,30 @@
+{
+  "versionName": "25.21",
+  "versionCode": 2521,
+  "applicationId": "ca.balancecdq.android",
+  "apkBytes": 3040854,
+  "apkSha256": "1baeebb7b9115f1ac952675cedc1a9899a6591f7fdd138ef5b98467b4f3b9ada",
+  "certificateSha256": "496030d9cd10e81ff4e9486c38491bc15389112c0c295c61c295981c101c4436",
+  "sameCertificateAsSigned25_15": true,
+  "privateBackupRestoredAndVerified": true,
+  "sourceCommit": "131a862a51232f217775eb396fe98729b6b0a7a1",
+  "sourceTree": "a5eb6a2c3374232bfae896387a570f21b2b8256a",
+  "ciRun": 35812447947,
+  "ciConclusion": "success",
+  "unsignedArtifactId": 10730027236,
+  "unsignedArtifactSha256": "be857919b1e878cbe0ff50912a6f0653893addbd80a22606a323821bfebb410a",
+  "unsignedApkSha256": "3faf275e4967e52680d77b130d6a3c4481a8e34cb1df7a5a46f8dbda4f4a6a51",
+  "zipEntriesIdenticalToTestedUnsignedRelease": true,
+  "zipEntryCount": 145,
+  "privateKeyInApk": false,
+  "debuggable": false,
+  "apksignerVerifiedV2AndV3": true,
+  "physicalDeviceTestPerformed": false,
+  "zipAlignment": {
+    "uncompressedEntryAlignmentBytes": 4,
+    "nativeLibraryAlignmentBytes": 16384,
+    "uncompressedEntries": 64,
+    "nativeLibraries": 0,
+    "allOffsetsAligned": true
+  }
+}

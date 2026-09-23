@@ -311,7 +311,7 @@
   "removeFiles": [],
   "audit": {
     "scriptManagerRequired": "V40",
-    "androidAppRequired": "APK existante pour les fonctions web; nouveau fond natif en attente de la clé de signature",
+    "androidAppRequired": "APK existante pour les fonctions web; APK 25.21 signée avec la clé durable 25.15 pour le fond natif noir",
     "scope": "Copie plancher réparée, Drive général et favoris personnels, gestion des utilisateurs, icônes Clients/Réglages, NIP sombre et murs musicaux.",
     "productionVerified": false,
     "preservation": "Aucun rapport client ni compte réel modifié pendant les tests. Le lecteur V25.20 et les droits existants sont conservés."
