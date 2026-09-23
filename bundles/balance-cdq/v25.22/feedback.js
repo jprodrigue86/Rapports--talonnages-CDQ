@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const BUILD='2026.09.23-v25.22-copie-retours-visuels',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
-const jobs=new Map();let serial=0,indicator,update,checking=false,lastCheck=0,available='',deployed=false;
+const jobs=new Map();let serial=0,indicator,update,checking=false,lastCheck=0,available='',deployed='';
 function paint(){
  if(!document.documentElement.classList.contains('windows'))return;
  if(!indicator){indicator=document.createElement('div');indicator.id='cdqBusyV2522';indicator.setAttribute('role','status');indicator.setAttribute('aria-live','polite');indicator.innerHTML='<span class="cdq-spinner" aria-hidden="true"></span><span></span>';document.body.append(indicator);}
@@ -36,26 +36,27 @@ function instrumentRpc(){
 }
 function version(value){const text=String(value||'');const m=text.match(/v(\d+)\.(\d+)(?:\.(\d+))?/i)||text.match(/^(\d+)\.(\d+)(?:\.(\d+))?$/);return m?[+m[1],+m[2],+(m[3]||0)]:[0,0,0]}
 function newer(a,b=BUILD){const x=version(a),y=version(b);for(let i=0;i<3;i++){if(x[i]!==y[i])return x[i]>y[i]}return false}
+function canLoad(){return !!deployed&&!newer(available,deployed)&&!newer(deployed,available)}
 function drawUpdate(){
  const host=document.querySelector('#cdqPcV16 .pc16-side-status')||document.getElementById('appHeader')?.parentElement;if(!host)return;
  if(!update){update=document.createElement('button');update.type='button';update.id='cdqUpdateV2522';update.setAttribute('aria-live','polite');host.prepend(update);update.onclick=()=>{
-   if(deployed&&window.cdqPcSettingsV2518?.apply){window.cdqPcSettingsV2518.apply();return;}
+   if(canLoad()&&window.cdqPcSettingsV2518?.apply){window.cdqPcSettingsV2518.apply();return;}
    window.open(BASE+'apps-script-manager/?bundle='+encodeURIComponent('/Rapports--talonnages-CDQ/bundles/balance-cdq/latest/manifest.json'),'_blank','noopener');
   };}
  update.hidden=!newer(available);const v=version(available);update.textContent='↑ Mise à jour V'+v[0]+'.'+String(v[1]).padStart(2,'0');
- update.title=deployed?'Charger la nouvelle version':'Installer la nouvelle version avec CDQ Script Manager';
+ update.title=canLoad()?'Charger la nouvelle version':'Installer la nouvelle version avec CDQ Script Manager';
 }
 async function check(force=false){
  if(checking||navigator.onLine===false||!force&&Date.now()-lastCheck<60000)return;
  checking=true;lastCheck=Date.now();
- try{window.cdqPcSettingsV2518?.check();const response=await fetch(BASE+'bundles/balance-cdq/latest/manifest.json?check='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error('Mise à jour indisponible');const manifest=await response.json();available=manifest.build||manifest.version||'';drawUpdate();}
+ try{window.cdqPcSettingsV2518?.check();const response=await fetch(BASE+'bundles/balance-cdq/latest/manifest.json?check='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error('Mise à jour indisponible');const manifest=await response.json();const published=manifest.build||manifest.version||'';available=newer(deployed,published)?deployed:published;drawUpdate();}
  catch(_){}finally{checking=false;}
 }
 window.addEventListener('message',event=>{
  if(event.origin!==ORIGIN)return;
  if(typeof cdqFromPwa==='function'?!cdqFromPwa(event):event.source!==window.parent)return;
  const d=event.data||{};if(d.type!=='CDQ_UPDATE_STATUS')return;
- if(d.available&&newer(d.latest)){available=d.latest;deployed=true;drawUpdate();}
+ if(d.available&&newer(d.latest)){deployed=d.latest;if(newer(d.latest,available))available=d.latest;drawUpdate();}
 });
 window.addEventListener('focus',()=>check());window.addEventListener('online',()=>check(true));
 window.addEventListener('cdq:access-ready',()=>{instrumentRpc();drawUpdate();check(true)});
