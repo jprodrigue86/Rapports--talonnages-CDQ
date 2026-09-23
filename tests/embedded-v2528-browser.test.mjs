@@ -7,9 +7,10 @@ const generated='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web/
 const files=JSON.parse(fs.readFileSync(generated+'asset-manifest.json')).files;
 const bridge=fs.readFileSync('balance-cdq-android/web-source/server-bridge.js','utf8');
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+let allowServer=false,finished=false;
 try{
   const page=await browser.newPage(),errors=[],unexpected=[],calls=[];
-  let bridgeRequested=false,allowServer=false;
+  let bridgeRequested=false;
   let bridgeStarted;
   const bridgeStart=new Promise(resolve=>{bridgeStarted=resolve;});
   page.on('pageerror',error=>errors.push(error.message));
@@ -29,7 +30,8 @@ try{
       bridgeRequested=true;
       bridgeStarted();
       // Hold only the remote connection: the actual installed UI must still parse.
-      while(!allowServer)await new Promise(r=>setTimeout(r,30));
+      while(!allowServer&&!finished)await new Promise(r=>setTimeout(r,30));
+      if(finished)return;
       const channel=new URL(url).searchParams.get('channel');
       return request.respond({status:200,contentType:'text/html; charset=utf-8',body:`<iframe src="https://fixture-script.googleusercontent.com/bridge?channel=${channel}"></iframe>`});
     }
@@ -74,7 +76,8 @@ try{
   assert.ok(calls.includes('obtenirEtatAcces'));
   // A returning native user can start biometric verification before the network
   // frame has loaded; access still waits for the authenticated server response.
-  await page.evaluate(()=>{
+  await page.evaluateOnNewDocument(()=>{
+    if(window.top!==window)return;
     localStorage.setItem('cdq_auth_device_token_v2','fixture-device');
     localStorage.setItem('cdqLastUnlockEmailV2511','test@example.invalid');
     localStorage.removeItem('cdqResumeSessionV2524');
@@ -96,8 +99,17 @@ try{
   const template=await selector.evaluate(async()=>{
     const module=await import('./floor-template-v2519.mjs');
     const pdf=await module.floorTemplate();
-    return {size:pdf.blob.size,type:pdf.blob.type};
+    const assets=new URL('./vendor/pdfjs-6.3.289/',location.href).href;
+    const engine=await import(assets+'build/pdf.mjs');engine.GlobalWorkerOptions.workerSrc=assets+'build/pdf.worker.mjs';
+    const doc=await engine.getDocument({data:new Uint8Array(await pdf.blob.arrayBuffer()),standardFontDataUrl:assets+'standard_fonts/',cMapUrl:assets+'cmaps/',cMapPacked:true,wasmUrl:assets+'wasm/',isEvalSupported:false}).promise;
+    const first=await doc.getPage(1),viewport=first.getViewport({scale:0.8});
+    const canvas=document.createElement('canvas');canvas.width=viewport.width;canvas.height=viewport.height;
+    await first.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+    const fields=(await first.getAnnotations()).filter(a=>a.subtype==='Widget').length;
+    const result={size:pdf.blob.size,type:pdf.blob.type,pages:doc.numPages,fields,pixels:canvas.toDataURL().length};
+    await doc.destroy();return result;
   });
   assert.ok(template.size>500000);assert.equal(template.type,'application/pdf');
+  assert.equal(template.pages,1);assert.ok(template.fields>20);assert.ok(template.pixels>10000);
   console.log('PASS: local interface before remote data; nested authenticated bridge; clients; biometric requested once before connection, access waits for server; no online static assets; embedded PDF offline.');
-}finally{await browser.close();}
+}finally{finished=true;await browser.close();}

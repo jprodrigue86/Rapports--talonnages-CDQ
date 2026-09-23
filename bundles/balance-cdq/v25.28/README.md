@@ -2,7 +2,7 @@
 
 L’APK 25.28 contient l’interface Android, les menus, les images, les icônes,
 les lecteurs PDF, leurs dépendances et le modèle de plancher déjà approuvé.
-Les 79 ressources représentent 13,8 Mo avant compression Android. Les fichiers
+Les 266 ressources représentent 16,5 Mo avant compression Android. Les fichiers
 clients et les permissions restent sur le serveur et Drive.
 
 Publier d’abord ce paquet avec Script Manager V42, puis installer l’APK 25.28
@@ -32,6 +32,11 @@ Le snapshot compressé contient uniquement le HTML client auparavant servi au
 navigateur. Aucun Code.gs privé, fichier client ou secret de signature ne fait
 partie de l’APK. Le paquet serveur se reproduit avec
 `node scripts/build-embedded-package-v2528.mjs`.
+
+`pdf-runtime-assets.json.gz` contient les polices, CMaps et décodeurs de la
+distribution officielle pdfjs-dist 6.3.289, avec leurs licences. L’intégrité
+SHA-512 du paquet npm est conservée dans cette archive et a été vérifiée; les
+fichiers communs sont identiques au moteur PDF déjà utilisé par CDQ.
 
 Validation : intégrité des ressources, routage Android local, protocole et
 rejet des messages non autorisés, test navigateur de l’interface complète avec

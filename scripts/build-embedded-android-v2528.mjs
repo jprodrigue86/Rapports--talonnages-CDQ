@@ -14,6 +14,13 @@ function tree(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){cons
 // Include the existing offline/template/reader dependency chains, with their licenses.
 for(const p of fs.readdirSync('.'))if(p.endsWith('.mjs')||/^(?:reader|floor-reader|pdf-fill).*\.html$/.test(p))copy(p);
 for(const d of ['vendor','icons','assets'])tree(d);
+const pdfRuntime=JSON.parse(gunzipSync(fs.readFileSync(source+'pdf-runtime-assets.json.gz')));
+for(const [name,encoded] of Object.entries(pdfRuntime.files)){
+  if(!/^vendor\/pdfjs-6\.3\.289\/(?:cmaps|standard_fonts|wasm)\/[A-Za-z0-9_.-]+$/.test(name))throw Error('Invalid PDF asset path: '+name);
+  const bytes=Buffer.from(encoded,'base64');
+  if(files.has(name)&&!files.get(name).equals(bytes))throw Error('PDF asset version mismatch: '+name);
+  files.set(name,bytes);
+}
 for(const p of ['firebase-config.js','google-auth-config.js','manifest.webmanifest','bundles/balance-cdq/v25.14/icons-reference.png','bundles/balance-cdq/v25.15/icons-transparent.webp','bundles/balance-cdq/v25.17/banner-original.webp'])copy(p);
 function replace(source,search,replacement){
   if(source.split(search).length!==2)throw Error('Expected one source anchor: '+search.slice(0,100));
@@ -54,6 +61,7 @@ for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);
   if(text){
     let content=bytes.toString();
+    content=content.replaceAll('https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/',local+'vendor/pdfjs-6.3.289/');
     // Never rewrite mutable release manifests, Script Manager or client document URLs.
     for(const asset of files.keys())content=content.replaceAll(base+asset,local+asset);
     bytes=Buffer.from(content);
