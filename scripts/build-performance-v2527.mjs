@@ -32,10 +32,16 @@ replace('batch-company-metadata',"  const dossierPrincipal = DriveApp.getFolderB
   '  if(typeof Drive!=="undefined"){\n    try{const fast=cdqReadCompaniesV2527_();try{cache.put(cle,JSON.stringify(fast),CONFIG.CACHE_COMPAGNIES_SECONDES);}catch(_){}return fast;}catch(e){console.warn("Liste groupée indisponible; lecture classique.");}\n  }\n  const dossierPrincipal = DriveApp.getFolderById(CONFIG.MASTER_FOLDER_ID);\n  const dossiers = dossierPrincipal.getFolders();\n  const resultats = [];','Code.gs');
 replace('unlock-cached-company-list','  return { autorise:true, email:u.email, role:u.role, jetonSession:jetonSession };',
   '  return cdqStartupCachedV2527_({ autorise:true, email:u.email, role:u.role, jetonSession:jetonSession });','Code.gs',2);
+// These legacy blocks contain no multiline string values. Some saved projects
+// trim their blank lines; permit only spaces at line ends, never changed code.
+for(const p of patches.filter(p=>['company-list','folder-priority','client-refresh-keeps-preloads'].includes(p.id))){
+  if(p.search.includes('`')||/\\[ \t]*\n/.test(p.search))throw Error('Multiline value in '+p.id);
+  p.ignoreLineTrailingSpaces=true;
+}
 const extraFiles=['CDQPerformance.gs','CDQSessionResume.gs'].map(name=>({name,sha256:crypto.createHash('sha256').update(read(dir+'/files/'+name)).digest('hex'),url:'https://jprodrigue86.github.io/Rapports--talonnages-CDQ/'+dir+'/files/'+name}));
 const manifest={schema:base.schema,projectScriptId:base.projectScriptId,version:'V25.27',build,
  title:'Balance CDQ V25.27 — démarrage et dossiers plus rapides',requiresBuild:[base.build],patches,extraFiles,removeFiles:[],
- audit:{scriptManagerRequired:'V41',androidAppRequired:'APK 25.26 existante compatible; aucune nouvelle APK nécessaire',productionVerified:false,
+ audit:{scriptManagerRequired:'V42',packageRevision:2,androidAppRequired:'APK 25.26 existante compatible; aucune nouvelle APK nécessaire',productionVerified:false,
  scope:'Images inchangées mises en cache séparément, accueil local immédiat, connexion avec liste de clients en cache, métadonnées Drive groupées et préchargement limité aux prochains sous-dossiers du client actif.',
  security:'Biométrie et validation serveur maintenues. Préchargement uniquement après déverrouillage; réponses tardives abandonnées lors du changement de compte ou de client.'}};
 for(const f of ['manifest.json','Balance_CDQ_V25_27.cdq'])fs.writeFileSync(dir+'/'+f,JSON.stringify(manifest,null,2)+'\n');

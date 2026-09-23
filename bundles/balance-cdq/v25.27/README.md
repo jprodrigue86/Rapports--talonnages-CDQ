@@ -1,6 +1,6 @@
 # Balance CDQ V25.27 — démarrage et dossiers
 
-Installer avec Script Manager V41 depuis V25.26 :
+Installer avec Script Manager V42 depuis V25.26 :
 https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/?bundle=v25.27
 
 Utiliser **ÉCRIRE + DÉPLOYER**, puis fermer et rouvrir Balance CDQ avec Internet. L’APK 25.26 existante convient : aucun changement natif ni nouvelle APK dans cette livraison.
@@ -21,3 +21,7 @@ Utiliser **ÉCRIRE + DÉPLOYER**, puis fermer et rouvrir Balance CDQ avec Intern
 Le générateur applique les 18 modifications gardées aux sources V25.26 et vérifie la syntaxe de tous les scripts obtenus. Les tests couvrent la priorité, la déduplication, la limite des requêtes, le cache, les changements de contexte, les badges Drive et le démarrage depuis le cache avec un réseau bloqué. Un test Chrome utilise le véritable rendu mobile des dossiers et vérifie l’apparition des Sheets après préchargement et pendant une requête partagée. Les parcours existants vérifient aussi le redémarrage hors ligne, la biométrie simulée, les documents persistants et le lecteur PDF.
 
 Les gains en secondes sur le téléphone et sur le Drive réel restent à mesurer après le déploiement privé par le propriétaire. Le paquet ne désactive aucune étape de validation biométrique ou serveur. Les métadonnées de version ne déclarent pas ce déploiement privé comme déjà vérifié.
+
+## Paquet révision 2
+
+Script Manager V42 normalise les fins de ligne CRLF avant la comparaison. Les trois blocs de fonctions anciennes acceptent aussi uniquement les variations d’espaces en fin de ligne; les caractères du code, le nombre de correspondances, la version et le projet restent vérifiés. Toute autre divergence affiche maintenant le nom du correctif concerné. Le problème est reproduit sur une copie V25.26 à fins de ligne mixtes; la variante exacte du projet privé ne peut pas être confirmée depuis la capture seule. Aucun déploiement privé n’est effectué par cette publication.

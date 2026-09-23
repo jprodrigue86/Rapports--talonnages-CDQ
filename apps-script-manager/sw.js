@@ -1,5 +1,5 @@
-const CACHE='cdq-apps-script-manager-v41-bounded-google-and-package-resume';
-const ASSETS=['./','index.html','style.css?v=41','api.js?v=41','jszip.min.js?v=23','app.js?v=41','manifest.webmanifest','icon-industrial.svg','icon-192.png','icon-512.png'];
+const CACHE='cdq-apps-script-manager-v42-patch-line-endings';
+const ASSETS=['./','index.html','style.css?v=42','api.js?v=42','jszip.min.js?v=23','app.js?v=42','manifest.webmanifest','icon-industrial.svg','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)))});
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('cdq-apps-script-manager-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
