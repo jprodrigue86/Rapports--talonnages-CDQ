@@ -44,7 +44,7 @@ const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/
 try{
  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewport({width:393,height:850,isMobile:true,hasTouch:true});
  await page.setRequestInterception(true);page.on('request',r=>/^http:\/\/127\.0\.0\.1:|^(blob|data):/.test(r.url())?r.continue():r.respond({status:200,body:''}));
- await page.goto(origin+'/test');await page.waitForFunction(()=>booted);let frame=page.frames().find(f=>f.url().endsWith('/phone'));await frame.waitForFunction(()=>window.cdqOffline24);
+ await page.goto(origin+'/test');await page.waitForFunction(()=>window.booted).catch(async e=>{console.log('Boot errors',errors,'State',await page.evaluate(()=>({text:document.body.innerText,controller:!!window.controller})));throw e;});let frame=page.frames().find(f=>f.url().endsWith('/phone'));await frame.waitForFunction(()=>window.cdqOffline24);
  await frame.click('#cdqV19OfflineStatus');await frame.waitForSelector('.cdq24-checklist input');
  assert.equal(await frame.$$eval('.cdq24-checklist input',els=>els.length),2);
  await frame.evaluate(()=>{document.querySelector('.cdq24-checklist input[value="pdf_one"]').checked=true;hold=true;[...document.querySelectorAll('#cdqDocumentPrepare button')].find(b=>b.textContent==='Préparer les fichiers cochés').click();});
@@ -59,7 +59,7 @@ try{
  await frame.waitForFunction(()=>release);await frame.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Annuler la préparation').click());
  await frame.evaluate(()=>{hold=false;release();release=null});await frame.waitForFunction(()=>!cdqOffline24.job.running);assert.equal(await frame.evaluate(async()=>!!await cdqV19GetRecord('document-pdf','pdf_two')),false);
  // Actual IndexedDB persists across page closure and reopening; access is locked first.
- await page.goto(origin+'/test?locked');await page.waitForFunction(()=>booted);frame=page.frames().find(f=>f.url().endsWith('/phone'));
+ await page.goto(origin+'/test?locked');await page.waitForFunction(()=>window.booted);frame=page.frames().find(f=>f.url().endsWith('/phone'));
  await page.waitForSelector('#cdq-offline-launch',{visible:true});await page.click('#cdq-offline-launch');await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='Déverrouiller avec la sécurité de l’appareil'));
  assert.equal(await page.evaluate(()=>opened.length),0);await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Déverrouiller avec la sécurité de l’appareil').click());
  await page.waitForFunction(()=>document.body.innerText.includes('Un.pdf'));await page.evaluate(()=>[...document.querySelectorAll('section button')].find(b=>b.textContent==='Ouvrir').click());
