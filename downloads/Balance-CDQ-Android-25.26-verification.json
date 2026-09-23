@@ -1,0 +1,27 @@
+{
+  "versionName": "25.26",
+  "versionCode": 2526,
+  "applicationId": "ca.balancecdq.android",
+  "apkBytes": 3040854,
+  "apkSha256": "032d919309460ff715af818169e620e756eff7203cef1c04df9246df35a134e6",
+  "certificateSha256": "496030d9cd10e81ff4e9486c38491bc15389112c0c295c61c295981c101c4436",
+  "sameCertificateAsSigned25_15": true,
+  "sourceCommit": "5ca519bc0b19d0a30fd32e6b1baae7a3e24fc3ea",
+  "ciRun": 35877395249,
+  "ciConclusion": "success",
+  "unsignedArtifactId": 10759775960,
+  "unsignedArtifactSha256": "sha256:68ad5ae5b6fd685bbf287927e4bf2e9b590f890451d8f756acaf5ada2a2b855b",
+  "unsignedApkSha256": "c77921099a5944e40baec7227e56786253252b32e02028349d7d4914df9d646c",
+  "zipEntriesIdenticalToTestedUnsignedRelease": true,
+  "zipEntryCount": 145,
+  "privateKeyInApk": false,
+  "debuggable": false,
+  "apksignerVerifiedV2AndV3": true,
+  "physicalDeviceTestPerformed": false,
+  "zipAlignment": {
+    "uncompressedEntryAlignmentBytes": 4,
+    "nativeLibraryAlignmentBytes": 16384,
+    "uncompressedEntries": 64,
+    "allOffsetsAligned": true
+  }
+}

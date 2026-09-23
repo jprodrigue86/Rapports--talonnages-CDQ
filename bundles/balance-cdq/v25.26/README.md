@@ -12,3 +12,5 @@ Base Script Manager : V25.25. Manager V40. Android 25.26 nécessaire pour la cor
 Android peut toujours arrêter un processus pour récupérer de la mémoire; aucun maintien permanent n’est promis. Les tests vérifient le cycle de vie Android simulé et le stockage navigateur réel. La validation sur le téléphone et dans Google Sheets connecté reste à faire.
 
 Historique : V25.24 a ajouté la sélection PDF et la reprise de session; V25.25 a unifié le stockage PDF, amélioré le lecteur et déplacé la conversion Sheets de plancher vers un traitement serveur. V25.26 cible la sélection Sheets et le retour depuis leur éditeur, sans modifier les modèles PDF ni la conversion.
+
+Installation : ouvrir https://jprodrigue86.github.io/Rapports--talonnages-CDQ/apps-script-manager/?bundle=v25.26 et appliquer le paquet avec **ÉCRIRE + DÉPLOYER**, puis installer `downloads/Balance-CDQ-Android-25.26.apk` comme mise à jour de l’application existante. Signature durable identique à la 25.15/25.21; aucune désinstallation. Reprendre CDQ avec Internet une première fois.
