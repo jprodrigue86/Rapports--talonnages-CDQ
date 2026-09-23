@@ -36,3 +36,6 @@ html.windows #cdqPcV16 tr.pc22-swiped .pc22-copy-swipe{display:inline-flex!impor
 #cdqCopyV2522 .copy-status{min-height:22px;color:#c2d4e4}
 #cdqCopyV2522 .copy-status.error{color:#ffb4b4}
 #cdqCopyV2522 footer{display:flex;justify-content:space-between;gap:10px;margin-top:12px}
+
+.cdq-swipe-action.copy{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important}
+.cdq-swipe-action.copy svg,.pc22-copy-swipe svg{width:18px!important;height:18px!important;flex:0 0 18px!important;pointer-events:none}
