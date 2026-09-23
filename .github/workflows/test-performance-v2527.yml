@@ -1,0 +1,22 @@
+name: Startup and folder performance V25.27
+on:
+  push:
+    paths: ['*v2527*', 'index.html', 'pc/**', 'sw.js', 'bundles/balance-cdq/v25.27/**', 'tests/*v2527*', 'scripts/*v2527*', '.github/workflows/test-performance-v2527.yml']
+  pull_request:
+    paths: ['*v2527*', 'index.html', 'pc/**', 'sw.js', 'bundles/balance-cdq/v25.27/**', 'tests/*v2527*', 'scripts/*v2527*', '.github/workflows/test-performance-v2527.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-performance-v2527.mjs && git diff --exit-code
+      - run: node --test tests/performance-v2527.test.mjs
+      - run: CDQ_OFFLINE_MODULE=../offline-templates-v2527.mjs node --test tests/offline-controller.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/performance-v2527-browser.test.mjs
