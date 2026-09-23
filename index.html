@@ -10,8 +10,8 @@
 <link rel="dns-prefetch" href="//script.googleusercontent.com">
 <meta name="interface-scale" content="1.30">
 <link rel="manifest" href="manifest.webmanifest">
-<script src="./firebase-config.js"></script>
-<script src="./google-auth-config.js"></script>
+<script src="./firebase-config.js" defer></script>
+<script src="./google-auth-config.js" defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <title>Rapports D’étalonnages</title>
 <script>
@@ -465,7 +465,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.23-v25.26-sheets-retour';
+const CDQ_PWA_BUILD = '2026.09.23-v25.27-demarrage-dossiers';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -586,7 +586,7 @@ function cdqFreshAppUrl(reason='boot'){
   const sep=APP_URL.includes('?')?'&':'?';
   return APP_URL+sep+'cdq_boot=1&cdq_reason='+encodeURIComponent(reason)+'&cdq_live='+encodeURIComponent(CDQ_BOOT_NONCE)+'&ts='+Date.now();
 }
-const MIN_LOADING_MS = 400;
+const MIN_LOADING_MS = 0;
 let loadingShownAt = performance.now();
 let selectorReady = false;
 let iframeLoaded = false;
@@ -595,7 +595,7 @@ let accessWaitTimer = null;
 let selectorWindow = null;
 let selectorOrigin = '';
 let backendBuild = '';
-const cdqOffline = import('./offline-templates-v2526.mjs').then(module=>module.createOfflineTemplates({
+const cdqOffline = import('./offline-templates-v2527.mjs').then(module=>module.createOfflineTemplates({
 send:data=>replyToSelector(selectorWindow,data),
 openPdf:data=>cdqAfficherPdf(data),
 warmPdf:data=>{
