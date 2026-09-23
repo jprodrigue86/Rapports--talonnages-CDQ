@@ -40,7 +40,10 @@ selector=selector.replaceAll('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/p
 // Later display modules already call these helpers across script boundaries.
 // Explicit exports keep preference restoration working in the installed page.
 selector=replace(selector,'window.cdqApplyAllScalesV89=cdqApplyAllScalesV89;',`window.cdqApplyAllScalesV89=cdqApplyAllScalesV89;
-Object.assign(window,{cdqGeneralValueV89,cdqTextValueV89,cdqIconValueV89,cdqGeneralZoomV89,cdqTextZoomV89,cdqIconZoomV89,cdqClampScaleV89,cdqPwaGetDisplayPrefsV2215});`);
+Object.assign(window,{cdqGeneralValueV89,cdqTextValueV89,cdqIconValueV89,cdqGeneralZoomV89,cdqTextZoomV89,cdqIconZoomV89,cdqClampScaleV89,cdqPwaGetDisplayPrefsV2215,cdqIsMobileUiV89,cdqEnsureRuntimeStyleV89,cdqCheckUpdate,cdqCloseSwipes,cdqCollectPreferencesV72,cdqFitGeneralScaleV92,cdqForceUpdate,cdqRunSendSelection,cdqScheduleSavePreferencesV72,cdqSetEffectiveScaleV2216,cdqVersionLabelV87});`);
+selector=replace(selector,'Balance CDQ / Selector se met à jour avec Script Manager. La couche Android se met à jour séparément.','Les écrans et les images se mettent à jour avec l’APK. Script Manager met à jour les services CDQ.');
+selector=replace(selector,'Les mises à jour normales de Balance CDQ continuent avec Script Manager. ','Les écrans, images et outils PDF font partie de cette installation. ');
+selector=replace(selector,'Ce bouton sert seulement quand la petite couche Android native doit être mise à jour.','Ce bouton vérifie les nouvelles versions de l’application Android.');
 files.set('Selector.html',Buffer.from(selector));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
