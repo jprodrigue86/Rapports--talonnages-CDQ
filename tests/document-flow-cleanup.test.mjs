@@ -144,9 +144,10 @@ test('published update preserves installed model helpers and chunks still used b
 for(const healthy of [false,true])test(`production confirmation reflects the actual health check (${healthy})`,async()=>{
   const deployed={deploymentId:'production',deploymentConfig:{versionNumber:99}};
   const previous={deploymentId:'production',deploymentConfig:{versionNumber:98}};
-  const statuses=[],results=[],ends=[];
+  const statuses=[],results=[],ends=[],removedKeys=[];
   const state={id:'project',lastWrittenBuild:'next-build',productionBuild:'old-build',pkg:new Map()};
   const context=vm.createContext({S:state,CDQ:{deployments:[previous]},CDQ_PRODUCTION_DEPLOYMENT_ID:'production',
+    LS:{removeItem:key=>removedKeys.push(key)},PENDING_BUNDLE_KEY_V41:'pending-test-bundle',
     description:{value:'test'},deployment:{value:'production'},isProductionProject:()=>true,productionDeployment:()=>previous,
     cid:()=>'',createProjectVersion:async()=>({versionNumber:99}),updateDeployment:async()=>deployed,
     waitForDeploymentVersionV26:async()=>({all:[deployed],deployment:deployed}),listDeployments:async()=>[deployed],
@@ -164,4 +165,5 @@ for(const healthy of [false,true])test(`production confirmation reflects the act
   assert.equal(statuses.at(-1)[1],healthy?'ok':'warn');
   assert.equal(results.at(-1)[1],healthy?'ok':'warn');
   assert.equal(ends.at(-1)[2],healthy,'quick action must not overwrite a pending verification with success');
+  assert.deepEqual(removedKeys,['pending-test-bundle'],'a confirmed deployment clears the pending package');
 });
