@@ -1,0 +1,22 @@
+name: Integrated PDF readers
+on:
+  push:
+    paths: ['reader*', 'index.html', 'pc/**', 'sw.js', 'offline-templates-v2519.mjs', 'bundles/balance-cdq/v25.20/**', 'scripts/build-readers-v2520.mjs', 'tests/pdf-reader*', 'tests/reader-interactions.test.mjs', 'tests/fixtures/v25.20-reader-queue.js', 'tests/fixtures/v25.19-delete-file.js', '.github/workflows/test-pdf-readers.yml']
+  pull_request:
+    paths: ['reader*', 'index.html', 'pc/**', 'sw.js', 'offline-templates-v2519.mjs', 'bundles/balance-cdq/v25.20/**', 'scripts/build-readers-v2520.mjs', 'tests/pdf-reader*', 'tests/reader-interactions.test.mjs', 'tests/fixtures/v25.20-reader-queue.js', 'tests/fixtures/v25.19-delete-file.js', '.github/workflows/test-pdf-readers.yml']
+permissions:
+  contents: read
+jobs:
+  readers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-readers-v2520.mjs && git diff --exit-code
+      - run: node --test tests/pdf-reader-server.test.mjs tests/pdf-reader-package.test.mjs tests/reader-interactions.test.mjs tests/offline-controller.test.mjs tests/offline-templates.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/pdf-reader-desktop.test.mjs
+      - run: node tests/pdf-reader-browser.test.mjs

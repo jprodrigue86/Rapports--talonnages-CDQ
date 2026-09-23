@@ -1,8 +1,8 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v25-19-plancher-integre';
-const FORCE_BUILD='2026.09.23-v25.19-plancher-integre';
+const CACHE = 'cdq-installable-v25-20-lecteurs-pdf';
+const FORCE_BUILD='2026.09.23-v25.20-lecteurs-pdf';
 const SCOPE = new URL(self.registration.scope);
-const APP_SHELL = [
+const APP_SHELL = ['./reader-v2520.html','./reader-v2520.mjs','./reader-host-v2520.mjs','./reader-interactions-v2520.mjs',
   './floor-reader-v2519.html','./vendor/pdfjs-6.3.289/web/images/loading-icon.gif','./vendor/pdfjs-6.3.289/web/images/checkmark.svg','./vendor/pdfjs-6.3.289/wasm/quickjs-eval.js','./vendor/pdfjs-6.3.289/wasm/quickjs-eval.wasm','./floor-reader-v2519.mjs','./vendor/pdfjs-6.3.289/build/pdf.mjs','./vendor/pdfjs-6.3.289/build/pdf.sandbox.mjs','./vendor/pdfjs-6.3.289/build/pdf.worker.mjs','./vendor/pdfjs-6.3.289/standard_fonts/LiberationSans-Bold.ttf','./vendor/pdfjs-6.3.289/standard_fonts/LiberationSans-Regular.ttf','./vendor/pdfjs-6.3.289/web/pdf_viewer.css','./vendor/pdfjs-6.3.289/web/pdf_viewer.mjs',
 
   './offline-templates-v2519.mjs', './floor-template-v2519.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
@@ -49,7 +49,8 @@ self.addEventListener('fetch', event => {
   if (url.pathname.startsWith(SCOPE.pathname + 'reports/') ||
       url.pathname.startsWith(SCOPE.pathname + 'apps-script-manager/')) return;
   const key = shellKey(url);
-  const critical = event.request.mode === 'navigate' || ['index.html','version.json','firebase-config.js','google-auth-config.js','manifest.webmanifest']
+  const isReader=/\/(?:reader(?:-host|-interactions)?-v2520\.(?:html|mjs)|vendor\/pdfjs-6\.3\.289\/)/.test(url.pathname);
+  const critical = (event.request.mode === 'navigate'&&!isReader) || ['index.html','version.json','firebase-config.js','google-auth-config.js','manifest.webmanifest']
     .some(name => key === new URL(name, SCOPE).href);
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);

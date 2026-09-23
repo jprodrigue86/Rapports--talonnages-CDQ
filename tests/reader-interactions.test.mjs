@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {installTouchNavigation, installFormNavigation, fieldRank, orderFields} from '../reader-interactions.mjs';
+import {installTouchNavigation, installFormNavigation, fieldRank, orderFields} from '../reader-interactions-v2520.mjs';
 
 function harness() {
   const listeners = {}, calls = [], surface = {style:{}, getBoundingClientRect:() => ({left:-100,top:-200})};
