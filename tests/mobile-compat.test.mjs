@@ -44,7 +44,9 @@ test('every standard R2 export is identical; cumulative exports preserve the V25
   for (const name of ['manifest.json','Balance_CDQ_V25_11.cdq','Balance_CDQ_V25_11_R2.cdq']) {
     assert.deepEqual(JSON.parse(fs.readFileSync('bundles/balance-cdq/v25.11/'+name)), manifest);
   }
-  assert.deepEqual(JSON.parse(fs.readFileSync('bundles/balance-cdq/latest/manifest.json')), manifest);
+  const latest=JSON.parse(fs.readFileSync('bundles/balance-cdq/latest/manifest.json'));
+  assert.match(latest.version,/^V\d+\.\d+$/);
+  assert.deepEqual(latest,JSON.parse(fs.readFileSync('bundles/balance-cdq/'+latest.version.toLowerCase()+'/manifest.json')));
   const base = JSON.parse(fs.readFileSync('bundles/balance-cdq/v25.10/manifest.json'));
   for (const name of ['Balance_CDQ_V25_11_depuis_V25_09.cdq','Balance_CDQ_V25_11_R2_depuis_V25_09.cdq']) {
     const combined = JSON.parse(fs.readFileSync('bundles/balance-cdq/v25.11/'+name));

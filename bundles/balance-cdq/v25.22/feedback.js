@@ -34,7 +34,7 @@ function instrumentRpc(){
  }
  wrapped.cdqFeedback=true;window.cdqApiRun=wrapped;
 }
-function version(value){const m=String(value||'').match(/(?:^|v)(\d+)\.(\d+)(?:\.(\d+))?/i);return m?[+m[1],+m[2],+(m[3]||0)]:[0,0,0]}
+function version(value){const text=String(value||'');const m=text.match(/v(\d+)\.(\d+)(?:\.(\d+))?/i)||text.match(/^(\d+)\.(\d+)(?:\.(\d+))?$/);return m?[+m[1],+m[2],+(m[3]||0)]:[0,0,0]}
 function newer(a,b=BUILD){const x=version(a),y=version(b);for(let i=0;i<3;i++){if(x[i]!==y[i])return x[i]>y[i]}return false}
 function drawUpdate(){
  const host=document.querySelector('#cdqPcV16 .pc16-side-status')||document.getElementById('appHeader')?.parentElement;if(!host)return;
