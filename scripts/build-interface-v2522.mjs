@@ -1,0 +1,17 @@
+import fs from 'node:fs';import crypto from 'node:crypto';
+const dir='bundles/balance-cdq/v25.22',read=p=>fs.readFileSync(p,'utf8'),base=JSON.parse(read('bundles/balance-cdq/v25.21/manifest.json'));
+const build='2026.09.23-v25.22-copie-retours-visuels';
+const patches=['Code.gs','Selector.html'].map(file=>({file,op:'replace_build_any',from:[base.build],to:build}));
+const replace=(id,search,replacement)=>patches.push({id,file:'Selector.html',op:'replace_literal',search,replacement});
+replace('desktop',read('bundles/balance-cdq/v25.21/desktop.js'),read(dir+'/desktop.js'));
+replace('stop-clock','clock();setInterval(clock,1000);pc16RestoreGlobalCache();','pc16RestoreGlobalCache();');
+replace('file-copy-swipe','right.append(fav,send); row.append(left,right);',"if(window.cdqCopyV2522?.authorized())right.append(window.cdqCopyV2522.swipeButton({...file,kind:'file'}));right.append(fav,send); row.append(left,right);");
+replace('folder-copy-swipe','right.appendChild(fav);',"if(window.cdqCopyV2522?.authorized())right.appendChild(window.cdqCopyV2522.swipeButton({...folder,kind:'folder'}));right.appendChild(fav);");
+replace('pdf-opening-feedback','async function cdqLoadPdfRecord(id){',"async function cdqLoadPdfRecord(id){return window.cdqFeedbackV2522?window.cdqFeedbackV2522.during('Ouverture du PDF…',()=>cdqLoadPdfRecordImplV2522(id)):cdqLoadPdfRecordImplV2522(id);}\nasync function cdqLoadPdfRecordImplV2522(id){");
+replace('apply-live-update','window.cdqPcSettingsV2518={check:', 'window.cdqPcSettingsV2518={apply:cdqForceUpdate,check:');
+replace('compact-count','count.textContent = fichiersSelectionnes + (fichiersSelectionnes === 1 ? " fichier + " : " fichiers + ") + dossiersChoisis + (dossiersChoisis === 1 ? " dossier" : " dossiers");','count.textContent = totalSelection + " éléments sélectionnés";');
+replace('interface','</body>','<style id="cdqInterfaceV2522">\n'+read(dir+'/interface.css')+'\n</style>\n'+['feedback','copy'].map(name=>'<script id="cdq'+name+'V2522">\n'+read(dir+'/'+name+'.js')+'\n</script>').join('\n')+'\n</body>');
+const name='CDQCopy.gs',manifest={schema:base.schema,projectScriptId:base.projectScriptId,version:'V25.22',build,title:'Balance CDQ V25.22 — copies et retours visuels',requiresBuild:[base.build],patches,extraFiles:[{name,sha256:crypto.createHash('sha256').update(read(dir+'/files/'+name)).digest('hex'),url:'https://jprodrigue86.github.io/Rapports--talonnages-CDQ/'+dir+'/files/'+name}],removeFiles:[],audit:{scriptManagerRequired:'V40',androidAppRequired:'APK existante : changements web PC + Android',scope:'Profil PC compact, chargement visible, alerte de mise à jour, sélection compacte et copie de fichiers/dossiers.',productionVerified:false,copyLimit:'200 éléments et 25 niveaux par copie; refus avant écriture au-delà. Copie partielle mise à la corbeille en cas d’erreur contrôlée.',androidStatus:'L’APK 25.21 a été signalée bloquée par Play Protect. Ce paquet web ne lève pas ce classement.'}};
+for(const name of ['manifest.json','Balance_CDQ_V25_22.cdq'])fs.writeFileSync(dir+'/'+name,JSON.stringify(manifest,null,2)+'\n');
+fs.writeFileSync('bundles/balance-cdq/latest/manifest.json',JSON.stringify(manifest,null,2)+'\n');
+console.log('Built V25.22:',patches.length,'patches and one server helper.');
