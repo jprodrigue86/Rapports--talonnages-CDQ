@@ -1,0 +1,12 @@
+<div id="adminModalOverlay" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="cdqAdminTitleV2521">
+ <div class="modal cdq-admin-panel">
+  <header class="cdq-admin-header"><div><h2 id="cdqAdminTitleV2521">Gestion des utilisateurs</h2><p id="adminCurrentUser"></p></div><button type="button" class="cdq-admin-close" onclick="fermerGestionUtilisateurs()" aria-label="Fermer la gestion des utilisateurs">×</button></header>
+  <nav class="cdq-admin-tabs" aria-label="Gestion des utilisateurs"><button type="button" data-admin-tab="users" aria-pressed="true">Utilisateurs</button><button type="button" data-admin-tab="add" aria-pressed="false">Ajouter</button><button type="button" data-admin-tab="codes" aria-pressed="false">Codes d’activation</button></nav>
+  <div class="cdq-admin-scroll">
+   <section data-admin-panel="users"><label class="cdq-admin-search">Rechercher un utilisateur<input id="cdqAdminSearchV2521" type="search" placeholder="Nom ou courriel…"></label><p id="cdqAdminCountV2521" role="status"></p><div id="adminUserList"></div></section>
+   <section data-admin-panel="add" hidden><h3>Ajouter un utilisateur</h3><div class="admin-add-row"><label>Courriel<input id="adminEmailInput" type="email" autocomplete="email" placeholder="nom@entreprise.com"></label><label>Nom affiché sur les rapports<input id="adminNomInput" type="text" maxlength="80" placeholder="Prénom et nom"></label><label>Rôle<select id="adminRoleInput" class="admin-role"><option value="technicien">Technicien</option><option value="lecture">Lecture seule</option><option value="admin">Administrateur</option></select></label><button type="button" onclick="ajouterUtilisateurDepuisInterface()">Ajouter l’utilisateur</button></div></section>
+   <section data-admin-panel="codes" hidden><h3>Codes d’activation</h3><p>Génère les codes manquants pour les nouveaux utilisateurs. Les comptes déjà activés conservent leur NIP.</p><div class="admin-security-actions"><button type="button" onclick="genererCodesManquantsDepuisInterface()">Générer les codes manquants</button></div><div id="adminCodesPanel" class="admin-codes-panel" style="display:none;"><label for="adminCodesOutput">Codes générés — à copier avant de fermer</label><textarea id="adminCodesOutput" readonly></textarea><button type="button" onclick="copierCodesAdmin()">Copier les codes</button></div></section>
+  </div>
+  <footer class="modal-buttons"><button type="button" class="modal-button cancel-button" onclick="fermerGestionUtilisateurs()">Fermer</button></footer>
+ </div>
+</div>
