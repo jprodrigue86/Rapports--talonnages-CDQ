@@ -17,7 +17,7 @@ try{
   await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.28');
   await page.exposeFunction('recordRpc',name=>calls.push(name));
   await page.evaluateOnNewDocument(()=>{
-    window.BalanceCDQNative={biometric(id){window.testBiometricRequested=id;},loginGoogle(){}};
+    window.BalanceCDQNative={biometric(id){window.testBiometricRequested=id;window.testBiometricCount=(window.testBiometricCount||0)+1;},loginGoogle(){}};
   });
   await page.setRequestInterception(true);
   page.on('request',async request=>{
@@ -41,7 +41,7 @@ try{
         if(name==='withFailureHandler')return fn=>{window.failure=fn;return google.script.run;};
         return (...args)=>{
           const done=window.success;window.recordRpc?.(name);
-          if(name==='obtenirEtatAcces')return setTimeout(()=>done({autorise:true,email:'test@example.invalid',role:'technicien',jetonSession:'fixture-session',compagniesInitiales:[{id:'client_fixture_12345',nom:'Client de vérification'}]}),20);
+          if(name==='obtenirEtatAcces'||name==='restaurerSessionApresBiometrie')return setTimeout(()=>done({autorise:true,email:'test@example.invalid',role:'technicien',jetonSession:'fixture-session',compagniesInitiales:[{id:'client_fixture_12345',nom:'Client de vérification'}]}),20);
           if(name==='cdqRpc'){
             if(args[0]==='obtenirDossiersClients')return setTimeout(()=>done([{id:'client_fixture_12345',nom:'Client de vérification'}]),20);
             return setTimeout(()=>done([]),20);
@@ -59,7 +59,7 @@ try{
   await page.waitForFunction(()=>document.querySelector('#app')?.contentDocument?.querySelector('#accessOverlay'));
   await Promise.race([bridgeStart,new Promise((_,reject)=>setTimeout(()=>reject(Error('Bridge did not start: '+JSON.stringify(errors))),10000))]);
   assert.equal(bridgeRequested,true);
-  const selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');assert.ok(selector);
+  let selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');assert.ok(selector);
   assert.equal(await selector.evaluate(()=>cdqAccessState),'pending');
   assert.equal(await selector.evaluate(()=>typeof google.script.run.withSuccessHandler),'function');
   await page.screenshot({path:'/tmp/cdq-v2528-local-startup.png'});
@@ -72,6 +72,25 @@ try{
   assert.deepEqual(errors,[]);
   assert.deepEqual(unexpected,[]);
   assert.ok(calls.includes('obtenirEtatAcces'));
+  // A returning native user can start biometric verification before the network
+  // frame has loaded; access still waits for the authenticated server response.
+  await page.evaluate(()=>{
+    localStorage.setItem('cdq_auth_device_token_v2','fixture-device');
+    localStorage.setItem('cdqLastUnlockEmailV2511','test@example.invalid');
+    localStorage.removeItem('cdqResumeSessionV2524');
+  });
+  allowServer=false;
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.testBiometricRequested,{timeout:10000});
+  selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');
+  assert.equal(await selector.evaluate(()=>cdqAccessState),'pending');
+  assert.equal(await page.evaluate(()=>window.testBiometricCount),1);
+  await page.evaluate(()=>window.cdqNativeBiometricResultV2507(window.testBiometricRequested,true,''));
+  assert.equal(await selector.evaluate(()=>cdqAccessState),'pending');
+  allowServer=true;
+  await selector.waitForFunction(()=>cdqAccessState==='ready',{timeout:20000});
+  assert.ok(calls.includes('restaurerSessionApresBiometrie'));
+  assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
   // The PDF engine and original template can be read with the network disabled.
   await page.setOfflineMode(true);
   const template=await selector.evaluate(async()=>{
@@ -80,5 +99,5 @@ try{
     return {size:pdf.blob.size,type:pdf.blob.type};
   });
   assert.ok(template.size>500000);assert.equal(template.type,'application/pdf');
-  console.log('PASS: installed interface initializes before delayed remote data; nested authenticated bridge unlocks it; clients display; no online static assets; embedded PDF loads offline.');
+  console.log('PASS: local interface before remote data; nested authenticated bridge; clients; biometric requested once before connection, access waits for server; no online static assets; embedded PDF offline.');
 }finally{await browser.close();}
