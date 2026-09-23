@@ -1,0 +1,15 @@
+import fs from 'node:fs';import vm from 'node:vm';
+const dir='bundles/balance-cdq/v25.26',read=p=>fs.readFileSync(p,'utf8'),base=JSON.parse(read('bundles/balance-cdq/v25.25/manifest.json')),build='2026.09.23-v25.26-sheets-retour';
+const patches=['Code.gs','Selector.html'].map(file=>({file,op:'replace_build_any',from:[base.build],to:build}));
+const replace=(id,search,replacement)=>patches.push({id,file:'Selector.html',op:'replace_literal',search,replacement});
+replace('sheets-offline-selection',read('bundles/balance-cdq/v25.25/offline.js'),read(dir+'/offline.js'));
+replace('sheets-preserve-parent',read(dir+'/sheets-previous.js'),read(dir+'/sheets.js'));
+replace('sheets-remove-chrome-replacement',read(dir+'/sheets-chrome-previous.js'),'function cdqOpenSheetChromeV2299(id){return cdqOpenSheetV2526(id);}\n');
+replace('sheets-native-shared-route','if (!type || !native()) return false;',"if (!type || !native()) return false;\n    if(type==='sheet')return window.cdqOpenSheetV2526(id);");
+replace('sheets-drive-browser-route',"async function openFile(item){if(item.mimeType==='application/pdf')", "async function openFile(item){if(item.mimeType==='application/vnd.google-apps.spreadsheet')return window.cdqOpenSheetV2526(item.id);if(item.mimeType==='application/pdf')");
+replace('sheets-pending-marker','</body>','<style id="cdqSheetsV2526">.cdq24-offline-dot.cdq26-sheet-pending{background:#d4a842!important;box-shadow:none!important}</style>\n</body>');
+const bundle={schema:base.schema,projectScriptId:base.projectScriptId,version:'V25.26',build,title:'Balance CDQ V25.26 — Google Sheets hors connexion et retour dans CDQ',requiresBuild:[base.build],patches,extraFiles:[],removeFiles:[],audit:{scriptManagerRequired:'V40',androidAppRequired:'25.26 pour le retour Android corrigé',productionVerified:false,scope:'PDF et Sheets dans la sélection. Raccourcis Sheets persistants; activation dans Google Sheets et état confirmé par l’utilisateur. Aucun remplacement de la page CDQ lors de l’ouverture.',offlineSheets:'La copie hors connexion et sa synchronisation restent gérées par Google Sheets. CDQ ne peut ni activer ni vérifier son cache privé. Retirer de la liste CDQ ne supprime aucune donnée Google.'}};
+for(const file of ['manifest.json','Balance_CDQ_V25_26.cdq'])fs.writeFileSync(dir+'/'+file,JSON.stringify(bundle,null,2)+'\n');
+if(!process.env.CDQ_SKIP_LATEST)fs.writeFileSync('bundles/balance-cdq/latest/manifest.json',JSON.stringify(bundle,null,2)+'\n');
+if(process.env.CDQ_V2525_SOURCE){const {applyPatch}=await import('../tests/helpers/settings-fixture.mjs');for(const file of ['Code.gs','Selector.html']){let source=read(process.env.CDQ_V2525_SOURCE+'-'+file);for(const p of patches.filter(p=>p.file===file))source=applyPatch(source,p);fs.writeFileSync(process.env.CDQ_V2525_SOURCE.replace(/v2525$/,'v2526')+'-'+file,source);if(file==='Code.gs')new vm.Script(source);else for(const m of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi))if(!m[1].includes('application/json'))new vm.Script(m[2]);}}
+console.log('Built V25.26:',patches.length,'patches.');
