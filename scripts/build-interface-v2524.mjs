@@ -28,7 +28,7 @@ replace('interface','</body>','<style id="cdqInterfaceV2524">\n'+read(dir+'/inte
 const extraFiles=['CDQSessionResume.gs'].map(name=>({name,sha256:crypto.createHash('sha256').update(read(dir+'/files/'+name)).digest('hex'),url:'https://jprodrigue86.github.io/Rapports--talonnages-CDQ/'+dir+'/files/'+name}));
 const bundle={schema:base.schema,projectScriptId:base.projectScriptId,version:'V25.24',build,title:'Balance CDQ V25.24 — gestion hors ligne et reprise de session',requiresBuild:[base.build],patches,extraFiles,removeFiles:[],audit:{scriptManagerRequired:'V40',androidAppRequired:'APK existante compatible; mise à jour web requise pour le démarrage hors ligne',productionVerified:false,scope:'Sélection PDF, progression, annulation, stockage durable et retrait par compagnie, repères note/photo, session mobile 30 minutes, navigation stable et chargement visible.',biometrics:'Biométrie Android avant NIP; le choix visage/empreinte appartient au système.'}};
 for(const file of ['manifest.json','Balance_CDQ_V25_24.cdq'])fs.writeFileSync(dir+'/'+file,JSON.stringify(bundle,null,2)+'\n');
-fs.writeFileSync('bundles/balance-cdq/latest/manifest.json',JSON.stringify(bundle,null,2)+'\n');
+if(JSON.parse(read('bundles/balance-cdq/latest/manifest.json')).version===bundle.version)fs.writeFileSync('bundles/balance-cdq/latest/manifest.json',JSON.stringify(bundle,null,2)+'\n');
 const cumulative={...bundle,title:'Balance CDQ V25.24 — mise à jour complète depuis V25.22',requiresBuild:base.requiresBuild,patches:[...base.patches,...patches],extraFiles:[...base.extraFiles,...extraFiles]};
 fs.writeFileSync(dir+'/Balance_CDQ_V25_24_depuis_V25_22.cdq',JSON.stringify(cumulative,null,2)+'\n');
 if(process.env.CDQ_V2523_SOURCE){

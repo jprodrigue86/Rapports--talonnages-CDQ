@@ -1,0 +1,10 @@
+/* Features belong in existing menus; the startup wall only shows load progress. */
+#accessOverlay[data-state="pending"]::before,#accessOverlay[data-state="loading"]::before{content:"Chargement"!important;background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;text-shadow:0 1px 4px #000!important}
+.bottom-nav > .bottom-nav-item::after,html.windows #cdqPcV16 .pc16-nav button::after{content:none!important;display:none!important}
+.bottom-nav > .bottom-nav-item,html.windows #cdqPcV16 .pc16-nav button.active{box-shadow:none!important;text-decoration:none!important;border-bottom-color:transparent!important}
+#cdqBusyV2522{position:static!important;inset:auto!important;z-index:auto!important;padding:4px 0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:12px!important;min-height:24px;max-width:100%;pointer-events:none}
+#cdqBusyV2522[hidden]{display:flex!important;visibility:hidden!important}
+#cdqShareAppModal[hidden]{display:none!important;pointer-events:none!important}
+.cdq24-offline-dot{margin-left:0!important;margin-right:7px!important;flex-shrink:0!important;box-shadow:0 0 0 2px #153822!important}
+#cdqMigration25{background:#14232f;color:#f5f8fa;border:1px solid #667785;border-radius:14px;max-width:660px;width:calc(100% - 24px);max-height:88dvh;overflow:auto;font:15px system-ui}
+#cdqMigration25::backdrop{background:#0009}#cdqMigration25 progress{width:100%;accent-color:#45d67c}#cdqMigration25 button{font:inherit;padding:10px;margin:4px;background:#253746;color:#fff;border:1px solid #667785;border-radius:8px}

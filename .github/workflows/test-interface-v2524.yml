@@ -20,7 +20,7 @@ jobs:
       - run: CDQ_OFFLINE_MODULE=../offline-templates-v2524.mjs node --test tests/offline-controller.test.mjs
       - run: npm install --no-save puppeteer-core@24
       - run: node tests/offline-v2524-browser.test.mjs
-      - run: node tests/startup-v2524-browser.test.mjs
+      - run: node tests/startup-v2525-browser.test.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
