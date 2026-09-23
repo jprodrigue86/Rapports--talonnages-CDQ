@@ -24,14 +24,14 @@ try{
     const url=request.url();
     if(url.startsWith('data:')||url.startsWith('blob:'))return request.continue();
     const relative=url.startsWith(prefix)?url.slice(prefix.length).split('?')[0]:url.startsWith(base)?url.slice(base.length).split('?')[0]:'';
-    if(files[relative])return request.respond({status:200,contentType:files[relative].mime,headers:{'Access-Control-Allow-Origin':'https://jprodrigue86.github.io'},body:fs.readFileSync(generated+relative)});
+    if(files[relative])return request.respond({status:200,contentType:files[relative].mime+(files[relative].text?'; charset=utf-8':''),headers:{'Access-Control-Allow-Origin':'https://jprodrigue86.github.io'},body:fs.readFileSync(generated+relative)});
     if(url.startsWith('https://script.google.com/')&&url.includes('cdq_native_bridge=1')){
       bridgeRequested=true;
       bridgeStarted();
       // Hold only the remote connection: the actual installed UI must still parse.
       while(!allowServer)await new Promise(r=>setTimeout(r,30));
       const channel=new URL(url).searchParams.get('channel');
-      return request.respond({status:200,contentType:'text/html',body:`<iframe src="https://fixture-script.googleusercontent.com/bridge?channel=${channel}"></iframe>`});
+      return request.respond({status:200,contentType:'text/html; charset=utf-8',body:`<iframe src="https://fixture-script.googleusercontent.com/bridge?channel=${channel}"></iframe>`});
     }
     if(url.startsWith('https://fixture-script.googleusercontent.com/bridge')){
       const channel=new URL(url).searchParams.get('channel');
@@ -49,7 +49,7 @@ try{
           window.failure?.(Error('Unexpected fixture method '+name));
         };
       }})}};`;
-      return request.respond({status:200,contentType:'text/html',body:`<script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
+      return request.respond({status:200,contentType:'text/html; charset=utf-8',body:`<script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
     }
     // The explicitly live version check is allowed; public/static UI downloads are not.
     if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.28',build:'2026.09.23-v25.28-apk-embarquee'})});
@@ -65,7 +65,8 @@ try{
   await page.screenshot({path:'/tmp/cdq-v2528-local-startup.png'});
   allowServer=true;
   await selector.waitForFunction(()=>cdqAccessState==='ready',{timeout:20000});
-  await selector.waitForFunction(()=>document.querySelector('#companyList')?.textContent.includes('Client de vérification'));
+  try{await selector.waitForFunction(()=>document.querySelector('#companyList')?.textContent.includes('Client de vérification'),{timeout:10000});}
+  catch(error){console.log({errors,unexpected,calls,state:await selector.evaluate(()=>({access:cdqAccessState,clients:toutesLesCompagnies,list:document.querySelector('#companyList')?.textContent}))});await page.screenshot({path:'/tmp/cdq-v2528-failed.png'});throw error;}
   await page.waitForFunction(()=>getComputedStyle(document.getElementById('app')).visibility==='visible');
   await page.screenshot({path:'/tmp/cdq-v2528-local-ready.png'});
   assert.deepEqual(errors,[]);

@@ -219,7 +219,7 @@ class MainActivity : Activity() {
 
         setContentView(webView)
 
-        if (savedInstanceState == null) {
+        if (savedInstanceState == null || savedInstanceState.getString("cdqEmbeddedVersion") != "25.28") {
             webView.loadUrl(APP_URL)
             checkForNativeUpdateOnLaunch()
         } else {
@@ -635,6 +635,7 @@ class MainActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("cdqEmbeddedVersion", "25.28")
         webView.saveState(outState)
         super.onSaveInstanceState(outState)
     }

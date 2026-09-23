@@ -25,7 +25,7 @@ shell=replace(shell,"if ('serviceWorker' in navigator) {","if (false && 'service
 shell=replace(shell,"function cdqFreshAppUrl(reason='boot'){","function cdqFreshAppUrl(reason='boot'){\n  return new URL('./Selector.html',location.href).href;\n}");
 // Remove the former function body after replacing its opening.
 shell=replace(shell,"\n  const sep=APP_URL.includes('?')?'&':'?';\n  return APP_URL+sep+'cdq_boot=1&cdq_reason='+encodeURIComponent(reason)+'&cdq_live='+encodeURIComponent(CDQ_BOOT_NONCE)+'&ts='+Date.now();\n}",'');
-shell=replace(shell,"if (!event.source || !event.data || typeof event.data !== 'object') return false;","if (!event.source || !event.data || typeof event.data !== 'object') return false;\nif(event.origin===location.origin && event.source===app.contentWindow)return true;");
+shell=replace(shell,"if (!event.source || !event.data || typeof event.data !== 'object') return false;","if (!event.source || !event.data || typeof event.data !== 'object') return false;\nreturn event.origin===location.origin && event.source===app.contentWindow;");
 // Native Google sign-in uses its existing external authenticated return path.
 shell=replace(shell,'<script src="https://accounts.google.com/gsi/client" async defer></script>','');
 shell=replace(shell,"  if(cdqGoogleRenderingV42)return;","  if(window.BalanceCDQNative){\n    touchHelp.textContent='Connexion Google sécurisée. Retour automatique dans Balance CDQ.';\n    return;\n  }\n  if(cdqGoogleRenderingV42)return;");
