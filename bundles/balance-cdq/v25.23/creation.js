@@ -3,7 +3,7 @@ const base=CDQ_PWA_ORIGIN+'/Rapports--talonnages-CDQ/';
 window.cdqCreationV2523={
  async context(clientId){
   const email=String(utilisateurCourantEmail||''),key='cdq-client-context23:'+email+':'+clientId;let v={};try{v=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
-  if(navigator.onLine!==false){v=await window.cdqAppelServeur('obtenirContexteCreationCDQV2523',[clientId]);if(String(utilisateurCourantEmail||'')!==email)throw Error('Le compte a changé.');try{localStorage.setItem(key,JSON.stringify(v));}catch{}}
+  if(navigator.onLine!==false){try{const fresh=await window.cdqAppelServeur('obtenirContexteCreationCDQV2523',[clientId]);if(String(utilisateurCourantEmail||'')!==email)throw Error('Le compte a changé.');v=fresh;try{localStorage.setItem(key,JSON.stringify(v));}catch{}}catch(error){if(String(utilisateurCourantEmail||'')!==email)throw Error('Le compte a changé.');if(/autorisé|autorisation|permission|droits|Choisissez un client/i.test(error.message||''))throw error;/* Un réseau indisponible ne bloque pas la copie locale : garder les coordonnées connues. */}}
   v.client_nom=String(clientId)===String(compagnieSelectionnee)?String(nomCompagnieSelectionnee||v.client_nom||''):v.client_nom||'';
   v.client_technicien=String(utilisateurCourantNomRapport||v.client_technicien||'').trim();return v;
  },

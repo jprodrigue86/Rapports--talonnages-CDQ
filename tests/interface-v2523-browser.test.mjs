@@ -11,7 +11,7 @@ window.cdqAccessState='ready';window.utilisateurCourantRole='admin';window.CDQ_P
 window.estProprietairePrincipalInterface=()=>isOwner;window.afficherErreur=e=>{window.lastError=e.message};window.utilisateurCourantNomRapport='Technicien test';
 window.cdqAppelServeur=async(name,args=[])=>{
  if(name==='obtenirConversionPlancherCDQV2523')return {exists:false};
- if(name==='obtenirContexteCreationCDQV2523')return {client_nom:'Ancien nom',client_ville:'Ville test',client_adresse:'10 rue Test',client_technicien:'Technicien serveur'};
+ if(name==='obtenirContexteCreationCDQV2523'){if(window.contextOffline)throw Error('Network unavailable');return {client_nom:'Ancien nom',client_ville:'Ville test',client_adresse:'10 rue Test',client_technicien:'Technicien serveur'};}
  if(name==='obtenirEmplacementGeneralCDQV2523')return {parentId:'drive_root',kind:'file'};
  if(name==='definirFavoriGeneralCDQV2521')return {favori:args[1]};
  if(name==='obtenirDossierGeneralCDQV2521'){
@@ -48,6 +48,7 @@ try{
   await page.waitForFunction(()=>document.querySelector('[data-migration23]').hidden);
   await page.evaluate(async()=>{compagnieSelectionnee='c0';nomCompagnieSelectionnee='Client actuel';window.createdContext=await cdqCreationV2523.context('c0');});
   assert.deepEqual(await page.evaluate(()=>createdContext),{client_nom:'Client actuel',client_ville:'Ville test',client_adresse:'10 rue Test',client_technicien:'Technicien test'});
+  const offlineContext=await page.evaluate(async()=>{window.contextOffline=true;return cdqCreationV2523.context('c0')});assert.deepEqual(offlineContext,await page.evaluate(()=>createdContext));
   if(mobile)await page.$eval('#filesContainer',e=>e.classList.add('cdq-empty-v2210'));
   await page.evaluate(()=>cdqDriveMain23.open('drive_root'));await page.waitForSelector('.cdq23-drive-row',{visible:true});
   assert.equal(await page.$$eval('.cdq23-drive-row',es=>es.length),24);
