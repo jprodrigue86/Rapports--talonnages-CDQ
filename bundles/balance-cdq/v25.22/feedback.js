@@ -52,7 +52,8 @@ async function check(force=false){
  catch(_){}finally{checking=false;}
 }
 window.addEventListener('message',event=>{
- if(event.origin!==ORIGIN||event.source!==window.parent)return;
+ if(event.origin!==ORIGIN)return;
+ if(typeof cdqFromPwa==='function'?!cdqFromPwa(event):event.source!==window.parent)return;
  const d=event.data||{};if(d.type!=='CDQ_UPDATE_STATUS')return;
  if(d.available&&newer(d.latest)){available=d.latest;deployed=true;drawUpdate();}
 });
