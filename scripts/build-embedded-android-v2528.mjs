@@ -31,6 +31,7 @@ shell=replace(shell,'<script src="https://accounts.google.com/gsi/client" async 
 shell=replace(shell,"  if(cdqGoogleRenderingV42)return;","  if(window.BalanceCDQNative){\n    touchHelp.textContent='Connexion Google sécurisée. Retour automatique dans Balance CDQ.';\n    return;\n  }\n  if(cdqGoogleRenderingV42)return;");
 // An APK interface cannot be updated by reloading the public website.
 shell=replace(shell,"function cdqDemarrerSurveillanceMiseAJourV2254(){","function cdqDemarrerSurveillanceMiseAJourV2254(){\n  return; // Embedded interface updates are delivered by Android.\n");
+shell=replace(shell,"if(cdqSelectorBuildV2254)setTimeout(function(){cdqVerifierMiseAJourLiveV2254(selectorWindow,cdqSelectorBuildV2254,true)},1200);",'// Native release checks run outside the initial interface render.');
 files.set('index.html',Buffer.from(shell));
 let selector=gunzipSync(fs.readFileSync(source+'Selector.html.gz')).toString('utf8');
 selector=replace(selector,'<head>','<head>\n<script src="./embedded-rpc.js"></script>');

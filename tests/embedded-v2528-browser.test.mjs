@@ -10,6 +10,8 @@ const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/
 try{
   const page=await browser.newPage(),errors=[],unexpected=[],calls=[];
   let bridgeRequested=false,allowServer=false;
+  let bridgeStarted;
+  const bridgeStart=new Promise(resolve=>{bridgeStarted=resolve;});
   page.on('pageerror',error=>errors.push(error.message));
   await page.setViewport({width:393,height:850,isMobile:true,hasTouch:true});
   await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.28');
@@ -25,6 +27,7 @@ try{
     if(files[relative])return request.respond({status:200,contentType:files[relative].mime,headers:{'Access-Control-Allow-Origin':'https://jprodrigue86.github.io'},body:fs.readFileSync(generated+relative)});
     if(url.startsWith('https://script.google.com/')&&url.includes('cdq_native_bridge=1')){
       bridgeRequested=true;
+      bridgeStarted();
       // Hold only the remote connection: the actual installed UI must still parse.
       while(!allowServer)await new Promise(r=>setTimeout(r,30));
       const channel=new URL(url).searchParams.get('channel');
@@ -54,6 +57,7 @@ try{
   });
   await page.goto(prefix+'index.html',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#app')?.contentDocument?.querySelector('#accessOverlay'));
+  await Promise.race([bridgeStart,new Promise((_,reject)=>setTimeout(()=>reject(Error('Bridge did not start: '+JSON.stringify(errors))),10000))]);
   assert.equal(bridgeRequested,true);
   const selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');assert.ok(selector);
   assert.equal(await selector.evaluate(()=>cdqAccessState),'pending');
