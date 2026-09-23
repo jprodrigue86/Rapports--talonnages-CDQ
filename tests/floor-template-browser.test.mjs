@@ -16,7 +16,7 @@ const cdqPostToPwa=data=>controller.handle(data);
 window.cdqAppelServeur=async(...args)=>{rpc.push(args);throw Error('No Drive request allowed');};
 function cdqV19Gs(...args){return window.cdqAppelServeur(...args)}
 `;
-const shell=read('index.html'),reader=shell.slice(shell.indexOf('function cdqAfficherPdf(data) {'),shell.indexOf('/* =====================================================\nCDQ V21.19'));
+const shell=read('index.html'),reader=shell.slice(shell.indexOf('// Lecteur commun PC/Android'),shell.indexOf('/* =====================================================\nCDQ V21.19'));
 const html=`<!doctype html><meta charset="utf-8"><div id="copyModalOverlay"><button class="copy-confirm" onclick="confirmerCopie()">Créer Balance de plancher</button><button class="copy-cancel">Annuler</button></div><p id="copyModalStatus"></p><script>${setup}\n${source}\n${reader}</script>${embedded}<script type="module">import {createOfflineTemplates} from '/offline-templates-v2519.mjs';
 window.controller=createOfflineTemplates({send:data=>{sent.push(data);window.postMessage(data,location.origin)},unlock:async()=>{},openPdf:data=>{opened.push(data);cdqAfficherPdf(data)}});window.booted=true;</script>`;
 const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');if((url.pathname==='/test'||url.pathname==='/')){res.setHeader('Content-Type','text/html;charset=utf-8');return res.end(html)}const path=url.pathname.slice(1);if(!path.includes('..')&&fs.existsSync(path)&&fs.statSync(path).isFile()){res.setHeader('Content-Type',(path.endsWith('.mjs')||path.endsWith('.js'))?'text/javascript':path.endsWith('.css')?'text/css':path.endsWith('.wasm')?'application/wasm':path.endsWith('.html')?'text/html':path.endsWith('.pdf')?'application/pdf':'text/plain');res.end(fs.readFileSync(path));}else{res.statusCode=404;res.end()}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -38,7 +38,7 @@ try{
  // Real reader checks are opt-in for networked validation; unit tests never depend on the CDN.
  if(process.env.CDQ_TEST_READER==='1'){
   await page.waitForFunction(()=>{const f=document.querySelector('#legacy-pdf-reader');return f?.contentDocument?.querySelectorAll('.annotationLayer input').length>100},{timeout:20000}).catch(async e=>{console.log('Reader state',await page.evaluate(()=>document.querySelector('#legacy-pdf-reader')?.contentDocument?.body.innerText));throw e;});
-  const frame=page.frames().find(f=>f.url().includes('/floor-reader-v2519.html'));
+  const frame=page.frames().find(f=>f.url().includes('/reader-v2520.html'));
   assert.ok((await frame.$$eval('.annotationLayer input',e=>e.length))>100);
   await frame.$eval('input[name="client_nom"]',e=>{e.value='Essai hors ligne';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))});
   await frame.click('#save');await frame.waitForFunction(()=>document.querySelector('#status').textContent.includes('Conservé'),{timeout:20000});

@@ -30,7 +30,7 @@ export function nextSync(copy,protocol=0) {
   // Filled-PDF uploads require the explicit protocol-38 acknowledgement.
   if(!copy.driveId)return {type:'CDQ_OFFLINE_COPY',...syncRequest(copy)};
   if(copy.uploadId && copy.uploadId!==copy.syncedUploadId && protocol>=38)
-    return {type:'CDQ_OFFLINE_SAVE',requestId:copy.id,driveId:copy.driveId,uploadId:copy.uploadId,blob:copy.blob};
+    return {type:'CDQ_OFFLINE_SAVE',requestId:copy.id,driveId:copy.filledDriveId||copy.driveId,revision:copy.revision||'',uploadId:copy.uploadId,blob:copy.blob};
   return null;
 }
 export function applyResult(copy,data) {
@@ -39,12 +39,12 @@ export function applyResult(copy,data) {
   if(data.type==='CDQ_OFFLINE_COPY_RESULT') {
     if(!data.ok){c.error=data.message||'La copie reste sur cet appareil.';return c;}
     if(!identifier(data.id))return copy;
-    c.driveId=data.id;c.error='';
+    c.driveId=data.id;c.revision=data.revision||'';c.error='';
     c.status=c.uploadId && c.uploadId!==c.syncedUploadId?'pending':'synced';
   } else if(data.type==='CDQ_OFFLINE_SAVE_RESULT' && data.uploadId===c.uploadId) {
     if(!data.ok){c.error=data.message||'Le PDF rempli reste sur cet appareil.';return c;}
     if(!identifier(data.id))return copy;
-    c.syncedUploadId=data.uploadId;c.filledDriveId=data.id;c.status='synced';c.error='';
+    c.syncedUploadId=data.uploadId;c.filledDriveId=data.id;c.revision=data.revision||'';c.status='synced';c.error='';
   }
   return c;
 }
