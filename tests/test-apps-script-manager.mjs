@@ -77,7 +77,7 @@ try {
     }}};
     const realFetch=window.fetch.bind(window);
     window.fetch=async (url,opts={})=>{
-      const s=String(url).replace('https://scriptmanagement.googleapis.com/v1','https://script.googleapis.com/v1'),method=opts.method||'GET';
+      const s=String(url).replace('https://scriptmanagement.googleapis.com/v1','https://script.googleapis.com/v1').split('?')[0],method=opts.method||'GET';
       window.__mockFetchLog.push(method+' '+s);
       const ok=data=>new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
       if(s.startsWith('https://www.googleapis.com/drive/v3/files')) return ok({files:[{id:'TEST_SCRIPT_ID',name:'Projet Test CDQ',modifiedTime:'2026-09-17T16:00:00Z',webViewLink:'https://script.google.com/'}]});
@@ -254,6 +254,33 @@ try {
   });
   assert(Object.values(localPatchResult).every(Boolean),'Local .cdq import/paste guards failed: '+JSON.stringify(localPatchResult));
   console.log('PASS: .cdq file import and pasted patch use project/version guards');
+
+  const iconLaunch=await page.evaluate(async()=>{
+    const before='2026.09.23-v25.25-lecteur-hors-ligne';
+    const after='2026.09.23-v25.26-sheets-retour';
+    const originalFetchBundle=fetchBundleTextV24;
+    const requestsBefore=window.__mockFetchLog.length;
+    S.id=CDQ_PRODUCTION_SCRIPT_ID;S.bundleUrl='';S.pkg.clear();S.draft.clear();S.autoBundleChecked=false;
+    S.files=[{name:'Code',type:'SERVER_JS',source:"const CDQ_PACKAGE_BUILD = '"+before+"';"},
+      {name:'appsscript',type:'JSON',source:'{}'}];
+    const manifest={schema:'cdq-script-bundle-v3',projectScriptId:S.id,version:'V25.26',build:after,
+      requiresBuild:[before],patches:[{file:'Code.gs',op:'replace_build',from:before,to:after}],removeFiles:[]};
+    fetchBundleTextV24=async()=>JSON.stringify(manifest);
+    try{
+      const prepared=await prepareLatestBundleV41();
+      const staged=Array.from(S.pkg.values()).some(f=>f.source.includes(after));
+      const saved=pendingBundleV41();
+      const noWrite=window.__mockFetchLog.length===requestsBefore;
+      // An explicit selection must not be replaced by the automatic offer.
+      S.autoBundleChecked=false;
+      const preserved=await prepareLatestBundleV41()===false && Array.from(S.pkg.values()).some(f=>f.source.includes(after));
+      LS.setItem(PENDING_BUNDLE_KEY_V41,JSON.stringify({url:'https://evil.invalid/manifest.json',savedAt:Date.now()}));
+      const rejected=pendingBundleV41()==='';
+      return {prepared,staged,noWrite,preserved,rejected,saved:saved.endsWith('/latest/manifest.json')};
+    }finally{fetchBundleTextV24=originalFetchBundle;}
+  });
+  assert(Object.values(iconLaunch).every(Boolean),'Icon launch/resume checks failed: '+JSON.stringify(iconLaunch));
+  console.log('PASS: opening the app prepares the published update without writing, remembers it, and preserves explicit selections');
 
   console.log('PASS: manager page loaded in Chrome');
   console.log('PASS: manifest and PNG icons valid');

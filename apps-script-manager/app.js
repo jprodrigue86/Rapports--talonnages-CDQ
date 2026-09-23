@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V40';
+const APP_VERSION = 'V41';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -66,6 +66,7 @@ const S = {
   redeploySource: false,
   deployBusy: false,
   deployProgress: 0,
+  autoBundleChecked: false,
 };
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({
@@ -81,6 +82,42 @@ const AUTO_CONNECT_UNTIL_KEY = 'cdqsm_auto_connect_until';
 const KEEP_CONNECTED_KEY = 'cdqsm_keep_connected';
 const TOKEN_KEY = 'cdqsm_google_access_token';
 const TOKEN_EXPIRES_KEY = 'cdqsm_google_access_token_expires';
+const PENDING_BUNDLE_KEY_V41 = 'cdqsm_pending_bundle_v41';
+
+function rememberPendingBundleV41(url) {
+  try { LS.setItem(PENDING_BUNDLE_KEY_V41, JSON.stringify({url:bundleUrlFromValueV24(url), savedAt:Date.now()})); } catch (_) {}
+}
+
+function pendingBundleV41() {
+  try {
+    const saved = JSON.parse(LS.getItem(PENDING_BUNDLE_KEY_V41) || 'null');
+    if (saved && Date.now() - saved.savedAt < 7 * 24 * 60 * 60 * 1000) return bundleUrlFromValueV24(saved.url);
+  } catch (_) {}
+  LS.removeItem(PENDING_BUNDLE_KEY_V41);
+  return '';
+}
+
+async function prepareLatestBundleV41() {
+  if (S.autoBundleChecked || !isProductionProject() || S.bundleUrl || S.pkg.size || S.draft.size) return false;
+  S.autoBundleChecked = true;
+  const id = S.id;
+  const manifest = JSON.parse(await fetchBundleTextV24(bundleUrlFromValueV24('latest')));
+  if (S.id !== id || S.bundleUrl || S.pkg.size || S.draft.size) return false;
+  if (normalizeScriptId(manifest.projectScriptId) !== id || !manifest.build) return false;
+  if (compareBuildLabels(detectBuildLabel(S.files), manifest.build) >= 0) return false;
+  rememberPendingBundleV41('latest');
+  // Only prepare the published update; writing/deployment still needs the button.
+  await importBundleManifestV24('latest', manifest);
+  return true;
+}
+
+window.addEventListener('cdqsm:network-wait', event => {
+  const d = event.detail || {};
+  const message = d.phase + ' — ' + d.elapsedSeconds + ' s';
+  if (S.deployBusy) {
+    if (quickDeployProgressText) quickDeployProgressText.textContent = message;
+  } else stat(message);
+});
 
 function saveLiveGoogleToken() {
   if (!keepConnectionEnabled() || !CDQ.token || !CDQ.expiresAt) return;
@@ -360,6 +397,7 @@ async function runQuickDeployAction() {
   if (!beginQuickDeployProgress()) return;
   try {
     const result=await writePendingAndDeploy();
+    LS.removeItem(PENDING_BUNDLE_KEY_V41);
     const verified=!result?.verificationPending;
     endQuickDeployProgress(true, verified
       ? '100 % — écriture, déploiement et vérification terminés.'
@@ -786,7 +824,7 @@ async function refreshProjectList() {
     if (autoId && S.id !== autoId) {
       try {
         await readProject(autoId, true);
-        setQuickResult('Google connecté et projet lié automatiquement. Choisis maintenant ton ZIP.', 'ok');
+        if (!S.pkg.size && !S.bundleAlreadyApplied && !S.bundleUrl) setQuickResult('Google connecté et projet lié automatiquement. Choisis maintenant ton package.', 'ok');
       } catch (projectError) {
         setQuickResult('Projet trouvé, mais lecture impossible : ' + projectError.message, 'err');
       }
@@ -809,15 +847,9 @@ async function readProject(id, save = true) {
     throw Error('Google a répondu, mais aucun fichier Apps Script n’a été reçu.');
   }
 
-  let meta = null;
-  try {
-    meta = await getProjectMetadata(id, cid());
-  } catch (_) {
-    // Le titre est déjà connu par la liste Drive. Les métadonnées Apps Script
-    // ne doivent jamais bloquer la lecture du code.
-    const option = Array.from(projectSelect.options || []).find(o => o.value === id);
-    meta = { title: option ? String(option.textContent || '').split(' • ')[0] : 'Projet Apps Script' };
-  }
+  // The Drive list already supplies the title. Avoid another blocking request.
+  const option = Array.from(projectSelect.options || []).find(o => o.value === id);
+  const meta = {title: option ? String(option.textContent || '').split(' • ')[0] : 'Projet Apps Script'};
 
   let deps = [];
   try {
@@ -851,6 +883,8 @@ async function readProject(id, save = true) {
   stat(`${S.files.length} fichier(s) chargé(s) • ${sourceBuild}.`, 'ok');
   if(S.bundleUrl)await maybeImportBundleV24();
   else if(isProductionProject()){
+    try { if (await prepareLatestBundleV41()) return; }
+    catch (error) { setQuickResult('Lecture de la mise à jour impossible : '+error.message, 'err'); }
     setTimeout(async()=>{
       try{
         const live=await verifyProductionWebAppReadyV23('',18000);
@@ -1091,7 +1125,8 @@ async function fetchBundleTextV24(url,expectedSha=''){
   async function tryFetchV32(target){
     const bust=new URL(target);
     bust.searchParams.set('cdq_retry',Date.now());
-    return fetch(bust.href,{cache:'no-store',credentials:'omit'});
+    const {response,text}=await cdqFetchOnceV39(bust.href,{},new Headers(),20000,'du package');
+    return {ok:response.ok,status:response.status,text:async()=>text};
   }
 
   let r=null;
@@ -1282,6 +1317,7 @@ async function importLocalBundleV40(text){
 async function importBundleManifestV24(url,suppliedManifest=null){
   url=bundleUrlFromValueV24(url);
   S.bundleUrl=url;
+  if (!suppliedManifest) rememberPendingBundleV41(url);
 
   if(!S.files.length){
     S.bundleLabel=url.split('/').slice(-2,-1)[0]||'package direct';
@@ -1555,6 +1591,7 @@ async function readZipEntries(file) {
 }
 
 async function importPhoneFiles(fileList) {
+  LS.removeItem(PENDING_BUNDLE_KEY_V41);
   try {
     if (!S.files.length) throw Error('Charge d’abord le projet.');
     const selected = Array.from(fileList || []);
@@ -2216,6 +2253,8 @@ $('pastePackage').addEventListener('click', () => {
 });
 $('parsePackage').addEventListener('click', preparePackage);
 $('clearPackage').addEventListener('click', () => {
+  LS.removeItem(PENDING_BUNDLE_KEY_V41);
+  S.bundleUrl='';
   packageEditor.value = '';
   packageResult.innerHTML = '';
   clearZipVisual();
@@ -2299,8 +2338,9 @@ window.addEventListener('appinstalled', updateInstallState);
   // V24 : un lien ChatGPT/CDQ peut préparer directement Code.gs + Selector.html
   // sans téléchargement ZIP sur le téléphone.
   try{
-    const directBundle=bundleUrlFromLocationV24();
+    const directBundle=bundleUrlFromLocationV24() || pendingBundleV41();
     if(directBundle){
+      rememberPendingBundleV41(directBundle);
       S.bundleUrl=directBundle;
       S.bundleLabel=directBundle.split('/').slice(-2,-1)[0]||'package direct';
       if(quickZipSummary){
@@ -2319,7 +2359,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=40').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=41').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;

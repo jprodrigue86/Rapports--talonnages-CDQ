@@ -8,6 +8,7 @@ const CDQ = {
   content: null,
   deployments: [],
   versions: [],
+  scriptApiBase: '',
 };
 
 const SCOPES = [
@@ -87,9 +88,11 @@ async function requestGoogleToken(clientId, mode = 'reuse') {
   if (!client) client = await prepareGoogleClient(clientId);
   return new Promise((resolve, reject) => {
     let settled = false;
+    const timer = setTimeout(() => finishError({message: 'La connexion Google n’a pas répondu. Touche « Se connecter à Google » pour réessayer.'}), 45000);
     const finishError = (err) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       const code = err?.type || err?.error || '';
       if (code === 'popup_failed_to_open') return reject(new Error('Chrome a bloqué la fenêtre Google. Vérifie que tu utilises bien Chrome et réessaie en touchant directement « Se connecter à Google ».'));
       if (code === 'popup_closed') return reject(new Error('La fenêtre Google a été fermée avant la fin de la connexion.'));
@@ -99,6 +102,7 @@ async function requestGoogleToken(clientId, mode = 'reuse') {
       if (settled) return;
       if (response?.error) return finishError(response);
       settled = true;
+      clearTimeout(timer);
       CDQ.token = response.access_token || '';
       const expiresIn = Number(response.expires_in || 3600);
       CDQ.expiresAt = Date.now() + Math.max(60, expiresIn - 60) * 1000;
@@ -154,27 +158,47 @@ function cdqScriptAlternateUrlV39(url) {
   return '';
 }
 
-async function cdqFetchOnceV39(url, options, headers, timeoutMs) {
+async function cdqFetchOnceV39(url, options, headers, timeoutMs, label = 'Google') {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs || 25000);
+  const started = Date.now();
+  const method = String(options.method || 'GET').toUpperCase();
+  let phase = method === 'GET' ? 'Lecture ' + label : 'Envoi à ' + label;
+  const notify = () => {
+    if (typeof window.dispatchEvent === 'function') window.dispatchEvent(new CustomEvent('cdqsm:network-wait', {
+      detail: {phase, elapsedSeconds: Math.floor((Date.now() - started) / 1000)}
+    }));
+  };
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      const error = new Error('Le délai de réponse Google est dépassé.');
+      error.name = 'TimeoutError';
+      reject(error);
+    }, timeoutMs || 30000);
+  });
+  const heartbeat = setInterval(notify, 1000);
   try {
-    return await fetch(url, {
-      ...options,
-      headers,
-      signal: controller.signal,
-      mode: 'cors',
-      cache: 'no-store',
-      credentials: 'omit',
-      redirect: 'follow',
-    });
+    // Keep the deadline until the body is fully received, not only its headers.
+    // The race also bounds transports which fail to honour AbortController.
+    return await Promise.race([deadline, (async () => {
+      const response = await fetch(url, {
+        ...options, headers, signal: controller.signal, mode: 'cors',
+        cache: 'no-store', credentials: 'omit', redirect: 'follow',
+      });
+      phase = 'Réception de la réponse ' + label;
+      const text = await response.text();
+      return {response, text};
+    })()]);
   } finally {
     clearTimeout(timer);
+    clearInterval(heartbeat);
   }
 }
 
 function cdqNetworkMessageV39(error) {
   const msg = String(error?.message || error || '');
-  if (error?.name === 'AbortError') return 'délai réseau dépassé';
+  if (error?.name === 'AbortError' || error?.name === 'TimeoutError') return 'délai réseau dépassé';
   if (/failed to fetch|networkerror|network request failed|load failed/i.test(msg)) return 'connexion réseau interrompue';
   return msg || 'erreur réseau inconnue';
 }
@@ -182,16 +206,21 @@ function cdqNetworkMessageV39(error) {
 async function googleFetch(url, clientId, options = {}) {
   await ensureAuth(clientId);
 
+  if (CDQ.scriptApiBase && cdqScriptAlternateUrlV39(url)) {
+    url = String(url).replace(/^https:\/\/(scriptmanagement|script)\.googleapis\.com\/v1/, CDQ.scriptApiBase);
+  }
+
   const method = String(options.method || 'GET').toUpperCase();
-  const safeToRetry = method === 'GET' || method === 'HEAD' || method === 'PUT';
+  // A timed-out write may already have reached Google. Never replay it blindly.
+  const safeToRetry = method === 'GET' || method === 'HEAD';
   const alternate = cdqScriptAlternateUrlV39(url);
-  const candidates = alternate ? [String(url), alternate] : [String(url)];
+  const candidates = safeToRetry && alternate ? [String(url), alternate] : [String(url)];
   let lastNetworkError = null;
   let tokenRefreshed = false;
 
   for (let hostIndex = 0; hostIndex < candidates.length; hostIndex++) {
     const target = candidates[hostIndex];
-    const attempts = safeToRetry ? 3 : 1;
+    const attempts = 1;
 
     for (let attempt = 0; attempt < attempts; attempt++) {
       const headers = new Headers(options.headers || {});
@@ -199,12 +228,16 @@ async function googleFetch(url, clientId, options = {}) {
       if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
       headers.set('Accept', 'application/json');
 
-      let response;
+      let response, text;
       try {
-        response = await cdqFetchOnceV39(target, options, headers, 25000);
+        ({response, text} = await cdqFetchOnceV39(target, options, headers, safeToRetry ? 30000 : 90000));
       } catch (error) {
         lastNetworkError = error;
-        if (!safeToRetry) throw new Error('Connexion Google impossible : ' + cdqNetworkMessageV39(error) + '.');
+        if (!safeToRetry) {
+          const uncertain = new Error('Réponse Google non reçue : ' + cdqNetworkMessageV39(error) + '.');
+          uncertain.writeUncertain = true;
+          throw uncertain;
+        }
         if (attempt + 1 < attempts) {
           await cdqSleepV39(attempt === 0 ? 450 : 1200);
           continue;
@@ -221,9 +254,13 @@ async function googleFetch(url, clientId, options = {}) {
         continue;
       }
 
-      const text = await response.text();
       const data = apiErrorPayload(text);
-      if (!response.ok) throw new Error(friendlyGoogleError(response.status, data));
+      if (!response.ok) {
+        const error = new Error(friendlyGoogleError(response.status, data));
+        error.writeUncertain = !safeToRetry && response.status >= 500;
+        throw error;
+      }
+      if (cdqScriptAlternateUrlV39(target)) CDQ.scriptApiBase = new URL(target).origin + '/v1';
       return data;
     }
 
@@ -266,12 +303,25 @@ async function getProjectContent(scriptId, clientId) {
 }
 
 async function updateProjectContent(scriptId, files, clientId) {
-  const result = await googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/content`), clientId, {
-    method: 'PUT',
-    body: JSON.stringify({ files }),
-  });
-  CDQ.content = result;
-  return result;
+  try {
+    // Google otherwise echoes the complete multi-megabyte project. The caller
+    // already performs a fresh, independent read to verify every written file.
+    return await googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/content?fields=scriptId`), clientId, {
+      method: 'PUT', body: JSON.stringify({ files }),
+    });
+  } catch (error) {
+    if (!error.writeUncertain) throw error;
+    let actual;
+    try { actual = await getProjectContent(scriptId, clientId); }
+    catch (_) { throw new Error('La réponse d’écriture et sa vérification sont indisponibles. La sauvegarde est conservée. Recharge le projet avant de reprendre; le code peut déjà être écrit.'); }
+    const expected = new Map(files.map(f => [f.type + ':' + f.name, f.source || '']));
+    const received = actual.files || [];
+    if (received.length === expected.size && new Set(received.map(f => f.type + ':' + f.name)).size === expected.size &&
+        received.every(f => expected.has(f.type + ':' + f.name) && expected.get(f.type + ':' + f.name) === (f.source || ''))) {
+      return actual;
+    }
+    throw new Error('Google n’a pas confirmé le code attendu. La sauvegarde est conservée et aucun déploiement n’a été lancé. Recharge le projet avant de reprendre.');
+  }
 }
 
 async function listDeployments(scriptId, clientId) {
