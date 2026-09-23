@@ -18,6 +18,9 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebResourceResponse
+import android.webkit.ServiceWorkerClient
+import android.webkit.ServiceWorkerController
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
@@ -29,8 +32,7 @@ import java.util.concurrent.Executors
 class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
-        private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.26"
+        private const val APP_URL = PackagedWebAssets.START_URL
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
         private const val UPDATE_MANIFEST_URL =
@@ -110,6 +112,13 @@ class MainActivity : Activity() {
         setTheme(R.style.Theme_BalanceCDQ)
         super.onCreate(savedInstanceState)
 
+        val packagedAssets = PackagedWebAssets(this)
+        // An older PWA worker may still control this origin after an APK update.
+        ServiceWorkerController.getInstance().setServiceWorkerClient(object : ServiceWorkerClient() {
+            override fun shouldInterceptRequest(request: WebResourceRequest): WebResourceResponse? =
+                packagedAssets.intercept(request.url, request.method)
+        })
+
         webView = WebView(this).apply {
             setBackgroundColor(Color.BLACK)
             isVerticalScrollBarEnabled = false
@@ -131,11 +140,14 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.26"
+                settings.userAgentString + " BalanceCDQAndroid/25.28"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
             webViewClient = object : WebViewClient() {
+                override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
+                    packagedAssets.intercept(request.url, request.method)
+
                 override fun shouldOverrideUrlLoading(
                     view: WebView,
                     request: WebResourceRequest

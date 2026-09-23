@@ -1,0 +1,28 @@
+name: Embedded Android interface V25.28
+on:
+  push:
+    paths: ['balance-cdq-android/web-source/**', 'scripts/*embedded*v2528*', 'bundles/balance-cdq/v25.28/**', 'tests/embedded-v2528*', '.github/workflows/test-embedded-v2528.yml']
+  pull_request:
+    paths: ['balance-cdq-android/web-source/**', 'scripts/*embedded*v2528*', 'bundles/balance-cdq/v25.28/**', 'tests/embedded-v2528*', '.github/workflows/test-embedded-v2528.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-embedded-android-v2528.mjs && node scripts/build-embedded-package-v2528.mjs
+      - run: git diff --exit-code -- bundles/balance-cdq/v25.28
+      - run: node --test tests/embedded-v2528.test.mjs tests/performance-v2527.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/embedded-v2528-browser.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: V25.28-embedded-preview
+          path: /tmp/cdq-v2528-*.png
+          retention-days: 2
