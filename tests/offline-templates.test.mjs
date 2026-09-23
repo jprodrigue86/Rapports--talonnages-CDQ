@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MODELS,validPdf,validTemplate,validDestination,makeCopy,syncRequest,nextSync,applyResult} from '../offline-templates.mjs';
+import {MODELS,validPdf,validTemplate,validDestination,makeCopy,syncRequest,nextSync,applyResult} from '../offline-templates-v2519.mjs';
 const blank=new Blob(['%PDF-1.7\nmaster\n%%EOF'],{type:'application/pdf'});
 const filled=new Blob(['%PDF-1.7\nfilled answers\n%%EOF'],{type:'application/pdf'});
 const destination={clientId:'client_1',folderId:'folder_1',name:'Client / Atelier'};
@@ -19,7 +19,7 @@ test('Modèles inconnus, destination vide et ID injecté refusés',()=>{
 test('Faux MIME, PDF vide et PDF trop gros refusés',()=>{
  assert.equal(validPdf(new Blob(['%PDF-x'],{type:'text/plain'})),false);
  assert.equal(validPdf(new Blob([],{type:'application/pdf'})),false);
- assert.equal(validPdf(new Blob([new Uint8Array(15*1024*1024+1)],{type:'application/pdf'})),false);
+ assert.equal(validPdf(new Blob([new Uint8Array(32*1024*1024+1)],{type:'application/pdf'})),false);
 });
 test('Copies vierges multi-modèles compatibles avec le serveur publié en parallèle',()=>{
  for(const key of Object.keys(MODELS))assert.equal(nextSync(make(key),0).modeleId,key);

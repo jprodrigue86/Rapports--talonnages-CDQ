@@ -1,13 +1,15 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE='cdq-pc-v25-18-ergonomics';
-const FORCE_BUILD='2026.09.23-v25.18-pc-ergonomie-performance';
+const CACHE = 'cdq-pc-v25-19-plancher-integre';
+const FORCE_BUILD='2026.09.23-v25.19-plancher-integre';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;
 const root=p=>new URL(p,ROOT).href;
 const APP_SHELL=[
+  root('floor-reader-v2519.html'),root('vendor/pdfjs-6.3.289/web/images/loading-icon.gif'),root('vendor/pdfjs-6.3.289/web/images/checkmark.svg'),root('vendor/pdfjs-6.3.289/wasm/quickjs-eval.js'),root('vendor/pdfjs-6.3.289/wasm/quickjs-eval.wasm'),root('floor-reader-v2519.mjs'),root('vendor/pdfjs-6.3.289/build/pdf.mjs'),root('vendor/pdfjs-6.3.289/build/pdf.sandbox.mjs'),root('vendor/pdfjs-6.3.289/build/pdf.worker.mjs'),root('vendor/pdfjs-6.3.289/standard_fonts/LiberationSans-Bold.ttf'),root('vendor/pdfjs-6.3.289/standard_fonts/LiberationSans-Regular.ttf'),root('vendor/pdfjs-6.3.289/web/pdf_viewer.css'),root('vendor/pdfjs-6.3.289/web/pdf_viewer.mjs'),
+
   url('./'),url('index.html'),url('manifest.webmanifest'),url('version.json'),
-  root('offline-templates-v2252.mjs'),
+  root('offline-templates-v2519.mjs'),root('floor-template-v2519.mjs'),
   root('reader.html'),root('reader.mjs?v=21.33'),root('reader-interactions.mjs?v=21.33'),
   root('firebase-config.js'),root('google-auth-config.js'),
   root('icons/icon-heavy-v3-192.png'),root('icons/icon-heavy-v3-512.png'),
@@ -29,6 +31,9 @@ self.addEventListener('message',event=>{
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
   const u=new URL(event.request.url);
+  if(u.origin==='https://cdn.jsdelivr.net'&&u.pathname.startsWith('/npm/pdfjs-dist@6.3.289/')){
+    event.respondWith((async()=>{const cache=await caches.open(CACHE),hit=await cache.match(event.request);if(hit)return hit;const response=await fetch(event.request);if(response.ok)event.waitUntil(cache.put(event.request,response.clone()).catch(()=>{}));return response;})());return;
+  }
   if(u.origin!=='https://jprodrigue86.github.io')return;
   event.respondWith((async()=>{
     const cache=await caches.open(CACHE);

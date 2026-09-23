@@ -1,7 +1,7 @@
 // Node doubles exercise the real controller. These are not browser or live Google tests.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOfflineTemplates} from '../offline-templates.mjs';
+import {createOfflineTemplates} from '../offline-templates-v2519.mjs';
 class Element {
   constructor(tag){this.tag=tag;this.children=[];this.style={};this.hidden=false;}
   setAttribute(){} append(...children){this.children.push(...children);} replaceChildren(...children){this.children=children;}
@@ -54,4 +54,31 @@ test('Reconnexion protocole 38 : le PDF rempli est acquitté séparément de la 
  const save=h.sent.at(-1);assert.equal(save.type,'CDQ_OFFLINE_SAVE');assert.equal((await h.storage.get('copies',h.request.requestId)).status,'pending');
  await h.ctl.handle({type:'CDQ_OFFLINE_SAVE_RESULT',requestId:h.request.requestId,uploadId:save.uploadId,ok:true,id:'filled_drive'});
  assert.equal((await h.storage.get('copies',h.request.requestId)).status,'synced');
+});
+test('Plancher : première copie hors ligne sans préparation, ancien maître ignoré, lecteur après stockage',async t=>{
+ const h=setup(t);await h.session();
+ const {floorTemplate,meta}=await import('../floor-template-v2519.mjs');const master=await floorTemplate();
+ await h.storage.put('state',{id:'template:tech@example.invalid:plancher',modeleId:'plancher',templateId:'old_floor',blob:h.blank});
+ const request={...h.request,modeleId:'plancher',open:true};await h.ctl.handle(request);
+ const c=await h.storage.get('copies',request.requestId);assert.equal(c.templateId,meta.templateId);
+ assert.deepEqual(Buffer.from(await c.blob.arrayBuffer()),Buffer.from(await master.blob.arrayBuffer()));
+ assert.equal(h.opened.length,1);assert.equal(h.opened[0].fileId,c.id);assert.equal(h.opened[0].readOnly,false);
+ assert.equal(h.sent.filter(m=>m.type==='CDQ_OFFLINE_COPY'||m.type==='CDQ_OFFLINE_PREPARE').length,0);
+ assert.equal(h.nodes().find(n=>n.id==='cdq-offline-launch').hidden,false);
+ await h.ctl.handle(request);assert.equal(h.tables.get('copies').size,1);
+ const filled=new Blob(['%PDF-1.7\nfilled-floor\n%%EOF'],{type:'application/pdf'});await h.opened[0].onSave(filled,'save-floor123');
+ navigator.onLine=true;await h.session();const copy=h.sent.at(-1);assert.equal(copy.type,'CDQ_OFFLINE_COPY');assert.equal(copy.templateId,meta.templateId);
+ await h.ctl.handle({type:'CDQ_OFFLINE_COPY_RESULT',requestId:c.id,ok:true,id:'floor_drive'});
+ const save=h.sent.at(-1);assert.equal(save.type,'CDQ_OFFLINE_SAVE');assert.equal(await save.blob.text(),await filled.text());
+ await h.ctl.handle({type:'CDQ_OFFLINE_SAVE_RESULT',requestId:c.id,uploadId:save.uploadId,ok:true,id:'floor_filled'});
+ assert.equal((await h.storage.get('copies',c.id)).status,'synced');
+ assert.equal((await floorTemplate()).blob.size,628837);
+});
+test('Plancher : écriture refusée au lecteur et isolation entre comptes',async t=>{
+ const h=setup(t),req={...h.request,modeleId:'plancher',open:true};await h.session('viewer@example.invalid',false);await h.ctl.handle(req);
+ assert.equal(h.sent.at(-1).ok,false);assert.equal(h.tables.get('copies').size,0);assert.equal(h.opened.length,0);
+ await h.session();await h.ctl.handle(req);const reader=h.opened.at(-1);
+ await h.session('other@example.invalid');await h.ctl.handle(req);assert.equal(h.sent.at(-1).ok,false);
+ await assert.rejects(()=>reader.onSave(h.blank,'save-other123'),/Déverrouillez/);
+ assert.equal(h.tables.get('copies').size,1);
 });

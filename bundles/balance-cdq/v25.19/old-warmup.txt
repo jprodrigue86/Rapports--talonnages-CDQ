@@ -1,0 +1,30 @@
+<script id="cdqV2291PlancherEmbeddedWarmupJs">
+(function(){
+  'use strict';
+  let running=null,done=false;
+  async function warmPlancher(){
+    if(done||running||navigator.onLine===false||cdqAccessState!=='ready')return running;
+    const email=String(utilisateurCourantEmail||'');
+    if(!email)return;
+    running=(async function(){
+      try{
+        if(typeof cdqPublierSessionHorsLigne==='function')cdqPublierSessionHorsLigne();
+        await cdqV2112EnsureTemplateOfflineCached(false,'plancher');
+        const rec=await cdqV2112GetCachedTemplate('plancher');
+        if(!rec||!(rec.blob instanceof Blob)||rec.blob.type!=='application/pdf')return;
+        const blobRapport=typeof cdqPersonnaliserBlobTechnicienPdf==='function'
+          ? await cdqPersonnaliserBlobTechnicienPdf(rec.blob) : rec.blob;
+        if(email!==String(utilisateurCourantEmail||'')||cdqAccessState!=='ready')return;
+        cdqPostToPwa({type:'CDQ_OFFLINE_TEMPLATE',email:email,modeleId:'plancher',blob:blobRapport,
+          templateId:rec.templateId,modifieLe:rec.modifieLe,revision:rec.revision,sha256:'',name:'Balance de plancher'});
+        done=true;
+      }catch(e){console.warn('Préparation intégrée Balance de plancher :',e&&e.message?e.message:e);}
+      finally{running=null;}
+    })();
+    return running;
+  }
+  window.addEventListener('cdq:access-ready',function(){setTimeout(warmPlancher,900);});
+  window.addEventListener('online',function(){setTimeout(warmPlancher,700);});
+  if(document.readyState!=='loading')setTimeout(warmPlancher,1400);
+})();
+</script>
