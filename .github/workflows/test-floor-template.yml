@@ -1,0 +1,24 @@
+name: Embedded floor template
+on:
+  push:
+    paths: ['bundles/balance-cdq/v25.19/**', 'assets/templates/**', 'vendor/pdfjs-6.3.289/**', 'floor-*', 'offline-templates-v2519.mjs', 'scripts/build-floor-template.mjs', 'tests/floor-template*', 'tests/offline-*', 'tests/fixtures/v25.18-floor-copy.js', '.github/workflows/test-floor-template.yml']
+  pull_request:
+    paths: ['bundles/balance-cdq/v25.19/**', 'assets/templates/**', 'vendor/pdfjs-6.3.289/**', 'floor-*', 'offline-templates-v2519.mjs', 'scripts/build-floor-template.mjs', 'tests/floor-template*', 'tests/offline-*', 'tests/fixtures/v25.18-floor-copy.js', '.github/workflows/test-floor-template.yml']
+permissions:
+  contents: read
+jobs:
+  embedded-floor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-floor-template.mjs && git diff --exit-code
+      - run: node --test tests/floor-template.test.mjs tests/offline-controller.test.mjs tests/offline-templates.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/floor-template-browser.test.mjs
+        env:
+          CDQ_TEST_READER: '1'
+          CHROME_PATH: /usr/bin/google-chrome

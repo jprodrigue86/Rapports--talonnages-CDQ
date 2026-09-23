@@ -1,0 +1,44 @@
+[
+  {
+    "file": "Code.gs",
+    "op": "replace_literal",
+    "search": "  const modele = obtenirModeleIntermediaireCDQ_(modeleId);\n  const systeme = obtenirDossierSystemeCDQ_();",
+    "replacement": "  const modele = obtenirModeleIntermediaireCDQ_(modeleId);\n  if(modele.cle === 'plancher')return cdqTemplateEmbarque_('plancher');\n  const systeme = obtenirDossierSystemeCDQ_();"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "    if(navigator.onLine === false){\n      await window.cdqCopierTemplateHorsLigne",
+    "replacement": "    if(navigator.onLine === false || (modeleId==='plancher' && cdqPwaAvailable())){\n      await window.cdqCopierTemplateHorsLigne"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "setStatus(\"PDF vierge créé hors ligne.\",\"success\");",
+    "replacement": "setStatus(\"Copie créée sur cet appareil. Synchronisation dès que possible.\",\"success\");"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "      type:\"CDQ_OFFLINE_CREATE_LOCAL\",\n      requestId:requestId,",
+    "replacement": "      type:\"CDQ_OFFLINE_CREATE_LOCAL\",\n      open:modeleId==='plancher',\n      requestId:requestId,"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "async function cdqV2112EnsureTemplateOfflineCachedImpl(showProgress,modeleId){\n  modeleId=cdqModeleIntermediaireId(modeleId);",
+    "replacement": "async function cdqV2112EnsureTemplateOfflineCachedImpl(showProgress,modeleId){\n  modeleId=cdqModeleIntermediaireId(modeleId);\n  if(modeleId==='plancher')return window.cdqEnsureFloorV2519();"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "async function cdqV2112TemplateReady(modeleId){\n  const r=await cdqV2112GetCachedTemplate(modeleId);",
+    "replacement": "async function cdqV2112TemplateReady(modeleId){\n  const r=await cdqV2112GetCachedTemplate(modeleId);\n  if(cdqModeleIntermediaireId(modeleId)==='plancher'){const t=await window.cdqFloorTemplateV2519();return !!(r&&r.templateId===t.templateId&&r.sha256===t.sha256&&r.blob instanceof Blob&&r.blob.size===t.taille);}"
+  },
+  {
+    "file": "Selector.html",
+    "op": "replace_literal",
+    "search": "async function cdqV2112CreerCopieLocaleTemplate(destinationId,idClient,modeleId,requestId){",
+    "replacement": "async function cdqV2112CreerCopieLocaleTemplate(destinationId,idClient,modeleId,requestId){\n  if(modeleId==='plancher'){\n    if(cdqAccessState!=='ready'||!['admin','technicien'].includes(utilisateurCourantRole))throw new Error('Votre compte ne peut pas créer de rapport.');\n    await cdqV2112EnsureTemplateOfflineCached(false,'plancher');\n    cdqPublierSessionHorsLigne();\n  }"
+  }
+]
