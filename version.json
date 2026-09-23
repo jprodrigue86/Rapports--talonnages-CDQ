@@ -1,9 +1,9 @@
 {
-  "version": "2026.09.23-v25.20-lecteurs-pdf",
+  "version": "2026.09.23-v25.21-drive-favoris-interface",
   "reader_version": "25.20",
   "selector_version": "2026.09.21-v25.10-display-document-cleanup",
   "backend_version": "2026.09.21-v25.10-display-document-cleanup",
-  "date": "2026-09-21",
+  "date": "2026-09-23",
   "features": [
     "demarrage-verifie",
     "pont-iframe-apps-script",
@@ -369,12 +369,16 @@
     "remove-conflicting-pdf-pointerup-v2510",
     "drive-model-source-guarded-cleanup-v2510",
     "plancher-v2519-embedded-local-first",
-    "lecteur-cdq-enregistrement-confirme-v2520"
+    "lecteur-cdq-enregistrement-confirme-v2520",
+    "drive-general-favoris-v2521",
+    "plancher-private-bridge-v2521",
+    "admin-scroll-tabs-v2521",
+    "theme-icons-and-music-wall-v2521"
   ],
   "prepared_backend_version": "2026.09.17-v21.57-tech-login-fix",
   "server_update_required_for_all_templates": true,
   "firebase_configured": false,
-  "prepared_selector_version": "2026.09.23-v25.20-lecteurs-pdf",
+  "prepared_selector_version": "2026.09.23-v25.21-drive-favoris-interface",
   "backend_deployment_verified": false,
   "private_template_resources_installation_verified": false,
   "login_protocol": 42,
@@ -382,5 +386,5 @@
   "google_identity_services_configured": true,
   "apps_script_anonymous_access_required": true,
   "apps_script_url": "https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec",
-  "pwa_version": "2026.09.23-v25.20-lecteurs-pdf"
+  "pwa_version": "2026.09.23-v25.21-drive-favoris-interface"
 }

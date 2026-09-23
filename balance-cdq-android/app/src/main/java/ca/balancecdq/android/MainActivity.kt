@@ -30,7 +30,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
         private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.14"
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.21"
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
         private const val UPDATE_MANIFEST_URL =
@@ -96,7 +96,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         webView = WebView(this).apply {
-            setBackgroundColor(Color.rgb(5, 12, 20))
+            setBackgroundColor(Color.BLACK)
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
 
@@ -116,7 +116,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.14"
+                settings.userAgentString + " BalanceCDQAndroid/25.21"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -401,7 +401,7 @@ class MainActivity : Activity() {
             .build()
 
         val colors = CustomTabColorSchemeParams.Builder()
-            .setToolbarColor(Color.rgb(5, 12, 20))
+            .setToolbarColor(Color.BLACK)
             .setNavigationBarColor(Color.BLACK)
             .build()
 
