@@ -1,11 +1,11 @@
 // GitHub/PWA uniquement. Ne jamais coller ce fichier dans Code.gs.
-const CACHE = 'cdq-installable-v25-23-lecteur-conversion';
-const FORCE_BUILD='2026.09.23-v25.23-lecteur-conversion';
+const CACHE = 'cdq-installable-v25-24-hors-ligne-session';
+const FORCE_BUILD='2026.09.23-v25.24-hors-ligne-session';
 const SCOPE = new URL(self.registration.scope);
 const APP_SHELL = ['./reader-v2523.html','./reader-v2523.mjs','./reader-host-v2523.mjs','./reader-interactions-v2523.mjs','./pdf-fill-v2523.html','./pdf-fill-v2523.mjs','./pdf-fill-client-v2523.mjs','./vendor/pdf-lib-1.17.1.min.js','./assets/music-wall-android-v2523.webp','./reader-v2520.html','./reader-v2520.mjs','./reader-host-v2520.mjs','./reader-interactions-v2520.mjs',
   './floor-reader-v2519.html','./vendor/pdfjs-6.3.289/web/images/loading-icon.gif','./vendor/pdfjs-6.3.289/web/images/checkmark.svg','./vendor/pdfjs-6.3.289/wasm/quickjs-eval.js','./vendor/pdfjs-6.3.289/wasm/quickjs-eval.wasm','./floor-reader-v2519.mjs','./vendor/pdfjs-6.3.289/build/pdf.mjs','./vendor/pdfjs-6.3.289/build/pdf.sandbox.mjs','./vendor/pdfjs-6.3.289/build/pdf.worker.mjs','./vendor/pdfjs-6.3.289/standard_fonts/LiberationSans-Bold.ttf','./vendor/pdfjs-6.3.289/standard_fonts/LiberationSans-Regular.ttf','./vendor/pdfjs-6.3.289/web/pdf_viewer.css','./vendor/pdfjs-6.3.289/web/pdf_viewer.mjs',
 
-  './offline-templates-v2519.mjs', './floor-template-v2519.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
+  './offline-templates-v2519.mjs', './offline-templates-v2524.mjs', './floor-template-v2519.mjs', './', './index.html', './reader.html', './reader.mjs?v=21.33', './reader-interactions.mjs?v=21.33', './manifest.webmanifest', './version.json', './firebase-config.js', './google-auth-config.js',
   './icons/icon-heavy-v3-192.png', './icons/icon-heavy-v3-512.png',
   './assets/music-wall-android-v2521.webp', './assets/music-wall-pc-v2521.webp'
 ];
@@ -26,8 +26,8 @@ self.addEventListener('message', event => {
 function shellKey(url) {
   if (url.pathname === SCOPE.pathname || url.pathname === SCOPE.pathname + 'index.html')
     return new URL('index.html', SCOPE).href;
-  if (url.pathname === SCOPE.pathname + 'offline-templates-v2519.mjs')
-    return new URL('offline-templates-v2519.mjs', SCOPE).href;
+  if (url.pathname === SCOPE.pathname + 'offline-templates-v2524.mjs')
+    return new URL('offline-templates-v2524.mjs', SCOPE).href;
   if (['version.json', 'firebase-config.js', 'google-auth-config.js', 'manifest.webmanifest', 'reader.html'].some(name => url.pathname === SCOPE.pathname + name))
     return url.origin + url.pathname;
   return url.href;

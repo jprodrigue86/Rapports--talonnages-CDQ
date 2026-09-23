@@ -1,7 +1,7 @@
 // Node doubles exercise the real controller. These are not browser or live Google tests.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOfflineTemplates} from '../offline-templates-v2519.mjs';
+const {createOfflineTemplates}=await import(process.env.CDQ_OFFLINE_MODULE||'../offline-templates-v2519.mjs');
 class Element {
   constructor(tag){this.tag=tag;this.children=[];this.style={};this.hidden=false;}
   setAttribute(){} append(...children){this.children.push(...children);} replaceChildren(...children){this.children=children;}

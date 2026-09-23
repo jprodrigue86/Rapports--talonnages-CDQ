@@ -1,0 +1,30 @@
+name: Offline and session V25.24
+on:
+  push:
+    paths: ['*v2524*', 'index.html', 'pc/index.html', 'sw.js', 'pc/sw.js', 'bundles/balance-cdq/v25.24/**', 'tests/*v2524*', 'scripts/*v2524*', '.github/workflows/test-interface-v2524.yml']
+  pull_request:
+    paths: ['*v2524*', 'index.html', 'pc/index.html', 'sw.js', 'pc/sw.js', 'bundles/balance-cdq/v25.24/**', 'tests/*v2524*', 'scripts/*v2524*', '.github/workflows/test-interface-v2524.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-interface-v2524.mjs && git diff --exit-code
+      - run: node --test tests/session-v2524.test.mjs tests/offline-documents-v2524.test.mjs
+      - run: CDQ_OFFLINE_MODULE=../offline-templates-v2524.mjs node --test tests/offline-controller.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/offline-v2524-browser.test.mjs
+      - run: node tests/startup-v2524-browser.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: V25.24-verification
+          path: /tmp/cdq-v2524-*
+          if-no-files-found: ignore
+          retention-days: 3
