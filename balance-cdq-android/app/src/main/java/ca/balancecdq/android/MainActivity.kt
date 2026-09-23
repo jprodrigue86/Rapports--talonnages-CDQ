@@ -30,7 +30,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
         private const val APP_URL =
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.21"
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/?source=balance-cdq-android&native=25.26"
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
         private const val UPDATE_MANIFEST_URL =
@@ -51,6 +51,21 @@ class MainActivity : Activity() {
     @Volatile private var startupUpdateStarted = false
 
     inner class NativeBridge {
+        @JavascriptInterface
+        fun openSheet(fileId: String?, account: String?, readOnly: Boolean) {
+            val id = fileId.orEmpty()
+            if (!id.matches(Regex("^[A-Za-z0-9_-]{10,200}$"))) return
+            val email = account.orEmpty().trim().take(320)
+            runOnUiThread {
+                val uri = Uri.parse("cdqsheet://open").buildUpon()
+                    .appendQueryParameter("fileId", id)
+                    .appendQueryParameter("account", email)
+                    .appendQueryParameter("accountMode", if (email.isBlank()) "auto" else "default")
+                    .appendQueryParameter("readOnly", if (readOnly) "1" else "0").build()
+                startActivity(Intent(this@MainActivity, SheetOpenActivity::class.java).setData(uri))
+            }
+        }
+
         @JavascriptInterface
         fun loginGoogle(challengeId: String?, nonce: String?, clientId: String?) {
             val challenge = challengeId.orEmpty().trim()
@@ -116,7 +131,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.21"
+                settings.userAgentString + " BalanceCDQAndroid/25.26"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -196,7 +211,7 @@ class MainActivity : Activity() {
             webView.loadUrl(APP_URL)
             checkForNativeUpdateOnLaunch()
         } else {
-            webView.restoreState(savedInstanceState)
+            if (webView.restoreState(savedInstanceState) == null) webView.loadUrl(APP_URL)
         }
 
         handleAuthCallback(intent)
@@ -527,6 +542,15 @@ class MainActivity : Activity() {
 
     private fun handleNavigation(url: String): Boolean {
         return try {
+            // A Sheet must never replace the CDQ WebView, including old web fallbacks.
+            val uri = Uri.parse(url)
+            val sheetId = if (uri.scheme == "https" && uri.host == "docs.google.com")
+                Regex("^/spreadsheets/d/([A-Za-z0-9_-]{10,200})(?:/|$)").find(uri.path.orEmpty())?.groupValues?.get(1)
+            else null
+            if (sheetId != null) {
+                NativeBridge().openSheet(sheetId, uri.getQueryParameter("authuser"), uri.path.orEmpty().endsWith("/preview"))
+                return true
+            }
             when {
                 url.startsWith("intent://", ignoreCase = true) -> {
                     val parsed = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)

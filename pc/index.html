@@ -439,7 +439,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.23-v25.25-lecteur-hors-ligne';
+const CDQ_PWA_BUILD = '2026.09.23-v25.26-sheets-retour';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -496,7 +496,8 @@ let accessWaitTimer = null;
 let selectorWindow = null;
 let selectorOrigin = '';
 let backendBuild = '';
-const cdqOffline = import('../offline-templates-v2525.mjs').then(module=>module.createOfflineTemplates({
+const cdqSheetLauncher26=import('../sheet-launcher-v2526.mjs');
+const cdqOffline = import('../offline-templates-v2526.mjs').then(module=>module.createOfflineTemplates({
 send:data=>replyToSelector(selectorWindow,data),
 openPdf:data=>cdqAfficherPdf(data),
 warmPdf:data=>{
@@ -1282,6 +1283,7 @@ function cdqHandleDisplayPrefsV2215(data,source){
 window.addEventListener('message', event => {
 const data = event.data || {};
 if (!isSelectorMessage(event)) return;
+if(data.type==='CDQ_OPEN_SHEET'||data.type==='CDQ_OPEN_SHEET_DEFAULT_ACCOUNT'){cdqSheetLauncher26.then(m=>m.openSheet(data)).catch(e=>alert(e.message));return;}
 if(data.type==='CDQ_PC_UPDATE_QUERY'){
   cdqPcCheckUpdateV2244(event.source,event.origin,String(data.build||''));
   return;

@@ -11,6 +11,7 @@ import android.widget.Toast
 class SheetOpenActivity : Activity() {
     companion object {
         private const val REQ_ACCOUNT = 23111
+        private const val REQ_SHEET = 25260
         private const val SHEETS_PACKAGE = "com.google.android.apps.docs.editors.sheets"
     }
 
@@ -19,17 +20,22 @@ class SheetOpenActivity : Activity() {
     private var accountMode = "auto"
     private var sessionEmail = ""
     private var readOnly = false
+    private var launched = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         parse(intent)
-        openOrChoose()
+        launched = savedInstanceState?.getBoolean("sheetLaunched") == true
+        // Android can recreate this parent while the editor is still on top.
+        // Do not reopen the editor or ask for the account again.
+        if (!launched) openOrChoose()
     }
 
     override fun onNewIntent(newIntent: Intent?) {
         super.onNewIntent(newIntent)
         if (newIntent == null) return
         intent = newIntent
+        launched = false
         parse(newIntent)
         openOrChoose()
     }
@@ -97,16 +103,20 @@ class SheetOpenActivity : Activity() {
     @Deprecated("Résultat du sélecteur Google.")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_SHEET) {
+            returnToCdq()
+            return
+        }
         if (requestCode != REQ_ACCOUNT) return
 
         if (resultCode != RESULT_OK) {
-            finish()
+            returnToCdq()
             return
         }
 
         val email = DefaultGoogleAccountStore.readResult(data)
         if (email.isBlank()) {
-            finish()
+            returnToCdq()
             return
         }
 
@@ -141,27 +151,26 @@ class SheetOpenActivity : Activity() {
             putExtra("accountName", email)
             putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
 
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            // Keep the editor above its CDQ parent; no separate task or clear-top.
         }
 
         try {
             if (native.resolveActivity(packageManager) != null) {
-                startActivity(native)
-                finish()
+                launched = true
+                startActivityForResult(native, REQ_SHEET)
                 return
             }
         } catch (_: Exception) {
         }
 
         // Repli : navigateur uniquement si Google Sheets n'est pas installé.
-        val fallback = Intent(Intent.ACTION_VIEW, uri).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
+        val tab = androidx.browser.customtabs.CustomTabsIntent.Builder()
+            .setShowTitle(false).build()
+        val fallback = tab.intent.apply { data = uri }
 
         try {
-            startActivity(fallback)
-            finish()
+            launched = true
+            startActivityForResult(fallback, REQ_SHEET)
         } catch (_: ActivityNotFoundException) {
             fail("Google Sheets n’est pas installé et aucun navigateur n’est disponible.")
         }
@@ -169,6 +178,19 @@ class SheetOpenActivity : Activity() {
 
     private fun fail(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        returnToCdq()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("sheetLaunched", launched)
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun returnToCdq() {
+        // A deep link can create us without a CDQ parent. Reuse the main task.
+        if (isTaskRoot) startActivity(Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        })
         finish()
     }
 }

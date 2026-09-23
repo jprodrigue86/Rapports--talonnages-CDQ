@@ -1,11 +1,11 @@
 // Balance CDQ — Rapports d’étalonnage — PWA indépendante
-const CACHE = 'cdq-pc-v25-25-lecteur-hors-ligne';
-const FORCE_BUILD='2026.09.23-v25.25-lecteur-hors-ligne';
+const CACHE = 'cdq-pc-v25-26-sheets-retour';
+const FORCE_BUILD='2026.09.23-v25.26-sheets-retour';
 const SCOPE=new URL(self.registration.scope);
 const ROOT=new URL('../',SCOPE);
 const url=p=>new URL(p,SCOPE).href;
 const root=p=>new URL(p,ROOT).href;
-const APP_SHELL=[root('offline-templates-v2525.mjs'),root('reader-v2525.html'),root('reader-v2525.mjs'),root('reader-host-v2525.mjs'),root('reader-interactions-v2525.mjs'),root('reader-v2523.html'),root('reader-v2523.mjs'),root('reader-host-v2523.mjs'),root('reader-interactions-v2523.mjs'),root('pdf-fill-v2523.html'),root('pdf-fill-v2523.mjs'),root('pdf-fill-client-v2523.mjs'),root('vendor/pdf-lib-1.17.1.min.js'),root('assets/music-wall-android-v2523.webp'),root('reader-v2520.html'),root('reader-v2520.mjs'),root('reader-host-v2520.mjs'),root('reader-interactions-v2520.mjs'),
+const APP_SHELL=[root('offline-templates-v2526.mjs'),root('sheet-launcher-v2526.mjs'),root('offline-templates-v2525.mjs'),root('reader-v2525.html'),root('reader-v2525.mjs'),root('reader-host-v2525.mjs'),root('reader-interactions-v2525.mjs'),root('reader-v2523.html'),root('reader-v2523.mjs'),root('reader-host-v2523.mjs'),root('reader-interactions-v2523.mjs'),root('pdf-fill-v2523.html'),root('pdf-fill-v2523.mjs'),root('pdf-fill-client-v2523.mjs'),root('vendor/pdf-lib-1.17.1.min.js'),root('assets/music-wall-android-v2523.webp'),root('reader-v2520.html'),root('reader-v2520.mjs'),root('reader-host-v2520.mjs'),root('reader-interactions-v2520.mjs'),
   root('floor-reader-v2519.html'),root('vendor/pdfjs-6.3.289/web/images/loading-icon.gif'),root('vendor/pdfjs-6.3.289/web/images/checkmark.svg'),root('vendor/pdfjs-6.3.289/wasm/quickjs-eval.js'),root('vendor/pdfjs-6.3.289/wasm/quickjs-eval.wasm'),root('floor-reader-v2519.mjs'),root('vendor/pdfjs-6.3.289/build/pdf.mjs'),root('vendor/pdfjs-6.3.289/build/pdf.sandbox.mjs'),root('vendor/pdfjs-6.3.289/build/pdf.worker.mjs'),root('vendor/pdfjs-6.3.289/standard_fonts/LiberationSans-Bold.ttf'),root('vendor/pdfjs-6.3.289/standard_fonts/LiberationSans-Regular.ttf'),root('vendor/pdfjs-6.3.289/web/pdf_viewer.css'),root('vendor/pdfjs-6.3.289/web/pdf_viewer.mjs'),
 
   url('./'),url('index.html'),url('manifest.webmanifest'),url('version.json'),

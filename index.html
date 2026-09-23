@@ -465,7 +465,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.23-v25.25-lecteur-hors-ligne';
+const CDQ_PWA_BUILD = '2026.09.23-v25.26-sheets-retour';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -595,7 +595,7 @@ let accessWaitTimer = null;
 let selectorWindow = null;
 let selectorOrigin = '';
 let backendBuild = '';
-const cdqOffline = import('./offline-templates-v2525.mjs').then(module=>module.createOfflineTemplates({
+const cdqOffline = import('./offline-templates-v2526.mjs').then(module=>module.createOfflineTemplates({
 send:data=>replyToSelector(selectorWindow,data),
 openPdf:data=>cdqAfficherPdf(data),
 warmPdf:data=>{
@@ -1350,43 +1350,9 @@ function cdqReplyDefaultGoogleAccountV2297(source){
     reset:v.reset
   });
 }
+const cdqSheetLauncher26=import('./sheet-launcher-v2526.mjs');
 function cdqOpenSheetDefaultAccountV2297(data){
-  const id=String(data&&data.id||'').trim();
-  const email=String(data&&data.email||'').trim().toLowerCase();
-  if(!/^[A-Za-z0-9_-]+$/.test(id)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return false;
-
-  const web='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?usp=drivesdk&authuser='+encodeURIComponent(email)+'&login_hint='+encodeURIComponent(email);
-
-  if(/Android/i.test(navigator.userAgent||'')){
-    const intent='intent://docs.google.com/spreadsheets/d/'+encodeURIComponent(id)+'/edit?usp=drivesdk&authuser='+encodeURIComponent(email)+'&login_hint='+encodeURIComponent(email)+
-      '#Intent;scheme=https;package=com.android.chrome;'+
-      'S.browser_fallback_url='+encodeURIComponent(web)+';end';
-
-    // V23.01 : clic d'ancre top-level plutôt qu'une assignation location.
-    // Sur certaines PWA Android, location.href vers intent:// est ignoré.
-    const a=document.createElement('a');
-    a.href=intent;
-    a.style.display='none';
-    a.rel='noopener';
-    document.body.appendChild(a);
-    a.click();
-
-    // Si l'intent n'a pas quitté l'application, repli garanti vers le Web.
-    setTimeout(function(){
-      try{a.remove();}catch(_){}
-      if(document.visibilityState==='visible'){
-        window.location.assign(web);
-      }
-    },700);
-  }else{
-    const a=document.createElement('a');
-    a.href=web;
-    a.target='_blank';
-    a.rel='noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
+  cdqSheetLauncher26.then(m=>m.openSheet(data)).catch(e=>alert(e.message));
   return true;
 }
 function cdqHandleDefaultGoogleAccountV2297(data,source){
@@ -1405,7 +1371,7 @@ function cdqHandleDefaultGoogleAccountV2297(data,source){
     });
     return true;
   }
-  if(data.type==='CDQ_OPEN_SHEET_DEFAULT_ACCOUNT'){
+  if(data.type==='CDQ_OPEN_SHEET_DEFAULT_ACCOUNT'||data.type==='CDQ_OPEN_SHEET'){
     cdqOpenSheetDefaultAccountV2297(data);
     return true;
   }

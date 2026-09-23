@@ -2,7 +2,7 @@
 
 La clé durable utilisée pour l’APK **25.15 / 2515** a été retrouvée et restaurée
 le 23 septembre 2026. Son certificat correspond à l’APK 25.15 livrée.
-Toutes les versions suivantes doivent conserver cette identité, y compris 25.21.
+Toutes les versions suivantes doivent conserver cette identité, y compris 25.26.
 
 La sauvegarde privée existante se nomme **Balance_CDQ_SIGNATURE_PRIVEE_2026.zip**.
 Elle est conservée dans les fichiers privés de l’utilisateur et contient
@@ -19,7 +19,7 @@ La réutilisation de cette clé conserve l’identité Google de la 25.15.
 ## Fabrication
 
 1. Le workflow teste le code et produit une release **non signée et non debuggable**.
-   L’artefact `Balance-CDQ-Android-25.21-release-handoff` contient l’APK, le SHA-256,
+   L’artefact `Balance-CDQ-Android-25.26-release-handoff` contient l’APK, le SHA-256,
    le commit source et les outils Android. L’APK debug éventuelle est réservée à la CI.
 2. Restaurer la sauvegarde privée hors dépôt. Vérifier le certificat épinglé ici.
 3. Exécuter `sign-release.py --apksigner <apksigner.jar> --keystore <p12 privé>
@@ -32,7 +32,7 @@ La réutilisation de cette clé conserve l’identité Google de la 25.15.
 ## Canaux
 
 `downloads/android-release-update.json` est le canal de cette identité durable.
-La 25.21 le consulte pour ses prochaines mises à jour. Les APK publiées pour ce
+La 25.26 le consulte pour ses prochaines mises à jour. Les APK publiées pour ce
 canal doivent passer `verify-published-release.py` avec le certificat épinglé.
 La mise à jour directe de la **25.15 signée avec cette clé** conserve l’installation.
 
