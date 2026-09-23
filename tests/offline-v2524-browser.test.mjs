@@ -54,6 +54,7 @@ try{
  assert.equal(await frame.evaluate(()=>cdqOffline24.job.ready),1);assert.equal(await frame.evaluate(()=>calls.some(c=>c[0]==='obtenirPdfLecteurCDQV2520'&&c[1]==='pdf_two')),false);
  assert.equal(await frame.$eval('[data-progress24] progress',e=>e.value),100);
  assert.equal(await frame.$eval('[data-file-id="pdf_one"] .cdq24-offline-dot',e=>!e.hidden),true);
+ await frame.click('.cdq24-file-open');assert.equal(await frame.evaluate(()=>window.opened),'pdf_one');assert.equal(await frame.$eval('#cdqDocumentPrepare',e=>e.style.display),'none');
  // Cancel during a chunk: no incomplete PDF is stored, earlier completed files remain.
  await frame.evaluate(async()=>{await cdqOffline24.open();document.querySelector('.cdq24-checklist input[value="pdf_two"]').checked=true;hold=true;[...document.querySelectorAll('#cdqDocumentPrepare button')].find(b=>b.textContent==='Préparer les fichiers cochés').click();});
  await frame.waitForFunction(()=>release);await frame.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Annuler la préparation').click());

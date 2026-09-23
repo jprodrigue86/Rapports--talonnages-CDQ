@@ -96,7 +96,7 @@ const cdqOffline24 = (() => {
     for(const r of records){const cid=String(r.clientId||''),known=(toutesLesCompagnies||[]).find(c=>String(c.id)===cid);const name=r.clientName||known?.nom||'Autres documents';if(!groups.has(name))groups.set(name,[]);groups.get(name).push(r);}
     for(const [name,list] of [...groups].sort((a,b)=>a[0].localeCompare(b[0],'fr'))){
       host.append(el('h4',name));
-      for(const r of list){const row=el('div','', 'cdq24-saved-row');const b=button(row,r.nom||r.name||r.id,()=>cdqOpenPdf(r.id,r));b.className='cdq24-file-open';row.append(el('span','●','cdq24-ready-mark'));const del=button(row,'Retirer',()=>remove(r.id));del.setAttribute('aria-label','Retirer '+(r.nom||r.id)+' du mode hors ligne');del.disabled=!!job?.running;host.append(row);}
+      for(const r of list){const row=el('div','', 'cdq24-saved-row');const b=button(row,r.nom||r.name||r.id,()=>{document.getElementById('cdqDocumentPrepare').style.display='none';return cdqOpenPdf(r.id,r);});b.className='cdq24-file-open';row.append(el('span','●','cdq24-ready-mark'));const del=button(row,'Retirer',()=>remove(r.id));del.setAttribute('aria-label','Retirer '+(r.nom||r.id)+' du mode hors ligne');del.disabled=!!job?.running;host.append(row);}
     }
   }
   function checkJob(j){valid(j.email);if(j.cancelled){const e=Error('Préparation annulée');e.name='AbortError';throw e;}}
