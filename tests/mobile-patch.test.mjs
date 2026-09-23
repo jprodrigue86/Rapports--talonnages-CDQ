@@ -24,6 +24,7 @@ test('a failed fast server restore returns to normal authorization without anoth
  vm.runInContext('api'+patch.replacement,context);failure();assert.deepEqual(normalArgs,[true]);assert.equal(pin,0);assert.equal(context.cdqBiometricRequestId,'');assert.equal(context.cdqBiometricPending,false);
 });
 test('package exports remain identical and never remove model helpers',()=>{
- for(const path of ['bundles/balance-cdq/latest/manifest.json','bundles/balance-cdq/v25.11/Balance_CDQ_V25_11.cdq'])assert.deepEqual(JSON.parse(fs.readFileSync(path)),manifest);
+ assert.deepEqual(JSON.parse(fs.readFileSync('bundles/balance-cdq/v25.11/Balance_CDQ_V25_11.cdq')),manifest);
+ const latest=JSON.parse(fs.readFileSync('bundles/balance-cdq/latest/manifest.json'));assert.match(latest.version,/^V\d+\.\d+$/);assert.deepEqual(latest,JSON.parse(fs.readFileSync('bundles/balance-cdq/'+latest.version.toLowerCase()+'/manifest.json')));
  assert.deepEqual(manifest.removeFiles,[]);assert.ok(manifest.patches.length<=80);
 });

@@ -1,0 +1,28 @@
+name: Copy and visual feedback V25.22
+on:
+  push:
+    paths: ['bundles/balance-cdq/v25.22/**', 'bundles/balance-cdq/latest/manifest.json', 'scripts/build-interface-v2522.mjs', 'tests/*v2522*', 'tests/fixtures/copy-swipes-v2522.js', '.github/workflows/test-interface-v2522.yml']
+  pull_request:
+    paths: ['bundles/balance-cdq/v25.22/**', 'bundles/balance-cdq/latest/manifest.json', 'scripts/build-interface-v2522.mjs', 'tests/*v2522*', 'tests/fixtures/copy-swipes-v2522.js', '.github/workflows/test-interface-v2522.yml']
+permissions:
+  contents: read
+jobs:
+  interface:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-interface-v2522.mjs && git diff --exit-code
+      - run: node --test tests/copy-v2522.test.mjs
+      - run: npm install --no-save puppeteer-core@24
+      - run: node tests/interface-v2522-browser.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Interface-V25.22-browser-checks
+          path: /tmp/cdq-v2522-*.png
+          if-no-files-found: ignore
+          retention-days: 2
