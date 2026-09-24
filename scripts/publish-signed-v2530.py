@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Reassemble only publicly shareable APK signing bytes; the private key is never uploaded."""
-import base64,hashlib,io,json,os,re,subprocess,zipfile
+import base64,hashlib,io,json,os,re,subprocess,zipfile,zlib
 from pathlib import Path
 recipe=json.loads(Path('balance-cdq-android/releases/v25.30-signature.json').read_text())
 assert recipe['versionName']=='25.30' and recipe['versionCode']==2530
@@ -19,7 +19,10 @@ for op in recipe['operations']:
         start,length=op['copy'];assert isinstance(start,int) and isinstance(length,int) and 0<=start<=len(original) and 0<=length<=len(original)-start
         out.write(original[start:start+length])
     else:
-        data=base64.b64decode(op['data'],validate=True);assert len(data)<1000000;out.write(data)
+        data=base64.b64decode(op['data'],validate=True)
+        if op.get('zlib'):
+            decoder=zlib.decompressobj();data=decoder.decompress(data,1000000);assert decoder.eof
+        assert len(data)<1000000;out.write(data)
 signed=out.getvalue();assert len(signed)==recipe['signedBytes']
 assert hashlib.sha256(signed).hexdigest()==recipe['signedSha256']
 apk=Path('downloads/Balance-CDQ-Android-25.30.apk');apk.write_bytes(signed)
