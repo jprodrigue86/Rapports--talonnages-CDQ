@@ -28,6 +28,13 @@ for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
     return route.abort();
    });
    await page.setContent('<!doctype html><html class="'+platform+(platform==='windows'?'':' cdq-mobile-layout')+'"><head><meta charset="utf-8">'+styles+'</head><body>'+nav+'</body></html>');
+   // This isolated fixture does not execute the application scripts. Reproduce
+   // the EXISTING cdqMobileLayoutJs nav mount before BOTH snapshots, otherwise
+   // its legacy translateX(-50%) leaves Home outside the test viewport.
+   if(platform!=='windows')await page.evaluate(()=>{
+    const nav=document.querySelector('.bottom-nav');
+    Object.entries({'position':'fixed','left':'0','right':'0','bottom':'0','width':'100%','max-width':'100%','transform':'none','zoom':'1','margin':'0','display':'grid','grid-template-columns':'repeat(6,minmax(0,1fr))'}).forEach(([k,v])=>nav.style.setProperty(k,v,'important'));
+   });
    const snapshot=()=>page.evaluate(()=>[...document.querySelectorAll('.bottom-nav-item')].map(b=>{
     const props=['color','backgroundColor','backgroundImage','border','boxShadow','fontSize','width','height','padding','margin','display','visibility','filter','transform','textDecoration'];
     const pick=(el,pseudo)=>{const s=getComputedStyle(el,pseudo);return Object.fromEntries(props.concat(['content']).map(p=>[p,s[p]]));};
