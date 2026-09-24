@@ -1,0 +1,2 @@
+# Explicitly approved public installer archive; other ZIP files stay ignored.
+!Balance-CDQ-Android-25.30.zip
