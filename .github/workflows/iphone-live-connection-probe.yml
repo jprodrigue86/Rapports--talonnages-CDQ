@@ -44,7 +44,7 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2 >/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
           npx playwright install --with-deps chromium webkit >>/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
-      - name: Verify confirmed recovery without deleting saved sessions or documents
-        run: node tests/iphone-recovery.browser.mjs
       - name: Verify actual Google callbacks and anonymous sign-in screen in both engines
         run: node tests/iphone-rpc-live.test.mjs
+      - name: Verify confirmed recovery without deleting saved sessions or documents
+        run: node tests/iphone-recovery.browser.mjs
