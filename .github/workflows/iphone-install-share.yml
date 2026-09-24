@@ -1,0 +1,77 @@
+name: iPhone and Android paired interface
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'iphone-source/**'
+      - 'scripts/build-iphone.mjs'
+      - 'scripts/build-embedded-android-v2528.mjs'
+      - 'scripts/*instant-files*.mjs'
+      - 'balance-cdq-android/web-source/**'
+      - 'index.html'
+      - '*.mjs'
+      - 'assets/**'
+      - 'icons/**'
+      - 'vendor/**'
+      - 'tests/iphone-*.mjs'
+      - '.github/workflows/iphone-install-share.yml'
+      - 'downloads/android-release-update.json'
+permissions:
+  contents: write
+  pages: write
+concurrency:
+  group: cdq-iphone-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify-and-generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate both interfaces from the Android source
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node tests/iphone-install.test.mjs
+      - name: Install browser test engines
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium webkit
+      - name: Verify mobile UI and update lifecycle
+        run: node tests/iphone-browser.test.mjs
+      - name: Regenerate production output and verify checksums
+        run: |
+          node scripts/build-iphone.mjs
+          node tests/iphone-install.test.mjs
+      - name: Commit only the verified web release
+        id: generated
+        env:
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add installer.html iphone/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Publier l’accès iPhone vérifié et les deux liens de partage'
+            git push origin "HEAD:$TARGET_BRANCH"
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Refresh Pages after a generated main release
+        if: github.ref_name == 'main' && steps.generated.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh api --method POST "repos/$GH_REPO/pages/builds"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cdq-iphone-browser-verification
+          path: /tmp/cdq-iphone-results/
+          if-no-files-found: ignore
+          retention-days: 2
