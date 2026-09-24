@@ -5,7 +5,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.28/';
+const local=base+'native/v25.29/';
+const build='2026.09.24-v25.29-demarrage-parallele';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -27,8 +28,8 @@ function replace(source,search,replacement){
   return source.replace(search,replacement);
 }
 let shell=read('index.html');
-shell=replace(shell,'<head>','<head>\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">');
-shell=replace(shell,"const CDQ_PWA_BUILD = '2026.09.23-v25.27-demarrage-dossiers';","const CDQ_PWA_BUILD = '2026.09.23-v25.28-apk-embarquee';");
+shell=replace(shell,'<head>','<head>\n<script src="./startup-unlock-v2529.js"></script>\n<script src="./embedded-rpc.js"></script>\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">');
+shell=replace(shell,"const CDQ_PWA_BUILD = '2026.09.23-v25.27-demarrage-dossiers';",`const CDQ_PWA_BUILD = '${build}';`);
 shell=replace(shell,"if ('serviceWorker' in navigator) {","if (false && 'serviceWorker' in navigator) {");
 shell=replace(shell,"function cdqFreshAppUrl(reason='boot'){","function cdqFreshAppUrl(reason='boot'){\n  return new URL('./Selector.html',location.href).href;\n}");
 // Remove the former function body after replacing its opening.
@@ -40,10 +41,21 @@ shell=replace(shell,"  if(cdqGoogleRenderingV42)return;","  if(window.BalanceCDQ
 // An APK interface cannot be updated by reloading the public website.
 shell=replace(shell,"function cdqDemarrerSurveillanceMiseAJourV2254(){","function cdqDemarrerSurveillanceMiseAJourV2254(){\n  return; // Embedded interface updates are delivered by Android.\n");
 shell=replace(shell,"if(cdqSelectorBuildV2254)setTimeout(function(){cdqVerifierMiseAJourLiveV2254(selectorWindow,cdqSelectorBuildV2254,true)},1200);",'// Native release checks run outside the initial interface render.');
+shell=replace(shell,'    BalanceCDQNative.biometric(String(requestId||\'\'));',`    if(mode==='unlock' && window.cdqStartupUnlockV2529?.attach(email,requestId,
+      (ok,message)=>window.cdqNativeBiometricResultV2507(requestId,ok,message)))return;
+    BalanceCDQNative.biometric(String(requestId||''));`);
+shell=replace(shell,'window.cdqNativeBiometricResultV2507=function(requestId,success,message){',`window.cdqNativeBiometricResultV2507=function(requestId,success,message){
+if(window.cdqStartupUnlockV2529?.receive(requestId,success,message))return;`);
+shell=replace(shell,"if(ctx&&ctx.native){",`if(ctx&&ctx.native){
+  window.cdqStartupUnlockV2529?.cancel(String(ctx.requestId||''));`);
 files.set('index.html',Buffer.from(shell));
 let selector=gunzipSync(fs.readFileSync(source+'Selector.html.gz')).toString('utf8');
 selector=replace(selector,'<head>','<head>\n<meta charset="utf-8">\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">\n<script src="./embedded-rpc.js"></script>');
-selector=selector.replaceAll('2026.09.23-v25.27-demarrage-dossiers','2026.09.23-v25.28-apk-embarquee');
+selector=selector.replaceAll('2026.09.23-v25.27-demarrage-dossiers',build);
+// A prompt already running over the music wall must not wait behind a failed
+// network-only resume attempt. Returning from Sheets keeps the existing page.
+selector=replace(selector,'if(!skipFastBiometric && cdqSession24.resume(',
+  'if(!skipFastBiometric && !window.parent.cdqStartupUnlockV2529?.activeFor(cdqObtenirJetonAppareil()) && cdqSession24.resume(');
 selector=selector.replaceAll('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',local+'vendor/pdf-lib-1.17.1.min.js');
 // Later display modules already call these helpers across script boundaries.
 // Explicit exports keep preference restoration working in the installed page.
@@ -54,8 +66,9 @@ selector=replace(selector,'Les mises à jour normales de Balance CDQ continuent 
 selector=replace(selector,'Ce bouton sert seulement quand la petite couche Android native doit être mise à jour.','Ce bouton vérifie les nouvelles versions de l’application Android.');
 files.set('Selector.html',Buffer.from(selector));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
+files.set('startup-unlock-v2529.js',fs.readFileSync(source+'startup-unlock-v2529.js'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.28',build:'2026.09.23-v25.28-apk-embarquee',files:{}};
+const manifest={version:'25.29',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);

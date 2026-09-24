@@ -17,7 +17,7 @@ class PackagedWebAssetsTest {
         val loader = loader()
         val response = loader.intercept(Uri.parse(PackagedWebAssets.START_URL))!!
         assertEquals(200, response.statusCode)
-        assertTrue(response.data.bufferedReader().readText().contains("25.28-apk-embarquee"))
+        assertTrue(response.data.bufferedReader().readText().contains("25.29-demarrage-parallele"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}Selector.html"))!!
         assertTrue(selector.data.bufferedReader().readText().contains("./embedded-rpc.js"))
         val image = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}assets/music-wall-android-v2523.webp"))!!
