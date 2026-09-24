@@ -96,6 +96,7 @@ function fixture(release){
 async function updates(engine,name){
  let release='a'.repeat(64),files=fixture(release);
  const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://localhost').pathname.slice('/app/'.length)||'index.html';const b=files[name];if(!b){res.writeHead(404);res.end();return;}res.writeHead(200,{'Content-Type':type(name),'Cache-Control':'no-store'});res.end(b);});
+ const stopServer=async()=>{if(server.listening)await new Promise(resolve=>{server.close(resolve);server.closeAllConnections();});};
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const base='http://127.0.0.1:'+server.address().port+'/app/';
  const browser=await engine.launch();let page;const errors=[];
@@ -119,12 +120,19 @@ async function updates(engine,name){
   assert.equal(await page.evaluate(()=>document.documentElement.dataset.cdqIphoneRelease),'b'.repeat(64));
   assert.equal(await page.evaluate(()=>localStorage.getItem('cdq-test-user-data')),'preserve');
   assert.equal(await page.evaluate(async()=>await (await (await caches.open('existing-client-documents')).match('/preserved-document')).text()),'preserve');
-  await context.setOffline(true);await page.reload();
+  // Physically stop the server: neither the browser HTTP cache nor a mocked route
+  // can substitute for the verified service-worker cache (responses are no-store).
+  // WebKit's driver offline toggle can itself raise an internal navigation error;
+  // server unavailability tests the real cache without that emulation dependency.
+  await stopServer();assert.equal(server.listening,false);
+  assert.equal(await page.evaluate(async()=>{try{await fetch('./network-probe?uncached='+Date.now(),{cache:'no-store'});return false;}catch(_){return true;}}),true,'Uncached network request must fail with server stopped');
+  if(name==='Chromium')await context.setOffline(true);
+  await page.reload();
   assert.equal(await page.evaluate(()=>document.documentElement.dataset.cdqIphoneRelease),'b'.repeat(64));
   assert.match(await page.evaluate(async()=>await (await fetch('./asset.txt')).text()),/immutable fixture b/);
   assert.deepEqual(errors,[]);
-  console.log('PASS '+name+': verified update staged, no forced reload, cancellation preserves input, confirmation activates new release, existing documents/storage retained, offline reload.');
+  console.log('PASS '+name+': verified update staged, no forced reload, cancellation preserves input, confirmation activates new release, existing documents/storage retained, cached reload with server stopped'+(name==='Chromium'?' and browser offline.':'.'));
  }catch(error){console.error(name+' update diagnostics',errors,await page?.evaluate(()=>window.cdqIphoneUpdates?.status()).catch(()=>null));throw error;}
- finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
+ finally{await browser.close();await stopServer();}
 }
 for(const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]){await ui(engine,name);await updates(engine,name);}
