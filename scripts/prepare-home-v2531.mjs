@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 function change(path, fn) { const s=fs.readFileSync(path,'utf8'), out=fn(s); if(out!==s)fs.writeFileSync(path,out); }
-function once(s,a,b) { if(s.includes(b)&&!s.includes(a))return s; assert.equal(s.split(a).length,2,'Anchor changed: '+a); return s.replace(a,b); }
+function once(s,a,b) { if(s.includes(b)){assert.equal(s.split(b).length,2,'Duplicate applied anchor: '+b);return s;} assert.equal(s.split(a).length,2,'Anchor changed: '+a); return s.replace(a,b); }
 const oldBuild='2026.09.24-v25.30-fichiers-immediats',build='2026.09.24-v25.31-accueil-sans-trait';
 change('scripts/build-embedded-android-v2528.mjs',s=>{
  s=once(s,"import fs from 'node:fs';","import fs from 'node:fs';\nimport {applyHomeUnderline2531} from './home-underline-v2531.mjs';");
@@ -19,4 +19,6 @@ change('.github/workflows/build-balance-cdq-android.yml',s=>{
  return s;
 });
 for(const p of ['tests/embedded-v2528.test.mjs','tests/embedded-v2528-browser.test.mjs','tests/embedded-startup-v2529.test.mjs'])if(fs.existsSync(p))change(p,s=>s.replaceAll(oldBuild,build).replaceAll('25.30','25.31'));
+const packagedTest=fs.readFileSync('balance-cdq-android/app/src/test/java/ca/balancecdq/android/PackagedWebAssetsTest.kt','utf8');
+assert(packagedTest.includes('25.31-accueil-sans-trait')&&packagedTest.includes('cdqHomeUnderlineV2531'),'Packaged-asset regression expectations must describe this release');
 console.log('Android/iPhone common source: only the active Home decoration removed; release metadata advanced. Google services unchanged.');
