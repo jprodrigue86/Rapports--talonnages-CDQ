@@ -1,0 +1,73 @@
+name: Validate release references
+on:
+  push:
+    branches: [main, codex/version-reference-alignment]
+    paths:
+      - 'version.json'
+      - 'bundles/balance-cdq/**/manifest.json'
+      - 'scripts/align-release-references-v2528.py'
+      - 'tests/release-references.test.mjs'
+      - '.github/workflows/release-reference-alignment.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'version.json'
+      - 'bundles/balance-cdq/**/manifest.json'
+      - 'scripts/align-release-references-v2528.py'
+      - 'tests/release-references.test.mjs'
+      - '.github/workflows/release-reference-alignment.yml'
+permissions:
+  contents: read
+concurrency:
+  group: release-references-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/version-reference-alignment'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/version-reference-alignment
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply guarded metadata-only alignment
+        run: python3 scripts/align-release-references-v2528.py
+      - name: Validate metadata, automatic update decisions and existing Manager regressions
+        run: |
+          python3 scripts/align-release-references-v2528.py --check
+          node --test tests/release-references.test.mjs tests/script-manager-network-v41.test.mjs tests/script-manager-patches-v42.test.mjs tests/script-manager-diagnostics-v43.test.mjs
+      - name: Commit only the two validated metadata files to the isolated branch
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          changed=set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())
+          allowed={'version.json','bundles/balance-cdq/latest/manifest.json'}
+          if not changed <= allowed:
+              raise SystemExit('Unexpected changes: '+repr(changed-allowed))
+          PY
+          git config user.name 'CDQ validation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add version.json bundles/balance-cdq/latest/manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Align automatic server package and truthful Web component references'
+            git push origin HEAD:codex/version-reference-alignment
+          fi
+          git rev-parse HEAD
+  validate:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only publication and Manager regression tests
+        run: node --test tests/release-references.test.mjs tests/script-manager-network-v41.test.mjs tests/script-manager-patches-v42.test.mjs tests/script-manager-diagnostics-v43.test.mjs
