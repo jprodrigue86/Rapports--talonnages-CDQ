@@ -1,0 +1,52 @@
+name: Verify signed CDQ 25.30 release
+on:
+  push:
+    branches: [fix/cdq-instant-files-v2530]
+    paths: ['balance-cdq-android/releases/v25.30-signature.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: cdq-signed-release-2530
+  cancel-in-progress: false
+jobs:
+  prepare-publication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/cdq-instant-files-v2530
+          fetch-depth: 0
+      - name: Download the exact tested unsigned build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          p=json.loads(Path('balance-cdq-android/releases/v25.30-signature.json').read_text())
+          repo='jprodrigue86/Rapports--talonnages-CDQ'
+          run=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/actions/runs/{int(p["runId"])}']))
+          assert run['conclusion']=='success' and run['head_branch']=='fix/cdq-instant-files-v2530'
+          artifact=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/actions/artifacts/{int(p["artifactId"])}']))
+          assert artifact['name']=='Balance-CDQ-Android-25.30-release-handoff' and not artifact['expired']
+          assert artifact['workflow_run']['id']==p['runId']
+          with open('/tmp/cdq-2530-handoff.zip','wb') as f:
+              subprocess.run(['gh','api',f'repos/{repo}/actions/artifacts/{int(p["artifactId"])}/zip'],stdout=f,check=True)
+          PY
+      - name: Android verification tools
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;35.0.0'
+      - name: Reassemble and verify public signature bytes
+        run: |
+          python3 scripts/publish-signed-v2530.py
+          python3 balance-cdq-android/signing/verify-published-release.py --tools "$ANDROID_HOME/build-tools/35.0.0"
+      - name: Commit only the verified release assets
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add downloads/Balance-CDQ-Android-25.30.apk downloads/Balance-CDQ-Android-25.30.zip downloads/android-release-update.json installer.html balance-cdq-android/releases/v25.30-verification.json
+          git commit -m 'Publier Balance CDQ Android 25.30 signée et aligner le partage et les mises à jour'
+          git push origin HEAD:fix/cdq-instant-files-v2530
