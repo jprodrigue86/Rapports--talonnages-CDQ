@@ -1,0 +1,27 @@
+name: Stage exact signed V25.29 for sharing
+on:
+  push:
+    branches: ['feat/cdq-share-apk-v2529']
+    paths: ['.release/**', '.github/workflows/stage-shared-apk-v2529.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Balance-CDQ-Android-25.29-release-handoff
+          run-id: 35942241741
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/cdq-v2529-source
+      - run: python3 .release/stage-v2529.py /tmp/cdq-v2529-source
+      - name: Commit verified release files to this review branch
+        run: |
+          git add downloads/Balance-CDQ-Android-25.29.apk downloads/Balance-CDQ-Android-25.29.zip
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Add verified signed V25.29 APK and ZIP for sharing'
+          git push origin HEAD:feat/cdq-share-apk-v2529
