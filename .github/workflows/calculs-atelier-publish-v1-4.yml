@@ -12,11 +12,11 @@ jobs:
     steps:
       - name: Download verified compiled update only
         env:
-          SOURCE_URL: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-7ae0-81f5-b1b6-13feadc3de13/raw?se=2026-09-24T11%3A18%3A50Z&sp=r&sv=2026-02-06&sr=b&scid=8df540a7-4736-5283-8fcf-1e3a5f9353db&skoid=de71a0d5-fb02-4fce-be69-9296aced242b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-24T11%3A09%3A17Z&ske=2026-09-25T11%3A09%3A17Z&sks=b&skv=2026-02-06&sig=bes1K3CFLC9BwBdqZHMDwUX2By/NnmP7tIcjwUSK4jI%3D'
+          SOURCE_URL: 'https://sdmntprindiasocentral.oaiusercontent.com/files/00000000-5440-8211-ad01-6763362c8294/raw?se=2026-09-24T11%3A22%3A41Z&sp=r&sv=2026-02-06&sr=b&scid=09e22aae-a8b6-5819-a89d-2796a75f61d0&skoid=de71a0d5-fb02-4fce-be69-9296aced242b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-24T09%3A43%3A08Z&ske=2026-09-25T09%3A43%3A08Z&sks=b&skv=2026-02-06&sig=eukSaWN4UEfzEeIYFK6m5wh%2BY7xfybWK8MBgU851qJI%3D'
         run: |
           set -euo pipefail
           curl --fail --location --retry 2 --connect-timeout 20 "$SOURCE_URL" -o signed-update.json
-          echo '2423d10064c89df8a1256d77701d89b7912698e796b12ae175570ad5e74df967  signed-update.json' | sha256sum -c -
+          echo 'fdfa7a0adc5975ee4cec18d11d30eb3d31dfb4a5d56d479a2f4da2d795f268ec  signed-update.json' | sha256sum -c -
       - name: Verify signature then publish atomically
         env:
           GH_TOKEN: ${{ github.token }}
@@ -24,8 +24,8 @@ jobs:
         run: |
           import base64, hashlib, json, os, pathlib, subprocess, time, urllib.request, urllib.error
           raw = pathlib.Path('signed-update.json').read_bytes()
-          expected = '2423d10064c89df8a1256d77701d89b7912698e796b12ae175570ad5e74df967'
-          assert len(raw) == 1173977 and hashlib.sha256(raw).hexdigest() == expected
+          expected = 'fdfa7a0adc5975ee4cec18d11d30eb3d31dfb4a5d56d479a2f4da2d795f268ec'
+          assert len(raw) == 1174053 and hashlib.sha256(raw).hexdigest() == expected
           envelope = json.loads(raw)
           payload = base64.b64decode(envelope['payload'], validate=True)
           signature = base64.b64decode(envelope['signature'], validate=True)
@@ -39,7 +39,7 @@ jobs:
           assert p['appId'] == 'com.atelier.calculs' and p['schema'] == 1
           assert p['version'] == '1.4.0' and p['versionCode'] == 14000 and p['minShellVersion'] == 11000
           html = base64.b64decode(p['html'], validate=True)
-          assert len(html) == 659484 and hashlib.sha256(html).hexdigest() == p['sha256'] == '01b983a8d3c98a0f84094f1351b9f861f64bf0dd40a84c431935c13d34c0f024'
+          assert len(html) == 659526 and hashlib.sha256(html).hexdigest() == p['sha256'] == '9fa00f281a95d1ec315d26c7cdc647a63b67efe68c7f0209c7fc543bf822a1b5'
           assert b'sign-toggle' in html and b'Mapxr' in html and b'1.4.0' in html
           repo = 'jprodrigue86/Rapports--talonnages-CDQ'
           api = 'https://api.github.com/repos/' + repo
@@ -50,7 +50,7 @@ jobs:
               with urllib.request.urlopen(req, timeout=60) as r:
                   return json.load(r)
           blob = call('/git/blobs','POST',{'content':raw.decode(), 'encoding':'utf-8'})['sha']
-          assert blob == '0043e766481025905fa96fb9e4420d669aa483c2'
+          assert blob == '95339e3321f2e457093b29eb6be9c3adbe3fdc7c'
           info = {'app':'Calculs d’atelier','version':p['version'],'versionCode':p['versionCode'],'minShellVersion':p['minShellVersion'],'releasedAt':p['releasedAt'],'channel':'latest.atelier-update.json','packageSha256':expected,'htmlSha256':p['sha256'],'packageBytes':len(raw),'htmlBytes':len(html),'notes':p['notes'],'materials':{'pcs':['Bag','Box'],'m':['NW','SAP','VR','Film','RP'],'kg':['ADH','Lotion']},'machines':['V1','V2','L7','L8','L9','L10'],'verification':{'signature':'RSA-SHA256 validée avec la clé historique','calculationAndStorageGroups':35,'arithmeticCombinations':10000,'skuAndPlanningGroups':26,'materialsAndSignedInputGroups':41,'materialArithmeticCombinations':8000,'chromiumRegressionGroups':36,'chromiumMaterialsGroups':18,'updaterGroups':24,'physicalDeviceTest':False,'browserStorage':'fake-indexeddb; tests de navigateur avec stockage simulé'},'privacy':'Contenu applicatif compilé et référentiel embarqué uniquement. Aucune saisie utilisateur, aucun historique local, aucune clé privée.'}
           info_raw = json.dumps(info, ensure_ascii=False, indent=2) + '\n'
           info_blob = call('/git/blobs','POST',{'content':info_raw,'encoding':'utf-8'})['sha']
