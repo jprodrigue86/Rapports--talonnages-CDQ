@@ -1,14 +1,32 @@
-name: iPhone public connection diagnostic
+name: iPhone real Google connection and recovery
 on:
   push:
-    branches: [codex/iphone-connection-repair]
-    paths: ['.github/workflows/iphone-live-connection-probe.yml']
+    branches: [main, codex/iphone-connection-repair]
+    paths:
+      - 'iphone-source/**'
+      - 'scripts/build-iphone.mjs'
+      - 'scripts/iphone-rpc-compat.mjs'
+      - 'tests/iphone-rpc-*.mjs'
+      - 'tests/iphone-recovery.browser.mjs'
+      - '.github/workflows/iphone-live-connection-probe.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'iphone-source/**'
+      - 'scripts/build-iphone.mjs'
+      - 'scripts/iphone-rpc-compat.mjs'
+      - 'tests/iphone-rpc-*.mjs'
+      - 'tests/iphone-recovery.browser.mjs'
+      - '.github/workflows/iphone-live-connection-probe.yml'
 permissions:
   contents: read
+concurrency:
+  group: iphone-real-connection-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  public-read-only:
+  real-connection-and-recovery:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,44 +34,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install test browsers
+      - name: Build from verified Android source, adapting only the iPhone transport
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node tests/iphone-install.test.mjs
+          node --test tests/iphone-rpc-compat.test.mjs
+      - name: Install browser engines
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2 >/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
           npx playwright install --with-deps chromium webkit >>/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
-      - name: Trace message identity with anonymous real Google reads
-        run: |
-          cat > /tmp/cdq-identity-probe.mjs <<'JS'
-          import {createRequire} from 'node:module';
-          import fs from 'node:fs';
-          const {webkit,chromium,devices}=createRequire(process.cwd()+'/probe.cjs')('playwright');
-          const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/iphone/app/';
-          const original=fs.readFileSync('iphone/app/embedded-rpc.js','utf8');
-          const anchor='    const data=event.data;\n    if(!data||data.protocol';
-          const added=`    const data=event.data;
-              window.__rpcValidation=window.__rpcValidation||[];
-              if(data&&/^CDQ_EMBEDDED_/.test(data.type))window.__rpcValidation.push({
-                type:data.type,id:data.id,protocol:data.protocol,channelMatch:data.channel===channel,
-                trusted:trusted(event),peerExists:!!peer,samePeer:event.source===peer,
-                sameOrigin:event.origin===peerOrigin,origin:event.origin,pending:pending.has(String(data.id)),
-                sourceNull:!event.source,sourceClosed:(()=>{try{return event.source?.closed;}catch{return 'error';}})(),
-                ancestry:(()=>{const a=[];let s=event.source;for(let i=0;s&&i<8;i++){a.push(s===frame?.contentWindow);try{const p=s.parent;if(p===s)break;s=p;}catch{a.push('error');break;}}return a;})()
-              });
-              if(!data||data.protocol`;
-          if(!original.includes(anchor))throw Error('Probe anchor missing');
-          const source=original.replace(anchor,added);
-          await Promise.all(Object.entries({webkit,chromium}).map(async([engine,type])=>{
-            const browser=await type.launch(),context=await browser.newContext({...devices['iPhone 13'],serviceWorkers:'block'}),page=await context.newPage();
-            try{
-              await page.route(base+'__identity_probe__',r=>r.fulfill({contentType:'text/html',body:'<!doctype html><script src="./__identity_transport__.js"></script><body>Anonymous read-only diagnostic</body>'}));
-              await page.route(base+'__identity_transport__.js',r=>r.fulfill({contentType:'text/javascript',body:source}));
-              await page.goto(base+'__identity_probe__',{waitUntil:'domcontentloaded',timeout:45000});
-              const result=await page.evaluate(()=>new Promise(resolve=>{
-                const start=Date.now();let done=false;const finish=v=>{if(done)return;done=true;resolve({...v,ms:Date.now()-start});};
-                google.script.run.withSuccessHandler(v=>finish({ok:true,authorized:v?.autorise===true})).withFailureHandler(()=>finish({ok:false,error:'RPC_ERROR'})).obtenirEtatAcces('','');
-                setTimeout(()=>finish({ok:false,error:'NO_RESULT_30S'}),30000);
-              }));
-              console.log('IDENTITY_RESULT '+JSON.stringify({engine,result,validation:await page.evaluate(()=>window.__rpcValidation)}));
-            }finally{await context.close();await browser.close();}
-          }));
-          JS
-          node /tmp/cdq-identity-probe.mjs
+      - name: Verify confirmed recovery without deleting saved sessions or documents
+        run: node tests/iphone-recovery.browser.mjs
+      - name: Verify actual Google callbacks and anonymous sign-in screen in both engines
+        run: node tests/iphone-rpc-live.test.mjs
