@@ -145,8 +145,10 @@ for(const healthy of [false,true])test(`production confirmation reflects the act
   const deployed={deploymentId:'production',deploymentConfig:{versionNumber:99}};
   const previous={deploymentId:'production',deploymentConfig:{versionNumber:98}};
   const statuses=[],results=[],ends=[],removedKeys=[];
-  const state={id:'project',lastWrittenBuild:'next-build',productionBuild:'old-build',pkg:new Map()};
+  let diagnosticInvalidations=0;
+  const state={id:'project',lastWrittenBuild:'next-build',productionBuild:'old-build',pkg:new Map(),projectReadGeneration:0};
   const context=vm.createContext({S:state,CDQ:{deployments:[previous]},CDQ_PRODUCTION_DEPLOYMENT_ID:'production',
+    invalidateVersionDiagnosticV43:()=>diagnosticInvalidations++,
     LS:{removeItem:key=>removedKeys.push(key)},PENDING_BUNDLE_KEY_V41:'pending-test-bundle',
     description:{value:'test'},deployment:{value:'production'},isProductionProject:()=>true,productionDeployment:()=>previous,
     cid:()=>'',createProjectVersion:async()=>({versionNumber:99}),updateDeployment:async()=>deployed,
@@ -159,6 +161,8 @@ for(const healthy of [false,true])test(`production confirmation reflects the act
   context.writePendingAndDeploy=()=>context.deployNewVersion();
   vm.runInContext(manager.slice(manager.indexOf('async function runQuickDeployAction('),manager.indexOf('function updateQuickUi(')),context);
   await context.runQuickDeployAction();
+  assert.equal(diagnosticInvalidations,1,'deploying invalidates the previous read-only diagnostic');
+  assert.equal(state.projectReadGeneration,1,'old in-flight reads cannot overwrite a deployment result');
   assert.equal(state.lastDeploymentResult.healthChecked,healthy);
   assert.equal(state.lastDeploymentResult.verificationPending,!healthy);
   assert.equal(state.productionBuild,healthy?'next-build':'old-build');

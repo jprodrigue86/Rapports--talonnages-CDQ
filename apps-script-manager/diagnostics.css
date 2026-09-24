@@ -1,0 +1,10 @@
+#diagnosticCard{margin-top:14px}
+#diagnosticCard [hidden]{display:none!important}
+.diagnostic-rows{display:grid;grid-template-columns:minmax(105px,1fr) minmax(0,2fr);gap:8px 14px;margin:16px 0;font-size:13px}
+.diagnostic-rows dt{font-weight:700}
+.diagnostic-rows dd{margin:0;overflow-wrap:anywhere}
+.diagnostic-text{max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.55}
+#diagnosticDriveLink{align-self:center;text-align:center;padding:10px;overflow-wrap:anywhere;color:inherit;text-decoration:underline}
+#diagnosticStatus,#diagnosticDriveStatus{overflow-wrap:anywhere;line-height:1.5}
+#diagnosticCard details{margin-top:14px}
+@media(max-width:420px){.diagnostic-rows{grid-template-columns:minmax(90px,1fr) minmax(0,1.7fr);font-size:12px}}

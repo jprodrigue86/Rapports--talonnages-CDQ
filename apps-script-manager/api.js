@@ -9,12 +9,15 @@ const CDQ = {
   deployments: [],
   versions: [],
   scriptApiBase: '',
+  grantedScopes: '',
 };
 
 const SCOPES = [
   'https://www.googleapis.com/auth/script.projects',
   'https://www.googleapis.com/auth/script.deployments',
   'https://www.googleapis.com/auth/drive.metadata.readonly',
+  // Only app-created diagnostic files, not general Drive write access.
+  'https://www.googleapis.com/auth/drive.file',
 ].join(' ');
 
 function normalizeScriptId(value) {
@@ -104,6 +107,7 @@ async function requestGoogleToken(clientId, mode = 'reuse') {
       settled = true;
       clearTimeout(timer);
       CDQ.token = response.access_token || '';
+      CDQ.grantedScopes = response.scope || '';
       const expiresIn = Number(response.expires_in || 3600);
       CDQ.expiresAt = Date.now() + Math.max(60, expiresIn - 60) * 1000;
       resolve(response);
@@ -135,6 +139,7 @@ function revokeGoogleToken() {
   const token = CDQ.token;
   CDQ.token = '';
   CDQ.expiresAt = 0;
+  CDQ.grantedScopes = '';
   if (token && window.google?.accounts?.oauth2?.revoke) {
     try { google.accounts.oauth2.revoke(token, () => {}); } catch {}
   }
@@ -257,6 +262,7 @@ async function googleFetch(url, clientId, options = {}) {
       const data = apiErrorPayload(text);
       if (!response.ok) {
         const error = new Error(friendlyGoogleError(response.status, data));
+        error.status = response.status;
         error.writeUncertain = !safeToRetry && response.status >= 500;
         throw error;
       }
@@ -296,9 +302,12 @@ async function getProjectMetadata(scriptId, clientId) {
   return googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}`), clientId);
 }
 
-async function getProjectContent(scriptId, clientId) {
-  const content = await googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/content`), clientId);
-  CDQ.content = content;
+async function getProjectContent(scriptId, clientId, versionNumber = null) {
+  if(versionNumber !== null && (!Number.isInteger(versionNumber) || versionNumber < 1))throw new Error('Version Apps Script invalide.');
+  const query = versionNumber === null ? '' : '?versionNumber=' + versionNumber;
+  const content = await googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/content${query}`), clientId);
+  // Reading an immutable deployed version must never replace the editable HEAD.
+  if(versionNumber === null)CDQ.content = content;
   return content;
 }
 
@@ -325,9 +334,19 @@ async function updateProjectContent(scriptId, files, clientId) {
 }
 
 async function listDeployments(scriptId, clientId) {
-  const data = await googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/deployments`), clientId);
-  CDQ.deployments = data.deployments || [];
-  return CDQ.deployments;
+  const deployments = [];
+  const seen = new Set();
+  let pageToken = '';
+  do {
+    const query = pageToken ? '?pageToken=' + encodeURIComponent(pageToken) : '';
+    const data = await googleFetch(scriptApiUrl(`/projects/${encodeURIComponent(scriptId)}/deployments${query}`), clientId);
+    deployments.push(...(data.deployments || []));
+    pageToken = data.nextPageToken || '';
+    if(pageToken && (seen.has(pageToken) || seen.size >= 100))throw new Error('Liste des déploiements incomplète.');
+    seen.add(pageToken);
+  } while(pageToken);
+  CDQ.deployments = deployments;
+  return deployments;
 }
 
 async function createProjectVersion(scriptId, description, clientId) {
