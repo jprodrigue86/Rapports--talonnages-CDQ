@@ -1,0 +1,55 @@
+name: Verify public CDQ 25.30 update links
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'downloads/Balance-CDQ-Android-25.30.apk'
+      - 'downloads/android-release-update.json'
+      - '.github/workflows/verify-public-v2530.yml'
+permissions:
+  contents: read
+concurrency:
+  group: cdq-public-links-2530
+  cancel-in-progress: true
+jobs:
+  public-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify published installer, update manifest, APK and ZIP
+        run: |
+          python3 - <<'PY'
+          import hashlib,io,json,time,urllib.request,zipfile
+          base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/'
+          expected='d9e0fb0f7607c16039a21c4943fb1456d3beb08e7a378601034035c15181baeb'
+          def get(path):
+              req=urllib.request.Request(base+path+'?cdq_verify='+str(time.time_ns()),headers={'Cache-Control':'no-cache','User-Agent':'CDQ-release-verification'})
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  assert response.status==200
+                  return response.read()
+          last='Deployment not yet visible'
+          for attempt in range(30):
+              try:
+                  manifest=json.loads(get('downloads/android-release-update.json'))
+                  if manifest['versionCode']>2530:
+                      print('A newer release is already public; this historical check does not validate it.')
+                      break
+                  assert manifest['versionName']=='25.30' and manifest['versionCode']==2530
+                  assert manifest['sha256']==expected
+                  assert manifest['apkUrl']==base+'downloads/Balance-CDQ-Android-25.30.apk'
+                  html=get('installer.html').decode()
+                  assert 'V25.30' in html and 'Balance-CDQ-Android-25.30.apk' in html and 'Balance-CDQ-Android-25.30.zip' in html
+                  apk=get('downloads/Balance-CDQ-Android-25.30.apk')
+                  assert len(apk)==13393842 and hashlib.sha256(apk).hexdigest()==expected
+                  archive=get('downloads/Balance-CDQ-Android-25.30.zip')
+                  with zipfile.ZipFile(io.BytesIO(archive)) as z:
+                      assert hashlib.sha256(z.read('Balance-CDQ-Android-25.30.apk')).hexdigest()==expected
+                  print('PASS: public HTTP 200 for installer, update manifest, APK and ZIP; version 25.30 and exact signed APK SHA-256 verified.')
+                  break
+              except Exception as exc:
+                  last=type(exc).__name__+': '+str(exc)
+                  print('Public deployment not yet verified:',last)
+                  time.sleep(10)
+          else:
+              raise SystemExit('Public CDQ links could not be verified: '+last)
+          PY
