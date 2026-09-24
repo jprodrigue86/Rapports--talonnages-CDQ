@@ -7,7 +7,7 @@ const generated='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web/
 const files=JSON.parse(fs.readFileSync(generated+'asset-manifest.json')).files;
 const bridge=fs.readFileSync('balance-cdq-android/web-source/server-bridge.js','utf8');
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
-let allowServer=false,finished=false;
+let allowServer=false,finished=false,networkBlocked=false;
 try{
   const page=await browser.newPage(),errors=[],unexpected=[],calls=[];
   let bridgeRequested=false;
@@ -26,6 +26,9 @@ try{
     if(url.startsWith('data:')||url.startsWith('blob:'))return request.continue();
     const relative=url.startsWith(prefix)?url.slice(prefix.length).split('?')[0]:url.startsWith(base)?url.slice(base.length).split('?')[0]:'';
     if(files[relative])return request.respond({status:200,contentType:files[relative].mime+(files[relative].text?'; charset=utf-8':''),headers:{'Access-Control-Allow-Origin':'https://jprodrigue86.github.io'},body:fs.readFileSync(generated+relative)});
+    // Model native shouldInterceptRequest: installed files remain readable while
+    // every request requiring the network fails, including the server bridge.
+    if(networkBlocked)return request.abort('internetdisconnected');
     if(url.startsWith('https://script.google.com/')&&url.includes('cdq_native_bridge=1')){
       bridgeRequested=true;
       bridgeStarted();
@@ -94,8 +97,19 @@ try{
   await selector.waitForFunction(()=>cdqAccessState==='ready',{timeout:20000});
   assert.ok(calls.includes('restaurerSessionApresBiometrie'));
   assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
-  // The PDF engine and original template can be read with the network disabled.
-  await page.setOfflineMode(true);
+  // Disable all nonpackaged requests at the interception boundary. CDP's global
+  // emulateNetworkConditions can hang on detached cross-origin iframe targets
+  // after reload, and would also disable HTTPS URLs served by Android assets.
+  networkBlocked=true;
+  await selector.evaluate(()=>{
+    Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false});
+    window.dispatchEvent(new Event('offline'));
+  });
+  assert.equal(await selector.evaluate(()=>navigator.onLine),false);
+  assert.equal(await selector.evaluate(async()=>{
+    try{await fetch('https://script.google.com/offline-fixture-probe');return false;}
+    catch{return true;}
+  }),true);
   const template=await selector.evaluate(async()=>{
     const module=await import('./floor-template-v2519.mjs');
     const pdf=await module.floorTemplate();
