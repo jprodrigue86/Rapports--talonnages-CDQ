@@ -9,7 +9,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>CDQ Apps Script Manager</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=42">
+  <link rel="stylesheet" href="style.css?v=43">
+  <link rel="stylesheet" href="diagnostics.css?v=43">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -22,7 +23,7 @@
             <strong>CDQ Script Manager</strong>
             <span>Gestion et déploiement de vos applications Google Apps Script</span>
           </div>
-          <div class="version-chip" id="versionChip" title="Version de CDQ Script Manager">V42</div>
+          <div class="version-chip" id="versionChip" title="Version de CDQ Script Manager">V43</div>
           <button id="installApp" class="install-btn" type="button">Installer</button>
         </div>
       </header>
@@ -49,7 +50,7 @@
         <p>Connecte ton compte Google, choisis le projet, colle le nouveau code et écris-le sans ouvrir l’éditeur Apps Script.</p>
       </div>
       <div class="status-row">
-        <span id="versionBadge" class="badge version-badge">Version : V42</span>
+        <span id="versionBadge" class="badge version-badge">Version : V43</span>
         <span id="authBadge" class="badge">Google : non connecté</span>
         <span id="projectBadge" class="badge">Projet : aucun</span>
         <span id="changeBadge" class="badge">Modifications : 0</span>
@@ -133,6 +134,25 @@
         <div id="quickResult" class="quick-result sm-workflow-result">Google connecté et projet lié automatiquement. Choisis maintenant ton package.</div>
         <button id="toggleAdvanced" class="secondary quick-advanced" type="button">Options avancées</button>
       </article>
+    </section>
+
+    <section class="card" id="diagnosticCard" aria-labelledby="diagnosticHeading">
+      <div class="section-title"><span>✓</span><h2 id="diagnosticHeading">Diagnostic des versions</h2></div>
+      <p class="muted">« Lire le projet » vérifie la source Google, le déploiement versionné et les versions publiées Android, iPhone et Web. Aucun code n’est écrit ni déployé.</p>
+      <p id="diagnosticStatus" role="status" aria-live="polite">Lis le projet pour préparer le diagnostic.</p>
+      <dl id="diagnosticRows" class="diagnostic-rows"></dl>
+      <label class="session-option" for="diagnosticAutoDrive">
+        <input id="diagnosticAutoDrive" type="checkbox" checked>
+        <span><b>Enregistrer le diagnostic dans mon Drive privé</b><small>Automatique pour le projet CDQ. Rapport de versions uniquement : ni code source, ni mot de passe, ni jeton. ChatGPT pourra le lire avec ta connexion Drive, quand tu le demandes. Aucun accès à distance ni surveillance permanente.</small></span>
+      </label>
+      <div class="actions two">
+        <button id="diagnosticAuthorize" class="primary" type="button" hidden>Autoriser le rapport Drive</button>
+        <button id="diagnosticSave" class="secondary" type="button" disabled>Enregistrer le rapport</button>
+        <button id="diagnosticCopy" class="secondary" type="button" disabled>Copier le diagnostic</button>
+        <a id="diagnosticDriveLink" target="_blank" rel="noopener noreferrer" hidden>Ouvrir le rapport privé</a>
+      </div>
+      <p id="diagnosticDriveStatus" class="muted" role="status" aria-live="polite">Une autorisation Google supplémentaire peut être nécessaire la première fois pour créer ce rapport.</p>
+      <details><summary>Voir le diagnostic complet</summary><pre id="diagnosticText" class="diagnostic-text">Aucun diagnostic.</pre></details>
     </section>
 
     <section class="card advanced-section" id="googleCard">
@@ -332,8 +352,9 @@
     </div>
   </div>
 
-  <script src="api.js?v=42"></script>
+  <script src="api.js?v=43"></script>
   <script src="jszip.min.js?v=23"></script>
-  <script src="app.js?v=42"></script>
+  <script src="diagnostics.js?v=43"></script>
+  <script src="app.js?v=43"></script>
 </body>
 </html>

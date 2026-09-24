@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const LS = localStorage;
-const APP_VERSION = 'V42';
+const APP_VERSION = 'V43';
 const CDQ_PRODUCTION_SCRIPT_ID = '1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf';
 const CDQ_PRODUCTION_DEPLOYMENT_ID = 'AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw';
 const CDQ_PRODUCTION_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
@@ -67,6 +67,7 @@ const S = {
   deployBusy: false,
   deployProgress: 0,
   autoBundleChecked: false,
+  projectReadGeneration: 0,
 };
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({
@@ -123,11 +124,13 @@ function saveLiveGoogleToken() {
   if (!keepConnectionEnabled() || !CDQ.token || !CDQ.expiresAt) return;
   LS.setItem(TOKEN_KEY, CDQ.token);
   LS.setItem(TOKEN_EXPIRES_KEY, String(CDQ.expiresAt));
+  LS.setItem('cdqsm_google_scopes_v43', CDQ.grantedScopes || '');
 }
 
 function clearSavedGoogleToken() {
   LS.removeItem(TOKEN_KEY);
   LS.removeItem(TOKEN_EXPIRES_KEY);
+  LS.removeItem('cdqsm_google_scopes_v43');
 }
 
 function restoreSavedGoogleToken() {
@@ -140,6 +143,7 @@ function restoreSavedGoogleToken() {
   }
   CDQ.token = token;
   CDQ.expiresAt = expiresAt;
+  CDQ.grantedScopes = LS.getItem('cdqsm_google_scopes_v43') || '';
   return true;
 }
 
@@ -239,7 +243,7 @@ function verifyProductionWebAppReadyV23(expectedBuild='',timeoutMs=90000){
 
       lastSeen=String(d.build||'');
       lastSelector=String(d.selectorBuild||'');
-      const announced=lastSelector||lastSeen;
+      const announced=diagnosticVersionLabelV43(lastSelector)||diagnosticVersionLabelV43(lastSeen);
 
       if(!d.selectorOk || Number(d.selectorBytes||0)<1000){
         // La nouvelle version peut être en cours de propagation. Continuer à sonder.
@@ -247,15 +251,15 @@ function verifyProductionWebAppReadyV23(expectedBuild='',timeoutMs=90000){
         return;
       }
 
-      if(expectedBuild && announced && compareBuildLabels(announced,expectedBuild)<0){
+      if(expectedBuild && (!announced || compareBuildLabels(announced,expectedBuild)<0)){
         setQuickResult('Production répond encore avec '+announced+'. Attente de '+expectedBuild+'…','warn');
         return;
       }
 
       cleanup();
       resolve({
-        build:lastSeen||'version backend non annoncée',
-        selectorBuild:lastSelector||'version Selector non annoncée',
+        build:diagnosticVersionLabelV43(lastSeen),
+        selectorBuild:diagnosticVersionLabelV43(lastSelector),
         selectorBytes:Number(d.selectorBytes||0),
         signal:d.type,
         attempts:attempt
@@ -455,12 +459,13 @@ function updateQuickUi() {
     projectState.className='sm-step-state '+(S.id?'ok':'warn');
   }
   if(packageState){
-    const ready=Boolean(S.pkg.size||S.bundleAlreadyApplied);
-    packageState.textContent=ready?'✓ Package prêt':'● Package en attente';
+    const ready=Boolean(S.pkg.size||S.bundleAlreadyApplied||S.redeploySource);
+    packageState.textContent=S.redeploySource&&!S.pkg.size?'● Source prête à déployer':ready?'✓ Package prêt':'● Aucun package chargé';
     packageState.className='sm-step-state '+(ready?'ok':'warn');
   }
   if(packageNote){
-    if(S.bundleAlreadyApplied)packageNote.textContent='Le code est déjà présent dans Apps Script. Le déploiement peut être lancé.';
+    if(S.redeploySource&&!S.pkg.size)packageNote.textContent='La source Google diffère du déploiement versionné. Aucun nouveau fichier requis pour la republier.';
+    else if(S.bundleAlreadyApplied)packageNote.textContent='Le code est déjà présent dans Apps Script. Le déploiement peut être lancé.';
     else if(S.pkg.size)packageNote.textContent=(S.pendingBuild||S.bundleLabel||'Package CDQ')+' • '+pendingChangeCount()+' modification(s) préparée(s).';
     else packageNote.textContent='Le package chargé apparaîtra ici avec sa version et le nombre de modifications.';
   }
@@ -774,6 +779,8 @@ async function restoreBackup(backupId) {
 }
 
 async function handleGoogleConnect() {
+  invalidateVersionDiagnosticV43();
+  S.projectReadGeneration++;
   try {
     topstat('Ouverture de Google…');
     await requestGoogleToken(cid(), 'manual');
@@ -789,6 +796,8 @@ async function handleGoogleConnect() {
 }
 
 function handleGoogleDisconnect() {
+  invalidateVersionDiagnosticV43();
+  S.projectReadGeneration++;
   clearRememberedConnection();
   clearSavedGoogleToken();
   revokeGoogleToken();
@@ -837,12 +846,15 @@ async function refreshProjectList() {
 async function readProject(id, save = true) {
   id = normalizeScriptId(id);
   if (!id) throw Error('Choisis un projet ou colle son Script ID.');
+  const readGeneration = ++S.projectReadGeneration;
+  invalidateVersionDiagnosticV43();
   stat('Lecture du projet…');
 
   // V39 : charger d'abord le contenu, une seule requête critique à la fois.
   // Le projet fait maintenant plusieurs Mo; trois appels Apps Script en
   // parallèle étaient beaucoup plus fragiles sur Android/5G.
   const content = await getProjectContent(id, cid());
+  if(readGeneration !== S.projectReadGeneration)return;
   if (!content || !Array.isArray(content.files) || !content.files.length) {
     throw Error('Google a répondu, mais aucun fichier Apps Script n’a été reçu.');
   }
@@ -852,11 +864,14 @@ async function readProject(id, save = true) {
   const meta = {title: option ? String(option.textContent || '').split(' • ')[0] : 'Projet Apps Script'};
 
   let deps = [];
+  let deploymentsReadOk = true;
   try {
     deps = await listDeployments(id, cid());
   } catch (_) {
-    deps = [];
+    deploymentsReadOk = false;
   }
+  if(readGeneration !== S.projectReadGeneration)return;
+  CDQ.deployments = deps;
 
   S.id = id;
   S.meta = meta;
@@ -871,7 +886,7 @@ async function readProject(id, save = true) {
   S.sel = '';
   scriptIdInput.value = id;
   if (save) LS.setItem('cdqsm_script_id', id);
-  const sourceBuild=detectBuildLabel(S.files)||'version non détectée';
+  const sourceBuild=diagnosticMainBuildV43(S.files)||'version non détectée';
   S.sourceBuild=sourceBuild;
   S.lastWrittenBuild=sourceBuild;
   projectMeta.innerHTML = `<b>${esc(meta.title || 'Projet Apps Script')}</b><br>Script ID : <code>${esc(id)}</code><br>Code source lu : <code>${esc(sourceBuild)}</code>`;
@@ -881,42 +896,17 @@ async function readProject(id, save = true) {
   renderDeployments(deps);
   updateQuickUi();
   stat(`${S.files.length} fichier(s) chargé(s) • ${sourceBuild}.`, 'ok');
-  if(S.bundleUrl)await maybeImportBundleV24();
-  else if(isProductionProject()){
-    try { if (await prepareLatestBundleV41()) return; }
-    catch (error) { setQuickResult('Lecture de la mise à jour impossible : '+error.message, 'err'); }
-    setTimeout(async()=>{
-      try{
-        const live=await verifyProductionWebAppReadyV23('',18000);
-        const liveBuild=live.selectorBuild||live.build||'version non annoncée';
-        const dep=productionDeployment();
-        const depVersion=Number(dep?.deploymentConfig?.versionNumber||0);
-        projectMeta.innerHTML += `<br>Production servie : <code>${esc(liveBuild)}</code>${depVersion?' • Apps Script v'+depVersion:''}`;
-        S.productionBuild=liveBuild;
-        if(compareBuildLabels(liveBuild,sourceBuild)!==0){
-          S.redeploySource=true;
-          updateQuickUi();
-          setQuickResult(
-            'CODE SOURCE DÉJÀ ÉCRIT ✓ '+sourceBuild+
-            ' • production différente ('+liveBuild+'). Appuie sur « ÉCRIRE + DÉPLOYER » pour republier le code source actuel.',
-            'warn'
-          );
-        }else{
-          S.redeploySource=false;
-          updateQuickUi();
-        }
-      }catch(e){
-        projectMeta.innerHTML += '<br>Production servie : <code>vérification impossible</code>';
-        if(sourceBuild && sourceBuild!=='version non détectée'){
-          S.redeploySource=true;
-          updateQuickUi();
-          setQuickResult(
-            'Le code source '+sourceBuild+' est déjà écrit, mais la production ne répond pas au diagnostic. Tu peux appuyer sur « ÉCRIRE + DÉPLOYER » pour republier cette source.',
-            'warn'
-          );
-        }
-      }
-    },250);
+  try {
+    if(S.bundleUrl)await maybeImportBundleV24();
+    else if(isProductionProject())await prepareLatestBundleV41();
+  } catch (error) {
+    setQuickResult('Lecture de la mise à jour impossible : '+error.message, 'err');
+  } finally {
+    if(readGeneration === S.projectReadGeneration){
+      // Read-only Google audit; Drive receives only a private, sanitized report.
+      // Never interpret a missing live version label as an outdated deployment.
+      void startVersionDiagnosticV43({id, files:content.files, deployments:deps, deploymentsReadOk, readGeneration});
+    }
   }
 }
 
@@ -1817,6 +1807,8 @@ function buildUpdatedFileSet(freshFiles) {
 }
 
 async function writeProjectChanges() {
+  invalidateVersionDiagnosticV43();
+  S.projectReadGeneration++;
   const count = validateChanges();
   setQuickDeployProgress(8, 'Lecture de la version actuelle depuis Google…');
   stat('1/4 Relecture depuis Google…');
@@ -1999,6 +1991,8 @@ async function waitForDeploymentVersionV26(target,versionNumber,timeoutMs=60000)
 }
 
 async function deployNewVersion(targetOverride = null) {
+  invalidateVersionDiagnosticV43();
+  S.projectReadGeneration++;
   if (!S.id) throw Error('Charge d’abord un projet.');
 
   const desc = description.value.trim() || `Mise à jour CDQ - ${nlabel()}`;
@@ -2373,7 +2367,7 @@ window.addEventListener('appinstalled', updateInstallState);
   await renderBackups();
   detectEmbeddedBrowser();
   updateInstallState();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=42').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=43').catch(() => {});
   try {
     await prepareGoogleClient(cid());
     $('connect').disabled = false;

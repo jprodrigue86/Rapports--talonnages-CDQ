@@ -77,7 +77,7 @@ async function diagnosticPublicJsonV43(url){
   return JSON.parse(text);
 }
 function diagnosticVersionOrderV43(a,b){
-  const parts=v=>(String(v).match(/v?(\d+)\.(\d+)(?:\.(\d+))?/i)||[]).slice(1).map(n=>Number(n||0));
+  const parts=v=>(String(v).match(/v(\d+)\.(\d+)(?:\.(\d+))?/i)||String(v).match(/^(\d+)\.(\d+)(?:\.(\d+))?$/)||[]).slice(1).map(n=>Number(n||0));
   const x=parts(a),y=parts(b);for(let i=0;i<3;i++){const d=(x[i]||0)-(y[i]||0);if(d)return d;}return 0;
 }
 async function diagnosticPublishedVersionsV43(){
