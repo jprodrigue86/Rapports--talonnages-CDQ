@@ -115,13 +115,14 @@ try{
     const pdf=await module.floorTemplate();
     const assets=new URL('./vendor/pdfjs-6.3.289/',location.href).href;
     const engine=await import(assets+'build/pdf.mjs');engine.GlobalWorkerOptions.workerSrc=assets+'build/pdf.worker.mjs';
-    const doc=await engine.getDocument({data:new Uint8Array(await pdf.blob.arrayBuffer()),standardFontDataUrl:assets+'standard_fonts/',cMapUrl:assets+'cmaps/',cMapPacked:true,wasmUrl:assets+'wasm/',isEvalSupported:false}).promise;
+    const loading=engine.getDocument({data:new Uint8Array(await pdf.blob.arrayBuffer()),standardFontDataUrl:assets+'standard_fonts/',cMapUrl:assets+'cmaps/',cMapPacked:true,wasmUrl:assets+'wasm/',isEvalSupported:false});
+    const doc=await loading.promise;
     const first=await doc.getPage(1),viewport=first.getViewport({scale:0.8});
     const canvas=document.createElement('canvas');canvas.width=viewport.width;canvas.height=viewport.height;
     await first.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
     const fields=(await first.getAnnotations()).filter(a=>a.subtype==='Widget').length;
     const result={size:pdf.blob.size,type:pdf.blob.type,pages:doc.numPages,fields,pixels:canvas.toDataURL().length};
-    await doc.destroy();return result;
+    await loading.destroy();return result;
   });
   assert.ok(template.size>500000);assert.equal(template.type,'application/pdf');
   assert.equal(template.pages,1);assert.ok(template.fields>20);assert.ok(template.pixels>10000);

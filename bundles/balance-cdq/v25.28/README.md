@@ -2,7 +2,7 @@
 
 L’APK 25.28 contient l’interface Android, les menus, les images, les icônes,
 les lecteurs PDF, leurs dépendances et le modèle de plancher déjà approuvé.
-Les 266 ressources représentent 16,5 Mo avant compression Android. Les fichiers
+Les 265 ressources représentent 16,5 Mo avant compression Android. Les fichiers
 clients et les permissions restent sur le serveur et Drive.
 
 Publier d’abord ce paquet avec Script Manager V42, puis installer l’APK 25.28

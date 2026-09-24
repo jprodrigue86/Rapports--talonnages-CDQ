@@ -10,7 +10,7 @@ const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
 function copy(name){files.set(name,fs.readFileSync(name));}
-function tree(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const p=dir+'/'+e.name;if(e.isDirectory())tree(p);else copy(p);}}
+function tree(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){if(e.name.startsWith('.'))continue;const p=dir+'/'+e.name;if(e.isDirectory())tree(p);else copy(p);}}
 // Include the existing offline/template/reader dependency chains, with their licenses.
 for(const p of fs.readdirSync('.'))if(p.endsWith('.mjs')||/^(?:reader|floor-reader|pdf-fill).*\.html$/.test(p))copy(p);
 for(const d of ['vendor','icons','assets'])tree(d);
