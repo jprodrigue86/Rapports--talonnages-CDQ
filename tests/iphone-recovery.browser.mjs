@@ -30,7 +30,11 @@ for(const [engine,type] of Object.entries({chromium,webkit})){
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const base='http://127.0.0.1:'+server.address().port+scope;
- const browser=await type.launch(),context=await browser.newContext({...devices['iPhone 13']}),page=await context.newPage();
+ // Isolated persistent profiles model installed apps. In the earlier WebKit
+ // private context the synthetic Cache API response disappeared on the first
+ // navigation, before the recovery button was ever used. Keep the preservation
+ // assertion and run it in a real persistent storage profile instead.
+ const context=await type.launchPersistentContext('',{...devices['iPhone 13']}),page=context.pages()[0]||await context.newPage();
  try{
   await page.goto(base);
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller),{},{timeout:20000});
@@ -54,11 +58,11 @@ for(const [engine,type] of Object.entries({chromium,webkit})){
   assert.equal(saved.session,'preserved-session');assert.equal(saved.document,'preserved-document');
   await context.setOffline(true);await page.reload();assert.equal(await page.locator('h1').innerText(),B);await context.setOffline(false);
   console.log(JSON.stringify({engine,scenario:'repair-old-worker-confirm-cancel-activate-preserve-offline',ok:true}));
-  const fresh=await browser.newContext({...devices['iPhone 13']}),first=await fresh.newPage();
+  const fresh=await type.launchPersistentContext('',{...devices['iPhone 13']}),first=fresh.pages()[0]||await fresh.newPage();
   try{
    await first.goto(base+'connection-repair.html');first.once('dialog',d=>d.accept());await first.locator('#repair').click();
    await first.waitForURL(base,{timeout:30000});assert.equal(await first.locator('h1').innerText(),B);
    console.log(JSON.stringify({engine,scenario:'repair-first-install',ok:true}));
   }finally{await fresh.close();}
- }finally{await context.close();await browser.close();await new Promise(resolve=>server.close(resolve));}
+ }finally{await context.close();await new Promise(resolve=>server.close(resolve));}
 }
