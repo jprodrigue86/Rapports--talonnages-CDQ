@@ -17,3 +17,9 @@ credentials.*
 
 # Local reconstruction of private Apps Script exports
 .audit/
+
+# Reproducible Android output; keep only the compressed public client snapshot.
+balance-cdq-android/.gradle/
+balance-cdq-android/app/build/
+balance-cdq-android/build/
+balance-cdq-android/web-source/Selector.html

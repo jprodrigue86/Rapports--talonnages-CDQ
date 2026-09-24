@@ -1,0 +1,99 @@
+{
+  "schema": "cdq-script-bundle-v3",
+  "projectScriptId": "1udMG-jQcBAwBAwk6kSEZ660JWo5n7nVvnq24lp2T4RDV5pfXe8QDlPdf",
+  "version": "V25.28",
+  "build": "2026.09.23-v25.28-apk-embarquee",
+  "title": "Balance CDQ V25.28 — interface embarquée dans l’APK",
+  "requiresBuild": [
+    "2026.09.23-v25.26-sheets-retour",
+    "2026.09.23-v25.27-demarrage-dossiers"
+  ],
+  "patches": [
+    {
+      "file": "Code.gs",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.23-v25.26-sheets-retour",
+        "2026.09.23-v25.27-demarrage-dossiers"
+      ],
+      "to": "2026.09.23-v25.28-apk-embarquee"
+    },
+    {
+      "file": "Selector.html",
+      "op": "replace_build_any",
+      "from": [
+        "2026.09.23-v25.26-sheets-retour",
+        "2026.09.23-v25.27-demarrage-dossiers"
+      ],
+      "to": "2026.09.23-v25.28-apk-embarquee"
+    },
+    {
+      "id": "native-data-bridge",
+      "file": "Code.gs",
+      "op": "replace_literal",
+      "search": "function doGet(e) {\n  const params = e && e.parameter ? e.parameter : {};",
+      "replacement": "function doGet(e) {\n  const params = e && e.parameter ? e.parameter : {};\n  if(String(params.cdq_native_bridge||'')==='1')return cdqEmbeddedBridgeV2528_(params);"
+    },
+    {
+      "id": "client-cache-first",
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  assurerStructureClientAIOuverture_(dossierId);\n\n  const cache = CacheService.getScriptCache();",
+      "replacement": "  const cache = CacheService.getScriptCache();"
+    },
+    {
+      "id": "client-setup-on-miss",
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  const photoIndex = construireIndexPhotosCDQ_();\n  const contenu = lireDossierSurface_(DriveApp.getFolderById(dossierId), photoIndex);",
+      "replacement": "  assurerStructureClientAIOuverture_(dossierId);\n  const photoIndex = construireIndexPhotosCDQ_();\n  const contenu = lireDossierSurface_(DriveApp.getFolderById(dossierId), photoIndex);"
+    },
+    {
+      "id": "batch-folder-metadata",
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "function lireDossierSurface_(dossier, photoIndex) {",
+      "replacement": "function lireDossierSurface_(dossier, photoIndex) {\n  if(typeof Drive!==\"undefined\"){try{return cdqReadSurfaceV2527_(dossier,photoIndex);}catch(e){console.warn(\"Lecture groupée indisponible; lecture Drive classique.\");}}"
+    },
+    {
+      "id": "batch-company-metadata",
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  const dossierPrincipal = DriveApp.getFolderById(CONFIG.MASTER_FOLDER_ID);\n  const dossiers = dossierPrincipal.getFolders();\n  const resultats = [];",
+      "replacement": "  if(typeof Drive!==\"undefined\"){\n    try{const fast=cdqReadCompaniesV2527_();try{cache.put(cle,JSON.stringify(fast),CONFIG.CACHE_COMPAGNIES_SECONDES);}catch(_){}return fast;}catch(e){console.warn(\"Liste groupée indisponible; lecture classique.\");}\n  }\n  const dossierPrincipal = DriveApp.getFolderById(CONFIG.MASTER_FOLDER_ID);\n  const dossiers = dossierPrincipal.getFolders();\n  const resultats = [];"
+    },
+    {
+      "id": "unlock-cached-company-list",
+      "file": "Code.gs",
+      "op": "replace_literal_if_present",
+      "search": "  return { autorise:true, email:u.email, role:u.role, jetonSession:jetonSession };",
+      "replacement": "  return cdqStartupCachedV2527_({ autorise:true, email:u.email, role:u.role, jetonSession:jetonSession });",
+      "expected": 2
+    }
+  ],
+  "extraFiles": [
+    {
+      "name": "CDQEmbedded.gs",
+      "sha256": "bba557ba4a0a51d499dd435f7ab1b9eff051d730e6762e7d0ff3f576920130c4",
+      "url": "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/bundles/balance-cdq/v25.28/files/CDQEmbedded.gs"
+    },
+    {
+      "name": "CDQPerformance.gs",
+      "sha256": "5acf4e194dd484ea9a1bfaa9d57f5b09188f096a94ec9a91a0d6309b892afbac",
+      "url": "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/bundles/balance-cdq/v25.28/files/CDQPerformance.gs"
+    },
+    {
+      "name": "CDQSessionResume.gs",
+      "sha256": "689c33e2e7133af95c0e95935ba49e308ec7234d430e724443404fbaa2083c4c",
+      "url": "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/bundles/balance-cdq/v25.28/files/CDQSessionResume.gs"
+    }
+  ],
+  "removeFiles": [],
+  "audit": {
+    "scriptManagerRequired": "V42",
+    "androidAppRequired": "Installer aussi l’APK 25.28 pour utiliser l’interface embarquée. Les APK existantes restent compatibles avec ce serveur.",
+    "productionVerified": false,
+    "scope": "Interface Android, images, menus et outils PDF embarqués. Liaison Apps Script réduite aux appels de données et de connexion. Le PC conserve son interface.",
+    "security": "Origine, ascendance des cadres, nonce et fonctions autorisées contrôlés. Sessions et autorisations serveur conservées. Aucune clé privée ni donnée client dans l’APK."
+  }
+}

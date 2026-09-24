@@ -11,8 +11,8 @@ android {
         applicationId = "ca.balancecdq.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2526
-        versionName = "25.26"
+        versionCode = 2528
+        versionName = "25.28"
     }
 
     buildTypes {
@@ -34,7 +34,14 @@ android {
             it.testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         }
     }
+    sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/cdq-web-assets"))
 }
+
+val packageWebAssets by tasks.registering(Exec::class) {
+    workingDir(rootProject.projectDir.parentFile)
+    commandLine("node", "scripts/build-embedded-android-v2528.mjs")
+}
+tasks.named("preBuild").configure { dependsOn(packageWebAssets) }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
