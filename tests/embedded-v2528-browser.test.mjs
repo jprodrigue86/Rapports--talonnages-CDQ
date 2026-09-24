@@ -60,7 +60,10 @@ try{
     if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.28',build:'2026.09.23-v25.28-apk-embarquee'})});
     unexpected.push(url);return request.abort();
   });
-  await page.goto(prefix+'index.html',{waitUntil:'domcontentloaded'});
+  // Puppeteer's navigation lifecycle also waits on child frames. Here the
+  // remote child is deliberately held; wait on the local UI below instead.
+  const navigation=await page.createCDPSession();
+  await navigation.send('Page.navigate',{url:prefix+'index.html'});
   await page.waitForFunction(()=>document.querySelector('#app')?.contentDocument?.querySelector('#accessOverlay'));
   await Promise.race([bridgeStart,new Promise((_,reject)=>setTimeout(()=>reject(Error('Bridge did not start: '+JSON.stringify(errors))),10000))]);
   assert.equal(bridgeRequested,true);
@@ -86,7 +89,7 @@ try{
     localStorage.removeItem('cdqResumeSessionV2524');
   });
   allowServer=false;
-  await page.reload({waitUntil:'domcontentloaded'});
+  await navigation.send('Page.reload');
   await page.waitForFunction(()=>window.testBiometricRequested,{timeout:10000});
   selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');
   assert.equal(await selector.evaluate(()=>cdqAccessState),'pending');
