@@ -1,0 +1,11 @@
+{
+  "version": "25.30",
+  "sourceCommit": "e2d706ce56edc1d0623ae2edb94fb286cace2fcb",
+  "sha256": "d9e0fb0f7607c16039a21c4943fb1456d3beb08e7a378601034035c15181baeb",
+  "certificateSha256": "496030d9cd10e81ff4e9486c38491bc15389112c0c295c61c295981c101c4436",
+  "bytes": 13393842,
+  "v2": true,
+  "v3": true,
+  "debuggable": false,
+  "physicalDeviceTested": false
+}
