@@ -5,16 +5,18 @@ on:
     paths:
       - 'balance-cdq-android/**'
       - 'scripts/build-embedded-android-v2528.mjs'
+      - 'scripts/*instant-files-v2530.mjs'
       - 'downloads/android-release-update.json'
-      - 'downloads/Balance-CDQ-Android-25.29.apk'
+      - 'downloads/Balance-CDQ-Android-25.30.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   push:
     branches: [main]
     paths:
       - 'balance-cdq-android/**'
       - 'scripts/build-embedded-android-v2528.mjs'
+      - 'scripts/*instant-files-v2530.mjs'
       - 'downloads/android-release-update.json'
-      - 'downloads/Balance-CDQ-Android-25.29.apk'
+      - 'downloads/Balance-CDQ-Android-25.30.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   workflow_dispatch:
 
@@ -38,29 +40,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
+      - name: Test immediate file updates
+        run: node scripts/test-instant-files-v2530.mjs
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Install Android SDK packages
         shell: bash
         run: |
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" 'platform-tools' 'platforms;android-35' 'build-tools;35.0.0'
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-
       - name: Build APK
         working-directory: balance-cdq-android
         run: gradle --no-daemon clean :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
-
       - name: Validate APK
         shell: bash
         run: |
@@ -68,7 +67,6 @@ jobs:
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee /tmp/balance-cdq-badging.txt
           grep -q "package: name='ca.balancecdq.android'" /tmp/balance-cdq-badging.txt
-
       - name: Upload Android test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -76,8 +74,7 @@ jobs:
           name: Balance-CDQ-Android-test-reports
           path: balance-cdq-android/app/build/test-results/testDebugUnitTest/*.xml
           if-no-files-found: ignore
-          retention-days: 7
-
+          retention-days: 2
       - name: Validate native shell + icon
         shell: bash
         run: |
@@ -92,7 +89,6 @@ jobs:
           grep -q 'android-auth.html' balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt
           grep -q 'cdqauth' balance-cdq-android/app/src/main/AndroidManifest.xml
           unzip -l "$APK" | grep -q 'res/drawable/ic_balance_cdq.png'
-
       - name: Validate Android web auth bridge
         shell: bash
         run: |
@@ -101,7 +97,6 @@ jobs:
           grep -q 'accounts.google.com/gsi/client' android-auth.html
           grep -q 'package=ca.balancecdq.android' android-auth.html
           grep -q 'android:scheme="cdqauth"' balance-cdq-android/app/src/main/AndroidManifest.xml
-
       - name: Validate single-choice Google auth
         shell: bash
         run: |
@@ -111,15 +106,13 @@ jobs:
           grep -q 'use_fedcm_for_button:true' android-auth.html
           grep -q 'location.replace(appIntent())' android-auth.html
           grep -q 'backButton.onclick' android-auth.html
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.29-debug-CI-only
+          name: Balance-CDQ-Android-25.30-debug-CI-only
           path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 7
-
+          retention-days: 2
       - name: Prepare unsigned release for private signing
         shell: bash
         run: |
@@ -130,36 +123,32 @@ jobs:
           "$TOOLS/zipalign" -c -P 16 4 "$APK"
           mkdir -p /tmp/cdq-release-handoff
           "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-release-handoff/badging.txt
-          grep -q "package: name='ca.balancecdq.android' versionCode='2529' versionName='25.29'" /tmp/cdq-release-handoff/badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2530' versionName='25.30'" /tmp/cdq-release-handoff/badging.txt
           if grep -q 'application-debuggable' /tmp/cdq-release-handoff/badging.txt; then
             echo '::error::Release APK must not be debuggable.'
             exit 1
           fi
-          cp "$APK" /tmp/cdq-release-handoff/Balance-CDQ-Android-25.29-unsigned.apk
+          cp "$APK" /tmp/cdq-release-handoff/Balance-CDQ-Android-25.30-unsigned.apk
           cp "$TOOLS/lib/apksigner.jar" /tmp/cdq-release-handoff/apksigner.jar
           cp "$TOOLS/zipalign" /tmp/cdq-release-handoff/zipalign
           git rev-parse HEAD > /tmp/cdq-release-handoff/source-commit.txt
           sha256sum "$APK" > /tmp/cdq-release-handoff/unsigned-sha256.txt
-
       - name: Upload unsigned release handoff
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.29-release-handoff
+          name: Balance-CDQ-Android-25.30-release-handoff
           path: /tmp/cdq-release-handoff/*
           if-no-files-found: error
           retention-days: 2
-
       - name: Upload reader preview
         uses: actions/upload-artifact@v4
         with:
           name: Balance-CDQ-reader-preview
           path: balance-cdq-android/app/build/reports/pdf-reader-preview.png
           if-no-files-found: error
-          retention-days: 7
-
+          retention-days: 2
       - name: Verify published durable release
         run: python3 balance-cdq-android/signing/verify-published-release.py --tools "$ANDROID_HOME/build-tools/35.0.0"
-
       - name: Keep legacy Android publication suspended
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         shell: bash
