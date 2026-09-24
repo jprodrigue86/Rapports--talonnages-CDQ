@@ -1,0 +1,6 @@
+<!doctype html><html lang="fr"><meta charset="utf-8"><title>Préparation du PDF CDQ</title><script type="module">
+import {fillPdf} from './pdf-fill-v2523.mjs';
+let origin='',busy=false;try{const o=new URL(document.referrer).origin;if(o===location.origin||/^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/.test(o))origin=o;}catch{}
+window.addEventListener('message',async e=>{if(!origin||e.origin!==origin||e.source!==parent||e.data?.type!=='CDQ_FILL_V2523'||busy)return;busy=true;const requestId=e.data.requestId;try{const blob=await fillPdf(e.data.values,{blob:e.data.blob,strict:e.data.strict!==false});parent.postMessage({type:'CDQ_FILLED_V2523',requestId,blob},origin);}catch(error){parent.postMessage({type:'CDQ_FILLED_V2523',requestId,error:error.message},origin);}finally{busy=false;}});
+if(origin)parent.postMessage({type:'CDQ_FILL_READY_V2523'},origin);
+</script></html>
