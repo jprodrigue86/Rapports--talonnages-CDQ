@@ -1,0 +1,48 @@
+name: Verify public Android and iPhone Home fix 25.31
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'downloads/Balance-CDQ-Android-25.31.apk'
+      - '.github/workflows/verify-home-v2531-publication.yml'
+permissions:
+  contents: read
+jobs:
+  verify-public:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify the actual public APK, iPhone patch and both sharing pages
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
+          const android=JSON.parse(fs.readFileSync('downloads/android-release-update.json','utf8'));
+          const iphone=JSON.parse(fs.readFileSync('iphone/app/release.json','utf8'));
+          assert.equal(android.versionName,'25.31');assert.equal(iphone.version,'25.31');
+          const names=['downloads/android-release-update.json','downloads/Balance-CDQ-Android-25.31.apk','downloads/Balance-CDQ-Android-25.31.zip','installer.html','iphone/index.html','iphone/app/release.json','iphone/app/Selector.html','iphone/app/sw.js'];
+          const hash=b=>createHash('sha256').update(b).digest('hex');
+          const expected=new Map(names.map(n=>[n,hash(fs.readFileSync(n))]));
+          const deadline=Date.now()+330000;let last='';
+          while(true){
+            try{
+              for(const name of names){
+                const r=await fetch(base+name+'?verify_home_2531='+Date.now(),{signal:AbortSignal.timeout(20000)});
+                assert(r.ok,name+' HTTP '+r.status);
+                const content=Buffer.from(await r.arrayBuffer());assert.equal(hash(content),expected.get(name),name+' does not yet match');
+              }
+              break;
+            }catch(e){last=String(e.message||e).slice(0,220);if(Date.now()>deadline)throw Error('Public release not confirmed: '+last);await new Promise(r=>setTimeout(r,10000));}
+          }
+          assert.equal(hash(fs.readFileSync(names[1])),android.sha256);
+          assert(fs.readFileSync('iphone/app/Selector.html','utf8').includes('id="cdqHomeUnderlineV2531"'));
+          console.log(JSON.stringify({android:android.versionName,iphone:iphone.version,iphoneConnectionRevision:iphone.connectionRevision,publicFiles:'exact repository bytes verified',apkSha256:android.sha256}));
+          JS
