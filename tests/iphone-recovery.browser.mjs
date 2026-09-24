@@ -10,10 +10,8 @@ const digest=s=>crypto.createHash('sha256').update(s).digest('hex');
 const html=release=>'<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><h1>'+release+'</h1><script>navigator.serviceWorker.register("./sw.js",{scope:"./",updateViaCache:"none"});</script>';
 async function savedState(page,seed=false){
  return page.evaluate(async seed=>{
-  // CDQ stores offline records in IndexedDB (RapportsEtalonnagesCDQ/cache).
-  // A synthetic Cache API response was not a valid WebKit fixture: it vanished
-  // even BEFORE activation. Test the actual storage type rather than assuming
-  // that every browser persists an arbitrary synthetic HTTP response.
+  // Test the actual storage type used for CDQ offline records, not a synthetic
+  // Cache API response that the WebKit fixture discarded before any update.
   const db=await new Promise((resolve,reject)=>{
    const request=indexedDB.open('RapportsEtalonnagesCDQ',1);
    request.onupgradeneeded=()=>request.result.createObjectStore('cache',{keyPath:'key'});
@@ -52,8 +50,7 @@ for(const [engine,type] of Object.entries({chromium,webkit})){
  try{
   await page.goto(base);
   await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller),{},{timeout:20000});
-  const initial=await savedState(page,true);console.log(JSON.stringify({engine,scenario:'saved-before-navigation',state:initial}));
-  assert.equal(initial.document,'preserved-document');
+  const initial=await savedState(page,true);assert.equal(initial.document,'preserved-document');
   current=B;
   await page.goto(base+'connection-repair.html');
   const before=await savedState(page);assert.equal(before.document,'preserved-document');
@@ -61,11 +58,19 @@ for(const [engine,type] of Object.entries({chromium,webkit})){
   assert.equal(page.url(),base+'connection-repair.html');assert.equal(await page.locator('#repair').isEnabled(),true);
   page.once('dialog',d=>d.accept());await page.locator('#repair').click();
   await page.waitForURL(base,{timeout:30000});assert.equal(await page.locator('h1').innerText(),B);
-  const saved=await savedState(page);console.log(JSON.stringify({engine,scenario:'saved-after-recovery',state:saved}));
+  const saved=await savedState(page);
   assert.equal(saved.session,'preserved-session');assert.equal(saved.document,'preserved-document');assert.ok(saved.cacheNames.includes('cdq-test-unrelated-cache'));
-  await context.setOffline(true);await page.reload();assert.equal(await page.locator('h1').innerText(),B);
-  assert.equal((await savedState(page)).document,'preserved-document');await context.setOffline(false);
-  console.log(JSON.stringify({engine,scenario:'repair-confirm-cancel-activate-preserve-indexeddb-and-session-offline',ok:true}));
+  console.log(JSON.stringify({engine,scenario:'repair-confirm-cancel-activate-preserve-indexeddb-and-session',ok:true}));
+  if(engine==='chromium'){
+   await context.setOffline(true);await page.reload();assert.equal(await page.locator('h1').innerText(),B);
+   assert.equal((await savedState(page)).document,'preserved-document');await context.setOffline(false);
+   console.log(JSON.stringify({engine,scenario:'offline-reload-after-repair',ok:true}));
+  }else{
+   // This connection repair does not change offline behavior. WebKit's
+   // context.setOffline + reload fixture previously raised an internal engine
+   // navigation error. Do not represent iPhone offline reopening as validated.
+   console.log(JSON.stringify({engine,scenario:'offline-reload-after-repair',status:'not_validated',reason:'WebKit internal navigation error in offline emulation; physical iPhone test required'}));
+  }
   const fresh=await type.launchPersistentContext('',{...devices['iPhone 13']}),first=fresh.pages()[0]||await fresh.newPage();
   try{
    await first.goto(base+'connection-repair.html');first.once('dialog',d=>d.accept());await first.locator('#repair').click();
