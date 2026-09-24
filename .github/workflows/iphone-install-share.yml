@@ -5,6 +5,7 @@ on:
     paths:
       - 'iphone-source/**'
       - 'scripts/build-iphone.mjs'
+      - 'scripts/iphone-rpc-compat.mjs'
       - 'scripts/build-embedded-android-v2528.mjs'
       - 'scripts/*instant-files*.mjs'
       - 'balance-cdq-android/web-source/**'
@@ -38,6 +39,7 @@ jobs:
           node scripts/build-embedded-android-v2528.mjs
           node scripts/build-iphone.mjs
           node tests/iphone-install.test.mjs
+          node --test tests/iphone-rpc-compat.test.mjs
       - name: Install browser test engines
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2

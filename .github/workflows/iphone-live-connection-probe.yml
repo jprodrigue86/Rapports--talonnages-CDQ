@@ -1,0 +1,50 @@
+name: iPhone real Google connection and recovery
+on:
+  push:
+    branches: [main, codex/iphone-connection-repair]
+    paths:
+      - 'iphone-source/**'
+      - 'scripts/build-iphone.mjs'
+      - 'scripts/iphone-rpc-compat.mjs'
+      - 'tests/iphone-rpc-*.mjs'
+      - 'tests/iphone-recovery.browser.mjs'
+      - '.github/workflows/iphone-live-connection-probe.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'iphone-source/**'
+      - 'scripts/build-iphone.mjs'
+      - 'scripts/iphone-rpc-compat.mjs'
+      - 'tests/iphone-rpc-*.mjs'
+      - 'tests/iphone-recovery.browser.mjs'
+      - '.github/workflows/iphone-live-connection-probe.yml'
+permissions:
+  contents: read
+concurrency:
+  group: iphone-real-connection-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  real-connection-and-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build from verified Android source, adapting only the iPhone transport
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node tests/iphone-install.test.mjs
+          node --test tests/iphone-rpc-compat.test.mjs
+      - name: Install browser engines
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2 >/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
+          npx playwright install --with-deps chromium webkit >>/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
+      - name: Verify actual Google callbacks and anonymous sign-in screen in both engines
+        run: node tests/iphone-rpc-live.test.mjs
+      - name: Verify confirmed recovery without deleting saved sessions or documents
+        run: node tests/iphone-recovery.browser.mjs

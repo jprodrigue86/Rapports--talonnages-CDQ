@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import {adaptIphoneRpc,IPHONE_CONNECTION_REVISION} from './iphone-rpc-compat.mjs';
 const source=process.env.CDQ_ASSET_SOURCE||'balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const out=process.env.CDQ_IPHONE_OUTPUT||'iphone/app';
 const nativeManifest=JSON.parse(fs.readFileSync(path.join(source,'asset-manifest.json'),'utf8'));
@@ -22,7 +23,7 @@ for(const [name,meta] of Object.entries(nativeManifest.files)){
 const nativeSelector=files.get('Selector.html').toString();
 let shell=files.get('index.html').toString(),selector=nativeSelector;
 shell=once(shell,'<script src="./startup-unlock-v2529.js"></script>','<script src="./iphone-update.js"></script>\n<script src="https://accounts.google.com/gsi/client" defer></script>');
-// The authenticated RPC bridge is shared; iPhone does not pretend to be Android.
+// The protocol is shared; the iPhone copy handles WebKit's exact Google relay.
 // Its updater has an isolated service-worker scope; the APK updater stays disabled.
 shell=once(shell,'<title>Rapports D’étalonnages</title>','<title>CDQ Étalonnage</title>\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-title" content="CDQ Étalonnage">\n<link rel="apple-touch-icon" href="./icons/icon-heavy-v3-192.png">');
 selector=once(selector,'<head>','<head>\n<script src="./iphone-update.js"></script>');
@@ -41,12 +42,14 @@ for(const [name,html] of [['index.html',shell],['Selector.html',selector]]){
   files.set(name,Buffer.from(html.replace(/<html\b([^>]*)>/i,'<html$1 data-cdq-iphone-version="'+version+'" data-cdq-iphone-release="__RELEASE__">')));
 }
 files.delete('startup-unlock-v2529.js');
+files.set('embedded-rpc.js',Buffer.from(adaptIphoneRpc(files.get('embedded-rpc.js').toString())));
+files.set('connection-repair.html',Buffer.from(read('iphone-source/connection-repair.html')));
 files.set('iphone-update.js',Buffer.from(read('iphone-source/iphone-update.js')));
 files.set('manifest.webmanifest',Buffer.from(JSON.stringify({id:'./',name:'CDQ Étalonnage',short_name:'CDQ Étalonnage',description:'CDQ Étalonnage pour iPhone — application web installable',start_url:'./',scope:'./',display:'standalone',theme_color:'#000000',background_color:'#000000',icons:[192,512].map(n=>({src:'./icons/icon-heavy-v3-'+n+'.png',sizes:n+'x'+n,type:'image/png',purpose:'any'}))},null,2)+'\n'));
 const release=sha(Buffer.concat([...files.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([n,b])=>Buffer.from(n+'\0'+sha(b)+'\n')).concat([Buffer.from(read('iphone-source/sw.js'))])));
 for(const name of ['index.html','Selector.html'])files.set(name,Buffer.from(files.get(name).toString().replace('__RELEASE__',release)));
 const hashes=Object.fromEntries([...files].map(([n,b])=>[n,sha(b)]));
-const releaseInfo={platform:'iphone-pwa',version,release,androidSourceBuild:nativeManifest.build,androidSelectorSha256:nativeManifest.files['Selector.html'].sha256,generatedFrom:'scripts/build-embedded-android-v2528.mjs',files:files.size};
+const releaseInfo={platform:'iphone-pwa',version,release,connectionRevision:IPHONE_CONNECTION_REVISION,androidSourceBuild:nativeManifest.build,androidSelectorSha256:nativeManifest.files['Selector.html'].sha256,generatedFrom:'scripts/build-embedded-android-v2528.mjs',files:files.size};
 files.set('release.json',Buffer.from(JSON.stringify(releaseInfo,null,2)+'\n'));
 files.set('sw.js',Buffer.from(read('iphone-source/sw.js').replace('__CDQ_RELEASE_JSON__',JSON.stringify(release)).replace('__CDQ_ASSETS_JSON__',JSON.stringify(hashes))));
 fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out,{recursive:true});
@@ -61,7 +64,8 @@ for(const [name,bytes] of files){
 }
 console.log('iPhone PWA generated from Android '+version+': '+files.size+' static files; release '+release);
 // The Android app already opens this public page: no new APK for these links.
-const install=read('iphone-source/installer.html').replaceAll('__ANDROID_VERSION__',version);
+let install=read('iphone-source/installer.html').replaceAll('__ANDROID_VERSION__',version);
+install=once(install,'<a class="button iphone" href="./iphone/app/">Ouvrir l’application iPhone</a>','<a class="button iphone" href="./iphone/app/">Ouvrir l’application iPhone</a>\n<p class="small">Connexion bloquée ou application déjà installée ?</p>\n<a id="iphone-repair" class="button" href="./iphone/app/connection-repair.html">Actualiser puis ouvrir CDQ sur iPhone</a>');
 fs.writeFileSync('installer.html',install);
 fs.mkdirSync('iphone',{recursive:true});
 let landing=install.replace('<head>','<head><base href="../"><link rel="manifest" href="./iphone/app/manifest.webmanifest"><link rel="apple-touch-icon" href="./icons/icon-heavy-v3-192.png"><meta name="apple-mobile-web-app-capable" content="yes">');
