@@ -1,0 +1,29 @@
+{
+  "app": "Calculs d’atelier",
+  "version": "1.2.0",
+  "versionCode": 12000,
+  "minShellVersion": 11000,
+  "releasedAt": "2026-09-24T03:43:40.866066+00:00",
+  "channel": "latest.atelier-update.json",
+  "packageSha256": "e49a3ab13d3337570935fbb44453d245fcc6ef4386ecc3f86a4f3e3a7b3108e3",
+  "htmlSha256": "d687a9f83283135fdd0d58b26852838a13711ab1e5e374a55369859b19c2ef02",
+  "packageBytes": 1147289,
+  "htmlBytes": 644496,
+  "notes": [
+    "Augmentation et réduction des runs selon le stock disponible.",
+    "Boîtes : 1 boîte par caisse; sacs : division par le nombre de sacs par caisse.",
+    "Réserve de pertes facultative et arrondi vers le bas, sans caisse incomplète.",
+    "Icône Envoyé : archivage avec date, heure et filtre mensuel dans Historique.",
+    "Six nouveaux thèmes : Sombre, Métal, Océan, Forêt, Cuivre et Aurore.",
+    "ADH reste en kg; les saisies enregistrées, formules et produits personnalisés sont conservés."
+  ],
+  "verification": {
+    "signature": "RSA-SHA256 validée avec la clé historique",
+    "calculationAndStorageGroups": 35,
+    "arithmeticCombinations": 10000,
+    "chromiumSimulatedStorageGroups": 16,
+    "updaterGroups": 24,
+    "physicalDeviceTest": false
+  },
+  "privacy": "Contenu applicatif compilé et référentiel embarqué uniquement. Aucune saisie utilisateur, aucun historique local, aucune clé privée."
+}
