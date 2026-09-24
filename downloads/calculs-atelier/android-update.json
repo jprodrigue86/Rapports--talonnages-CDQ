@@ -1,9 +1,10 @@
 {
   "enabled": false,
-  "versionCode": 0,
-  "versionName": "0",
+  "versionCode": 10100,
+  "versionName": "1.1.0",
   "apkUrl": "",
+  "apkParts": [],
   "sha256": "",
-  "notes": "Canal de mise à jour préparé. Aucune version publiée pour le moment.",
+  "notes": "Canal stable prêt. Version de base : 1.1.0. Aucune mise à jour plus récente.",
   "mandatory": false
 }
