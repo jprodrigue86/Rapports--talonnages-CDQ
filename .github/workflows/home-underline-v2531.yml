@@ -1,0 +1,93 @@
+name: Prepare and test Home underline removal 25.31
+on:
+  push:
+    branches: [fix/home-underline-v2531]
+    paths:
+      - 'scripts/home-underline-v2531.mjs'
+      - 'scripts/prepare-home-v2531.mjs'
+      - 'tests/home-underline-v2531.browser.mjs'
+      - '.github/workflows/home-underline-v2531.yml'
+permissions:
+  contents: read
+concurrency:
+  group: cdq-home-2531-preparation
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/home-underline-v2531
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare narrow source correction
+        run: node scripts/prepare-home-v2531.mjs
+      - name: Generate Android and validate existing behavior
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/test-instant-files-v2530.mjs
+          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/iphone-rpc-compat.test.mjs
+      - name: Install browser engines
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium webkit
+      - name: Reproduce and verify only the Home line disappears
+        run: node tests/home-underline-v2531.browser.mjs
+      - name: Commit validated source changes only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/build-embedded-android-v2528.mjs balance-cdq-android/app/build.gradle.kts balance-cdq-android/app/src/main/java/ca/balancecdq/android/PackagedWebAssets.kt .github/workflows/build-balance-cdq-android.yml tests/embedded-v2528.test.mjs tests/embedded-v2528-browser.test.mjs tests/embedded-startup-v2529.test.mjs
+          if ! git diff --cached --quiet; then
+            git commit -m 'Remove only the active Home underline in shared Android/iPhone source 25.31'
+            git push origin HEAD:fix/home-underline-v2531
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Test and build unsigned Android release
+        working-directory: balance-cdq-android
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleRelease
+      - name: Prepare private-signing handoff without any key
+        run: |
+          set -euo pipefail
+          APK=balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          mkdir -p /tmp/cdq-home-handoff
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-home-handoff/badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2531' versionName='25.31'" /tmp/cdq-home-handoff/badging.txt
+          ! grep -q application-debuggable /tmp/cdq-home-handoff/badging.txt
+          cp "$APK" /tmp/cdq-home-handoff/Balance-CDQ-Android-25.31-unsigned.apk
+          cp "$TOOLS/lib/apksigner.jar" "$TOOLS/zipalign" /tmp/cdq-home-handoff/
+          cp balance-cdq-android/signing/sign-release.py balance-cdq-android/signing/release-certificate.json /tmp/cdq-home-handoff/
+          git rev-parse HEAD > /tmp/cdq-home-handoff/source-commit.txt
+          sha256sum "$APK" > /tmp/cdq-home-handoff/unsigned-sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Balance-CDQ-Android-25.31-release-handoff
+          path: /tmp/cdq-home-handoff/*
+          retention-days: 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CDQ-Home-25.31-tests
+          path: |
+            /tmp/cdq-home-test/*.png
+            balance-cdq-android/app/build/test-results/testDebugUnitTest/*.xml
+          if-no-files-found: ignore
+          retention-days: 2
