@@ -1,0 +1,91 @@
+name: Calculs Atelier 1.3 signed publication
+on:
+  push:
+    branches: [calculs-atelier-v1-3-tools]
+    paths: [.github/workflows/calculs-atelier-publish-v1-3.yml]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Download verified compiled update only
+        env:
+          SOURCE_URL: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-d078-81f5-be51-1423cb8c68a8/raw?se=2026-09-24T04%3A34%3A27Z&sp=r&sv=2026-02-06&sr=b&scid=683f275c-4f0f-5dc7-ac58-889ef70424af&skoid=de71a0d5-fb02-4fce-be69-9296aced242b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-24T04%3A29%3A18Z&ske=2026-09-25T04%3A29%3A18Z&sks=b&skv=2026-02-06&sig=ifv34nZyuroMmRM7xCGyiqSLg5epKUgHktELOSCSqag%3D'
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 2 --connect-timeout 20 "$SOURCE_URL" -o signed-update.json
+          echo '12de2163e892f9e67d16714c6ebac95a941049289c5a41159527869a1ddadcf4  signed-update.json' | sha256sum -c -
+      - name: Verify signature then publish atomically
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: python
+        run: |
+          import base64, hashlib, json, os, pathlib, subprocess, time, urllib.request, urllib.error
+          raw = pathlib.Path('signed-update.json').read_bytes()
+          expected = '12de2163e892f9e67d16714c6ebac95a941049289c5a41159527869a1ddadcf4'
+          assert hashlib.sha256(raw).hexdigest() == expected
+          env = json.loads(raw)
+          payload = base64.b64decode(env['payload'], validate=True)
+          sig = base64.b64decode(env['signature'], validate=True)
+          pub = 'MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAxdKXiDcNbbt1SKsNql+JTU2i2QI0bArhBOhuujjsYfI9RlJKJBg4iHdv4WUT5xSefEzaIl4Bm5sYXZg2DAj6FivcGeN9jRidC61avTEkG5xPFfQ8ZU/OUwMt+teEPKdLGx6Ir1eVCiX3K6y7dgug5APMHxb2KHI39w8GKoMTM738Gx4Uk4QoKX3NqvyeWv5/CogTQKAkw+zlpgX2UeKaYYQgdrInggfyD7FzQGupBpqzu9SFZmXJ73lxJtDwnsktpfh5TpYftzimgRjkMOLwHjhFC15y63SwxBopEUUVAywIALneECG/b3Du/a1Y4tzyFb3h5F/XFPw7dwiOaencppJ/G4wckMIeLf8MTo0L5gzPdEKGtRNjyywuAheUde3fEf67BBns/uCyuuxRDWsJDzyuWjBsG01yexsHqaN7Bd7g0O7CQSmf7FL4KnLo1U3rtx7nfqCr+jzPw68pze7g2fqEbxrD4wZObwrR0fx2iW+o8FJCUETVjARoUxAQ1fIXAgMBAAE='
+          pathlib.Path('public.der').write_bytes(base64.b64decode(pub))
+          pathlib.Path('payload.bin').write_bytes(payload)
+          pathlib.Path('signature.bin').write_bytes(sig)
+          subprocess.run(['openssl','pkey','-pubin','-inform','DER','-in','public.der','-out','public.pem'], check=True)
+          subprocess.run(['openssl','dgst','-sha256','-verify','public.pem','-signature','signature.bin','payload.bin'], check=True)
+          p = json.loads(payload)
+          assert p['appId'] == 'com.atelier.calculs' and p['schema'] == 1
+          assert p['version'] == '1.3.0' and p['versionCode'] == 13000 and p['minShellVersion'] == 11000
+          html = base64.b64decode(p['html'], validate=True)
+          assert len(html) == 654946 and hashlib.sha256(html).hexdigest() == p['sha256'] == 'eabbe17d16e07174b88cbad5ca635cb8f12743fe875ae285bec1131f9aa59b00'
+          assert b'atelier-product-picker' in html and b'1.3.0' in html
+          repo = 'jprodrigue86/Rapports--talonnages-CDQ'
+          api = 'https://api.github.com/repos/' + repo
+          headers = {'Authorization':'Bearer ' + os.environ['GH_TOKEN'], 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28','User-Agent':'Calculs-Atelier-Publication'}
+          def call(path, method='GET', data=None):
+              body = json.dumps(data).encode() if data is not None else None
+              req = urllib.request.Request(api + path, data=body, headers=headers, method=method)
+              with urllib.request.urlopen(req, timeout=60) as r:
+                  return json.load(r)
+          blob = call('/git/blobs','POST',{'content':raw.decode(), 'encoding':'utf-8'})['sha']
+          assert blob == '45dfb6a4873879fb3ece2ed04befc3a1703eb935'
+          info = {'app':'Calculs d’atelier','version':p['version'],'versionCode':p['versionCode'],'minShellVersion':p['minShellVersion'],'releasedAt':p['releasedAt'],'channel':'latest.atelier-update.json','packageSha256':expected,'htmlSha256':p['sha256'],'packageBytes':len(raw),'htmlBytes':len(html),'notes':p['notes'],'machines':['V1','V2','L7','L8','L9','L10'],'verification':{'signature':'RSA-SHA256 validée avec la clé historique','calculationAndStorageGroups':35,'arithmeticCombinations':10000,'skuAndPlanningGroups':26,'chromiumRegressionGroups':16,'chromiumSkuGroups':20,'updaterGroups':24,'physicalDeviceTest':False},'privacy':'Contenu applicatif compilé et référentiel embarqué uniquement. Aucune saisie utilisateur, aucun historique local, aucune clé privée.'}
+          info_raw = json.dumps(info, ensure_ascii=False, indent=2) + '\n'
+          info_blob = call('/git/blobs','POST',{'content':info_raw,'encoding':'utf-8'})['sha']
+          folder = 'downloads/calculs-atelier/'
+          old = '737d0fd485f8512a18526181ac3df5707c17d863'
+          for attempt in range(3):
+              head = call('/git/ref/heads/main')['object']['sha']
+              current = call('/contents/' + folder + 'latest.atelier-update.json?ref=' + head)['sha']
+              assert current in (old,blob), 'Another application release exists; publication stopped.'
+              commit = call('/git/commits/' + head)
+              tree = call('/git/trees','POST',{'base_tree':commit['tree']['sha'],'tree':[
+                  {'path':folder + name,'mode':'100644','type':'blob','sha':blob}
+                  for name in ['latest.atelier-update.json','android-update.json','versions/1.3.0.atelier-update.json']
+              ] + [{'path':folder+'release-info.json','mode':'100644','type':'blob','sha':info_blob}]})['sha']
+              new = call('/git/commits','POST',{'message':'Calculs atelier 1.3 : SKU lié, recherche sans chevauchement, reset et six machines','tree':tree,'parents':[head]})['sha']
+              try:
+                  call('/git/refs/heads/main','PATCH',{'sha':new,'force':False})
+                  break
+              except urllib.error.HTTPError as e:
+                  if e.code not in (409,422) or attempt == 2: raise
+                  time.sleep(2)
+          for name in ['latest.atelier-update.json','android-update.json','versions/1.3.0.atelier-update.json']:
+              assert call('/contents/' + folder + name + '?ref=' + new)['sha'] == blob
+          for name in ['latest.atelier-update.json','android-update.json']:
+              url = 'https://raw.githubusercontent.com/' + repo + '/main/' + folder + name + '?release=' + new
+              req = urllib.request.Request(url, headers={'Cache-Control':'no-cache','Origin':'https://appassets.androidplatform.net'})
+              with urllib.request.urlopen(req, timeout=60) as r:
+                  downloaded = r.read()
+                  cors = r.headers.get('Access-Control-Allow-Origin')
+              assert downloaded == raw and cors == '*'
+          status = {'published':True,'version':'1.3.0','commit':new,'blob':blob,'sha256':expected,'publicRawVerified':True,'cors':'*','htmlBytes':len(html),'physicalDeviceTest':False}
+          pathlib.Path('publication-status.json').write_text(json.dumps(status, indent=2))
+          print(json.dumps(status, indent=2))
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atelier-1-3-publication-status
+          path: publication-status.json
+          retention-days: 1
