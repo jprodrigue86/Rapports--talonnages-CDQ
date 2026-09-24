@@ -1,3 +1,4 @@
+/* iPhone connection compatibility: 2026.09.24-iphone-rpc-r1 */
 /* Local UI; only authenticated data calls cross the Apps Script iframe. */
 (() => {
   'use strict';
@@ -13,8 +14,8 @@
   const endpoint='https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
   const allowed=new Set(['cdqRpc','reprendreActivationCDQ','creerDefiConnexionGoogleCDQ','verifierJetonGoogleCDQ','obtenirEtatAcces','connecterAvecCodeAcces','definirNip4ApresActivation','deverrouillerAvecNip','restaurerSessionApresBiometrie','reprendreSessionCourteCDQV2524']);
   const channel=crypto.randomUUID(), pending=new Map();
-  let frame, peer, peerOrigin='', serial=0, failed='';
-  const unavailable='La connexion CDQ ne répond pas. Vérifiez Internet et publiez la mise à jour V25.28 dans Script Manager, puis réessayez.';
+  let frame, peer, peerRelay=null, peerOrigin='', serial=0, failed='';
+  const unavailable='La connexion CDQ ne répond pas. Vérifiez Internet et réessayez. Si CDQ est déjà installé, actualisez l’application iPhone.';
   function settle(id,ok,value){
     const job=pending.get(id);if(!job)return;
     pending.delete(id);clearTimeout(job.timer);
@@ -40,7 +41,7 @@
         if(!bypassStartup&&name==='restaurerSessionApresBiometrie'&&window.cdqStartupUnlockV2529?.takeSession(args[0],success,failure,userObject))return;
         const id=String(++serial),job={id,name,args,success,failure,userObject,sent:false};
         pending.set(id,job);
-        job.timer=setTimeout(()=>settle(id,false,'La demande a expiré. Vérifiez son résultat avant de relancer une écriture.'),90000);
+        job.timer=setTimeout(()=>settle(id,false,name==='obtenirEtatAcces'?'La vérification de connexion a expiré. Appuyez sur Réessayer la connexion.':'La demande a expiré. Vérifiez son résultat avant de relancer une écriture.'),90000);
         if(!allowed.has(name)){settle(id,false,'Appel serveur non autorisé.');return;}
         if(navigator.onLine===false){settle(id,false,'Connexion Internet indisponible. Utilisez les copies hors ligne.');return;}
         if(failed){settle(id,false,failed);return;}
@@ -66,9 +67,17 @@
     if(!data||data.protocol!==1||data.channel!==channel||!trusted(event))return;
     if(data.type==='CDQ_EMBEDDED_READY'){
       if(peer&&peer!==event.source)return;
+      // WebKit reports the HtmlService relay as the source of asynchronous
+      // replies; READY still comes from its inner user-code frame. Pin only
+      // that exact parent during the validated handshake, never any sibling.
+      if(!peer){
+        try{const relay=event.source.parent;peerRelay=relay!==frame.contentWindow?relay:null;}catch(_){}
+      }
       peer=event.source;peerOrigin=event.origin;failed='';clearTimeout(bootTimer);
       for(const job of pending.values())send(job);
-    }else if(data.type==='CDQ_EMBEDDED_RESULT'&&event.source===peer&&event.origin===peerOrigin){
+    }else if(data.type==='CDQ_EMBEDDED_RESULT'&&peer&&
+      (event.source===peer||event.source===peerRelay)&&event.origin===peerOrigin&&
+      pending.get(String(data.id))?.sent===true&&typeof data.ok==='boolean'){
       settle(String(data.id),data.ok===true,data.ok?data.value:data.error);
     }
   });
