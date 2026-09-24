@@ -1,20 +1,38 @@
 {
   "app": "Calculs d’atelier",
-  "version": "1.3.0",
-  "versionCode": 13000,
+  "version": "1.4.0",
+  "versionCode": 14000,
   "minShellVersion": 11000,
-  "releasedAt": "2026-09-24T04:26:27.276570+00:00",
+  "releasedAt": "2026-09-24T11:16:18.940725+00:00",
   "channel": "latest.atelier-update.json",
-  "packageSha256": "12de2163e892f9e67d16714c6ebac95a941049289c5a41159527869a1ddadcf4",
-  "htmlSha256": "eabbe17d16e07174b88cbad5ca635cb8f12743fe875ae285bec1131f9aa59b00",
-  "packageBytes": 1165789,
-  "htmlBytes": 654946,
+  "packageSha256": "fdfa7a0adc5975ee4cec18d11d30eb3d31dfb4a5d56d479a2f4da2d795f268ec",
+  "htmlSha256": "9fa00f281a95d1ec315d26c7cdc647a63b67efe68c7f0209c7fc543bf822a1b5",
+  "packageBytes": 1174053,
+  "htmlBytes": 659526,
   "notes": [
-    "Recherche SKU commune aux runs et à Material Conversions, sans superposition des champs sur mobile.",
-    "Icône de réinitialisation du SKU en un clic, sans effacer les quantités saisies.",
-    "Nombre de sacs par caisse visible et automatique depuis le référentiel; ancien facteur non réutilisé pour un autre SKU.",
-    "Machines à planifier limitées à V1, V2, L7, L8, L9 et L10; anciennes fiches et historique conservés."
+    "Menu Matière des runs : Bag, Box, NW, ADH, SAP, VR, Film, RP et Lotion avec leurs unités.",
+    "Solde Mapxr : orthographe corrigée, saisie négative et bouton ± utilisable sans touche moins sur le clavier.",
+    "Sacs : conditionnement automatique conservé. Autres matières : demande du run en m/kg divisée par les caisses planifiées.",
+    "Unités cohérentes pour solde, demande, réserve et résultats; aucune conversion implicite entre pcs, m et kg.",
+    "Historique, thèmes, recherche SKU et six machines conservés."
   ],
+  "materials": {
+    "pcs": [
+      "Bag",
+      "Box"
+    ],
+    "m": [
+      "NW",
+      "SAP",
+      "VR",
+      "Film",
+      "RP"
+    ],
+    "kg": [
+      "ADH",
+      "Lotion"
+    ]
+  },
   "machines": [
     "V1",
     "V2",
@@ -28,10 +46,13 @@
     "calculationAndStorageGroups": 35,
     "arithmeticCombinations": 10000,
     "skuAndPlanningGroups": 26,
-    "chromiumRegressionGroups": 16,
-    "chromiumSkuGroups": 20,
+    "materialsAndSignedInputGroups": 41,
+    "materialArithmeticCombinations": 8000,
+    "chromiumRegressionGroups": 36,
+    "chromiumMaterialsGroups": 18,
     "updaterGroups": 24,
-    "physicalDeviceTest": false
+    "physicalDeviceTest": false,
+    "browserStorage": "fake-indexeddb; tests de navigateur avec stockage simulé"
   },
   "privacy": "Contenu applicatif compilé et référentiel embarqué uniquement. Aucune saisie utilisateur, aucun historique local, aucune clé privée."
 }
