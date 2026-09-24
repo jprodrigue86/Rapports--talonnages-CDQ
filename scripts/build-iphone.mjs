@@ -28,6 +28,9 @@ shell=once(shell,'<title>Rapports D’étalonnages</title>','<title>CDQ Étalonn
 selector=once(selector,'<head>','<head>\n<script src="./iphone-update.js"></script>');
 selector=removeScript(selector,'cdqV2313AndroidUpdaterJs');
 selector=removeScript(selector,'cdqV2503UpdateHandoffJs');
+// Retain RPC progress feedback; only the legacy web update controls are disabled.
+selector=once(selector,'function drawUpdate(){\n const host=', 'function drawUpdate(){\n return; // iPhone updates use the scoped worker.\n const host=');
+selector=once(selector,'async function check(force=false){\n if(checking||navigator.onLine===false||!force&&Date.now()-lastCheck<60000)return;', 'async function check(force=false){\n return; // iPhone updates use the scoped worker.\n if(checking||navigator.onLine===false||!force&&Date.now()-lastCheck<60000)return;');
 selector=once(selector,'<strong>Lien officiel d’installation</strong>','<strong>Application Android et application iPhone</strong>');
 selector=once(selector,'<button type="button" id="cdqShareNative"',`<a class="modal-button" href="https://jprodrigue86.github.io/Rapports--talonnages-CDQ/installer.html?platform=android" target="_blank" rel="noopener">Application Android — ouvrir / copier le lien</a>\n<a class="modal-button" href="https://jprodrigue86.github.io/Rapports--talonnages-CDQ/iphone/" target="_blank" rel="noopener">Application iPhone — ouvrir / copier le lien</a>\n<button type="button" id="cdqShareNative"`);
 selector=selector.replaceAll('Les écrans et les images se mettent à jour avec l’APK. Script Manager met à jour les services CDQ.','Sur iPhone, vérifiez la mise à jour ici puis relancez après avoir enregistré vos documents.');
