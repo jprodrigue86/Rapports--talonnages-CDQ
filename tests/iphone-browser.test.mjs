@@ -29,7 +29,7 @@ async function ui(engine,name){
    if(url.startsWith('https://accounts.google.com/gsi/client'))return route.fulfill({contentType:type('gsi.js'),body:'window.google=window.google||{};window.google.accounts={id:{initialize(){},renderButton(){},prompt(){}}};'});
    if(url.startsWith('https://script.google.com/')&&url.includes('cdq_native_bridge=1')){
     const channel=new URL(url).searchParams.get('channel');
-    return route.fulfill({contentType:type('bridge.html'),body:`<iframe src="https://fixture-script.googleusercontent.com/bridge?channel=${channel}"></iframe>`});
+    return route.fulfill({contentType:type('bridge.html'),body:`<!doctype html><meta charset="utf-8"><iframe src="https://fixture-script.googleusercontent.com/bridge?channel=${channel}"></iframe>`});
    }
    if(url.startsWith('https://fixture-script.googleusercontent.com/bridge')){
     const channel=new URL(url).searchParams.get('channel');
@@ -41,11 +41,11 @@ async function ui(engine,name){
       if(name==='cdqRpc'){if(args[0]==='obtenirDossiersClients')return setTimeout(()=>done([{id:'client_fixture_12345',nom:'Client de vérification'}]),20);return setTimeout(()=>done([]),20);}
       window.failure?.(Error('Unexpected fixture method '+name));
      };}})}};`;
-    return route.fulfill({contentType:type('fixture.html'),body:`<script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
+    return route.fulfill({contentType:type('fixture.html'),body:`<!doctype html><meta charset="utf-8"><script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
    }
    return route.abort();
   });
-  page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+  page=await context.newPage();page.on('pageerror',e=>errors.push(e.stack||e.message));
   await page.goto(publicRoot+'installer.html');
   assert.equal(await page.locator('#android-title').innerText(),'Application Android');
   assert.equal(await page.locator('#iphone-title').innerText(),'Application iPhone');
@@ -84,7 +84,7 @@ async function ui(engine,name){
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 function fixture(release){
  const files={
-  'index.html':Buffer.from(`<!doctype html><html data-cdq-iphone-release="${release}" data-cdq-iphone-version="25.30"><head><script src="./iphone-update.js"></script></head><body><input id="unsaved" value="draft"></body></html>`),
+  'index.html':Buffer.from(`<!doctype html><html data-cdq-iphone-release="${release}" data-cdq-iphone-version="25.30"><head><meta charset="utf-8"><script src="./iphone-update.js"></script></head><body><input id="unsaved" value="draft"></body></html>`),
   'iphone-update.js':Buffer.from(read('iphone-source/iphone-update.js')),
   'asset.txt':Buffer.from('immutable fixture '+release)
  };
@@ -101,7 +101,7 @@ async function updates(engine,name){
  const browser=await engine.launch();let page;const errors=[];
  try{
   const context=await browser.newContext({...devices['iPhone 13']});page=await context.newPage();
-  page.on('pageerror',e=>errors.push(e.message));
+  page.on('pageerror',e=>errors.push(e.stack||e.message));
   await page.goto(base);await page.evaluate(()=>navigator.serviceWorker.ready);
   await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);
   console.log(name+': first verified service worker active.');
