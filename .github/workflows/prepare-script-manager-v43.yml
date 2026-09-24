@@ -1,3 +1,4 @@
+# Only the isolated feature branch is written; no Google project or release is deployed.
 name: Prepare and validate Script Manager V43
 on:
   push:
