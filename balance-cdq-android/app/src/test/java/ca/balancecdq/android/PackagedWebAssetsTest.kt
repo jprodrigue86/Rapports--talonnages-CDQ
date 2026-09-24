@@ -17,9 +17,11 @@ class PackagedWebAssetsTest {
         val loader = loader()
         val response = loader.intercept(Uri.parse(PackagedWebAssets.START_URL))!!
         assertEquals(200, response.statusCode)
-        assertTrue(response.data.bufferedReader().readText().contains("25.29-demarrage-parallele"))
+        assertTrue(response.data.bufferedReader().readText().contains("25.30-fichiers-immediats"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}Selector.html"))!!
-        assertTrue(selector.data.bufferedReader().readText().contains("./embedded-rpc.js"))
+        val html = selector.data.bufferedReader().readText()
+        assertTrue(html.contains("./embedded-rpc.js"))
+        assertTrue(html.contains("id=\"cdq-instant-files-2530\""))
         val image = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}assets/music-wall-android-v2523.webp"))!!
         assertEquals("image/webp", image.mimeType)
         assertTrue(image.data.readBytes().size > 100000)
