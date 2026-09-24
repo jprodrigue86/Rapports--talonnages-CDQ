@@ -1,0 +1,26 @@
+name: Publish Calculs Atelier 1.2 signed update
+on:
+  push:
+    branches: [calculs-atelier-v1-2-build]
+    paths: [.github/workflows/calculs-atelier-publish-v1-2.yml]
+permissions:
+  contents: write
+concurrency:
+  group: calculs-atelier-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Retrieve the already-signed application content
+        env:
+          PACKAGE_URL: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-a76c-81f5-a9e8-6dda882cefe3/raw?se=2026-09-24T03%3A50%3A31Z&sp=r&sv=2026-02-06&sr=b&scid=495648be-b177-556d-b37a-8a72e86b4bac&skoid=de71a0d5-fb02-4fce-be69-9296aced242b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-24T03%3A12%3A49Z&ske=2026-09-25T03%3A12%3A49Z&sks=b&skv=2026-02-06&sig=ip9nxwNffeiKwCkX6rLcIZyTjjfK9AgPRNIxnuBqUoU%3D'
+        run: curl --fail --silent --show-error --retry 2 --max-time 60 "$PACKAGE_URL" -o /tmp/atelier-update.json
+      - name: Verify signature, complete app, version and publish atomically
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/calculs-atelier-publish-1.2.cjs /tmp/atelier-update.json
