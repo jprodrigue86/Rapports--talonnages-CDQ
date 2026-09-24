@@ -1,6 +1,15 @@
 /* Local UI; only authenticated data calls cross the Apps Script iframe. */
 (() => {
   'use strict';
+  // The installed shell owns one connection, opened before Selector parses.
+  // Reuse it only through a direct, same-origin parent; web/legacy frames keep
+  // their own checked connection and cannot borrow an unrelated parent's RPC.
+  try{
+    if(window.parent!==window && window.parent.location.origin===location.origin && window.parent.cdqEmbeddedRpcV2529){
+      window.google={script:{run:window.parent.cdqEmbeddedRpcV2529.run}};
+      return;
+    }
+  }catch(_){}
   const endpoint='https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
   const allowed=new Set(['cdqRpc','reprendreActivationCDQ','creerDefiConnexionGoogleCDQ','verifierJetonGoogleCDQ','obtenirEtatAcces','connecterAvecCodeAcces','definirNip4ApresActivation','deverrouillerAvecNip','restaurerSessionApresBiometrie','reprendreSessionCourteCDQV2524']);
   const channel=crypto.randomUUID(), pending=new Map();
@@ -21,13 +30,14 @@
     job.sent=true;
     peer.postMessage({type:'CDQ_EMBEDDED_CALL',protocol:1,channel,id:job.id,name:job.name,args:job.args},peerOrigin);
   }
-  function runner(success,failure,userObject){
+  function runner(success,failure,userObject,bypassStartup=false){
     return new Proxy(Object.create(null),{get(_target,name){
-      if(name==='withSuccessHandler')return fn=>runner(fn,failure,userObject);
-      if(name==='withFailureHandler')return fn=>runner(success,fn,userObject);
-      if(name==='withUserObject')return obj=>runner(success,failure,obj);
+      if(name==='withSuccessHandler')return fn=>runner(fn,failure,userObject,bypassStartup);
+      if(name==='withFailureHandler')return fn=>runner(success,fn,userObject,bypassStartup);
+      if(name==='withUserObject')return obj=>runner(success,failure,obj,bypassStartup);
       if(typeof name!=='string'||name==='then')return undefined;
       return (...args)=>{
+        if(!bypassStartup&&name==='restaurerSessionApresBiometrie'&&window.cdqStartupUnlockV2529?.takeSession(args[0],success,failure,userObject))return;
         const id=String(++serial),job={id,name,args,success,failure,userObject,sent:false};
         pending.set(id,job);
         job.timer=setTimeout(()=>settle(id,false,'La demande a expiré. Vérifiez son résultat avant de relancer une écriture.'),90000);
@@ -67,11 +77,14 @@
     for(const id of [...pending.keys()])settle(id,false,'Connexion interrompue. Vérifiez le résultat avant de relancer une écriture.');
   });
   window.google={script:{run:runner()}};
+  window.cdqEmbeddedRpcV2529={run:window.google.script.run,
+    prepareSession:token=>new Promise((resolve,reject)=>runner(resolve,reject,undefined,true).restaurerSessionApresBiometrie(token))};
+  window.dispatchEvent?.(new Event('cdq:rpc-ready-v2529'));
   function boot(){
     frame=document.createElement('iframe');frame.id='cdq-data-connection';frame.title='Connexion sécurisée CDQ';
     frame.hidden=true;frame.tabIndex=-1;frame.setAttribute('aria-hidden','true');
     frame.src=endpoint+'?cdq_native_bridge=1&channel='+encodeURIComponent(channel);
-    document.body.append(frame);
+    (document.body||document.documentElement).append(frame);
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+  boot();
 })();

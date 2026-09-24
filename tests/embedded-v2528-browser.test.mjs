@@ -2,12 +2,12 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const prefix=base+'native/v25.28/';
+const prefix=base+'native/v25.29/';
 const generated='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web/';
 const files=JSON.parse(fs.readFileSync(generated+'asset-manifest.json')).files;
 const bridge=fs.readFileSync('balance-cdq-android/web-source/server-bridge.js','utf8');
 const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
-let allowServer=false,finished=false,networkBlocked=false;
+let allowServer=false,allowSelector=true,finished=false,networkBlocked=false;
 try{
   const page=await browser.newPage(),errors=[],unexpected=[],calls=[];
   let bridgeRequested=false;
@@ -15,7 +15,7 @@ try{
   const bridgeStart=new Promise(resolve=>{bridgeStarted=resolve;});
   page.on('pageerror',error=>errors.push(error.message));
   await page.setViewport({width:393,height:850,isMobile:true,hasTouch:true});
-  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.28');
+  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.29');
   await page.exposeFunction('recordRpc',name=>calls.push(name));
   await page.evaluateOnNewDocument(()=>{
     window.BalanceCDQNative={biometric(id){window.testBiometricRequested=id;window.testBiometricCount=(window.testBiometricCount||0)+1;},loginGoogle(){}};
@@ -25,7 +25,11 @@ try{
     const url=request.url();
     if(url.startsWith('data:')||url.startsWith('blob:'))return request.continue();
     const relative=url.startsWith(prefix)?url.slice(prefix.length).split('?')[0]:url.startsWith(base)?url.slice(base.length).split('?')[0]:'';
-    if(files[relative])return request.respond({status:200,contentType:files[relative].mime+(files[relative].text?'; charset=utf-8':''),headers:{'Access-Control-Allow-Origin':'https://jprodrigue86.github.io'},body:fs.readFileSync(generated+relative)});
+    if(files[relative]){
+      if(relative==='Selector.html')while(!allowSelector&&!finished)await new Promise(r=>setTimeout(r,20));
+      if(finished)return;
+      return request.respond({status:200,contentType:files[relative].mime+(files[relative].text?'; charset=utf-8':''),headers:{'Access-Control-Allow-Origin':'https://jprodrigue86.github.io'},body:fs.readFileSync(generated+relative)});
+    }
     // Model native shouldInterceptRequest: installed files remain readable while
     // every request requiring the network fails, including the server bridge.
     if(networkBlocked)return request.abort('internetdisconnected');
@@ -57,7 +61,7 @@ try{
       return request.respond({status:200,contentType:'text/html; charset=utf-8',body:`<script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
     }
     // The explicitly live version check is allowed; public/static UI downloads are not.
-    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.28',build:'2026.09.23-v25.28-apk-embarquee'})});
+    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.29',build:'2026.09.24-v25.29-demarrage-parallele'})});
     unexpected.push(url);return request.abort();
   });
   // Puppeteer's navigation lifecycle also waits on child frames. Here the
@@ -88,17 +92,24 @@ try{
     localStorage.setItem('cdqLastUnlockEmailV2511','test@example.invalid');
     localStorage.removeItem('cdqResumeSessionV2524');
   });
-  allowServer=false;
+  allowServer=false;allowSelector=false;
   await navigation.send('Page.reload');
   await page.waitForFunction(()=>window.testBiometricRequested,{timeout:10000});
-  selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');
-  assert.equal(await selector.evaluate(()=>cdqAccessState),'pending');
+  assert.equal(page.frames().some(frame=>frame.url()===prefix+'Selector.html'),false);
+  assert.match(await page.evaluate(()=>window.testBiometricRequested),/^startup-/);
   assert.equal(await page.evaluate(()=>window.testBiometricCount),1);
   await page.evaluate(()=>window.cdqNativeBiometricResultV2507(window.testBiometricRequested,true,''));
-  assert.equal(await selector.evaluate(()=>cdqAccessState),'pending');
+  // Even session validation starts before the large UI is allowed to download.
   allowServer=true;
-  await selector.waitForFunction(()=>cdqAccessState==='ready',{timeout:20000});
+  for(let i=0;i<400&&!calls.includes('restaurerSessionApresBiometrie');i++)await new Promise(r=>setTimeout(r,25));
   assert.ok(calls.includes('restaurerSessionApresBiometrie'));
+  assert.equal(page.frames().some(frame=>frame.url()===prefix+'Selector.html'),false);
+  allowSelector=true;
+  await page.waitForFunction(()=>document.querySelector('#app')?.contentDocument?.querySelector('#accessOverlay'));
+  selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');
+  await selector.waitForFunction(()=>cdqAccessState==='ready',{timeout:20000});
+  assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,1);
+  assert.equal(await page.evaluate(()=>window.testBiometricCount),1);
   assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
   // Disable all nonpackaged requests at the interception boundary. CDP's global
   // emulateNetworkConditions can hang on detached cross-origin iframe targets
@@ -129,5 +140,17 @@ try{
   });
   assert.ok(template.size>500000);assert.equal(template.type,'application/pdf');
   assert.equal(template.pages,1);assert.ok(template.fields>20);assert.ok(template.pixels>10000);
-  console.log('PASS: local interface before remote data; nested authenticated bridge; clients; biometric requested once before connection, access waits for server; no online static assets; embedded PDF offline.');
+  // Cancelling the early prompt must not authenticate, even with a live server.
+  networkBlocked=false;
+  await page.evaluate(()=>{window.testBiometricRequested='';});
+  await navigation.send('Page.reload');
+  await page.waitForFunction(()=>window.testBiometricRequested,{timeout:10000});
+  await page.evaluate(()=>window.cdqNativeBiometricResultV2507(window.testBiometricRequested,false,'Annulée'));
+  await page.waitForFunction(()=>document.querySelector('#app')?.contentDocument?.querySelector('#accessOverlay'));
+  selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');
+  await selector.waitForFunction(()=>cdqAccessState==='input',{timeout:15000});
+  assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,1);
+  assert.equal(await page.evaluate(()=>window.testBiometricCount),1);
+  assert.deepEqual(errors,[]);
+  console.log('PASS: biometric and Google connection before Selector bytes; server session starts only after fingerprint success and is reused once; cancelled fingerprint remains locked; installed assets and PDF work offline.');
 }finally{finished=true;await browser.close();}
