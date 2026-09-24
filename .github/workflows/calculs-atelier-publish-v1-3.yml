@@ -40,7 +40,7 @@ jobs:
           assert p['version'] == '1.3.0' and p['versionCode'] == 13000 and p['minShellVersion'] == 11000
           html = base64.b64decode(p['html'], validate=True)
           assert len(html) == 654946 and hashlib.sha256(html).hexdigest() == p['sha256'] == 'eabbe17d16e07174b88cbad5ca635cb8f12743fe875ae285bec1131f9aa59b00'
-          assert b'atelier-product-picker' in html and b'1.3.0' in html
+          assert b'sku-picker' in html and b'1.3.0' in html
           repo = 'jprodrigue86/Rapports--talonnages-CDQ'
           api = 'https://api.github.com/repos/' + repo
           headers = {'Authorization':'Bearer ' + os.environ['GH_TOKEN'], 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28','User-Agent':'Calculs-Atelier-Publication'}
