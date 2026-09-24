@@ -1,0 +1,89 @@
+name: Prepare and verify CDQ Android 25.30
+on:
+  push:
+    branches: [fix/cdq-instant-files-v2530]
+    paths:
+      - 'scripts/*instant-files-v2530.mjs'
+      - '.github/workflows/prepare-instant-files-v2530.yml'
+permissions:
+  contents: write
+concurrency:
+  group: cdq-2530-preparation
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/cdq-instant-files-v2530
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply versioned source changes
+        run: |
+          if grep -q 'versionCode = 2529' balance-cdq-android/app/build.gradle.kts; then
+            node scripts/prepare-instant-files-v2530.mjs
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/build-embedded-android-v2528.mjs balance-cdq-android/app/build.gradle.kts balance-cdq-android/app/src/main/java/ca/balancecdq/android/PackagedWebAssets.kt .github/workflows/build-balance-cdq-android.yml tests/embedded-v2528.test.mjs tests/embedded-v2528-browser.test.mjs tests/embedded-startup-v2529.test.mjs
+          if ! git diff --cached --quiet; then
+            git commit -m 'Balance CDQ 25.30 : intégrer le correctif et aligner la compilation'
+            git push origin HEAD:fix/cdq-instant-files-v2530
+          fi
+      - name: File mutation tests
+        run: node scripts/test-instant-files-v2530.mjs
+      - name: Generate and validate the installed interface
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Build and test Android
+        working-directory: balance-cdq-android
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleRelease
+      - name: Prepare unsigned handoff
+        run: |
+          set -euo pipefail
+          APK=balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          mkdir -p /tmp/cdq-2530
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-2530/badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2530' versionName='25.30'" /tmp/cdq-2530/badging.txt
+          ! grep -q application-debuggable /tmp/cdq-2530/badging.txt
+          cp "$APK" /tmp/cdq-2530/Balance-CDQ-Android-25.30-unsigned.apk
+          cp "$TOOLS/lib/apksigner.jar" "$TOOLS/zipalign" /tmp/cdq-2530/
+          git rev-parse HEAD > /tmp/cdq-2530/source-commit.txt
+          sha256sum "$APK" > /tmp/cdq-2530/unsigned-sha256.txt
+          cp scripts/instant-files-v2530.mjs scripts/test-instant-files-v2530.mjs /tmp/cdq-2530/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Balance-CDQ-Android-25.30-release-handoff
+          path: /tmp/cdq-2530/*
+          retention-days: 2
+      - name: Browser regression test
+        run: |
+          npm install --no-save puppeteer-core@24
+          node tests/embedded-v2528-browser.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Balance-CDQ-25.30-test-results
+          path: |
+            balance-cdq-android/app/build/test-results/testDebugUnitTest/*.xml
+            /tmp/cdq-v2528-*.png
+          if-no-files-found: ignore
+          retention-days: 2
