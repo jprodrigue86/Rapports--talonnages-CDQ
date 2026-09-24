@@ -1,0 +1,30 @@
+name: Verify public Calculs Atelier 1.2 channel
+on:
+  push:
+    branches: [calculs-atelier-v1-2-build]
+    paths: [.github/workflows/calculs-atelier-verify-public-v1-2.yml]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Verify the exact public URL used by the app
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 2 --max-time 60 --dump-header /tmp/headers -H 'Origin: https://appassets.androidplatform.net' -H 'Cache-Control: no-cache' 'https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/calculs-atelier/latest.atelier-update.json' -o /tmp/update.json
+          python3 - <<'PY'
+          import hashlib,json,base64
+          from pathlib import Path
+          data=Path('/tmp/update.json').read_bytes()
+          assert hashlib.sha256(data).hexdigest()=='e49a3ab13d3337570935fbb44453d245fcc6ef4386ecc3f86a4f3e3a7b3108e3'
+          headers=Path('/tmp/headers').read_text().lower()
+          assert 'access-control-allow-origin: *' in headers or 'access-control-allow-origin: https://appassets.androidplatform.net' in headers
+          p=json.loads(base64.b64decode(json.loads(data)['payload']))
+          assert p['versionCode']==12000 and p['minShellVersion']==11000
+          html=base64.b64decode(p['html'])
+          assert hashlib.sha256(html).hexdigest()==p['sha256']
+          print(json.dumps({'publicUrlVerified':True,'cors':True,'version':p['version'],'bytes':len(data),'htmlBytes':len(html),'sha256Verified':True}))
+          PY
