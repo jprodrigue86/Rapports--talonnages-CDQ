@@ -28,6 +28,9 @@ shell=once(shell,'<title>Rapports D’étalonnages</title>','<title>CDQ Étalonn
 selector=once(selector,'<head>','<head>\n<script src="./iphone-update.js"></script>');
 selector=removeScript(selector,'cdqV2313AndroidUpdaterJs');
 selector=removeScript(selector,'cdqV2503UpdateHandoffJs');
+// WebKit can reject a storage transaction with null. Keep the original failure
+// non-fatal and visible in the console; do not claim the offline model is cached.
+selector=once(selector,"}catch(e){console.warn('Modèle intégré :',e.message||String(e));}","}catch(e){console.warn('Modèle intégré :',(e&&e.message)||String(e)||'Cache indisponible');}");
 // Retain RPC progress feedback; only the legacy web update controls are disabled.
 selector=once(selector,'function drawUpdate(){\n const host=', 'function drawUpdate(){\n return; // iPhone updates use the scoped worker.\n const host=');
 selector=once(selector,'async function check(force=false){\n if(checking||navigator.onLine===false||!force&&Date.now()-lastCheck<60000)return;', 'async function check(force=false){\n return; // iPhone updates use the scoped worker.\n if(checking||navigator.onLine===false||!force&&Date.now()-lastCheck<60000)return;');
