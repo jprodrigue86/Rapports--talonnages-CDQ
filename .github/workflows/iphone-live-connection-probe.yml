@@ -2,13 +2,13 @@ name: iPhone public connection diagnostic
 on:
   push:
     branches: [codex/iphone-connection-repair]
-    paths: ['.github/workflows/iphone-live-connection-probe.yml']
+    paths: ['.github/workflows/iphone-live-connection-probe.yml', 'scripts/diagnose-iphone-rpc-layout.mjs']
 permissions:
   contents: read
 jobs:
   public-read-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,67 +19,6 @@ jobs:
       - name: Install test browsers
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2
-          npx playwright install --with-deps chromium webkit
-      - name: Read-only anonymous startup in Chromium and WebKit
-        run: |
-          cat > /tmp/cdq-public-probe.mjs <<'JS'
-          import {createRequire} from 'node:module';
-          const {chromium,webkit}=createRequire(process.cwd()+'/probe.cjs')('playwright');
-          const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/iphone/app/';
-          const endpoint='https://script.google.com/macros/s/AKfycbx8NuvklaL-azJBIVyCMKjPk_Hd9z62Q_2-NPl3vqw2kJRpI5wy63J8xkBN5toOFxEw/exec';
-          function safeUrl(raw){try{const u=new URL(raw);return u.hostname+(u.hostname==='script.google.com'?'/macros/.../exec':u.hostname.endsWith('googleusercontent.com')?'/sandbox':u.pathname);}catch{return 'unknown';}}
-          await Promise.all(Object.entries({chromium,webkit}).map(async([engine,type])=>{
-            const browser=await type.launch();
-            const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
-            const page=await context.newPage();
-            const events=[],failures=[],responses=[];
-            await page.addInitScript(()=>{
-              window.__probeMessages=[];
-              addEventListener('message',e=>{if(typeof e.data?.type==='string'&&/^CDQ_EMBEDDED_/.test(e.data.type))window.__probeMessages.push({type:e.data.type,origin:e.origin,ok:e.data.ok});});
-            });
-            page.on('requestfailed',r=>failures.push({url:safeUrl(r.url()),error:r.failure()?.errorText}));
-            page.on('response',r=>{if(/script\.google|googleusercontent/.test(r.url()))responses.push({url:safeUrl(r.url()),status:r.status()});});
-            page.on('pageerror',e=>events.push({name:e.name,message:String(e.message).replace(/https?:\/\/\S+/g,'[url]').slice(0,240)}));
-            try{
-              await page.goto(base,{waitUntil:'domcontentloaded',timeout:60000});
-              await page.waitForTimeout(97000);
-              const state=await page.evaluate(()=>({
-                release:document.documentElement.dataset.cdqIphoneRelease,
-                messages:window.__probeMessages,
-                frames:[...document.querySelectorAll('iframe')].map(f=>({id:f.id,hidden:f.hidden})),
-                selector:(()=>{try{const f=[...document.querySelectorAll('iframe')].find(f=>f.src.includes('Selector.html'));const t=f?.contentDocument?.body?.innerText||'';return {timeout:t.includes('La demande a expiré'),unavailable:t.includes('Connexion momentanément indisponible'),google:t.includes('Google'),activation:t.includes('activation'),length:t.length};}catch{return {inaccessible:true};}})()
-              }));
-              console.log(JSON.stringify({engine,scenario:'published-app-anonymous',state,events,failures:failures.slice(0,15),responses:responses.slice(0,25)}));
-              // Reuse the published transport under the expected site origin.
-              // Only the top test document is replaced. Google and its sandbox
-              // are real network responses, not mocked. No session is supplied.
-              const probe=await context.newPage();
-              await probe.route(base+'__read_only_probe__',r=>r.fulfill({contentType:'text/html',body:'<!doctype html><script src="./embedded-rpc.js"></script><body>Read-only transport diagnostic</body>'}));
-              await probe.goto(base+'__read_only_probe__',{waitUntil:'domcontentloaded',timeout:60000});
-              const call=await probe.evaluate(()=>new Promise(resolve=>{
-                const started=Date.now();let done=false;
-                const finish=value=>{if(done)return;done=true;resolve({...value,ms:Date.now()-started});};
-                const errors=['La demande a expiré','La connexion CDQ ne répond pas','Appel serveur non autorisé'];
-                google.script.run.withSuccessHandler(v=>finish({ok:true,authorized:v?.autorise===true})).withFailureHandler(e=>finish({ok:false,error:errors.find(s=>String(e?.message).includes(s))||'SERVER_ERROR'})).obtenirEtatAcces('','');
-                setTimeout(()=>finish({ok:false,error:'PROBE_TIMEOUT'}),100000);
-              }));
-              console.log(JSON.stringify({engine,scenario:'real-google-transport-anonymous-read',call}));
-              // The same read-only function in Google's own top-level page.
-              const direct=await context.newPage();
-              await direct.goto(endpoint+'?cdq_native_bridge=1&channel=read-only-connection-diagnostic-20260924',{waitUntil:'domcontentloaded',timeout:60000});
-              await direct.waitForTimeout(5000);
-              let directResult={ok:false,error:'NO_GOOGLE_SANDBOX'};
-              for(const f of direct.frames()){
-                if(!await f.evaluate(()=>Boolean(window.google?.script?.run)).catch(()=>false))continue;
-                directResult=await f.evaluate(()=>new Promise(resolve=>{
-                  let done=false;const finish=v=>{if(done)return;done=true;resolve(v);};
-                  google.script.run.withSuccessHandler(v=>finish({ok:true,authorized:v?.autorise===true})).withFailureHandler(()=>finish({ok:false,error:'SERVER_ERROR'})).obtenirEtatAcces('','');
-                  setTimeout(()=>finish({ok:false,error:'DIRECT_READ_TIMEOUT'}),95000);
-                }));break;
-              }
-              console.log(JSON.stringify({engine,scenario:'google-top-level-anonymous-read',result:directResult}));
-            }catch(e){console.log(JSON.stringify({engine,probeError:String(e.message).replace(/https?:\/\/\S+/g,'[url]').slice(0,300)}));process.exitCode=1;}
-            await context.close();await browser.close();
-          }));
-          JS
-          node /tmp/cdq-public-probe.mjs
+          npx playwright install --with-deps webkit
+      - name: Compare layout with real Google and anonymous read-only calls
+        run: node scripts/diagnose-iphone-rpc-layout.mjs
