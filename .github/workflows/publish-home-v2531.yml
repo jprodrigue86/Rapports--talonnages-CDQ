@@ -1,0 +1,105 @@
+name: Verify signed Home release and paired iPhone 25.31
+on:
+  push:
+    branches: [fix/home-underline-v2531]
+    paths:
+      - 'releases/25.31-signing-delta.json'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: cdq-home-2531-publication
+  cancel-in-progress: false
+jobs:
+  verify-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/home-underline-v2531
+          fetch-depth: 0
+      - name: Read the exact unsigned handoff reference
+        id: handoff
+        run: |
+          python3 - <<'PY'
+          import json,os
+          s=json.load(open('releases/25.31-signing-delta.json'))
+          assert s['schema']=='cdq-signed-apk-delta-v1'
+          assert isinstance(s['runId'],int) and s['runId']>0
+          assert s['artifactName']=='Balance-CDQ-Android-25.31-release-handoff'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('run_id='+str(s['runId'])+'\n')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.handoff.outputs.run_id }}
+          name: Balance-CDQ-Android-25.31-release-handoff
+          path: /tmp/cdq-home-handoff
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Reconstruct and verify the already signed public APK; no signing key in CI
+        run: |
+          python3 scripts/publish-home-v2531.py --handoff /tmp/cdq-home-handoff --spec releases/25.31-signing-delta.json
+          chmod +x /tmp/cdq-home-handoff/zipalign
+          /tmp/cdq-home-handoff/zipalign -c -P 16 4 downloads/Balance-CDQ-Android-25.31.apk
+      - name: Generate the paired release and verify unchanged assets
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node tests/iphone-install.test.mjs
+          node scripts/test-instant-files-v2530.mjs
+          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/iphone-rpc-compat.test.mjs tests/release-references.test.mjs
+      - name: Install browser engines
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2 puppeteer-core@24
+          npx playwright install --with-deps chromium webkit
+      - name: Verify Home-only appearance, mobile behavior and update lifecycle
+        run: |
+          node tests/home-underline-v2531.browser.mjs
+          node tests/iphone-browser.test.mjs
+          node tests/embedded-v2528-browser.test.mjs
+      - name: Verify actual anonymous Google connection on both browser engines
+        run: node tests/iphone-rpc-live.test.mjs
+      - name: Regenerate final iPhone files and verify checksums again
+        run: |
+          node scripts/build-iphone.mjs
+          node tests/iphone-install.test.mjs
+      - name: Commit only verified public application files to the isolated branch
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          paths=subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],text=True).splitlines()
+          allowed={'downloads/Balance-CDQ-Android-25.31.apk','downloads/Balance-CDQ-Android-25.31.zip','downloads/android-release-update.json','installer.html'}
+          for line in paths:
+              p=line[3:]
+              if p not in allowed and not p.startswith(('iphone/','node_modules/')):
+                  raise SystemExit('Unexpected generated change: '+p)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add downloads/Balance-CDQ-Android-25.31.apk downloads/Balance-CDQ-Android-25.31.zip downloads/android-release-update.json installer.html iphone/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Publier CDQ 25.31 signé et iPhone : retirer uniquement le trait Accueil'
+            git push origin HEAD:fix/home-underline-v2531
+          fi
+          git rev-parse HEAD
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CDQ-25.31-publication-verification
+          path: |
+            /tmp/cdq-home-test/
+            /tmp/cdq-iphone-results/
+            /tmp/cdq-v2528-*.png
+          if-no-files-found: ignore
+          retention-days: 2

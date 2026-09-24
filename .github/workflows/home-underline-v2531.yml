@@ -27,7 +27,9 @@ jobs:
         with:
           node-version: '22'
       - name: Prepare narrow source correction
-        run: node scripts/prepare-home-v2531.mjs
+        run: |
+          node scripts/prepare-home-v2531.mjs
+          git diff --exit-code -- .github/workflows/
       - name: Generate Android and validate existing behavior
         run: |
           node scripts/build-embedded-android-v2528.mjs
@@ -35,15 +37,15 @@ jobs:
           node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/iphone-rpc-compat.test.mjs
       - name: Install browser engines
         run: |
-          npm install --no-save --package-lock=false playwright@1.58.2
-          npx playwright install --with-deps chromium webkit
+          npm install --no-save --package-lock=false playwright@1.58.2 >/tmp/cdq-browser-install.log 2>&1 || { tail -50 /tmp/cdq-browser-install.log; exit 1; }
+          npx playwright install --with-deps chromium webkit >>/tmp/cdq-browser-install.log 2>&1 || { tail -50 /tmp/cdq-browser-install.log; exit 1; }
       - name: Reproduce and verify only the Home line disappears
         run: node tests/home-underline-v2531.browser.mjs
       - name: Commit validated source changes only
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add scripts/build-embedded-android-v2528.mjs balance-cdq-android/app/build.gradle.kts balance-cdq-android/app/src/main/java/ca/balancecdq/android/PackagedWebAssets.kt .github/workflows/build-balance-cdq-android.yml tests/embedded-v2528.test.mjs tests/embedded-v2528-browser.test.mjs tests/embedded-startup-v2529.test.mjs
+          git add scripts/build-embedded-android-v2528.mjs balance-cdq-android/app/build.gradle.kts balance-cdq-android/app/src/main/java/ca/balancecdq/android/PackagedWebAssets.kt tests/embedded-v2528.test.mjs tests/embedded-v2528-browser.test.mjs tests/embedded-startup-v2529.test.mjs
           if ! git diff --cached --quiet; then
             git commit -m 'Remove only the active Home underline in shared Android/iPhone source 25.31'
             git push origin HEAD:fix/home-underline-v2531
