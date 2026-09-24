@@ -41,20 +41,29 @@ les formulaires ouverts doivent être enregistrés avant la relance.
 
 Le lien est présent sur les pages d'installation Android/iPhone. L'APK Android
 et le ZIP restent masqués sur iPhone/iPad dans ces pages. Les deux parcours de
-partage restent séparés.
+partage restent séparés. Une actualisation effectuée dans Safari concerne ce
+contexte de navigation; elle ne prouve pas que le stockage séparé d'une icône
+installée sur l'écran d'accueil a déjà adopté la même livraison. L'application
+installée conserve son propre mécanisme de vérification et d'activation.
 
-## Contrôles
+## Contrôles et limites
 
 - `tests/iphone-rpc-compat.test.mjs` : identités exactes, origines, canaux,
   identifiants, messages tardifs et absence de rejeu.
 - `tests/iphone-recovery.browser.mjs` : Chromium/WebKit, annulation, confirmation,
   passage d'un ancien service worker au nouveau, première installation,
-  conservation d'une session et d'un document de test, réouverture hors ligne.
+  conservation d'une session locale et d'un document de test dans IndexedDB.
+  Le rechargement hors ligne est testé sur Chromium uniquement. L'émulation
+  hors ligne WebKit a produit une erreur interne de navigation; la réouverture
+  hors ligne d'un iPhone n'est donc pas validée par cette suite. Le code de ce
+  mode hors ligne n'est pas modifié par le correctif de connexion.
 - `tests/iphone-rpc-live.test.mjs` : appel anonyme sur le vrai service Google,
   puis démarrage de l'interface jusqu'à l'écran de connexion Google, sans
   connexion à un compte, sans lecture ou écriture de dossier client.
 - Les contrôles existants iPhone/Android vérifient les liens, l'interface et les
   empreintes des images et du modèle PDF conservés.
+- Après publication, un contrôle séparé compare les empreintes des fichiers
+  servis par GitHub Pages puis teste la connexion anonyme avec ces vrais fichiers.
 
 Les résultats des contrôles sont disponibles dans GitHub Actions. Les tests
 anonymes ne valident ni un iPhone physique, ni la connexion au compte réel d'un
