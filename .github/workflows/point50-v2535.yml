@@ -1,4 +1,5 @@
 name: Point 50 standard 25.35 — release source
+# This run is the exact source bound to the detached public signing approval.
 
 on:
   push:
