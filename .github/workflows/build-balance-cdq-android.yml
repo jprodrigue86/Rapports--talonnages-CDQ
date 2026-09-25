@@ -13,10 +13,16 @@ on:
       - 'tests/embedded-v2528-browser.test.mjs'
       - 'whole-words-v2534.js'
       - 'scripts/whole-words-v2534.mjs'
+      - 'full-names-v2536.js'
+      - 'scripts/full-names-v2536.mjs'
+      - 'tests/full-names-v2536.test.mjs'
+      - 'full-names-v2536.js'
+      - 'scripts/full-names-v2536.mjs'
+      - 'tests/full-names-v2536.test.mjs'
       - 'safe-viewport-v2532.js'
       - 'scripts/*instant-files-v2530.mjs'
       - 'downloads/android-release-update.json'
-      - 'downloads/Balance-CDQ-Android-25.35.apk'
+      - 'downloads/Balance-CDQ-Android-25.36.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   push:
     branches: [main]
@@ -34,7 +40,7 @@ on:
       - 'safe-viewport-v2532.js'
       - 'scripts/*instant-files-v2530.mjs'
       - 'downloads/android-release-update.json'
-      - 'downloads/Balance-CDQ-Android-25.35.apk'
+      - 'downloads/Balance-CDQ-Android-25.36.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   workflow_dispatch:
 
@@ -60,6 +66,10 @@ jobs:
           fetch-depth: 0
       - name: Test immediate file updates
         run: node scripts/test-instant-files-v2530.mjs
+      - name: Build and test complete names
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node --test tests/full-names-v2536.test.mjs
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -127,7 +137,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.35-debug-CI-only
+          name: Balance-CDQ-Android-25.36-debug-CI-only
           path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 2
@@ -141,12 +151,12 @@ jobs:
           "$TOOLS/zipalign" -c -P 16 4 "$APK"
           mkdir -p /tmp/cdq-release-handoff
           "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-release-handoff/badging.txt
-          grep -q "package: name='ca.balancecdq.android' versionCode='2535' versionName='25.35'" /tmp/cdq-release-handoff/badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2536' versionName='25.36'" /tmp/cdq-release-handoff/badging.txt
           if grep -q 'application-debuggable' /tmp/cdq-release-handoff/badging.txt; then
             echo '::error::Release APK must not be debuggable.'
             exit 1
           fi
-          cp "$APK" /tmp/cdq-release-handoff/Balance-CDQ-Android-25.35-unsigned.apk
+          cp "$APK" /tmp/cdq-release-handoff/Balance-CDQ-Android-25.36-unsigned.apk
           cp "$TOOLS/lib/apksigner.jar" /tmp/cdq-release-handoff/apksigner.jar
           cp "$TOOLS/zipalign" /tmp/cdq-release-handoff/zipalign
           git rev-parse HEAD > /tmp/cdq-release-handoff/source-commit.txt
@@ -154,7 +164,7 @@ jobs:
       - name: Upload unsigned release handoff
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.35-release-handoff
+          name: Balance-CDQ-Android-25.36-release-handoff
           path: /tmp/cdq-release-handoff/*
           if-no-files-found: error
           retention-days: 2
