@@ -16,10 +16,9 @@ on:
       - 'full-names-v2536.js'
       - 'scripts/full-names-v2536.mjs'
       - 'tests/full-names-v2536.test.mjs'
+      - 'tests/full-names-v2536.browser.mjs'
       - 'safe-viewport-v2532.js'
       - 'scripts/*instant-files-v2530.mjs'
-      - 'downloads/android-release-update.json'
-      - 'downloads/Balance-CDQ-Android-25.36.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   push:
     branches: [main]
@@ -37,10 +36,9 @@ on:
       - 'full-names-v2536.js'
       - 'scripts/full-names-v2536.mjs'
       - 'tests/full-names-v2536.test.mjs'
+      - 'tests/full-names-v2536.browser.mjs'
       - 'safe-viewport-v2532.js'
       - 'scripts/*instant-files-v2530.mjs'
-      - 'downloads/android-release-update.json'
-      - 'downloads/Balance-CDQ-Android-25.36.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   workflow_dispatch:
 
@@ -64,37 +62,61 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Read Android release identity
+        id: meta
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,re
+          text=open('balance-cdq-android/app/build.gradle.kts').read()
+          code=re.search(r'versionCode\s*=\s*(\d+)',text)
+          name=re.search(r'versionName\s*=\s*"([^"]+)"',text)
+          assert code and name
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('code='+code.group(1)+'\n')
+              f.write('version='+name.group(1)+'\n')
+          PY
+          git rev-parse HEAD
+
       - name: Test immediate file updates
         run: node scripts/test-instant-files-v2530.mjs
-      - name: Build and test complete names
+
+      - name: Build and test current embedded interface
         run: |
           node scripts/build-embedded-android-v2528.mjs
           node --test tests/full-names-v2536.test.mjs
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - name: Install Android SDK packages
         shell: bash
         run: |
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" 'platform-tools' 'platforms;android-35' 'build-tools;35.0.0'
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
+
       - name: Build APK
         working-directory: balance-cdq-android
         run: gradle --no-daemon clean :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
-      - name: Validate APK
+
+      - name: Validate debug APK
         shell: bash
         run: |
           APK='balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk'
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee /tmp/balance-cdq-badging.txt
-          grep -q "package: name='ca.balancecdq.android'" /tmp/balance-cdq-badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='${{ steps.meta.outputs.code }}' versionName='${{ steps.meta.outputs.version }}'" /tmp/balance-cdq-badging.txt
+
       - name: Upload Android test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -103,6 +125,7 @@ jobs:
           path: balance-cdq-android/app/build/test-results/testDebugUnitTest/*.xml
           if-no-files-found: ignore
           retention-days: 2
+
       - name: Validate native shell + icon
         shell: bash
         run: |
@@ -117,6 +140,7 @@ jobs:
           grep -q 'android-auth.html' balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt
           grep -q 'cdqauth' balance-cdq-android/app/src/main/AndroidManifest.xml
           unzip -l "$APK" | grep -q 'res/drawable/ic_balance_cdq.png'
+
       - name: Validate Android web auth bridge
         shell: bash
         run: |
@@ -125,6 +149,7 @@ jobs:
           grep -q 'accounts.google.com/gsi/client' android-auth.html
           grep -q 'package=ca.balancecdq.android' android-auth.html
           grep -q 'android:scheme="cdqauth"' balance-cdq-android/app/src/main/AndroidManifest.xml
+
       - name: Validate single-choice Google auth
         shell: bash
         run: |
@@ -134,40 +159,60 @@ jobs:
           grep -q 'use_fedcm_for_button:true' android-auth.html
           grep -q 'location.replace(appIntent())' android-auth.html
           grep -q 'backButton.onclick' android-auth.html
-      - name: Upload APK artifact
+
+      - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.36-debug-CI-only
+          name: Balance-CDQ-Android-${{ steps.meta.outputs.version }}-debug-CI-only
           path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 2
-      - name: Prepare unsigned release for private signing
+
+      - name: Prepare unsigned release for certified signing
         shell: bash
         run: |
           set -euo pipefail
           APK='balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk'
           TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          VERSION='${{ steps.meta.outputs.version }}'
+          CODE='${{ steps.meta.outputs.code }}'
           test -s "$APK"
           "$TOOLS/zipalign" -c -P 16 4 "$APK"
           mkdir -p /tmp/cdq-release-handoff
           "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-release-handoff/badging.txt
-          grep -q "package: name='ca.balancecdq.android' versionCode='2536' versionName='25.36'" /tmp/cdq-release-handoff/badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='$CODE' versionName='$VERSION'" /tmp/cdq-release-handoff/badging.txt
           if grep -q 'application-debuggable' /tmp/cdq-release-handoff/badging.txt; then
             echo '::error::Release APK must not be debuggable.'
             exit 1
           fi
-          cp "$APK" /tmp/cdq-release-handoff/Balance-CDQ-Android-25.36-unsigned.apk
+          OUT="/tmp/cdq-release-handoff/Balance-CDQ-Android-$VERSION-unsigned.apk"
+          cp "$APK" "$OUT"
           cp "$TOOLS/lib/apksigner.jar" /tmp/cdq-release-handoff/apksigner.jar
           cp "$TOOLS/zipalign" /tmp/cdq-release-handoff/zipalign
           git rev-parse HEAD > /tmp/cdq-release-handoff/source-commit.txt
           sha256sum "$APK" > /tmp/cdq-release-handoff/unsigned-sha256.txt
+          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk "$OUT" --commit "$(git rev-parse HEAD)" > /tmp/cdq-release-handoff/request.json
+          python3 - <<'PY'
+          import json,os
+          info={
+            'versionName':os.environ['VERSION'],
+            'versionCode':int(os.environ['CODE']),
+            'sourceCommit':os.popen('git rev-parse HEAD').read().strip()
+          }
+          open('/tmp/cdq-release-handoff/release-info.json','w').write(json.dumps(info,indent=2)+'\n')
+          PY
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          CODE: ${{ steps.meta.outputs.code }}
+
       - name: Upload unsigned release handoff
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.36-release-handoff
+          name: Balance-CDQ-Android-${{ steps.meta.outputs.version }}-release-handoff
           path: /tmp/cdq-release-handoff/*
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 7
+
       - name: Upload reader preview
         uses: actions/upload-artifact@v4
         with:
@@ -175,8 +220,10 @@ jobs:
           path: balance-cdq-android/app/build/reports/pdf-reader-preview.png
           if-no-files-found: error
           retention-days: 2
-      - name: Verify published durable release
+
+      - name: Verify currently published durable release
         run: python3 balance-cdq-android/signing/verify-published-release.py --tools "$ANDROID_HOME/build-tools/35.0.0"
+
       - name: Keep legacy Android publication suspended
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         shell: bash
@@ -184,7 +231,6 @@ jobs:
           set -euo pipefail
           CHANNEL=$(python3 -c 'import json; print(json.load(open("downloads/android-update.json")).get("channel", "stable"))')
           if [ "$CHANNEL" != "paused" ]; then
-            echo '::error::Legacy update channel must remain paused during the signing-key replacement.'
+            echo '::error::Legacy update channel must remain paused.'
             exit 1
           fi
-          echo '::notice::Unsigned release retained for private signing; no APK or update manifest is published.'
