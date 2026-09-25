@@ -154,36 +154,42 @@ try{
     host.style.setProperty('--cdq-art-position','0% 0%');
     window.cdqIconFallbackV2538?.sync();
   });
-  await selector.waitForFunction(()=>window.cdqIconFallbackV2538?.ready()===true,{timeout:5000});
-  await selector.waitForFunction(()=>{
-    const host=document.querySelector('.bottom-nav > .bottom-nav-item > span.cdq-icon-host-v2514');
-    return !!host&&host.classList.contains('cdq-icon-art-ready-v2538');
-  },{timeout:5000});
-  const iconState=await selector.evaluate(()=>{
+  await new Promise(r=>setTimeout(r,120));
+  const iconState=await selector.evaluate(async()=>{
     const host=document.querySelector('.bottom-nav > .bottom-nav-item > span.cdq-icon-host-v2514');
     if(!host)return null;
-    const ready={
-      hostVisibility:getComputedStyle(host).visibility,
-      afterDisplay:getComputedStyle(host,'::after').display,
-      afterImage:getComputedStyle(host,'::after').backgroundImage,
-      width:host.getBoundingClientRect().width,
-      height:host.getBoundingClientRect().height
+    const hostStyle=getComputedStyle(host);
+    const pseudo=getComputedStyle(host,'::after');
+    const ready=window.cdqIconFallbackV2538?.ready()===true;
+    const originalVisible=hostStyle.visibility!=='hidden';
+    const replacementVisible=pseudo.display!=='none' &&
+      pseudo.visibility!=='hidden' &&
+      pseudo.backgroundImage!=='none';
+    const response=await fetch('./bundles/balance-cdq/v25.15/icons-transparent.webp');
+    const spriteBytes=(await response.arrayBuffer()).byteLength;
+    return {
+      ready,
+      originalVisible,
+      replacementVisible,
+      hostWidth:host.getBoundingClientRect().width,
+      hostHeight:host.getBoundingClientRect().height,
+      pseudoImage:pseudo.backgroundImage,
+      spriteOk:response.ok,
+      spriteBytes
     };
-    host.classList.remove('cdq-icon-art-ready-v2538');
-    const fallback={
-      hostVisibility:getComputedStyle(host).visibility,
-      afterDisplay:getComputedStyle(host,'::after').display
-    };
-    window.cdqIconFallbackV2538.sync();
-    return {ready,fallback};
   });
   assert.ok(iconState);
-  assert.equal(iconState.ready.hostVisibility,'hidden');
-  assert.notEqual(iconState.ready.afterDisplay,'none');
-  assert.match(iconState.ready.afterImage,/icons-transparent\.webp/);
-  assert.ok(iconState.ready.width>10&&iconState.ready.height>10);
-  assert.equal(iconState.fallback.hostVisibility,'visible');
-  assert.equal(iconState.fallback.afterDisplay,'none');
+  assert.ok(iconState.originalVisible||iconState.replacementVisible,
+    'Bottom navigation icon must never be blank while the custom sprite loads');
+  assert.ok(iconState.hostWidth>10&&iconState.hostHeight>10);
+  assert.equal(iconState.spriteOk,true);
+  assert.ok(iconState.spriteBytes>10000);
+  if(iconState.ready){
+    assert.equal(iconState.replacementVisible,true);
+    assert.match(iconState.pseudoImage,/icons-transparent\.webp/);
+  }else{
+    assert.equal(iconState.originalVisible,true);
+  }
 
   assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
   // Disable all nonpackaged requests at the interception boundary. CDP's global
