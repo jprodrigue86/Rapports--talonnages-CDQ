@@ -99,6 +99,7 @@ jobs:
             '.github/workflows/iphone-install-share.yml',
             '.github/workflows/publish-point50-v2535.yml',
             '.github/workflows/published-point50-v2535.yml',
+            '.github/workflows/test-embedded-v2528.yml',
             'scripts/stage-point50-release-v2535.py',
             'tests/iphone-install.test.mjs',
             'tests/published-point50-v2535.mjs'
