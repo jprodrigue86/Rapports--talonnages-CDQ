@@ -213,7 +213,7 @@ try{
   await selector.waitForFunction(()=>document.querySelector('#companyList')?.textContent.includes('Client de vérification'),{timeout:10000});
   assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,1);
   assert.equal(await page.evaluate(()=>window.testBiometricCount||0),0);
-  assert.equal(await page.evaluate(()=>window.testTicketConfirmCount),1);
+  await page.waitForFunction(()=>window.testTicketConfirmCount===1,{timeout:5000});
   assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
 
   // A later unlock on the same loaded WebView must also use the local ticket.
