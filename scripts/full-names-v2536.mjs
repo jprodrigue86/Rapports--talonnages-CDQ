@@ -25,6 +25,6 @@ export function applyFullNames2536(source) {
   return replaceOne(
     source,
     anchor,
-    anchor + '\n    window.cdqFitFullNamesV2536();'
+    anchor + '\n    window.cdqFitFullNamesV2536?.();'
   );
 }
