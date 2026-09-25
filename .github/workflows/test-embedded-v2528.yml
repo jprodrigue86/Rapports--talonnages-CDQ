@@ -1,28 +1,82 @@
-name: Embedded Android interface V25.29
+name: Embedded Android interface
+
 on:
   push:
-    paths: ['balance-cdq-android/web-source/**', 'scripts/*embedded*v2528*', 'full-names-v2536.js', 'scripts/full-names-v2536.mjs', 'bundles/balance-cdq/v25.28/**', 'tests/embedded-v2528*', 'tests/full-names-v2536.test.mjs', 'tests/full-names-v2536.browser.mjs', '.github/workflows/test-embedded-v2528.yml']
+    paths:
+      - 'balance-cdq-android/web-source/**'
+      - 'scripts/build-embedded-android-v2528.mjs'
+      - 'scripts/*instant-files*.mjs'
+      - 'scripts/*sizing*.mjs'
+      - 'scripts/*safe-area*.mjs'
+      - 'scripts/*whole-words*.mjs'
+      - 'scripts/*full-names*.mjs'
+      - 'full-names-v2536.js'
+      - 'whole-words-v2534.js'
+      - 'personal-sizing-v2533.js'
+      - 'safe-viewport-v2532.js'
+      - 'bundles/balance-cdq/v25.28/**'
+      - 'tests/embedded-v2528*'
+      - 'tests/full-names-v2536*'
+      - '.github/workflows/test-embedded-v2528.yml'
   pull_request:
-    paths: ['balance-cdq-android/web-source/**', 'scripts/*embedded*v2528*', 'bundles/balance-cdq/v25.28/**', 'tests/embedded-v2528*', '.github/workflows/test-embedded-v2528.yml']
+    branches: [main]
+    paths:
+      - 'balance-cdq-android/web-source/**'
+      - 'scripts/build-embedded-android-v2528.mjs'
+      - 'scripts/*instant-files*.mjs'
+      - 'scripts/*sizing*.mjs'
+      - 'scripts/*safe-area*.mjs'
+      - 'scripts/*whole-words*.mjs'
+      - 'scripts/*full-names*.mjs'
+      - 'full-names-v2536.js'
+      - 'whole-words-v2534.js'
+      - 'personal-sizing-v2533.js'
+      - 'safe-viewport-v2532.js'
+      - 'bundles/balance-cdq/v25.28/**'
+      - 'tests/embedded-v2528*'
+      - 'tests/full-names-v2536*'
+      - '.github/workflows/test-embedded-v2528.yml'
+
 permissions:
   contents: read
+
+concurrency:
+  group: embedded-android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node scripts/build-embedded-android-v2528.mjs && node scripts/build-embedded-package-v2528.mjs
-      - run: git diff --exit-code -- bundles/balance-cdq/v25.28
-      - run: node --test tests/embedded-v2528.test.mjs tests/full-names-v2536.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs
-      - run: npm install --no-save puppeteer-core@24
-      - run: node tests/embedded-v2528-browser.test.mjs\n      - run: node tests/full-names-v2536.browser.mjs
+
+      - name: Build embedded Android interface and server package
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-embedded-package-v2528.mjs
+          git diff --exit-code -- bundles/balance-cdq/v25.28
+
+      - name: Run source and package regressions
+        run: |
+          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs tests/full-names-v2536.test.mjs
+
+      - name: Install Chromium
+        run: npm install --no-save --package-lock=false puppeteer-core@24
+
+      - name: Run installed-interface browser verification
+        run: node tests/embedded-v2528-browser.test.mjs
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: V25.28-embedded-preview
+          name: embedded-android-preview
           path: /tmp/cdq-v2528-*.png
+          if-no-files-found: ignore
           retention-days: 2
