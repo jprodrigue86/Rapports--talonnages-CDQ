@@ -60,7 +60,20 @@ jobs:
           path: /tmp/cdq-handoff
       - name: Attach approved public signature; no private signing material in CI
         if: steps.ready.outputs.ready == 'true'
-        run: python3 balance-cdq-android/signing/detached-apk-v2.py attach --apk /tmp/cdq-handoff/unsigned.apk --request /tmp/cdq-handoff/request.json --approval balance-cdq-android/signing/approval-v2534.json --output downloads/Balance-CDQ-Android-25.34.apk
+        run: |
+          python3 - <<'PY'
+          import json,base64,zlib,hashlib
+          from pathlib import Path
+          a=json.loads(Path('balance-cdq-android/signing/approval-v2534.json').read_text())
+          assert a['signingBlockBytes']==8192
+          decoder=zlib.decompressobj(31)
+          block=decoder.decompress(base64.b64decode(a['signingBlockGzipBase64'],validate=True),65536)
+          assert decoder.eof and not decoder.unused_data and not decoder.unconsumed_tail
+          assert len(block)==a['signingBlockBytes'] and hashlib.sha256(block).hexdigest()==a['signingBlockSha256']
+          a['signingBlockBase64']=base64.b64encode(block).decode()
+          Path('/tmp/cdq-public-approval.json').write_text(json.dumps(a))
+          PY
+          python3 balance-cdq-android/signing/detached-apk-v2.py attach --apk /tmp/cdq-handoff/unsigned.apk --request /tmp/cdq-handoff/request.json --approval /tmp/cdq-public-approval.json --output downloads/Balance-CDQ-Android-25.34.apk
       - name: Install official SDK verifier
         if: steps.ready.outputs.ready == 'true'
         run: |
