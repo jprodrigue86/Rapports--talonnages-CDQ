@@ -36,6 +36,7 @@ jobs:
           changed=set(subprocess.check_output(['git','diff','--name-only',a['sourceCommit'],'HEAD'],text=True).splitlines())
           allowed={
             'balance-cdq-android/signing/approval-v2535.json',
+            'balance-cdq-android/signing/detached-apk-v2.py',
             'tests/embedded-v2528-browser.test.mjs',
             '.github/workflows/personal-sizing-v2533.yml',
             '.github/workflows/build-balance-cdq-android.yml',
