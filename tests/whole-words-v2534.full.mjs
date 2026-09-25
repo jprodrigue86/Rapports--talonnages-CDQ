@@ -1,6 +1,8 @@
 // Extend the existing real-interface fixture without weakening its assertions.
 import fs from 'node:fs';
+import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+assert(fs.readFileSync('tests/safe-area-v2532.browser.mjs','utf8').includes('cdqWholeWordsV2534'),'Safe-area fixture includes the actual new layout dependency');
 const path='tests/personal-sizing-full.fragment.txt',original=fs.readFileSync(path,'utf8');
 const extra=String.raw`
   const wordBounds=()=>{

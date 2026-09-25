@@ -6,7 +6,8 @@ import {chromium,webkit} from 'playwright';
 const dir=process.env.CDQ_ASSET_SOURCE||'balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const html=fs.readFileSync(path.join(dir,'Selector.html'),'utf8');
 const styles=[...html.matchAll(/<style\b[^>]*>[\s\S]*?<\/style>/gi)].map(m=>m[0]).join('\n');
-const mobile=html.match(/<script id="cdqMobileLayoutJs">([\s\S]*?)<\/script>/)[1];
+// The isolated safe-area fixture must include the renderer's actual dependency.
+const mobile=html.match(/<script id="cdqWholeWordsV2534">([\s\S]*?)<\/script>/)[1]+'\n'+html.match(/<script id="cdqMobileLayoutJs">([\s\S]*?)<\/script>/)[1];
 const header=html.match(/<header class="app-header[\s\S]*?<\/header>/)[0];
 const names=['Accueil','Favoris','Dossier','Inventaire','Factures','Corbeille'];
 const kinds=['home','fav','folder','inventory','invoices','trash'];
