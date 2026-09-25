@@ -1,0 +1,14 @@
+/* V25.40 — restore the V25.15 artwork binding only.
+ * The icon/theme engine itself is unchanged. Both images are packaged locally. */
+:root{
+  --cdq-icon-art-v2514:url("./bundles/balance-cdq/v25.15/icons-transparent.webp");
+  --cdq-icon-original-v2515:url("./bundles/balance-cdq/v25.14/icons-reference.png");
+}
+.cdq-icon-sample-v2514,
+.bottom-nav > .bottom-nav-item > .cdq-icon-host-v2514::after{
+  background-image:var(--cdq-icon-art-v2514)!important;
+}
+.cdq-icon-sample-v2514[data-art-source="original"],
+.bottom-nav > .bottom-nav-item > .cdq-icon-host-v2514[data-art-source="original"]::after{
+  background-image:var(--cdq-icon-original-v2515)!important;
+}
