@@ -24,7 +24,6 @@ p='balance-cdq-android/app/src/main/java/ca/balancecdq/android/PackagedWebAssets
 for(p of ['tests/embedded-v2528.test.mjs','tests/embedded-v2528-browser.test.mjs','tests/embedded-startup-v2529.test.mjs','tests/home-underline-v2531.browser.mjs']){
  s=read(p);s=s.replaceAll('v25.31/','v25.32/').replaceAll('v25.31\\/','v25.32\\/').replaceAll('2026.09.24-v25.31-accueil-sans-trait',build).replaceAll('BalanceCDQAndroid/25.31','BalanceCDQAndroid/25.32 CDQSafeArea/1');fs.writeFileSync(p,s);
 }
-p='.github/workflows/build-balance-cdq-android.yml';s=read(p).replaceAll('25.31','25.32').replaceAll("versionCode='2531'","versionCode='2532'");
-if(!s.includes("'scripts/safe-area-v2532.mjs'"))s=s.replaceAll("      - 'scripts/home-underline-v2531.mjs'","      - 'scripts/home-underline-v2531.mjs'\n      - 'scripts/safe-area-v2532.mjs'\n      - 'safe-viewport-v2532.js'");
-fs.writeFileSync(p,s);
+// Workflow changes are reviewed and written through the authorized connector,
+// never pushed by the limited CI token. This helper touches source files only.
 console.log('Prepared shared mobile safe viewport 25.32; no Google project or saved preferences changed.');
