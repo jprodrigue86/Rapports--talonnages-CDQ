@@ -9,10 +9,12 @@ on:
       - 'scripts/safe-area-v2532.mjs'
       - 'scripts/personal-sizing-v2533.mjs'
       - 'personal-sizing-v2533.js'
+      - 'scripts/button-label-fit-v2534.mjs'
+      - 'button-label-fit-v2534.js'
       - 'safe-viewport-v2532.js'
       - 'scripts/*instant-files-v2530.mjs'
       - 'downloads/android-release-update.json'
-      - 'downloads/Balance-CDQ-Android-25.33.apk'
+      - 'downloads/Balance-CDQ-Android-25.34.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   push:
     branches: [main]
@@ -23,10 +25,12 @@ on:
       - 'scripts/safe-area-v2532.mjs'
       - 'scripts/personal-sizing-v2533.mjs'
       - 'personal-sizing-v2533.js'
+      - 'scripts/button-label-fit-v2534.mjs'
+      - 'button-label-fit-v2534.js'
       - 'safe-viewport-v2532.js'
       - 'scripts/*instant-files-v2530.mjs'
       - 'downloads/android-release-update.json'
-      - 'downloads/Balance-CDQ-Android-25.33.apk'
+      - 'downloads/Balance-CDQ-Android-25.34.apk'
       - '.github/workflows/build-balance-cdq-android.yml'
   workflow_dispatch:
 
@@ -119,7 +123,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.33-debug-CI-only
+          name: Balance-CDQ-Android-25.34-debug-CI-only
           path: balance-cdq-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 2
@@ -133,12 +137,12 @@ jobs:
           "$TOOLS/zipalign" -c -P 16 4 "$APK"
           mkdir -p /tmp/cdq-release-handoff
           "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-release-handoff/badging.txt
-          grep -q "package: name='ca.balancecdq.android' versionCode='2533' versionName='25.33'" /tmp/cdq-release-handoff/badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2534' versionName='25.34'" /tmp/cdq-release-handoff/badging.txt
           if grep -q 'application-debuggable' /tmp/cdq-release-handoff/badging.txt; then
             echo '::error::Release APK must not be debuggable.'
             exit 1
           fi
-          cp "$APK" /tmp/cdq-release-handoff/Balance-CDQ-Android-25.33-unsigned.apk
+          cp "$APK" /tmp/cdq-release-handoff/Balance-CDQ-Android-25.34-unsigned.apk
           cp "$TOOLS/lib/apksigner.jar" /tmp/cdq-release-handoff/apksigner.jar
           cp "$TOOLS/zipalign" /tmp/cdq-release-handoff/zipalign
           git rev-parse HEAD > /tmp/cdq-release-handoff/source-commit.txt
@@ -146,7 +150,7 @@ jobs:
       - name: Upload unsigned release handoff
         uses: actions/upload-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.33-release-handoff
+          name: Balance-CDQ-Android-25.34-release-handoff
           path: /tmp/cdq-release-handoff/*
           if-no-files-found: error
           retention-days: 2

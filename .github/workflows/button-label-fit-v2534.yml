@@ -1,0 +1,86 @@
+name: Complete-word mobile labels 25.34
+on:
+  push:
+    branches: [fix/button-labels-v2534]
+    paths:
+      - 'button-label-fit-v2534.js'
+      - 'scripts/button-label-fit-v2534.mjs'
+      - 'scripts/build-embedded-android-v2528.mjs'
+      - 'balance-cdq-android/**'
+      - 'tests/button-label-fit-v2534*'
+      - '.github/workflows/button-label-fit-v2534.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'button-label-fit-v2534.js'
+      - 'scripts/button-label-fit-v2534.mjs'
+      - 'scripts/build-embedded-android-v2528.mjs'
+      - 'balance-cdq-android/**'
+      - 'tests/button-label-fit-v2534*'
+permissions:
+  contents: read
+concurrency:
+  group: cdq-labels-2534-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  android:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.10.2'}
+      - name: Install Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Build production release and native tests
+        working-directory: balance-cdq-android
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleRelease
+      - name: Emit detached-signing request for exact tested APK
+        run: |
+          set -euo pipefail
+          APK=balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" > /tmp/badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2534' versionName='25.34'" /tmp/badging.txt
+          mkdir -p /tmp/cdq-labels2534
+          cp "$APK" /tmp/cdq-labels2534/unsigned.apk
+          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk "$APK" --commit "$(git rev-parse HEAD)" > /tmp/cdq-labels2534/request.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CDQ-Labels2534-unsigned
+          path: /tmp/cdq-labels2534/*
+          retention-days: 2
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build paired Android/iPhone interfaces and run source tests
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node --test tests/button-label-fit-v2534.test.mjs tests/personal-sizing-v2533.test.mjs tests/safe-area-v2532.test.mjs tests/embedded-v2528.test.mjs tests/iphone-rpc-compat.test.mjs
+      - name: Install browser engines
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2 >/tmp/browsers.log 2>&1 || { tail -40 /tmp/browsers.log; exit 1; }
+          npx playwright install --with-deps chromium webkit >>/tmp/browsers.log 2>&1 || { tail -40 /tmp/browsers.log; exit 1; }
+      - name: Verify complete words at normal and extreme personal sizes
+        run: node tests/button-label-fit-v2534.browser.mjs
+      - name: Keep prior layout/personal/iPhone regressions
+        run: |
+          node tests/personal-sizing-v2533.browser.mjs
+          node tests/safe-area-v2532.browser.mjs
+          node tests/home-underline-v2531.browser.mjs
+          node tests/iphone-recovery.browser.mjs

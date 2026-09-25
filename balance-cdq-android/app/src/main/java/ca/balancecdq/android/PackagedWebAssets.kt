@@ -10,7 +10,7 @@ import java.io.ByteArrayInputStream
 class PackagedWebAssets(context: Context) {
     companion object {
         const val ROOT = "/Rapports--talonnages-CDQ/"
-        const val PREFIX = ROOT + "native/v25.33/"
+        const val PREFIX = ROOT + "native/v25.34/"
         const val HOST = "jprodrigue86.github.io"
         const val START_URL = "https://" + HOST + PREFIX + "index.html"
     }

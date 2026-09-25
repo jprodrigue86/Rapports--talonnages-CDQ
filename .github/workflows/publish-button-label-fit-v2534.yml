@@ -1,0 +1,79 @@
+name: Publish certified complete-word 25.34
+on:
+  push:
+    branches: [fix/button-labels-v2534]
+    paths:
+      - 'balance-cdq-android/signing/approval-v2534.json'
+      - '.github/workflows/publish-button-label-fit-v2534.yml'
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: cdq-publish-labels-2534
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/button-labels-v2534
+          fetch-depth: 0
+      - name: Bind approval to tested source and artifact
+        id: approval
+        run: |
+          python3 - <<'PY'
+          import json,os
+          a=json.load(open('balance-cdq-android/signing/approval-v2534.json'))
+          assert a['artifactName']=='CDQ-Labels2534-unsigned'
+          assert isinstance(a['runId'],int) and a['runId']>0
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('run='+str(a['runId'])+'\n')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: CDQ-Labels2534-unsigned
+          run-id: ${{ steps.approval.outputs.run }}
+          github-token: ${{ github.token }}
+          path: /tmp/cdq-labels2534
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - name: Attach only the approved public signature block
+        run: python3 balance-cdq-android/signing/detached-apk-v2.py attach --apk /tmp/cdq-labels2534/unsigned.apk --request /tmp/cdq-labels2534/request.json --approval balance-cdq-android/signing/approval-v2534.json --output downloads/Balance-CDQ-Android-25.34.apk
+      - name: Install official verifier
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;35.0.0'
+      - name: Verify certificate, package and alignment
+        run: |
+          set -euo pipefail
+          APK=downloads/Balance-CDQ-Android-25.34.apk
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$TOOLS/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/signature.txt
+          grep -qi 'Signer #1 certificate SHA-256 digest: 496030d9cd10e81ff4e9486c38491bc15389112c0c295c61c295981c101c4436' /tmp/signature.txt
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" | grep -q "versionCode='2534' versionName='25.34'"
+      - name: Generate paired iPhone release and metadata
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          python3 scripts/publish-button-label-fit-v2534.py
+          node tests/iphone-install.test.mjs
+          node --test tests/button-label-fit-v2534.test.mjs tests/personal-sizing-v2533.test.mjs tests/safe-area-v2532.test.mjs tests/release-references.test.mjs
+      - name: Commit only validated public outputs
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          allowed={'downloads/Balance-CDQ-Android-25.34.apk','downloads/Balance-CDQ-Android-25.34.zip','downloads/android-release-update.json','installer.html','iphone/index.html'}
+          for line in subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],text=True).splitlines():
+              p=line[3:]
+              if p not in allowed and not p.startswith('iphone/app/'):raise SystemExit('Unexpected output: '+p)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add downloads/Balance-CDQ-Android-25.34.apk downloads/android-release-update.json installer.html iphone/
+          git add -f downloads/Balance-CDQ-Android-25.34.zip
+          git commit -m 'Stage certified 25.34 Android and matching iPhone complete-word layout'
+          git push origin HEAD:fix/button-labels-v2534
