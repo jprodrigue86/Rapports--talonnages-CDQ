@@ -71,7 +71,7 @@ jobs:
 
       - name: Run source and package regressions
         run: |
-          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs tests/full-names-v2536.test.mjs tests/fast-start-v2537.test.mjs
+          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs tests/full-names-v2536.test.mjs tests/fast-start-v2537.test.mjs tests/fast-start-v2537.test.mjs
 
       - name: Install Chromium
         run: npm install --no-save --package-lock=false puppeteer-core@24
