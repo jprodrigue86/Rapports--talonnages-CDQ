@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html data-cdq-iphone-version="25.30" data-cdq-iphone-release="03764ae7aff3b92e27c722bc856af3ae76e96d1a353108bc9fd221a1ba83aad2">
+<html data-cdq-iphone-version="25.31" data-cdq-iphone-release="454b41b6564dc3488d917977ac397c599d5653d9220ece51c2fbc8047b3be9c1">
 <head>
 <script src="./iphone-update.js"></script>
 <script id="cdq-instant-files-2530">(function installInstantFiles2530(){
@@ -77,7 +77,7 @@
 <meta charset="utf-8">
 <link rel="icon" href="./icons/icon-heavy-v3-192.png">
 <script src="./embedded-rpc.js"></script>
-<meta name="cdq-package-build" content="2026.09.24-v25.30-fichiers-immediats">
+<meta name="cdq-package-build" content="2026.09.24-v25.31-accueil-sans-trait">
 <script id="cdqPcEarlyBootV2166">
 (function(){
   try{
@@ -355,7 +355,7 @@ function cdqAnnounceSelectorReadyV42(){
     type:'CDQ_SELECTOR_READY',
     authProtocol:42,
     accessState:cdqAccessState,
-    build:'2026.09.24-v25.30-fichiers-immediats'
+    build:'2026.09.24-v25.31-accueil-sans-trait'
   });
 }
 
@@ -368,7 +368,7 @@ function cdqAnnounceHealthReadyV97(){
         type:'CDQ_HEALTH_READY',
         authProtocol:42,
         accessState:cdqAccessState,
-        build:'2026.09.24-v25.30-fichiers-immediats'
+        build:'2026.09.24-v25.31-accueil-sans-trait'
       });
     }
   } catch(e) {}
@@ -10763,7 +10763,7 @@ function changerMode(){
 (function(){
   "use strict";
 
-  const CDQ_BUILD = "2026.09.24-v25.30-fichiers-immediats";
+  const CDQ_BUILD = "2026.09.24-v25.31-accueil-sans-trait";
   let cdqRootContent = null;
   let cdqFolderMap = Object.create(null);
   let cdqParentMap = Object.create(null);
@@ -12943,7 +12943,7 @@ function cdqCheckUpdate(){
 (function(){
 "use strict";
 
-const CDQ_V19_BUILD = "2026.09.24-v25.30-fichiers-immediats";
+const CDQ_V19_BUILD = "2026.09.24-v25.31-accueil-sans-trait";
 const CDQ_V19_DAY_KEY = "cdqV19OfflineDay";
 let cdqV19SyncRunning = false;
 let cdqV19OfflineToggleRunning = false;
@@ -14456,7 +14456,7 @@ window.addEventListener("load",function(){
 (function(){
 "use strict";
 
-const CDQ_V20_BUILD = "2026.09.24-v25.30-fichiers-immediats";
+const CDQ_V20_BUILD = "2026.09.24-v25.31-accueil-sans-trait";
 let cdqV20Inventory = null;
 let cdqV20Tab = "stock";
 let cdqV20Location = "";
@@ -15304,7 +15304,7 @@ window.addEventListener("online",function(){setTimeout(v20RefreshAlerts,1200);})
 (function(){
 "use strict";
 
-const CDQ_V21_BUILD = "2026.09.24-v25.30-fichiers-immediats";
+const CDQ_V21_BUILD = "2026.09.24-v25.31-accueil-sans-trait";
 let cdqV21PushPending = false;
 function v21IsAdmin(){return String(utilisateurCourantRole||'')==='admin';}
 
@@ -15832,7 +15832,7 @@ window.ouvrirFacturesCDQ=ouvrirFacturesCDQ;function install(){const nav=document
 (function(){
 'use strict';
 if(!document.documentElement.classList.contains('windows'))return;
-const BUILD='2026.09.24-v25.30-fichiers-immediats';
+const BUILD='2026.09.24-v25.31-accueil-sans-trait';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const st={
@@ -19588,7 +19588,7 @@ html.windows #cdqPcV16 #cdqPcUpdateBtnV2244:hover{filter:brightness(1.08);}
 <script id="cdqPcV2244UpdateBannerJs">
 (function(){
   'use strict';
-  const BUILD='2026.09.24-v25.30-fichiers-immediats';
+  const BUILD='2026.09.24-v25.31-accueil-sans-trait';
   const PARENT_ORIGIN='https://jprodrigue86.github.io';
   let queryTimer=0;
 
@@ -21788,7 +21788,7 @@ html.windows #cdqPcV16 tr.pc22-swiped .pc22-copy-swipe{display:inline-flex!impor
 <script id="cdqfeedbackV2522">
 (function(){
 'use strict';
-const BUILD='2026.09.24-v25.30-fichiers-immediats',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
+const BUILD='2026.09.24-v25.31-accueil-sans-trait',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
 const jobs=new Map();let serial=0,indicator,update,checking=false,lastCheck=0,available='',deployed='';
 function paint(){
  if(!document.documentElement.classList.contains('windows'))return;
@@ -22110,6 +22110,10 @@ html:is(.android,.ios,.mobile-device) .bottom-nav > .bottom-nav-item{box-shadow:
 
 </style>
 <style id="cdqSheetsV2526">.cdq24-offline-dot.cdq26-sheet-pending{background:#d4a842!important;box-shadow:none!important}</style>
+
+<style id="cdqHomeUnderlineV2531">
+html:is(.android,.ios,.mobile-device) .bottom-nav > .bottom-nav-item.cdq-nav-home.active::after{content:none!important;display:none!important}
+</style>
 </body>
 </html>
 

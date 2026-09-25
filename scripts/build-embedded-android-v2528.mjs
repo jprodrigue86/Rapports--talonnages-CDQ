@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {applyHomeUnderline2531} from './home-underline-v2531.mjs';
 import {applyInstantFiles2530} from './instant-files-v2530.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -6,8 +7,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.30/';
-const build='2026.09.24-v25.30-fichiers-immediats';
+const local=base+'native/v25.31/';
+const build='2026.09.24-v25.31-accueil-sans-trait';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -66,11 +67,12 @@ selector=replace(selector,'Balance CDQ / Selector se met à jour avec Script Man
 selector=replace(selector,'Les mises à jour normales de Balance CDQ continuent avec Script Manager. ','Les écrans, images et outils PDF font partie de cette installation. ');
 selector=replace(selector,'Ce bouton sert seulement quand la petite couche Android native doit être mise à jour.','Ce bouton vérifie les nouvelles versions de l’application Android.');
 selector=applyInstantFiles2530(selector);
+selector=applyHomeUnderline2531(selector);
 files.set('Selector.html',Buffer.from(selector));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
 files.set('startup-unlock-v2529.js',fs.readFileSync(source+'startup-unlock-v2529.js'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.30',build,files:{}};
+const manifest={version:'25.31',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);
