@@ -72,17 +72,17 @@
     const preferred=Math.max(min,size*.76);
     for(;size>preferred+.01&&!fits(el,maxLines,size);){
       size=Math.max(preferred,size-.25);
-      el.style.setProperty('font-size',size.toFixed(2)+'px');
+      el.style.setProperty('font-size',size.toFixed(2)+'px','important');
     }
     if(fits(el,maxLines,size))return;
     if(stackButton(el)){
       size=requested;
-      el.style.setProperty('font-size',size.toFixed(2)+'px');
+      el.style.setProperty('font-size',size.toFixed(2)+'px','important');
       if(fits(el,maxLines,size))return;
     }
     for(;size>min+.01&&!fits(el,maxLines,size);){
       size=Math.max(min,size-.25);
-      el.style.setProperty('font-size',size.toFixed(2)+'px');
+      el.style.setProperty('font-size',size.toFixed(2)+'px','important');
     }
   }
   function equalize(selector){
@@ -91,13 +91,20 @@
     const height=Math.max(...buttons.map(el=>el.scrollHeight));
     buttons.forEach(el=>el.style.setProperty('min-height',Math.ceil(height)+'px','important'));
   }
+  function reset(){
+    document.querySelectorAll('.cdq-label-stack-v2534').forEach(el=>el.classList.remove('cdq-label-stack-v2534'));
+    for(const target of targets)document.querySelectorAll(target.selector).forEach(el=>{
+      for(const p of ['font-size','white-space','overflow-wrap','word-break','hyphens','-webkit-hyphens','text-overflow','overflow'])
+        el.style.removeProperty(p);
+    });
+    document.querySelectorAll('.quick-buttons > .quick-button,#cdqTopActionsV2204 > .cdq-top-action').forEach(el=>el.style.removeProperty('min-height'));
+  }
   function fit(){
     if(!mobile())return;
     ensureStyle();
-    document.querySelectorAll('.cdq-label-stack-v2534').forEach(el=>el.classList.remove('cdq-label-stack-v2534'));
     for(const target of targets)document.querySelectorAll(target.selector).forEach(el=>fitOne(el,target.maxLines,target.min));
     equalize('.quick-buttons > .quick-button');
     equalize('#cdqTopActionsV2204 > .cdq-top-action');
   }
-  window.cdqButtonLabelFitV2534=Object.freeze({fit});
+  window.cdqButtonLabelFitV2534=Object.freeze({fit,reset});
 })();
