@@ -55,7 +55,7 @@ def attach(data,approval,expected):
     inserted=padding+len(block)
     if central+inserted>0xffffffff:raise ValueError('ZIP64 not supported')
     end=bytearray(data[eocd:]);struct.pack_into('<I',end,16,central+inserted)
-    return data[:central]+b'\\0'*padding+block+data[central:eocd]+end
+    return data[:central]+bytes(padding)+block+data[central:eocd]+end
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('mode',choices=['request','attach']);p.add_argument('--apk',required=True);p.add_argument('--commit');p.add_argument('--request');p.add_argument('--approval');p.add_argument('--output');a=p.parse_args()
