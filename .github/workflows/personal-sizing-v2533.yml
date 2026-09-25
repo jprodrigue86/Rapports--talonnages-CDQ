@@ -1,0 +1,116 @@
+name: Personal neutral point 25.33 — build and tests
+on:
+  push:
+    branches: [codex/personal-neutral-v2533]
+    paths:
+      - 'personal-sizing-v2533.js'
+      - 'scripts/*personal*v2533*'
+      - 'tests/personal-sizing*'
+      - 'balance-cdq-android/signing/detached-apk-v2.py'
+      - '.github/workflows/personal-sizing-v2533.yml'
+  pull_request:
+    paths:
+      - 'personal-sizing-v2533.js'
+      - 'scripts/*personal*v2533*'
+      - 'tests/personal-sizing*'
+permissions:
+  contents: read
+concurrency:
+  group: personal-neutral-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  android:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/personal-neutral-v2533
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply guarded integration and version metadata on isolated branch
+        run: |
+          node scripts/prepare-personal-sizing-v2533.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/build-embedded-android-v2528.mjs balance-cdq-android/app/build.gradle.kts balance-cdq-android/app/src/main/java/ca/balancecdq/android/PackagedWebAssets.kt balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt tests/embedded-v2528.test.mjs tests/embedded-v2528-browser.test.mjs tests/embedded-startup-v2529.test.mjs tests/home-underline-v2531.browser.mjs
+          if ! git diff --cached --quiet; then
+            git commit -m 'Integrate opt-in local neutral point into paired 25.33 interface'
+            git push origin HEAD:codex/personal-neutral-v2533
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Install SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Compile production APK and run native tests
+        working-directory: balance-cdq-android
+        run: gradle --no-daemon :app:assembleRelease :app:testDebugUnitTest
+      - name: Validate unsigned binary and emit public private-signing request
+        run: |
+          set -euo pipefail
+          APK=balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-badging
+          grep -q "package: name='ca.balancecdq.android' versionCode='2533' versionName='25.33'" /tmp/cdq-badging
+          ! grep -q application-debuggable /tmp/cdq-badging
+          mkdir /tmp/cdq-personal-handoff
+          cp "$APK" /tmp/cdq-personal-handoff/unsigned.apk
+          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk "$APK" --commit "$(git rev-parse HEAD)" > /tmp/cdq-personal-handoff/request.json
+          echo 'CDQ_PUBLIC_SIGNING_REQUEST'
+          cat /tmp/cdq-personal-handoff/request.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CDQ-Personal2533-unsigned
+          path: /tmp/cdq-personal-handoff/*
+          retention-days: 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CDQ-Personal2533-native-tests
+          path: balance-cdq-android/app/build/test-results/testDebugUnitTest/*.xml
+          if-no-files-found: ignore
+          retention-days: 2
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build paired interfaces and check source regressions
+        run: |
+          node scripts/prepare-personal-sizing-v2533.mjs
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node scripts/test-instant-files-v2530.mjs
+          node --test tests/personal-sizing-v2533.test.mjs tests/safe-area-v2532.test.mjs tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/iphone-rpc-compat.test.mjs tests/release-references.test.mjs
+      - name: Install browsers
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2 puppeteer-core@24 >/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
+          npx playwright install --with-deps chromium webkit >>/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
+      - name: Compare original and personal-neutral geometry; persistence and device isolation
+        run: node tests/personal-sizing-v2533.browser.mjs
+      - name: Exercise actual installed interface settings and shared-preference write isolation
+        run: node scripts/test-personal-full-v2533.mjs
+      - name: Keep safe-screen, Home underline and iPhone recovery regressions
+        run: |
+          node tests/safe-area-v2532.browser.mjs
+          node tests/home-underline-v2531.browser.mjs
+          node tests/iphone-recovery.browser.mjs
+          node tests/iphone-rpc-live.test.mjs

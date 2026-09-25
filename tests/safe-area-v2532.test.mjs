@@ -18,7 +18,9 @@ test('shared safe viewport is packaged and preserves manual settings',()=>{
  assert.match(s,/var\(--cdq-content-safe-top,env\(safe-area-inset-top/);
  assert.match(safe,/data-cdq-iphone-version/);assert.match(safe,/visualViewport/);
  assert.doesNotMatch(safe,/localStorage|sessionStorage|setItem|location.reload/);
- const meta=JSON.parse(read(dir+'asset-manifest.json'));assert.equal(meta.version,'25.32');
+ const meta=JSON.parse(read(dir+'asset-manifest.json'));
+ const version=read('balance-cdq-android/app/build.gradle.kts').match(/versionName\s*=\s*"([^"]+)"/)[1];
+ assert.equal(meta.version,version);
  assert.equal(meta.files['safe-viewport-v2532.js'].sha256,crypto.createHash('sha256').update(safe).digest('hex'));
  assert.match(s,/id="cdqHomeUnderlineV2531"/);
 });

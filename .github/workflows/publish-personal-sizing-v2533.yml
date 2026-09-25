@@ -1,0 +1,86 @@
+name: Validate detached private signature and stage personal 25.33 release
+on:
+  push:
+    branches: [codex/personal-neutral-v2533]
+    paths: ['balance-cdq-android/signing/approval-v2533.json', '.github/workflows/publish-personal-sizing-v2533.yml']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: stage-personal2533
+  cancel-in-progress: false
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/personal-neutral-v2533
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Bind source and signing approval
+        id: approval
+        run: |
+          python3 - <<'PY'
+          import json,subprocess,os
+          a=json.load(open('balance-cdq-android/signing/approval-v2533.json'))
+          assert isinstance(a['runId'],int) and a['runId']>0
+          assert a['artifactName']=='CDQ-Personal2533-unsigned'
+          changed=set(subprocess.check_output(['git','diff','--name-only',a['sourceCommit'],'HEAD'],text=True).splitlines())
+          allowed={'balance-cdq-android/signing/approval-v2533.json','.github/workflows/build-balance-cdq-android.yml','.github/workflows/publish-personal-sizing-v2533.yml'}
+          assert changed<=allowed,repr(changed-allowed)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('run='+str(a['runId'])+'\n')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: CDQ-Personal2533-unsigned
+          run-id: ${{ steps.approval.outputs.run }}
+          github-token: ${{ github.token }}
+          path: /tmp/cdq-handoff
+      - name: Attach approved public signature; never access a private key
+        run: python3 balance-cdq-android/signing/detached-apk-v2.py attach --apk /tmp/cdq-handoff/unsigned.apk --request /tmp/cdq-handoff/request.json --approval balance-cdq-android/signing/approval-v2533.json --output downloads/Balance-CDQ-Android-25.33.apk
+      - name: Install official SDK verifier
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;35.0.0'
+      - name: Independently verify signature, release certificate, alignment and package identity
+        run: |
+          set -euo pipefail
+          APK=downloads/Balance-CDQ-Android-25.33.apk
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$TOOLS/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/cdq-signature.txt
+          grep -qi 'Signer #1 certificate SHA-256 digest: 496030d9cd10e81ff4e9486c38491bc15389112c0c295c61c295981c101c4436' /tmp/cdq-signature.txt
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-package.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2533' versionName='25.33'" /tmp/cdq-package.txt
+          ! grep -q application-debuggable /tmp/cdq-package.txt
+      - name: Regenerate paired iPhone, verify protected assets and update release references
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          python3 scripts/publish-personal-sizing-v2533.py
+          python3 balance-cdq-android/signing/verify-published-release.py --tools "$ANDROID_HOME/build-tools/35.0.0"
+          node tests/iphone-install.test.mjs
+          node --test tests/personal-sizing-v2533.test.mjs tests/release-references.test.mjs
+      - name: Commit reviewed release paths to isolated branch only
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          changed=subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],text=True).splitlines()
+          for line in changed:
+              p=line[3:]
+              assert p.startswith('iphone/app/') or p in {'iphone/index.html','installer.html','downloads/Balance-CDQ-Android-25.33.apk','downloads/Balance-CDQ-Android-25.33.zip','downloads/android-release-update.json'},p
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add iphone/app iphone/index.html installer.html downloads/Balance-CDQ-Android-25.33.apk downloads/android-release-update.json
+          git add -f downloads/Balance-CDQ-Android-25.33.zip
+          git commit -m 'Stage certified 25.33 Android release and matching opt-in iPhone interface'
+          git push origin HEAD:codex/personal-neutral-v2533

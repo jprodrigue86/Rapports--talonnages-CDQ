@@ -1,0 +1,53 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import http from 'node:http';
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {chromium,webkit} from 'playwright';
+const dir='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
+const old=execFileSync('unzip',['-p','downloads/Balance-CDQ-Android-25.32.apk','assets/cdq-web/Selector.html'],{maxBuffer:8*1024*1024}).toString();
+const html=fs.readFileSync(dir+'/Selector.html','utf8'),runtime=fs.readFileSync('personal-sizing-v2533.js','utf8');
+const styles=[...old.matchAll(/<style\b[^>]*>[\s\S]*?<\/style>/gi)].map(m=>m[0]).join('\n');
+const mobile=s=>s.match(/<script id="cdqMobileLayoutJs">([\s\S]*?)<\/script>/)[1];
+const header=old.match(/<header class="app-header[\s\S]*?<\/header>/)[0];
+const names=['Accueil','Favoris','Dossier','Inventaire','Factures','Corbeille'];
+const content='<main class="container">'+header+'<div class="company-wrapper"><button class="company-button" id="companyButton">Choisir une compagnie</button><button class="company-reset-button">↻</button></div><div class="quick-buttons">'+['Balance intermédiaire','Balance à camion','Balance de précision','Balance multi-tête'].map(n=>'<button class="quick-button"><span class="quick-icon">⚖</span><span class="quick-name">'+n+'</span></button>').join('')+'</div><div id="cdqTopActionsV2204">'+['Hors ligne','Note','Photos','Réglages'].map(n=>'<button class="cdq-top-action"><span>✧</span><span>'+n+'</span></button>').join('')+'</div><div id="filesContainer"></div></main><nav class="bottom-nav">'+names.map(n=>'<button class="bottom-nav-item"><span>★</span><small>'+n+'</small></button>').join('')+'</nav>';
+const axes=['General','Text','Icon'];
+const settings='<div id="cdqSettingsModalV2294" style="display:none"><div id="sizes"><button class="cdq-phone-preset">Format téléphone — 50 / 50 / 50</button>'+axes.map((a,i)=>'<div class="cdq-ui-scale-box"><label>'+a+'<span id="cdq'+a+'ScaleValue"></span></label><input id="cdq'+a+'ScaleRange" type="range" min="0" max="100" value="'+[50,71,100][i]+'"></div>').join('')+'</div></div>';
+const init=`window.utilisateurCourantEmail='owner@example.invalid';window.utilisateurCourantRole='admin';
+for(const [a,v] of [['General',50],['Text',71],['Icon',100]])if(localStorage.getItem('cdqUi'+a+'ScaleV89')===null)localStorage.setItem('cdqUi'+a+'ScaleV89',v);
+window.__remoteWrites=0;for(const a of ['General','Text','Icon'])window['cdq'+a+'ValueV89']=()=>Number(localStorage.getItem('cdqUi'+a+'ScaleV89')||50);
+window.cdqApplyAllScalesV89=()=>window.cdqMobileLayout?.apply();`;
+const setup=`document.querySelectorAll('input').forEach(el=>{el.oninput=el.onchange=el.onpointerup=()=>{window.__remoteWrites++;}});document.querySelector('.cdq-phone-preset').onclick=()=>window.__remoteWrites++;
+window.showSettings=()=>{document.getElementById('cdqSettingsModalV2294').style.display='block';window.cdqPersonalSizing?.mount(document.getElementById('sizes'))};window.hideSettings=()=>document.getElementById('cdqSettingsModalV2294').style.display='none';`;
+const server=http.createServer((req,res)=>{const u=new URL(req.url,'http://localhost'),prior=u.searchParams.has('old');res.setHeader('Content-Type','text/html; charset=utf-8');res.end('<!doctype html><html class="android"><head><meta name="viewport" content="width=device-width,initial-scale=1">'+styles+'</head><body>'+content+settings+'<script>'+init+'</script><script>'+(prior?'':runtime)+'</script><script>'+mobile(prior?old:html)+'</script><script>'+setup+'</script></body></html>');});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
+const geometry=()=>[...document.querySelectorAll('.container,.app-header,.company-wrapper,.company-button,.quick-buttons,.quick-button,.quick-icon,.quick-name,#cdqTopActionsV2204,.cdq-top-action,.bottom-nav,.bottom-nav-item,.bottom-nav-item>span,.bottom-nav-item>small')].map(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return [el.tagName,el.className,...['x','y','width','height'].map(k=>r[k]),s.fontSize,s.padding,s.lineHeight,s.borderRadius]});
+try{for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
+ const browser=await type.launch({headless:true});
+ try{
+  const opts={viewport:{width:384,height:820},userAgent:'Mozilla/5.0 (Linux; Android 16) BalanceCDQAndroid/25.33 CDQSafeArea/1'};
+  const context=await browser.newContext(opts);await context.route('https://**/*',r=>r.abort());const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(url+'/?old');await page.evaluate(()=>cdqMobileLayout.apply());const original=await page.evaluate(geometry);
+  await page.goto(url);await page.evaluate(()=>cdqMobileLayout.apply());assert.deepEqual(await page.evaluate(geometry),original,'No opt-in preserves original');
+  await page.evaluate(()=>showSettings());page.once('dialog',d=>d.dismiss());await page.locator('#cdqPersonalSizingActivate').click();assert.equal(await page.evaluate(()=>cdqPersonalSizing.current()),null);
+  page.once('dialog',d=>d.accept());await page.locator('#cdqPersonalSizingActivate').click();
+  const values=()=>page.evaluate(()=>['General','Text','Icon'].map(a=>document.getElementById('cdq'+a+'ScaleRange').value));
+  assert.deepEqual(await values(),['50','50','50']);await page.evaluate(()=>hideSettings());assert.deepEqual(await page.evaluate(geometry),original,'Personal 50 must preserve original geometry');
+  await page.reload();await page.evaluate(()=>{cdqMobileLayout.apply();showSettings()});assert.deepEqual(await values(),['50','50','50']);await page.evaluate(()=>hideSettings());assert.deepEqual(await page.evaluate(geometry),original,'Reload preserves local reference');
+  await page.evaluate(()=>showSettings());const icon50=await page.locator('.bottom-nav-item>span').first().evaluate(e=>e.getBoundingClientRect().width);
+  await page.locator('#cdqIconScaleRange').evaluate(el=>{el.value='100';for(const t of ['input','change','pointerup'])el.dispatchEvent(new Event(t,{bubbles:true}));});
+  const icon100=await page.locator('.bottom-nav-item>span').first().evaluate(e=>e.getBoundingClientRect().width);assert(icon100>icon50);
+  await page.locator('.cdq-phone-preset').click();assert.deepEqual(await values(),['50','50','50']);
+  await page.locator('#cdqTextScaleRange').focus();await page.keyboard.press('ArrowRight');assert.equal((await values())[1],'51');await page.keyboard.press('ArrowLeft');
+  await page.evaluate(()=>hideSettings());assert.deepEqual(await page.evaluate(geometry),original);
+  assert.deepEqual(await page.evaluate(()=>['General','Text','Icon'].map(a=>localStorage.getItem('cdqUi'+a+'ScaleV89'))),['50','71','100']);assert.equal(await page.evaluate(()=>__remoteWrites),0);
+  await page.evaluate(()=>{localStorage.setItem('cdqUiTextScaleV89','10');localStorage.setItem('cdqUiIconScaleV89','10');cdqMobileLayout.apply()});assert.deepEqual(await page.evaluate(geometry),original,'Shared preferences cannot overwrite personal sizing');
+  await page.evaluate(()=>{utilisateurCourantEmail='simon@example.invalid';utilisateurCourantRole='technicien';cdqMobileLayout.apply()});assert.equal(await page.evaluate(()=>cdqPersonalSizing.current()),null);assert.notDeepEqual(await page.evaluate(geometry),original);
+  await page.evaluate(()=>{utilisateurCourantEmail='owner@example.invalid';utilisateurCourantRole='admin';cdqMobileLayout.apply()});assert.deepEqual(await page.evaluate(geometry),original);
+  const other=await browser.newContext(opts);await other.route('https://**/*',r=>r.abort());const p=await other.newPage();await p.goto(url);assert.equal(await p.evaluate(()=>cdqPersonalSizing.current()),null,'Same account on another phone does not inherit calibration');
+  await p.evaluate(()=>{showSettings();Storage.prototype.setItem=function(){throw Error('storage fixture denied')}});p.once('dialog',d=>d.accept());await p.locator('#cdqPersonalSizingActivate').click();assert.equal(await p.evaluate(()=>cdqPersonalSizing.current()),null);assert.match(await p.locator('#cdqPersonalSizingStatus').textContent(),/Non enregistré/);await other.close();
+  await page.evaluate(()=>showSettings());page.once('dialog',d=>d.dismiss());await page.locator('#cdqPersonalSizingRemove').click();assert(await page.evaluate(()=>cdqPersonalSizing.current()));page.once('dialog',d=>d.accept());await page.locator('#cdqPersonalSizingRemove').click();assert.equal(await page.evaluate(()=>cdqPersonalSizing.current()),null);assert.equal(await page.evaluate(()=>__remoteWrites),0);
+  assert.deepEqual(errors,[]);console.log(name+': original 50/71/100 = personal 50/50/50; reload, keyboard, expanded range, local reset, cross-account/device isolation, cancellation and storage failure PASS');await context.close();
+ }finally{await browser.close();}
+}}finally{server.close();}

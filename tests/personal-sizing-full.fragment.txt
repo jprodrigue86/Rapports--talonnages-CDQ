@@ -1,0 +1,31 @@
+  // Exercise the actual application settings, not just a geometry fixture.
+  await selector.evaluate(()=>{
+    utilisateurCourantRole='admin';
+    for(const [a,v] of [['General',50],['Text',71],['Icon',100]])localStorage.setItem('cdqUi'+a+'ScaleV89',String(v));
+    localStorage.setItem('cdqUiGeneralScaleMapV2202Done','1');
+    cdqApplyAllScalesV89(true);cdqMobileLayout.apply();
+  });
+  await new Promise(r=>setTimeout(r,500));
+  // Compare exact bounds, computed styles and stable tag identity, not the
+  // asynchronous cdq-v19-six/seven bookkeeping class (which is not a size).
+  const measured=()=>[...document.querySelectorAll('.app-header,.company-wrapper,.quick-buttons,#cdqTopActionsV2204,.bottom-nav,.bottom-nav-item,.bottom-nav-item>span,.bottom-nav-item small')].map(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return [el.tagName,r.x,r.y,r.width,r.height,s.fontSize,s.padding,s.borderRadius]});
+  const originalSize=await selector.evaluate(measured);
+  await selector.evaluate(()=>cdqOpenSettingsV2294());
+  await selector.waitForSelector('#cdqPersonalSizingActivate',{visible:true});
+  const writesBefore=calls.filter(n=>n==='rpc:enregistrerPreferencesUtilisateurCDQV72').length;
+  page.once('dialog',d=>d.accept());
+  await selector.click('#cdqPersonalSizingActivate');
+  assert.deepEqual(await selector.evaluate(()=>['General','Text','Icon'].map(a=>document.getElementById('cdq'+a+'ScaleRange').value)),['50','50','50']);
+  await selector.click('#cdqSettingsCloseV2294');
+  await new Promise(r=>setTimeout(r,500));
+  assert.deepEqual(await selector.evaluate(measured),originalSize,'Full application geometry retained');
+  await selector.evaluate(()=>cdqOpenSettingsV2294());
+  assert.deepEqual(await selector.evaluate(()=>['General','Text','Icon'].map(a=>document.getElementById('cdq'+a+'ScaleRange').value)),['50','50','50']);
+  await selector.evaluate(()=>{const input=document.getElementById('cdqIconScaleRange');input.value='65';for(const t of ['input','change','pointerup'])input.dispatchEvent(new Event(t,{bubbles:true}));});
+  await selector.evaluate(()=>cdqResetDisplayScalesV2208());
+  await selector.click('#cdqSettingsCloseV2294');
+  await new Promise(r=>setTimeout(r,1300));
+  assert.equal(calls.filter(n=>n==='rpc:enregistrerPreferencesUtilisateurCDQV72').length,writesBefore,'Personal calibration/reset must not save shared preferences');
+  assert.deepEqual(await selector.evaluate(measured),originalSize);
+  assert.deepEqual(await selector.evaluate(()=>['General','Text','Icon'].map(a=>localStorage.getItem('cdqUi'+a+'ScaleV89'))),['50','71','100']);
+  console.log('PASS: actual settings modal opt-in, reopen, movement, direct reset, unchanged geometry and no preference write.');

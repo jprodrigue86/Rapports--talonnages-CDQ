@@ -1,8 +1,150 @@
 <!DOCTYPE html>
 
-<html data-cdq-iphone-version="25.32" data-cdq-iphone-release="d95dcd8a482c2e90cbe2605fe8d9add4fd653dbf705de402f968b9cc32fb77b8">
+<html data-cdq-iphone-version="25.33" data-cdq-iphone-release="ef78df117025c7bc6c862b04d045aa580df680e39fbe41d1f534cfec6f6daf02">
 <head>
 <script src="./iphone-update.js"></script>
+<script id="cdqPersonalSizingV2533">
+/* Personal neutral point: device-local, account-scoped, explicit opt-in.
+ * Legacy/account preferences stay untouched. Neither anchors nor positions
+ * are sent to Google, Drive, the parent frame or another device. */
+(function () {
+  'use strict';
+  const axes = ['General', 'Text', 'Icon'];
+  const prefix = 'cdq-personal-sizing-v1:';
+  const neutral = () => ({General:50, Text:50, Icon:50});
+  const validValue = n => Number.isInteger(n) && n >= 0 && n <= 100;
+  const validAxes = value => value && axes.every(axis => validValue(value[axis]));
+  const mobile = () => document.documentElement.matches('.android,.ios,.mobile-device') || innerWidth < 900;
+  const platform = () => /BalanceCDQAndroid\//i.test(navigator.userAgent) ? 'android' : /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iphone' : 'mobile-web';
+  function account() {
+    try { return typeof utilisateurCourantEmail === 'string' ? utilisateurCourantEmail.trim().toLowerCase() : ''; }
+    catch (_) { return ''; }
+  }
+  function admin() {
+    try { return mobile() && utilisateurCourantRole === 'admin' && !!account(); }
+    catch (_) { return false; }
+  }
+  const key = () => prefix + platform() + ':' + account();
+  function current() {
+    if (!mobile() || !account()) return null;
+    try {
+      const p = JSON.parse(localStorage.getItem(key()) || 'null');
+      return p && p.schema === 1 && validAxes(p.anchor) && validAxes(p.position) ? p : null;
+    } catch (_) { return null; }
+  }
+  function write(p) {
+    if (!account() || !validAxes(p.anchor) || !validAxes(p.position)) throw Error('Calibrage local invalide.');
+    const serialized = JSON.stringify(p);
+    localStorage.setItem(key(), serialized);
+    if (localStorage.getItem(key()) !== serialized) throw Error('Le téléphone ne confirme pas la sauvegarde locale.');
+  }
+  function legacy(axis) {
+    const fn = window['cdq' + axis + 'ValueV89'];
+    if (typeof fn !== 'function') throw Error('Les réglages ne sont pas encore prêts.');
+    return fn();
+  }
+  // Apply each existing rendering curve to the reference and to its control.
+  // At 50 return the reference directly, without rounding it through a slider.
+  function factor(axis, fallback, curve) {
+    const p = current();
+    if (!p || !axes.includes(axis)) return curve(fallback);
+    const reference = curve(p.anchor[axis]);
+    if (p.position[axis] === 50) return reference;
+    return reference * curve(p.position[axis]) / curve(50);
+  }
+  function render() {
+    if (typeof window.cdqApplyAllScalesV89 === 'function') window.cdqApplyAllScalesV89(true);
+    window.cdqMobileLayout?.apply();
+    updateControls();
+  }
+  function status(text, error) {
+    const el = document.getElementById('cdqPersonalSizingStatus');
+    if (el) { el.textContent = text; el.setAttribute('role', error ? 'alert' : 'status'); }
+  }
+  function updateControls() {
+    const p = current();
+    const modal = document.getElementById('cdqSettingsModalV2294');
+    if (!modal) return;
+    if (p) axes.forEach(axis => {
+      const range = modal.querySelector('#cdq' + axis + 'ScaleRange');
+      const label = modal.querySelector('#cdq' + axis + 'ScaleValue');
+      if (range) range.value = String(p.position[axis]);
+      if (label) label.textContent = p.position[axis] + ' / 100';
+    });
+    const preset = modal.querySelector('.cdq-phone-preset');
+    if (preset) preset.textContent = p ? 'Mon format — 50 / 50 / 50' : 'Format téléphone — 50 / 50 / 50';
+    const activate = modal.querySelector('#cdqPersonalSizingActivate');
+    const remove = modal.querySelector('#cdqPersonalSizingRemove');
+    if (activate) activate.hidden = !!p;
+    if (remove) remove.hidden = !p;
+    if (p) status('Point 50 personnel actif sur ce téléphone seulement. Référence d’origine : ' + axes.map(axis => p.anchor[axis]).join(' / ') + '.');
+  }
+  function activate() {
+    if (!admin()) throw Error('Ouvre les réglages avec ton compte administrateur sur ce téléphone.');
+    if (current()) return;
+    const owner = account();
+    const anchor = Object.fromEntries(axes.map(axis => [axis, legacy(axis)]));
+    if (!validAxes(anchor)) throw Error('Les tailles actuelles sont invalides.');
+    if (!window.confirm('Conserver exactement les tailles actuelles (' + axes.map(axis => anchor[axis]).join(' / ') + ') et les afficher comme 50 / 50 / 50 ?\n\nCe calibrage reste uniquement sur ce téléphone et pour ton compte. Aucun autre appareil ne sera modifié.')) return;
+    if (account() !== owner || !admin()) throw Error('Le compte a changé. Rouvre les réglages.');
+    write({schema:1, anchor, position:neutral()});
+    render();
+  }
+  function reset() {
+    const p = current();
+    if (!p) return;
+    write({...p, position:neutral()});
+    render();
+  }
+  function remove() {
+    const p = current();
+    if (!p || !window.confirm('Retirer le point 50 personnel de ce téléphone ? Les curseurs et les tailles reprendront les réglages habituels du compte.')) return;
+    localStorage.removeItem(key());
+    render();
+    axes.forEach(axis => {
+      const value = legacy(axis), range = document.getElementById('cdq' + axis + 'ScaleRange'), label = document.getElementById('cdq' + axis + 'ScaleValue');
+      if (range) range.value = String(value);
+      if (label) label.textContent = value + ' / 100';
+    });
+    status('Calibrage retiré de ce téléphone. Les réglages partagés n’ont pas été modifiés.');
+  }
+  function safely(fn) { try { fn(); } catch (e) { status('Non enregistré : ' + (e.message || String(e)), true); } }
+  function mount(panel) {
+    if (!panel || (!admin() && !current())) return;
+    if (!panel.querySelector('#cdqPersonalSizingCard')) {
+      const card = document.createElement('div'); card.id = 'cdqPersonalSizingCard'; card.className = 'cdq-display-group';
+      const title = document.createElement('div'); title.className = 'cdq-display-label'; title.textContent = 'Mon point 50 — ce téléphone uniquement';
+      const text = document.createElement('p'); text.id = 'cdqPersonalSizingStatus'; text.setAttribute('role','status');
+      text.textContent = 'Conserve les tailles que tu vois, mais place les trois curseurs à 50. Ce choix ne sera pas synchronisé avec tes autres appareils.';
+      const make = (id, label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.id = id; b.textContent = label; b.style.cssText = 'width:100%;white-space:normal;padding:12px;margin-top:8px;min-height:44px'; b.onclick = () => safely(fn); return b; };
+      card.append(title, text, make('cdqPersonalSizingActivate', 'Garder ces tailles comme mon 50 / 50 / 50', activate), make('cdqPersonalSizingRemove', 'Retirer mon calibrage local', remove));
+      panel.insertBefore(card, panel.querySelector('.cdq-phone-preset')?.nextSibling || panel.firstChild);
+    }
+    updateControls();
+  }
+  // Capture before legacy handlers: personal edits must never enter account sync.
+  function intercept(e) {
+    const p = current();
+    if (!p) return;
+    if (e.type === 'click') {
+      if (!e.target.closest?.('.cdq-phone-preset,#cdqUiScaleResetAll')) return;
+      e.preventDefault(); e.stopImmediatePropagation(); safely(reset); return;
+    }
+    const match = String(e.target.id || '').match(/^cdq(General|Text|Icon)ScaleRange$/);
+    if (!match) return;
+    e.stopImmediatePropagation();
+    // Keep native focus/drag/keyboard defaults; only stop legacy persistence.
+    if (!['input','change','pointerup','touchend','keyup'].includes(e.type)) return;
+    const axis = match[1], value = Number(e.target.value);
+    if (!validValue(value) || value === p.position[axis]) return;
+    safely(() => { write({...p, position:{...p.position, [axis]:value}}); render(); });
+  }
+  ['click','pointerdown','touchstart','input','change','pointerup','touchend','keyup'].forEach(type => window.addEventListener(type, intercept, {capture:true}));
+  window.addEventListener('storage', e => { if (e.key?.startsWith(prefix)) render(); });
+  window.cdqPersonalSizing = Object.freeze({factor, mount, current, reset, refreshControls:updateControls});
+})();
+
+</script>
 <script src="./safe-viewport-v2532.js" data-cdq-viewport="selector"></script>
 <script id="cdq-instant-files-2530">(function installInstantFiles2530(){
   const receipts=new Map(),ttl=30000;
@@ -78,7 +220,7 @@
 <meta charset="utf-8">
 <link rel="icon" href="./icons/icon-heavy-v3-192.png">
 <script src="./embedded-rpc.js"></script>
-<meta name="cdq-package-build" content="2026.09.25-v25.32-ecran-adaptatif">
+<meta name="cdq-package-build" content="2026.09.25-v25.33-point50-personnel">
 <script id="cdqPcEarlyBootV2166">
 (function(){
   try{
@@ -356,7 +498,7 @@ function cdqAnnounceSelectorReadyV42(){
     type:'CDQ_SELECTOR_READY',
     authProtocol:42,
     accessState:cdqAccessState,
-    build:'2026.09.25-v25.32-ecran-adaptatif'
+    build:'2026.09.25-v25.33-point50-personnel'
   });
 }
 
@@ -369,7 +511,7 @@ function cdqAnnounceHealthReadyV97(){
         type:'CDQ_HEALTH_READY',
         authProtocol:42,
         accessState:cdqAccessState,
-        build:'2026.09.25-v25.32-ecran-adaptatif'
+        build:'2026.09.25-v25.33-point50-personnel'
       });
     }
   } catch(e) {}
@@ -10764,7 +10906,7 @@ function changerMode(){
 (function(){
   "use strict";
 
-  const CDQ_BUILD = "2026.09.25-v25.32-ecran-adaptatif";
+  const CDQ_BUILD = "2026.09.25-v25.33-point50-personnel";
   let cdqRootContent = null;
   let cdqFolderMap = Object.create(null);
   let cdqParentMap = Object.create(null);
@@ -11854,7 +11996,7 @@ function cdqScaleAround50V89(v,min,max){
   if(v<=50)return min+(1-min)*(v/50);
   return 1+(max-1)*((v-50)/50);
 }
-function cdqGeneralZoomV89(v){
+function cdqGeneralZoomBaseV2533(v){
   v=cdqClampScaleV89(v);
   
   
@@ -11863,8 +12005,9 @@ function cdqGeneralZoomV89(v){
   if(v<=75) return 1 + (1.40-1)*((v-50)/25);
   return 1.40 + (1.55-1.40)*((v-75)/25);
 }
-function cdqTextZoomV89(v){return cdqScaleAround50V89(v,0.48,1.50);}
-function cdqIconZoomV89(v){return cdqScaleAround50V89(v,0.45,1.55);}
+function cdqGeneralZoomV89(v){return window.cdqPersonalSizing.factor('General',v,cdqGeneralZoomBaseV2533);}
+function cdqTextZoomV89(v){return window.cdqPersonalSizing.factor('Text',v,x=>cdqScaleAround50V89(x,0.48,1.50));}
+function cdqIconZoomV89(v){return window.cdqPersonalSizing.factor('Icon',v,x=>cdqScaleAround50V89(x,0.45,1.55));}
 
 function cdqGeneralValueV89(){
   let current=localStorage.getItem("cdqUiGeneralScaleV89");
@@ -12944,7 +13087,7 @@ function cdqCheckUpdate(){
 (function(){
 "use strict";
 
-const CDQ_V19_BUILD = "2026.09.25-v25.32-ecran-adaptatif";
+const CDQ_V19_BUILD = "2026.09.25-v25.33-point50-personnel";
 const CDQ_V19_DAY_KEY = "cdqV19OfflineDay";
 let cdqV19SyncRunning = false;
 let cdqV19OfflineToggleRunning = false;
@@ -14457,7 +14600,7 @@ window.addEventListener("load",function(){
 (function(){
 "use strict";
 
-const CDQ_V20_BUILD = "2026.09.25-v25.32-ecran-adaptatif";
+const CDQ_V20_BUILD = "2026.09.25-v25.33-point50-personnel";
 let cdqV20Inventory = null;
 let cdqV20Tab = "stock";
 let cdqV20Location = "";
@@ -15305,7 +15448,7 @@ window.addEventListener("online",function(){setTimeout(v20RefreshAlerts,1200);})
 (function(){
 "use strict";
 
-const CDQ_V21_BUILD = "2026.09.25-v25.32-ecran-adaptatif";
+const CDQ_V21_BUILD = "2026.09.25-v25.33-point50-personnel";
 let cdqV21PushPending = false;
 function v21IsAdmin(){return String(utilisateurCourantRole||'')==='admin';}
 
@@ -15833,7 +15976,7 @@ window.ouvrirFacturesCDQ=ouvrirFacturesCDQ;function install(){const nav=document
 (function(){
 'use strict';
 if(!document.documentElement.classList.contains('windows'))return;
-const BUILD='2026.09.25-v25.32-ecran-adaptatif';
+const BUILD='2026.09.25-v25.33-point50-personnel';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const st={
@@ -18535,11 +18678,11 @@ function styleElV2208(id){
 function cdqApplyVisibleIconScaleV2208(value){
   value=clampV2208(value);
 
-  const bottom=interpV2208(value,16,29,43);
-  const top=interpV2208(value,16,27,39);
-  const quick=interpV2208(value,13,24,36);
-  const file=interpV2208(value,18,31,44);
-  const action=interpV2208(value,9,15,22);
+  const bottom=window.cdqPersonalSizing.factor('Icon',value,x=>interpV2208(x,16,29,43));
+  const top=window.cdqPersonalSizing.factor('Icon',value,x=>interpV2208(x,16,27,39));
+  const quick=window.cdqPersonalSizing.factor('Icon',value,x=>interpV2208(x,13,24,36));
+  const file=window.cdqPersonalSizing.factor('Icon',value,x=>interpV2208(x,18,31,44));
+  const action=window.cdqPersonalSizing.factor('Icon',value,x=>interpV2208(x,9,15,22));
 
   const root=document.documentElement;
   root.style.setProperty("--cdq-icon-bottom-v2213",bottom.toFixed(1)+"px");
@@ -18588,6 +18731,7 @@ function savePrefsImmediatelyV2208(){
 }
 
 function cdqResetDisplayScalesV2208(){
+  if(window.cdqPersonalSizing?.current()){window.cdqPersonalSizing.reset();return;}
   window.__cdqDisplayResetGuardUntilV2208=Date.now()+7000;
 
   // Écriture directe, avant même les fonctions d'affichage.
@@ -19298,7 +19442,7 @@ html:is(.android,.ios,.mobile-device) .quick-button,html:is(.android,.ios,.mobil
 <script id="cdqV2221DirectWidthLockJs">
 (function(){
 'use strict';
-window.cdqGeneralDensityFactorV2221=function(value){value=cdqClampScaleV89(value);return value<=50?0.78+(1-0.78)*(value/50):1+(1.20-1)*((value-50)/50)};
+window.cdqGeneralDensityFactorV2221=function(value){return window.cdqPersonalSizing.factor('General',value,x=>{x=cdqClampScaleV89(x);return x<=50?0.78+(1-0.78)*(x/50):1+(1.20-1)*((x-50)/50)})};
 window.cdqSetEffectiveScaleV2216=function(zoom){const c=document.querySelector('.container');if(!c)return;const d=window.cdqGeneralDensityFactorV2221(cdqGeneralValueV89());document.documentElement.style.setProperty('overflow-x','hidden','important');document.body.style.setProperty('width','100%','important');document.body.style.setProperty('max-width','100%','important');document.body.style.setProperty('margin','0','important');document.body.style.setProperty('padding','0','important');document.body.style.setProperty('overflow-x','hidden','important');c.style.setProperty('zoom','1','important');c.style.setProperty('width','calc(100% - 20px)','important');c.style.setProperty('max-width','calc(100% - 20px)','important');c.style.setProperty('min-width','0','important');c.style.setProperty('margin-left','10px','important');c.style.setProperty('margin-right','10px','important');c.style.setProperty('padding-left','0','important');c.style.setProperty('padding-right','0','important');c.style.setProperty('transform','none','important');c.style.setProperty('overflow-x','hidden','important');const px=n=>(Math.round(n*d*10)/10)+'px';cdqEnsureRuntimeStyleV89('cdqGeneralDensityV2221').textContent=`html:is(.android,.ios,.mobile-device) .company-button{min-height:${px(50)}!important;padding-top:${px(8)}!important;padding-bottom:${px(8)}!important}html:is(.android,.ios,.mobile-device) .company-reset-button{min-height:${px(50)}!important;height:${px(50)}!important}html:is(.android,.ios,.mobile-device) #cdqTopActionsV2204>.cdq-top-action{min-height:${px(53)}!important;padding-top:${px(5)}!important;padding-bottom:${px(5)}!important}html:is(.android,.ios,.mobile-device) .file-row{min-height:${px(54)}!important;padding-top:${px(8)}!important;padding-bottom:${px(8)}!important}`;window.__cdqEffectiveZoomV2216=Number(zoom)||1};
 window.cdqFitGeneralScaleV92=function(value){if(!cdqIsMobileUiV89())return;value=cdqClampScaleV89(value);window.cdqSetEffectiveScaleV2216(cdqGeneralZoomV89(value));window.__cdqGeneralScaleLastApplyV2211=Date.now()};
 window.cdqAutoFitHorizontalV2216=function(){return};window.cdqScheduleAutoFitV2216=function(){return};
@@ -19589,7 +19733,7 @@ html.windows #cdqPcV16 #cdqPcUpdateBtnV2244:hover{filter:brightness(1.08);}
 <script id="cdqPcV2244UpdateBannerJs">
 (function(){
   'use strict';
-  const BUILD='2026.09.25-v25.32-ecran-adaptatif';
+  const BUILD='2026.09.25-v25.33-point50-personnel';
   const PARENT_ORIGIN='https://jprodrigue86.github.io';
   let queryTimer=0;
 
@@ -20897,8 +21041,8 @@ html.cdq-mobile-layout #cdqCompanyBackdrop[hidden]{display:none!important}
     const reference = Math.min(480, Math.max(240, document.documentElement.clientWidth || window.innerWidth)) / 384;
     const around50 = (value, low, high) => value <= 50
       ? low + (1 - low) * value / 50 : 1 + (high - 1) * (value - 50) / 50;
-    const density = around50(g, .78, 1.25), unit = reference * density;
-    const textScale = around50(t, .78, 1.35), iconScale = around50(i, .65, 1.5);
+    const density = window.cdqPersonalSizing?.factor('General',g,x=>around50(x,.78,1.25)) ?? around50(g,.78,1.25), unit = reference * density;
+    const textScale = window.cdqPersonalSizing?.factor('Text',t,x=>around50(x,.78,1.35)) ?? around50(t,.78,1.35), iconScale = window.cdqPersonalSizing?.factor('Icon',i,x=>around50(x,.65,1.5)) ?? around50(i,.65,1.5);
     const top = 18 * unit * iconScale, bottom = 22 * unit * iconScale;
     const label = 8 * unit * textScale, text = 18.5 * unit * textScale;
     const action = 16 * unit * iconScale;
@@ -20976,6 +21120,7 @@ html.cdq-mobile-layout #cdqCompanyBackdrop[hidden]{display:none!important}
     layoutCompanyMenu(unit, textScale);
     measureNavigation();
     window.cdqMobileDimensions = {reference,density,top,bottom,label,navHeight:nav?.getBoundingClientRect().height || 0,buttonHeight,text,action};
+    window.cdqPersonalSizing?.refreshControls();
   }
   let queued = false;
   function schedule() {
@@ -21227,6 +21372,7 @@ html.cdq-mobile-layout #cdqCompanyBackdrop[hidden]{display:none!important}
       const note = modal.querySelector('#cdq' + name + 'ScaleRange')?.closest('.cdq-ui-scale-box')?.querySelector('.cdq-ui-scale-note');
       if (note) note.textContent = text;
     });
+    window.cdqPersonalSizing.mount(panels.sizes);
     tabs.firstChild.click();
     modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-label', 'Réglages');
     if (!modal.dataset.cdqCategoryNavigation) {
@@ -21789,7 +21935,7 @@ html.windows #cdqPcV16 tr.pc22-swiped .pc22-copy-swipe{display:inline-flex!impor
 <script id="cdqfeedbackV2522">
 (function(){
 'use strict';
-const BUILD='2026.09.25-v25.32-ecran-adaptatif',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
+const BUILD='2026.09.25-v25.33-point50-personnel',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
 const jobs=new Map();let serial=0,indicator,update,checking=false,lastCheck=0,available='',deployed='';
 function paint(){
  if(!document.documentElement.classList.contains('windows'))return;
