@@ -140,7 +140,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.29"
+                settings.userAgentString + " BalanceCDQAndroid/25.32 CDQSafeArea/1"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -217,9 +217,9 @@ class MainActivity : Activity() {
             setAcceptThirdPartyCookies(webView, true)
         }
 
-        setContentView(webView)
+        setContentView(SafeContentInsets.host(this, webView))
 
-        if (savedInstanceState == null || savedInstanceState.getString("cdqEmbeddedVersion") != "25.29") {
+        if (savedInstanceState == null || savedInstanceState.getString("cdqEmbeddedVersion") != "25.32") {
             webView.loadUrl(APP_URL)
             checkForNativeUpdateOnLaunch()
         } else {
@@ -635,7 +635,7 @@ class MainActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("cdqEmbeddedVersion", "25.29")
+        outState.putString("cdqEmbeddedVersion", "25.32")
         webView.saveState(outState)
         super.onSaveInstanceState(outState)
     }

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {applySafeShell2532,applySafeSelector2532} from './safe-area-v2532.mjs';
 import {applyHomeUnderline2531} from './home-underline-v2531.mjs';
 import {applyInstantFiles2530} from './instant-files-v2530.mjs';
 import path from 'node:path';
@@ -7,8 +8,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.31/';
-const build='2026.09.24-v25.31-accueil-sans-trait';
+const local=base+'native/v25.32/';
+const build='2026.09.25-v25.32-ecran-adaptatif';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -50,6 +51,7 @@ shell=replace(shell,'window.cdqNativeBiometricResultV2507=function(requestId,suc
 if(window.cdqStartupUnlockV2529?.receive(requestId,success,message))return;`);
 shell=replace(shell,"if(ctx&&ctx.native){",`if(ctx&&ctx.native){
   window.cdqStartupUnlockV2529?.cancel(String(ctx.requestId||''));`);
+shell=applySafeShell2532(shell);
 files.set('index.html',Buffer.from(shell));
 let selector=gunzipSync(fs.readFileSync(source+'Selector.html.gz')).toString('utf8');
 selector=replace(selector,'<head>','<head>\n<meta charset="utf-8">\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">\n<script src="./embedded-rpc.js"></script>');
@@ -68,11 +70,13 @@ selector=replace(selector,'Les mises à jour normales de Balance CDQ continuent 
 selector=replace(selector,'Ce bouton sert seulement quand la petite couche Android native doit être mise à jour.','Ce bouton vérifie les nouvelles versions de l’application Android.');
 selector=applyInstantFiles2530(selector);
 selector=applyHomeUnderline2531(selector);
+selector=applySafeSelector2532(selector);
 files.set('Selector.html',Buffer.from(selector));
+files.set('safe-viewport-v2532.js',fs.readFileSync('safe-viewport-v2532.js'));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
 files.set('startup-unlock-v2529.js',fs.readFileSync(source+'startup-unlock-v2529.js'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.31',build,files:{}};
+const manifest={version:'25.32',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);

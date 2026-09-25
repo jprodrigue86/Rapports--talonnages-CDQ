@@ -1,0 +1,141 @@
+name: Validate and publish adaptive screen 25.32
+on:
+  push:
+    branches: [fix/safe-area-v2532, main]
+    paths:
+      - 'publication/safe-area-v2532-signed.json'
+      - 'scripts/publish-safe-area-v2532.py'
+      - '.github/workflows/publish-safe-area-v2532.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'safe-viewport-v2532.js'
+      - 'scripts/safe-area-v2532.mjs'
+      - 'publication/safe-area-v2532-signed.json'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: cdq-safe-publication-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  candidate:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/safe-area-v2532'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/safe-area-v2532
+          fetch-depth: 0
+      - name: Check whether private signing is complete
+        id: signed
+        run: echo "ready=$([ -f publication/safe-area-v2532-signed.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Validate tested source handoff
+        if: steps.signed.outputs.ready == 'true'
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request
+          s=json.load(open('publication/safe-area-v2532-signed.json'))
+          run=int(s['buildRunId'])
+          request=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{run}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(request,timeout=30) as response:r=json.load(response)
+          assert r['conclusion']=='success' and r['head_sha']==s['sourceCommit'] and r['path']=='.github/workflows/safe-area-v2532.yml'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write(f'run={run}\n')
+          PY
+      - uses: actions/download-artifact@v4
+        if: steps.signed.outputs.ready == 'true'
+        with:
+          name: Balance-CDQ-Android-25.32-release-handoff
+          path: /tmp/cdq-safe-handoff
+          run-id: ${{ steps.source.outputs.run }}
+          github-token: ${{ github.token }}
+      - uses: actions/setup-java@v4
+        if: steps.signed.outputs.ready == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        if: steps.signed.outputs.ready == 'true'
+        with:
+          node-version: '22'
+      - name: Verify signed content, preserve assets and generate the paired iPhone publication
+        if: steps.signed.outputs.ready == 'true'
+        run: |
+          python3 scripts/publish-safe-area-v2532.py --handoff /tmp/cdq-safe-handoff --spec publication/safe-area-v2532-signed.json
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node tests/iphone-install.test.mjs
+          node --test tests/safe-area-v2532.test.mjs tests/embedded-v2528.test.mjs tests/iphone-rpc-compat.test.mjs tests/release-references.test.mjs
+      - name: Commit only validated installation outputs to the isolated branch
+        if: steps.signed.outputs.ready == 'true'
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          changes=subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()
+          allowed={'downloads/Balance-CDQ-Android-25.32.apk','downloads/Balance-CDQ-Android-25.32.zip','downloads/android-release-update.json','installer.html','iphone/index.html'}
+          assert all(p in allowed or p.startswith('iphone/app/') for p in changes),changes
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add downloads/Balance-CDQ-Android-25.32.apk downloads/android-release-update.json installer.html iphone/
+          # ZIP files are ignored generally; only this verified distribution is intentionally tracked.
+          git add -f downloads/Balance-CDQ-Android-25.32.zip
+          if ! git diff --cached --quiet; then
+            git commit -m 'Publish tested signed Android and paired iPhone adaptive screen 25.32'
+            git push origin HEAD:fix/safe-area-v2532
+          fi
+  regression:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node tests/iphone-install.test.mjs
+          node --test tests/safe-area-v2532.test.mjs tests/embedded-v2528.test.mjs tests/iphone-rpc-compat.test.mjs
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium webkit
+          node tests/safe-area-v2532.browser.mjs
+  published:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify the actual public APK, paired iPhone and both sharing pages
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,time,urllib.request
+          from pathlib import Path
+          base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/'
+          def read(p):
+              with urllib.request.urlopen(base+p+'?verify='+str(time.time_ns()),timeout=25) as r:return r.read()
+          expected=json.loads(Path('iphone/app/release.json').read_text())
+          deadline=time.monotonic()+300
+          while True:
+              try:
+                  if json.loads(read('iphone/app/release.json'))['release']==expected['release']:break
+              except Exception:pass
+              if time.monotonic()>deadline:raise SystemExit('Expected publication not yet served')
+              time.sleep(10)
+          names=['downloads/Balance-CDQ-Android-25.32.apk','downloads/android-release-update.json','iphone/app/release.json','iphone/app/safe-viewport-v2532.js','iphone/app/Selector.html','iphone/app/sw.js','installer.html','iphone/index.html']
+          for p in names:
+              assert hashlib.sha256(read(p)).digest()==hashlib.sha256(Path(p).read_bytes()).digest(),p
+          print('PASS: public Android 25.32 APK checksum, iPhone release and adaptive viewport, shared Android/iPhone pages all match the merged source.')
+          PY
