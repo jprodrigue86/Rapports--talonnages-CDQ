@@ -147,13 +147,18 @@ try{
   // Custom navigation icons must never leave an empty bar. The packaged sprite
   // is used when available; removing the ready marker exposes the original icon.
   await selector.evaluate(()=>{
-    const user=String(utilisateurCourantEmail||'').trim().toLowerCase();
-    localStorage.setItem('cdqIconThemeV2514:'+user,JSON.stringify({style:'metal-music',revision:Date.now(),pending:false}));
-    window.cdqIconThemesV2514?.synchronize();
+    const host=document.querySelector('.bottom-nav > .bottom-nav-item > span');
+    if(!host)throw Error('Bottom navigation icon host missing');
+    host.classList.add('cdq-icon-host-v2514');
+    host.style.setProperty('--cdq-art-size','100% 100%');
+    host.style.setProperty('--cdq-art-position','0% 0%');
+    window.cdqIconFallbackV2538?.sync();
   });
   await selector.waitForFunction(()=>window.cdqIconFallbackV2538?.ready()===true,{timeout:5000});
-  await selector.waitForFunction(()=>[...document.querySelectorAll('.bottom-nav > .bottom-nav-item > span.cdq-icon-host-v2514')]
-    .every(host=>host.classList.contains('cdq-icon-art-ready-v2538')),{timeout:5000});
+  await selector.waitForFunction(()=>{
+    const host=document.querySelector('.bottom-nav > .bottom-nav-item > span.cdq-icon-host-v2514');
+    return !!host&&host.classList.contains('cdq-icon-art-ready-v2538');
+  },{timeout:5000});
   const iconState=await selector.evaluate(()=>{
     const host=document.querySelector('.bottom-nav > .bottom-nav-item > span.cdq-icon-host-v2514');
     if(!host)return null;
