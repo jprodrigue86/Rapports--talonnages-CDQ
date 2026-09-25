@@ -109,7 +109,7 @@ try{
   assert.deepEqual(errors,[]);
   assert.deepEqual(unexpected,[]);
   assert.ok(calls.includes('obtenirEtatAcces'));
-  // V25.39 returning startup: Android already owns the biometric prompt and
+  // V25.40 returning startup: Android already owns the biometric prompt and
   // the untouched Selector is allowed to parse while the server is held.
   await page.evaluate(()=>{
     localStorage.setItem('cdq_auth_device_token_v2','fixture-device');
