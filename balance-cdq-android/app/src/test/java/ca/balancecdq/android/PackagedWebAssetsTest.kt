@@ -17,10 +17,11 @@ class PackagedWebAssetsTest {
         val loader = loader()
         val response = loader.intercept(Uri.parse(PackagedWebAssets.START_URL))!!
         assertEquals(200, response.statusCode)
-        assertTrue(response.data.bufferedReader().readText().contains("25.39-clean-fast-start"))
+        assertTrue(response.data.bufferedReader().readText().contains("25.40-icons-repeat-fast"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}Selector.html"))!!
         val html = selector.data.bufferedReader().readText()
         assertTrue(html.contains("./embedded-rpc.js"))
+        assertTrue(html.contains("./icon-artwork-baseline-v2540.css"))
         assertTrue(html.contains("./safe-viewport-v2532.js"))
         assertTrue(html.contains("id=\"cdqPersonalSizingV2533\""))
         assertTrue(html.contains("id=\"cdqWholeWordsV2534\""))
@@ -28,6 +29,12 @@ class PackagedWebAssetsTest {
         assertTrue(html.contains("id=\"cdq-instant-files-2530\""))
         assertTrue(html.contains("id=\"cdqHomeUnderlineV2531\""))
         assertTrue(html.contains("html:is(.android,.ios,.mobile-device) .bottom-nav > .bottom-nav-item.cdq-nav-home.active::after{content:none!important;display:none!important}"))
+        val warm = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}warm-unlock-v2540.js"))!!
+        assertEquals(200, warm.statusCode)
+        assertTrue(warm.data.bufferedReader().readText().contains("cdqWarmUnlockV2540"))
+        val artwork = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}icon-artwork-baseline-v2540.css"))!!
+        assertEquals(200, artwork.statusCode)
+        assertTrue(artwork.data.bufferedReader().readText().contains("icons-transparent.webp"))
         val safe = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}safe-viewport-v2532.js"))!!
         assertEquals(200, safe.statusCode)
         assertTrue(safe.data.bufferedReader().readText().contains("cdqSafeFrame"))
