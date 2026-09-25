@@ -54,7 +54,7 @@ try{
         assert.equal(item.overflowWrap,'normal',engine+' '+width+' '+scenario.name+' '+item.text);
         assert.notEqual(item.hyphens,'auto',engine+' '+width+' '+scenario.name+' '+item.text);
         assert(item.lines<=item.max,engine+' '+width+' '+scenario.name+' '+item.text+' lines='+item.lines);
-        assert(item.scrollWidth<=item.width+1.5,engine+' '+width+' '+scenario.name+' '+item.text+' overflow');
+        assert(item.scrollWidth<=item.width+1.5,engine+' '+width+' '+scenario.name+' '+item.text+' overflow '+JSON.stringify({font:item.font,width:item.width,scrollWidth:item.scrollWidth,lines:item.lines,words:item.words}));
         for(const word of item.words){assert.equal(word.rects.length,1,engine+' '+width+' '+scenario.name+' split word '+word.word);const x=word.rects[0];assert(x.left>=item.box.left-1&&x.right<=item.box.right+1,engine+' '+width+' '+scenario.name+' clipped word '+word.word+' '+JSON.stringify({x,box:item.box,font:item.font,width:item.width,scrollWidth:item.scrollWidth,lines:item.lines,text:item.text}));}
         assert(item.font>=5.7,engine+' '+width+' '+scenario.name+' unreadable '+item.text+' '+item.font);
       }
