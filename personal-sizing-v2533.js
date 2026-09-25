@@ -4,6 +4,8 @@
 (function () {
   'use strict';
   const axes = ['General', 'Text', 'Icon'];
+  // The user's validated former 50 / 71 / 100 rendering is now the standard 50 / 50 / 50.
+  const standardAnchor = Object.freeze({General:50, Text:71, Icon:100});
   const prefix = 'cdq-personal-sizing-v1:';
   const neutral = () => ({General:50, Text:50, Icon:50});
   const validValue = n => Number.isInteger(n) && n >= 0 && n <= 100;
@@ -23,7 +25,7 @@
     if (!mobile() || !account()) return null;
     try {
       const p = JSON.parse(localStorage.getItem(key()) || 'null');
-      return p && p.schema === 1 && validAxes(p.anchor) && validAxes(p.position) ? p : null;
+      return p && (p.schema === 1 || p.schema === 2) && validAxes(p.anchor) && validAxes(p.position) ? p : null;
     } catch (_) { return null; }
   }
   function write(p) {
@@ -37,14 +39,24 @@
     if (typeof fn !== 'function') throw Error('Les réglages ne sont pas encore prêts.');
     return fn();
   }
-  // Apply each existing rendering curve to the reference and to its control.
-  // At 50 return the reference directly, without rounding it through a slider.
+  // Keep legacy schema-1 personal calibrations exact. Without a personal
+  // calibration, 50 / 50 / 50 now renders exactly like the former validated
+  // 50 / 71 / 100. Schema-2 captures a personal reference on top of that standard.
   function factor(axis, fallback, curve) {
+    if (!axes.includes(axis)) return curve(fallback);
     const p = current();
-    if (!p || !axes.includes(axis)) return curve(fallback);
-    const reference = curve(p.anchor[axis]);
-    if (p.position[axis] === 50) return reference;
-    return reference * curve(p.position[axis]) / curve(50);
+    if (p && p.schema === 1) {
+      const reference = curve(p.anchor[axis]);
+      if (p.position[axis] === 50) return reference;
+      return reference * curve(p.position[axis]) / curve(50);
+    }
+    const position = p && p.schema === 2 ? p.position[axis] : fallback;
+    const standardReference = curve(standardAnchor[axis]);
+    const capturedReference = p && p.schema === 2
+      ? standardReference * curve(p.anchor[axis]) / curve(50)
+      : standardReference;
+    if (position === 50) return capturedReference;
+    return capturedReference * curve(position) / curve(50);
   }
   function render() {
     if (typeof window.cdqApplyAllScalesV89 === 'function') window.cdqApplyAllScalesV89(true);
@@ -81,7 +93,7 @@
     if (!validAxes(anchor)) throw Error('Les tailles actuelles sont invalides.');
     if (!window.confirm('Conserver exactement les tailles actuelles (' + axes.map(axis => anchor[axis]).join(' / ') + ') et les afficher comme 50 / 50 / 50 ?\n\nCe calibrage reste uniquement sur ce téléphone et pour ton compte. Aucun autre appareil ne sera modifié.')) return;
     if (account() !== owner || !admin()) throw Error('Le compte a changé. Rouvre les réglages.');
-    write({schema:1, anchor, position:neutral()});
+    write({schema:2, anchor, position:neutral()});
     render();
   }
   function reset() {
@@ -135,5 +147,5 @@
   }
   ['click','pointerdown','touchstart','input','change','pointerup','touchend','keyup'].forEach(type => window.addEventListener(type, intercept, {capture:true}));
   window.addEventListener('storage', e => { if (e.key?.startsWith(prefix)) render(); });
-  window.cdqPersonalSizing = Object.freeze({factor, mount, current, reset, refreshControls:updateControls});
+  window.cdqPersonalSizing = Object.freeze({factor, mount, current, reset, refreshControls:updateControls, standardAnchor});
 })();

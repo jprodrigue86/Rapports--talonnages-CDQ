@@ -27,10 +27,10 @@ const geometry=()=>[...document.querySelectorAll('.container,.app-header,.compan
 try{for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
  const browser=await type.launch({headless:true});
  try{
-  const opts={viewport:{width:384,height:820},userAgent:'Mozilla/5.0 (Linux; Android 16) BalanceCDQAndroid/25.33 CDQSafeArea/1'};
+  const opts={viewport:{width:384,height:820},userAgent:'Mozilla/5.0 (Linux; Android 16) BalanceCDQAndroid/25.35 CDQSafeArea/1'};
   const context=await browser.newContext(opts);await context.route('https://**/*',r=>r.abort());const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(url+'/?old');await page.evaluate(()=>cdqMobileLayout.apply());const original=await page.evaluate(geometry);
-  await page.goto(url);await page.evaluate(()=>cdqMobileLayout.apply());assert.deepEqual(await page.evaluate(geometry),original,'No opt-in preserves original');
+  await page.goto(url+'/?old');await page.evaluate(()=>{for(const [a,v] of [['General',50],['Text',71],['Icon',100]])localStorage.setItem('cdqUi'+a+'ScaleV89',String(v));cdqMobileLayout.apply()});const original=await page.evaluate(geometry);
+  await page.goto(url);await page.evaluate(()=>{for(const a of ['General','Text','Icon'])localStorage.setItem('cdqUi'+a+'ScaleV89','50');cdqMobileLayout.apply()});assert.deepEqual(await page.evaluate(geometry),original,'New standard 50/50/50 must match validated old 50/71/100 geometry');
   await page.evaluate(()=>showSettings());page.once('dialog',d=>d.dismiss());await page.locator('#cdqPersonalSizingActivate').click();assert.equal(await page.evaluate(()=>cdqPersonalSizing.current()),null);
   page.once('dialog',d=>d.accept());await page.locator('#cdqPersonalSizingActivate').click();
   const values=()=>page.evaluate(()=>['General','Text','Icon'].map(a=>document.getElementById('cdq'+a+'ScaleRange').value));
@@ -42,13 +42,13 @@ try{for(const [name,type] of [['Chromium',chromium],['WebKit',webkit]]){
   await page.locator('.cdq-phone-preset').click();assert.deepEqual(await values(),['50','50','50']);
   await page.locator('#cdqTextScaleRange').focus();await page.keyboard.press('ArrowRight');assert.equal((await values())[1],'51');await page.keyboard.press('ArrowLeft');
   await page.evaluate(()=>hideSettings());assert.deepEqual(await page.evaluate(geometry),original);
-  assert.deepEqual(await page.evaluate(()=>['General','Text','Icon'].map(a=>localStorage.getItem('cdqUi'+a+'ScaleV89'))),['50','71','100']);assert.equal(await page.evaluate(()=>__remoteWrites),0);
+  assert.deepEqual(await page.evaluate(()=>['General','Text','Icon'].map(a=>localStorage.getItem('cdqUi'+a+'ScaleV89'))),['50','50','50']);assert.equal(await page.evaluate(()=>__remoteWrites),0);
   await page.evaluate(()=>{localStorage.setItem('cdqUiTextScaleV89','10');localStorage.setItem('cdqUiIconScaleV89','10');cdqMobileLayout.apply()});assert.deepEqual(await page.evaluate(geometry),original,'Shared preferences cannot overwrite personal sizing');
   await page.evaluate(()=>{utilisateurCourantEmail='simon@example.invalid';utilisateurCourantRole='technicien';cdqMobileLayout.apply()});assert.equal(await page.evaluate(()=>cdqPersonalSizing.current()),null);assert.notDeepEqual(await page.evaluate(geometry),original);
   await page.evaluate(()=>{utilisateurCourantEmail='owner@example.invalid';utilisateurCourantRole='admin';cdqMobileLayout.apply()});assert.deepEqual(await page.evaluate(geometry),original);
   const other=await browser.newContext(opts);await other.route('https://**/*',r=>r.abort());const p=await other.newPage();await p.goto(url);assert.equal(await p.evaluate(()=>cdqPersonalSizing.current()),null,'Same account on another phone does not inherit calibration');
   await p.evaluate(()=>{showSettings();Storage.prototype.setItem=function(){throw Error('storage fixture denied')}});p.once('dialog',d=>d.accept());await p.locator('#cdqPersonalSizingActivate').click();assert.equal(await p.evaluate(()=>cdqPersonalSizing.current()),null);assert.match(await p.locator('#cdqPersonalSizingStatus').textContent(),/Non enregistré/);await other.close();
   await page.evaluate(()=>showSettings());page.once('dialog',d=>d.dismiss());await page.locator('#cdqPersonalSizingRemove').click();assert(await page.evaluate(()=>cdqPersonalSizing.current()));page.once('dialog',d=>d.accept());await page.locator('#cdqPersonalSizingRemove').click();assert.equal(await page.evaluate(()=>cdqPersonalSizing.current()),null);assert.equal(await page.evaluate(()=>__remoteWrites),0);
-  assert.deepEqual(errors,[]);console.log(name+': original 50/71/100 = personal 50/50/50; reload, keyboard, expanded range, local reset, cross-account/device isolation, cancellation and storage failure PASS');await context.close();
+  assert.deepEqual(errors,[]);console.log(name+': standard 50/50/50 = validated former 50/71/100; personal point, reload, keyboard, expanded range, isolation and storage failure PASS');await context.close();
  }finally{await browser.close();}
 }}finally{server.close();}
