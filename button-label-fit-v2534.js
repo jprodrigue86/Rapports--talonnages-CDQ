@@ -59,13 +59,13 @@
     return true;
   }
   function fitOne(el,maxLines,min){
-    el.style.setProperty('white-space','normal');
-    el.style.setProperty('overflow-wrap','normal');
-    el.style.setProperty('word-break','normal');
-    el.style.setProperty('hyphens','none');
-    el.style.setProperty('-webkit-hyphens','none');
-    el.style.setProperty('text-overflow','clip');
-    el.style.setProperty('overflow','visible');
+    el.style.setProperty('white-space','normal','important');
+    el.style.setProperty('overflow-wrap','normal','important');
+    el.style.setProperty('word-break','normal','important');
+    el.style.setProperty('hyphens','none','important');
+    el.style.setProperty('-webkit-hyphens','none','important');
+    el.style.setProperty('text-overflow','clip','important');
+    el.style.setProperty('overflow','visible','important');
     const requested=num(getComputedStyle(el).fontSize);
     let size=requested;
     if(!size||fits(el,maxLines,size))return;
