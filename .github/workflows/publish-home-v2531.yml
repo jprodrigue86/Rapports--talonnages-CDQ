@@ -4,6 +4,7 @@ on:
     branches: [fix/home-underline-v2531]
     paths:
       - 'releases/25.31-signing-delta.json'
+      - '.github/workflows/publish-home-v2531.yml'
 permissions:
   contents: read
   actions: read
@@ -90,7 +91,10 @@ jobs:
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add downloads/Balance-CDQ-Android-25.31.apk downloads/Balance-CDQ-Android-25.31.zip downloads/android-release-update.json installer.html iphone/
+          git add downloads/Balance-CDQ-Android-25.31.apk downloads/android-release-update.json installer.html iphone/
+          # Keep the general ZIP ignore rule protecting private archives.
+          # Only this exact, already verified public APK archive is force-added.
+          git add -f downloads/Balance-CDQ-Android-25.31.zip
           if ! git diff --cached --quiet; then
             git commit -m 'Publier CDQ 25.31 signé et iPhone : retirer uniquement le trait Accueil'
             git push origin HEAD:fix/home-underline-v2531
