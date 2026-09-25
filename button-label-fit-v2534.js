@@ -1,4 +1,4 @@
-/* Keep complete words in mobile tiles while preserving the user's icon/text settings. */
+/* Keep complete words in mobile tiles while preserving the user's icon/text settings and established geometry when no fit is needed. */
 (function(){
   'use strict';
   const targets=[
