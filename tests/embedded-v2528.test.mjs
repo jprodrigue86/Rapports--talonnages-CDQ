@@ -27,7 +27,7 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/if \(false && 'serviceWorker' in navigator\)/);
   assert.doesNotMatch(html,/<script src="https:\/\/accounts.google.com/);
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
-  assert.match(selector,/native\/v25.35\/vendor\/pdf-lib/);
+  assert.match(selector,/native\/v25.36\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);\n  assert.match(selector,/id=\"cdqFullNamesV2536\"/);
 });
 
