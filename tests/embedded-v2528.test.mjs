@@ -29,7 +29,8 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
   assert.match(selector,/native\/v25.37\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);
-  assert.match(selector,/id="cdqFullNamesV2536"/);\n  assert.match(selector,/id="cdqFastLocalV2537"/);
+  assert.match(selector,/id="cdqFullNamesV2536"/);
+  assert.match(selector,/id="cdqFastLocalV2537"/);
 });
 
 test('server package accepts both delivered bases without the previous company-list patch mismatch',()=>{
