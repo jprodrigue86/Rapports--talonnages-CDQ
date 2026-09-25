@@ -7,10 +7,14 @@ function startup(options={}){
   const values=new Map([['cdq_auth_device_token_v2','device'],['cdqLastUnlockEmailV2511','person@example.invalid']]);
   if(options.noToken)values.delete('cdq_auth_device_token_v2');
   let now=1000,resolve,reject;const calls=[],prompts=[],cancelled=[],listeners={},timers=[];
-  const c={localStorage:{getItem:key=>values.get(key)},sessionStorage:{getItem:()=>options.activation?JSON.stringify({expiresAt:100000}):null},navigator:{onLine:!options.offline},crypto:{randomUUID:()=> 'test'},Date:{now:()=>now},Promise,queueMicrotask,
+  const c={localStorage:{getItem:key=>values.get(key)},sessionStorage:{getItem:()=>options.activation?JSON.stringify({expiresAt:100000}):null},navigator:{onLine:!options.offline},crypto:{randomUUID:()=> 'test'},Date:{now:()=>now},performance:{now:()=>now},console,Promise,queueMicrotask,
     setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){},
     addEventListener:(name,fn)=>listeners[name]=fn,
-    BalanceCDQNative:{biometric:id=>prompts.push(id),cancelBiometric:id=>cancelled.push(id)},
+    BalanceCDQNative:{
+      biometric:id=>prompts.push(id),
+      cancelBiometric:id=>cancelled.push(id),
+      consumeLocalSession:(email,token)=>options.localTicket?JSON.stringify({schema:1,email,role:'technicien',issuedAt:now-100,expiresAt:now+10000}):''
+    },
     cdqEmbeddedRpcV2529:{prepareSession(token){calls.push(token);return new Promise((ok,fail)=>{resolve=ok;reject=fail;});}}};
   c.window=c;c.top=c;vm.runInNewContext(code,c);
   return {c,values,calls,prompts,cancelled,listeners,timers,clock:n=>now=n,resolve:x=>resolve(x),reject:e=>reject(e)};
@@ -66,8 +70,18 @@ test('server denial and network error stay unchanged for existing access checks'
     assert.deepEqual(received,[fails?'offline':{autorise:false}]);assert.equal(a.calls.length,1);
   }
 });
-test('first activation and explicit offline flow retain their existing unlock screens',()=>{
-  for(const options of [{noToken:true},{activation:true},{offline:true}]){
+test('missing token and first activation retain their existing unlock screens',()=>{
+  for(const options of [{noToken:true},{activation:true}]){
     const a=startup(options);assert.equal(a.prompts.length,0);assert.equal(a.c.cdqStartupUnlockV2529,undefined);
   }
+});
+test('offline startup still permits biometric local-cache unlock but never primes server authentication',()=>{
+  const a=startup({offline:true,localTicket:true}),u=a.c.cdqStartupUnlockV2529;
+  assert.deepEqual(a.prompts,['startup-test']);
+  u.receive('startup-test',true,'');
+  assert.deepEqual(a.calls,[]);
+  const ticket=u.takeLocalTicket('device');
+  assert.equal(ticket.email,'person@example.invalid');
+  assert.equal(ticket.role,'technicien');
+  assert.equal(u.takeSession('device',()=>{},()=>{}),false);
 });

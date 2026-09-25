@@ -1,5 +1,6 @@
-/* Begin the native prompt before the large Selector is parsed. No access is
-   granted here: the existing Selector must still accept a server session. */
+/* V25.37: start native biometric before Selector parses, then expose only
+   a short Keystore-backed local display ticket. Server authentication still
+   runs independently and remains required before any network mutation/read. */
 (() => {
   'use strict';
   if(window.top!==window || !window.BalanceCDQNative?.biometric)return;
@@ -7,22 +8,54 @@
   const read=key=>{try{return localStorage.getItem(key)||'';}catch(_){return '';}};
   const token=read(tokenKey),email=read(emailKey).trim().toLowerCase();
   let activation;try{activation=JSON.parse(sessionStorage.getItem('cdq_activation_pending_v41')||'null');}catch(_){}
-  if(!token||!email||navigator.onLine===false||activation?.expiresAt>Date.now())return;
+  if(!token||!email||activation?.expiresAt>Date.now())return;
+
   const id='startup-'+crypto.randomUUID(),expires=Date.now()+65000;
-  let result=null,claim=null,session=null,sessionTaken=false,cancelled=false;
-  function valid(){return !cancelled&&Date.now()<expires&&read(tokenKey)===token&&read(emailKey).trim().toLowerCase()===email;}
+  const startedAt=performance.now();
+  let result=null,claim=null,session=null,sessionTaken=false,cancelled=false,localTicket=null;
+  const timing={startedAt,biometricRequestedAt:0,biometricSuccessAt:0,localTicketAt:0,localVisibleAt:0,serverReadyAt:0};
+
+  function valid(){
+    return !cancelled&&Date.now()<expires&&read(tokenKey)===token&&read(emailKey).trim().toLowerCase()===email;
+  }
+  function mark(name){
+    timing[name]=performance.now();
+    if(name==='localVisibleAt'&&timing.biometricSuccessAt){
+      console.info('[CDQ startup] local UI after biometric:',Math.round(timing[name]-timing.biometricSuccessAt),'ms');
+    }
+    if(name==='serverReadyAt'&&timing.biometricSuccessAt){
+      console.info('[CDQ startup] server ready after biometric:',Math.round(timing[name]-timing.biometricSuccessAt),'ms');
+    }
+  }
   function cancel(requestId){
     if(requestId&&claim?.id!==requestId)return;
     if(cancelled)return;
     cancelled=true;clearTimeout(timer);
     try{BalanceCDQNative.cancelBiometric?.(id);}catch(_){}
   }
+  function loadLocalTicket(){
+    if(localTicket||!valid()||!result?.success)return localTicket;
+    try{
+      const raw=BalanceCDQNative.consumeLocalSession?.(email,token);
+      if(!raw)return null;
+      const parsed=JSON.parse(String(raw));
+      if(parsed&&parsed.schema===1&&String(parsed.email||'').toLowerCase()===email&&Number(parsed.expiresAt)>Date.now()){
+        localTicket={
+          schema:1,
+          email,
+          role:String(parsed.role||'technicien').toLowerCase(),
+          issuedAt:Number(parsed.issuedAt)||0,
+          expiresAt:Number(parsed.expiresAt)||0
+        };
+        mark('localTicketAt');
+      }
+    }catch(_){}
+    return localTicket;
+  }
   function prepareSession(){
-    if(!valid()||!result?.success||session||!window.cdqEmbeddedRpcV2529)return;
-    // Authentication starts only AFTER the actual Android success callback,
-    // while the rest of the installed UI can still be loading.
+    if(!valid()||!result?.success||session||!window.cdqEmbeddedRpcV2529||navigator.onLine===false)return;
     session=window.cdqEmbeddedRpcV2529.prepareSession(token);
-    session.catch(()=>{}); // The normal Selector error handler consumes it later.
+    session.catch(()=>{});
   }
   function deliver(){
     if(!claim||!result||claim.delivered||!valid())return;
@@ -34,12 +67,25 @@
     if(requestId!==id)return false;
     if(result||!valid())return true;
     result={success:success===true,message:String(message||'')};
-    prepareSession();deliver();return true;
+    if(result.success){
+      mark('biometricSuccessAt');
+      loadLocalTicket();
+      prepareSession();
+    }
+    deliver();
+    return true;
   }
   const timer=setTimeout(()=>cancel(),65000);
   window.cdqStartupUnlockV2529={
     receive,cancel,
     activeFor:value=>valid()&&value===token,
+    takeLocalTicket(value){
+      if(!valid()||value!==token||!result?.success)return null;
+      return loadLocalTicket();
+    },
+    markLocalVisible(){if(valid()&&!timing.localVisibleAt)mark('localVisibleAt');},
+    markServerReady(){if(valid()&&!timing.serverReadyAt)mark('serverReadyAt');},
+    timing:()=>Object.assign({},timing),
     attach(account,requestId,done){
       if(!valid()||claim||String(account||'').trim().toLowerCase()!==email){cancel();return false;}
       claim={id:requestId,done,delivered:false};deliver();return true;
@@ -52,10 +98,14 @@
       return true;
     }
   };
-  // MainActivity can return before the ordinary shell callback is installed.
+
   window.cdqNativeBiometricResultV2507=receive;
   window.addEventListener('cdq:rpc-ready-v2529',prepareSession);
+  window.addEventListener('online',prepareSession,{passive:true});
   window.addEventListener('pagehide',()=>cancel(),{once:true});
   window.addEventListener('storage',()=>{if(!valid())cancel();});
-  try{BalanceCDQNative.biometric(id);}catch(_){cancel();}
+  try{
+    mark('biometricRequestedAt');
+    BalanceCDQNative.biometric(id);
+  }catch(_){cancel();}
 })();

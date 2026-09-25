@@ -7,6 +7,8 @@ on:
       - 'scripts/build-iphone.mjs'
       - 'scripts/iphone-rpc-compat.mjs'
       - 'scripts/build-embedded-android-v2528.mjs'
+      - 'fast-start-v2537.js'
+      - 'scripts/fast-start-v2537.mjs'
       - 'scripts/*instant-files*.mjs'
       - 'balance-cdq-android/web-source/**'
       - 'index.html'

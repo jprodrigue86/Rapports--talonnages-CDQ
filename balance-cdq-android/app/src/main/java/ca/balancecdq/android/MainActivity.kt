@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.hardware.biometrics.BiometricPrompt
 import android.os.Build
 import android.os.CancellationSignal
+import android.os.SystemClock
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.CookieManager
@@ -48,6 +49,8 @@ class MainActivity : Activity() {
 
     private var biometricCancellation: CancellationSignal? = null
     private var biometricRequestId = ""
+    @Volatile private var localSessionGrantUntilElapsed = 0L
+    private val localSessionStore by lazy { LocalSessionStore(this) }
 
     private val startupUpdateExecutor = Executors.newSingleThreadExecutor()
     @Volatile private var startupUpdateStarted = false
@@ -100,10 +103,38 @@ class MainActivity : Activity() {
             runOnUiThread {
                 if (id.isBlank() || biometricRequestId == id) {
                     biometricRequestId = ""
+                    localSessionGrantUntilElapsed = 0L
                     biometricCancellation?.cancel()
                     biometricCancellation = null
                 }
             }
+        }
+
+        @JavascriptInterface
+        fun saveLocalSession(email: String?, role: String?, deviceToken: String?, ttlMillis: Long): Boolean {
+            return localSessionStore.save(
+                email.orEmpty(),
+                role.orEmpty(),
+                deviceToken.orEmpty(),
+                ttlMillis
+            )
+        }
+
+        @JavascriptInterface
+        fun consumeLocalSession(email: String?, deviceToken: String?): String {
+            val now = SystemClock.elapsedRealtime()
+            if (now > localSessionGrantUntilElapsed) return ""
+            localSessionGrantUntilElapsed = 0L
+            return localSessionStore.readAfterBiometric(
+                email.orEmpty(),
+                deviceToken.orEmpty()
+            )
+        }
+
+        @JavascriptInterface
+        fun clearLocalSession() {
+            localSessionGrantUntilElapsed = 0L
+            localSessionStore.clear()
         }
     }
 
@@ -140,7 +171,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.36 CDQSafeArea/1"
+                settings.userAgentString + " BalanceCDQAndroid/25.37 CDQSafeArea/1"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -219,7 +250,7 @@ class MainActivity : Activity() {
 
         setContentView(SafeContentInsets.host(this, webView))
 
-        if (savedInstanceState == null || savedInstanceState.getString("cdqEmbeddedVersion") != "25.36") {
+        if (savedInstanceState == null || savedInstanceState.getString("cdqEmbeddedVersion") != "25.37") {
             webView.loadUrl(APP_URL)
             checkForNativeUpdateOnLaunch()
         } else {
@@ -401,6 +432,10 @@ class MainActivity : Activity() {
         if (biometricRequestId != requestId) return
         biometricRequestId = ""
         biometricCancellation = null
+        localSessionGrantUntilElapsed =
+            if (success && requestId.startsWith("startup-"))
+                SystemClock.elapsedRealtime() + 8_000L
+            else 0L
 
         if (!::webView.isInitialized) return
         val idQuoted = JSONObject.quote(requestId)
@@ -635,7 +670,7 @@ class MainActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("cdqEmbeddedVersion", "25.36")
+        outState.putString("cdqEmbeddedVersion", "25.37")
         webView.saveState(outState)
         super.onSaveInstanceState(outState)
     }
@@ -652,6 +687,7 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         startupUpdateExecutor.shutdownNow()
         biometricRequestId = ""
+        localSessionGrantUntilElapsed = 0L
         biometricCancellation?.cancel()
         biometricCancellation = null
         if (::webView.isInitialized) {
