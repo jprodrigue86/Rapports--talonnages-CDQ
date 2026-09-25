@@ -53,10 +53,11 @@
       if (p.position[axis] === 50) return reference;
       return reference * curve(p.position[axis]) / curve(50);
     }
-    const baseAnchor = p && p.schema === 2 ? p.anchor[axis] : standardAnchor[axis];
     const position = p && p.schema === 2 ? p.position[axis] : fallback;
     const standardReference = curve(standardAnchor[axis]);
-    const capturedReference = standardReference * curve(baseAnchor) / curve(50);
+    const capturedReference = p && p.schema === 2
+      ? standardReference * curve(p.anchor[axis]) / curve(50)
+      : standardReference;
     if (position === 50) return capturedReference;
     return capturedReference * curve(position) / curve(50);
   }
