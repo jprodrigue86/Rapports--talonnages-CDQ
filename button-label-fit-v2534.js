@@ -87,6 +87,17 @@
       size=Math.max(min,size-.25);
       el.style.setProperty('font-size',size.toFixed(2)+'px','important');
     }
+    // WebKit rounds text and client widths differently. Keep a small real
+    // margin after the normal fit so no final glyph can be painted outside.
+    const emergency=Math.max(4.5,min*.78);
+    let guard=0;
+    while(el.offsetParent!==null && guard++<48 && size>emergency+.01){
+      const width=el.clientWidth;
+      const tooWide=width>0 && (el.scrollWidth>width || longestWord(el,size)>width-.5);
+      if(!tooWide && lineCount(el)<=maxLines)break;
+      size=Math.max(emergency,size-.2);
+      el.style.setProperty('font-size',size.toFixed(2)+'px','important');
+    }
   }
   function equalize(selector){
     const buttons=[...document.querySelectorAll(selector)].filter(el=>el.offsetParent!==null);
