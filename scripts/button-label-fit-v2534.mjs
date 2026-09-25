@@ -16,6 +16,9 @@ export function applyButtonLabelFit2534(source){
     "each('#cdqTopActionsV2204 > .cdq-top-action > span:last-child, .quick-name', {'font-size':px(topLabel),\n      'line-height':'1.12','white-space':'normal','overflow-wrap':'anywhere','word-break':'normal',\n      'min-width':'0','width':'auto','flex':'1 1 0','max-width':'100%','text-overflow':'clip','text-align':'center'});",
     "each('#cdqTopActionsV2204 > .cdq-top-action > span:last-child, .quick-name', {'font-size':px(topLabel),\n      'line-height':'1.12','white-space':'normal','overflow-wrap':'normal','word-break':'normal','hyphens':'none',\n      'min-width':'0','width':'auto','flex':'1 1 0','max-width':'100%','text-overflow':'clip','text-align':'center'});");
   source=replaceOne(source,
+    "  function apply() {\n    if (!root.matches('.android,.ios,.mobile-device') && window.innerWidth > 899) return;",
+    "  function apply() {\n    window.cdqButtonLabelFitV2534?.reset();\n    if (!root.matches('.android,.ios,.mobile-device') && window.innerWidth > 899) return;");
+  source=replaceOne(source,
     "    applyPalette();\n    layoutCompanyMenu(unit, textScale);\n    measureNavigation();",
     "    applyPalette();\n    layoutCompanyMenu(unit, textScale);\n    window.cdqButtonLabelFitV2534?.fit();\n    measureNavigation();");
   return source;
