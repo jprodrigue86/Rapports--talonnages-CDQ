@@ -1,0 +1,77 @@
+name: Prepare Home underline removal 25.31
+on:
+  push:
+    branches: [codex/home-no-underline-v2531]
+    paths: ['scripts/prepare-home-v2531.py', 'styles/home-no-underline-v2531.css', 'tests/home-no-underline-v2531.browser.mjs', 'scripts/apk-digest-v2531.py', '.github/workflows/home-no-underline-v2531.yml']
+permissions:
+  contents: write
+concurrency:
+  group: cdq-home2531-prepare
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: codex/home-no-underline-v2531, fetch-depth: 0}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Apply targeted source patch
+        run: |
+          if ! grep -q 'versionCode = 2531' balance-cdq-android/app/build.gradle.kts; then
+            python3 scripts/prepare-home-v2531.py
+          fi
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/build-embedded-android-v2528.mjs balance-cdq-android/app .github/workflows/build-balance-cdq-android.yml iphone/ installer.html
+          if ! git diff --cached --quiet; then git commit -m 'Retirer uniquement le trait sous Accueil et préparer Android/iPhone 25.31'; fi
+      - name: Install browser engines
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2 >/tmp/cdq-browsers.log 2>&1
+          npx playwright install --with-deps chromium webkit >>/tmp/cdq-browsers.log 2>&1
+      - name: Validate targeted visual regression and preserved file updates
+        run: |
+          node tests/home-no-underline-v2531.browser.mjs
+          node scripts/test-instant-files-v2530.mjs
+          node --test tests/iphone-rpc-compat.test.mjs
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.10.2'}
+      - name: Android tools
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Build and test Android 25.31
+        working-directory: balance-cdq-android
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleRelease
+      - name: Create private-signing digest handoff
+        run: |
+          APK=balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" >/tmp/cdq2531-badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2531' versionName='25.31'" /tmp/cdq2531-badging.txt
+          ! grep -q application-debuggable /tmp/cdq2531-badging.txt
+          python3 scripts/apk-digest-v2531.py prepare "$APK" balance-cdq-android/releases/v25.31-unsigned-digest.json
+          git add balance-cdq-android/releases/v25.31-unsigned-digest.json
+          git commit -m 'Enregistrer les empreintes de la construction Android 25.31 vérifiée'
+          git push origin HEAD:codex/home-no-underline-v2531
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CDQ-25.31-unsigned-handoff
+          path: |
+            balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
+            balance-cdq-android/releases/v25.31-unsigned-digest.json
+          retention-days: 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CDQ-Home-25.31-tests
+          path: |
+            /tmp/cdq-home2531-results/
+            balance-cdq-android/app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore
+          retention-days: 2

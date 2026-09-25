@@ -1,0 +1,5 @@
+/* Hide only the Home button underline, never the icon host's ::after artwork. */
+html:is(.android,.ios,.mobile-device) .bottom-nav > button.bottom-nav-item.home-nav-button::after {
+  content: none !important;
+  display: none !important;
+}
