@@ -12,6 +12,12 @@
   const style=document.createElement('style');
   style.id='cdqIconFallbackStyleV2538';
   style.textContent=`
+    .bottom-nav > .bottom-nav-item > span:not(.${THEMED}){
+      visibility:visible!important;
+    }
+    .bottom-nav > .bottom-nav-item > span:not(.${THEMED}) *{
+      visibility:visible!important;
+    }
     .bottom-nav > .bottom-nav-item > .${THEMED}:not(.${READY}){
       visibility:visible!important;
     }
