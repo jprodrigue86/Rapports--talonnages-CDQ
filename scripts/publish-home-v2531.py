@@ -3,7 +3,7 @@
 No signing key, password or credential is accepted or stored by this script.
 """
 from pathlib import Path
-import argparse,base64,hashlib,json,re,subprocess,zipfile,zlib
+import argparse,base64,hashlib,json,re,struct,subprocess,zipfile,zlib
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--handoff',type=Path,required=True)
 parser.add_argument('--spec',type=Path,required=True)
@@ -23,6 +23,17 @@ check(len(compressed)<200000,'Oversized signature delta')
 dec=zlib.decompressobj();insert=dec.decompress(compressed,1000000)
 check(dec.eof and not dec.unused_data and not dec.unconsumed_tail,'Invalid or oversized signature delta')
 final=base[:start]+insert+base[start+removed:]
+if s.get('adjustZipCentralDirectoryOffset') is True:
+    # Signing only inserts a public signature block before the unchanged ZIP
+    # central directory. Adjust its single EOCD offset instead of republishing it.
+    eocd=base.rfind(b'PK\x05\x06')
+    check(removed==0 and eocd>=0 and eocd+22==len(base), 'Unsupported signing-only ZIP layout')
+    check(struct.unpack_from('<I',base,eocd+16)[0]==start, 'Signature insertion must precede the central directory')
+    position=eocd+len(insert)
+    check(final[position:position+4]==b'PK\x05\x06', 'ZIP end marker changed')
+    mutable=bytearray(final)
+    struct.pack_into('<I',mutable,position+16,start+len(insert))
+    final=bytes(mutable)
 check(len(final)==s['outputBytes'] and sha(final)==s['outputSha256'],'Final APK mismatch')
 out=Path('/tmp/Balance-CDQ-Android-25.31.apk');out.write_bytes(final)
 verify=subprocess.run(['java','-jar',str(a.handoff/'apksigner.jar'),'verify','--verbose','--print-certs',str(out)],check=True,capture_output=True,text=True).stdout
