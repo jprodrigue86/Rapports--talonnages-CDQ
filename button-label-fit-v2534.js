@@ -81,6 +81,11 @@
     return true;
   }
   function fitOne(el,maxLines,min){
+    const requested=num(getComputedStyle(el).fontSize);
+    let size=requested;
+    if(!size)return false;
+    // Preserve the exact established geometry when the current label already fits.
+    if(fits(el,maxLines,size))return false;
     el.style.setProperty('display','block','important');
     el.style.setProperty('min-width','0','important');
     el.style.setProperty('max-width','100%','important');
@@ -91,25 +96,22 @@
     el.style.setProperty('-webkit-hyphens','none','important');
     el.style.setProperty('text-overflow','clip','important');
     el.style.setProperty('overflow','visible','important');
-    const requested=num(getComputedStyle(el).fontSize);
-    let size=requested;
-    if(!size)return;
     if(el.closest('.quick-button,.cdq-top-action') && el.clientWidth>0 && longestWord(el,size)>el.clientWidth-.5){
       stackButton(el);
       size=requested;
       el.style.setProperty('font-size',size.toFixed(2)+'px','important');
     }
-    if(fits(el,maxLines,size))return;
+    if(fits(el,maxLines,size))return true;
     const preferred=Math.max(min,size*.76);
     for(;size>preferred+.01&&!fits(el,maxLines,size);){
       size=Math.max(preferred,size-.25);
       el.style.setProperty('font-size',size.toFixed(2)+'px','important');
     }
-    if(fits(el,maxLines,size))return;
+    if(fits(el,maxLines,size))return true;
     if(stackButton(el)){
       size=requested;
       el.style.setProperty('font-size',size.toFixed(2)+'px','important');
-      if(fits(el,maxLines,size))return;
+      if(fits(el,maxLines,size))return true;
     }
     for(;size>min+.01&&!fits(el,maxLines,size);){
       size=Math.max(min,size-.25);
@@ -126,12 +128,16 @@
       size=Math.max(emergency,size-.2);
       el.style.setProperty('font-size',size.toFixed(2)+'px','important');
     }
+    return true;
   }
   function equalize(selector){
     const buttons=[...document.querySelectorAll(selector)].filter(el=>el.offsetParent!==null);
-    if(buttons.length<2)return;
-    const height=Math.max(...buttons.map(el=>el.scrollHeight));
-    buttons.forEach(el=>el.style.setProperty('min-height',Math.ceil(height)+'px','important'));
+    if(buttons.length<2||!buttons.some(el=>el.classList.contains('cdq-label-stack-v2534')))return;
+    const height=Math.max(...buttons.map(el=>Math.max(el.scrollHeight,el.getBoundingClientRect().height)));
+    buttons.forEach(el=>{
+      const existing=num(getComputedStyle(el).minHeight);
+      if(height>existing+.25)el.style.setProperty('min-height',Math.ceil(height)+'px','important');
+    });
   }
   function reset(){
     document.querySelectorAll('.cdq-label-stack-v2534').forEach(el=>el.classList.remove('cdq-label-stack-v2534'));
