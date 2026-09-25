@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html data-cdq-iphone-version="25.38" data-cdq-iphone-release="77e10544b4ecd09bce81501118e11642b99f0bed64ef5446547fbb775f313055">
+<html data-cdq-iphone-version="25.39" data-cdq-iphone-release="d4967f2188c8cd37a13fe73a5e01ff7a68ee095d82974ff3053a7b17f33c48d3">
 <head>
 <script src="./iphone-update.js"></script>
 <script id="cdqFullNamesV2536">
@@ -480,8 +480,7 @@
 <meta charset="utf-8">
 <link rel="icon" href="./icons/icon-heavy-v3-192.png">
 <script src="./embedded-rpc.js"></script>
-<script src="./icon-fallback-v2538.js"></script>
-<meta name="cdq-package-build" content="2026.09.25-v25.38-persistent-fast-start">
+<meta name="cdq-package-build" content="2026.09.25-v25.39-clean-fast-start">
 <script id="cdqPcEarlyBootV2166">
 (function(){
   try{
@@ -759,7 +758,7 @@ function cdqAnnounceSelectorReadyV42(){
     type:'CDQ_SELECTOR_READY',
     authProtocol:42,
     accessState:cdqAccessState,
-    build:'2026.09.25-v25.38-persistent-fast-start'
+    build:'2026.09.25-v25.39-clean-fast-start'
   });
 }
 
@@ -772,7 +771,7 @@ function cdqAnnounceHealthReadyV97(){
         type:'CDQ_HEALTH_READY',
         authProtocol:42,
         accessState:cdqAccessState,
-        build:'2026.09.25-v25.38-persistent-fast-start'
+        build:'2026.09.25-v25.39-clean-fast-start'
       });
     }
   } catch(e) {}
@@ -7238,11 +7237,6 @@ function cdqApiRun(){
       if(typeof prop!=="string")return undefined;
       return function(){
         const args=Array.prototype.slice.call(arguments);
-        if(window.cdqLocalProvisionalV2537 && !CDQ_RPC_DIRECT_V58.has(prop)){
-          const error=new Error('Connexion sécurisée en arrière-plan. Réessayez dans un instant.');
-          if(typeof failure==='function')queueMicrotask(()=>failure(error,userObject));
-          return;
-        }
         let runner=google["script"]["run"];
         if(typeof success==="function")runner=runner.withSuccessHandler(success);
         if(typeof failure==="function")runner=runner.withFailureHandler(failure);
@@ -7382,9 +7376,6 @@ function afficherDeverrouillageBiometrique(etat){
   cdqDemanderBiometrie();
 }
 function appliquerAccesAutorise(etat){
-  const provisional=!!(etat&&etat.cdqLocalProvisionalV2537);
-  window.cdqLocalProvisionalV2537=provisional;
-  document.documentElement.dataset.cdqServerConfirmed=provisional?'0':'1';
   try{if(etat&&etat.email&&cdqObtenirJetonAppareil())localStorage.setItem('cdqLastUnlockEmailV2511',String(etat.email));}catch(_){}
 
   if(etat&&etat.jetonSession)cdqSauverSessionRpcV58(etat.jetonSession);
@@ -7402,16 +7393,16 @@ function appliquerAccesAutorise(etat){
   cdqMasquerPanneauxAcces();
 
   const adminButton=document.getElementById("adminButton");
-  if(adminButton)adminButton.style.display=!provisional&&etat.role==="admin"?"block":"none";
+  if(adminButton)adminButton.style.display=etat.role==="admin"?"block":"none";
   const headerAdminButton=document.getElementById("headerAdminButton");
-  if(headerAdminButton)headerAdminButton.style.display=!provisional&&etat.role==="admin"?"grid":"none";
+  if(headerAdminButton)headerAdminButton.style.display=etat.role==="admin"?"grid":"none";
 
   utilisateurCourantEmail=String(etat.email||"").trim().toLowerCase();
-  utilisateurCourantRole=provisional?"lecture":String(etat.role||"technicien").trim().toLowerCase();
+  utilisateurCourantRole=String(etat.role||"technicien").trim().toLowerCase();
   appliquerDroitsRoleInterface();
   cdqSetAccessState("ready");
   chargerClients(false,etat.compagniesInitiales);
-  if(!provisional)setTimeout(function(){if(cdqAccessState==="ready")nettoyerAncienCache();},3000);
+  setTimeout(function(){if(cdqAccessState==="ready")nettoyerAncienCache();},3000);
   window.dispatchEvent(new Event("cdq:access-ready"));
 }
 function cdqAfficherErreurGoogleV42(message){
@@ -7879,20 +7870,11 @@ function cdqTerminerBiometrieSucces(){
     .withSuccessHandler(function(etat){
       if(!actuel())return;
       cdqArreterDelaiBiometrique();
-      if(etat&&etat.autorise){
-        if(etat.cdqLocalProvisionalV2537){appliquerAccesAutorise(etat);return;}
-        cdqBiometricRequestId="";appliquerAccesAutorise(etat);return;
-      }
+      if(etat&&etat.autorise){cdqBiometricRequestId="";appliquerAccesAutorise(etat);return;}
       cdqAfficherPlanBNip("Entrez votre NIP à 4 chiffres.");
     })
     .withFailureHandler(function(){
       if(!actuel())return;
-      if(window.cdqLocalProvisionalV2537){
-        cdqArreterDelaiBiometrique();
-        cdqBiometricRequestId="";cdqBiometricPending=false;cdqFastUnlockV2511=false;
-        try{afficherMessage('Mode local actif — validation serveur en attente.',true);}catch(_){}
-        return;
-      }
       if(cdqFastUnlockV2511){
         cdqArreterDelaiBiometrique();
         cdqBiometricRequestId="";cdqBiometricPending=false;
@@ -11184,7 +11166,7 @@ function changerMode(){
 (function(){
   "use strict";
 
-  const CDQ_BUILD = "2026.09.25-v25.38-persistent-fast-start";
+  const CDQ_BUILD = "2026.09.25-v25.39-clean-fast-start";
   let cdqRootContent = null;
   let cdqFolderMap = Object.create(null);
   let cdqParentMap = Object.create(null);
@@ -13365,7 +13347,7 @@ function cdqCheckUpdate(){
 (function(){
 "use strict";
 
-const CDQ_V19_BUILD = "2026.09.25-v25.38-persistent-fast-start";
+const CDQ_V19_BUILD = "2026.09.25-v25.39-clean-fast-start";
 const CDQ_V19_DAY_KEY = "cdqV19OfflineDay";
 let cdqV19SyncRunning = false;
 let cdqV19OfflineToggleRunning = false;
@@ -13972,7 +13954,6 @@ function cdqDocumentButton(body,label,action){
 function cdqDocumentText(body,text){const p=document.createElement('p');p.textContent=text;p.style.cssText='line-height:1.5;margin:12px 0';body.appendChild(p);return p;}
 function cdqDocumentLink(body,label,url){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.textContent=label;a.className='modal-button';a.style.cssText='display:block;margin:12px 0;padding:14px;text-align:center;text-decoration:none';body.appendChild(a);return a;}
 function cdqOpenSheetV2526(id){
-  if(window.cdqLocalProvisionalV2537){afficherMessage('Google Sheets sera disponible dès que le serveur aura confirmé la session.',true);return true;}
   id=String(id||'');if(!/^[A-Za-z0-9_-]{1,200}$/.test(id))throw Error('Identifiant Google Sheets invalide.');
   const email=cdqDefaultGoogleAccountV2299(),readOnly=String(utilisateurCourantRole||'')==='lecture';
   cdqMarkOpenedV2299(id);
@@ -14130,7 +14111,6 @@ const CDQ_PDF_READER_KEY='cdqPdfReaderPreferenceV1';
 function cdqPdfReaderPreference(){const v=localStorage.getItem(CDQ_PDF_READER_KEY)||'ask';return ['ask','cdq','ilovepdf','acrobat'].includes(v)?v:'ask';}
 function cdqSetPdfReaderPreference(value){localStorage.setItem(CDQ_PDF_READER_KEY,value);return value;}
 async function cdqExternalPdfV2520(id,preferred){
-  if(window.cdqLocalProvisionalV2537){afficherMessage('Les lecteurs externes seront disponibles dès que le serveur aura confirmé la session.',true);return;}
   if(/BalanceCDQAndroid\//.test(navigator.userAgent)&&window.cdqDocumentOpen){window.cdqDocumentOpen.open(id,'pdf',preferred);return;}
   const rec=await cdqLoadPdfRecord(id);cdqDownloadPdf(rec);afficherMessage('Ouvrez le PDF téléchargé dans '+(preferred==='ilovepdf'?'iLovePDF':'Acrobat')+'.',true);
 }
@@ -14880,7 +14860,7 @@ window.addEventListener("load",function(){
 (function(){
 "use strict";
 
-const CDQ_V20_BUILD = "2026.09.25-v25.38-persistent-fast-start";
+const CDQ_V20_BUILD = "2026.09.25-v25.39-clean-fast-start";
 let cdqV20Inventory = null;
 let cdqV20Tab = "stock";
 let cdqV20Location = "";
@@ -15728,7 +15708,7 @@ window.addEventListener("online",function(){setTimeout(v20RefreshAlerts,1200);})
 (function(){
 "use strict";
 
-const CDQ_V21_BUILD = "2026.09.25-v25.38-persistent-fast-start";
+const CDQ_V21_BUILD = "2026.09.25-v25.39-clean-fast-start";
 let cdqV21PushPending = false;
 function v21IsAdmin(){return String(utilisateurCourantRole||'')==='admin';}
 
@@ -16256,7 +16236,7 @@ window.ouvrirFacturesCDQ=ouvrirFacturesCDQ;function install(){const nav=document
 (function(){
 'use strict';
 if(!document.documentElement.classList.contains('windows'))return;
-const BUILD='2026.09.25-v25.38-persistent-fast-start';
+const BUILD='2026.09.25-v25.39-clean-fast-start';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const st={
@@ -20013,7 +19993,7 @@ html.windows #cdqPcV16 #cdqPcUpdateBtnV2244:hover{filter:brightness(1.08);}
 <script id="cdqPcV2244UpdateBannerJs">
 (function(){
   'use strict';
-  const BUILD='2026.09.25-v25.38-persistent-fast-start';
+  const BUILD='2026.09.25-v25.39-clean-fast-start';
   const PARENT_ORIGIN='https://jprodrigue86.github.io';
   let queryTimer=0;
 
@@ -21114,7 +21094,6 @@ html.android #cdqTopDisplayButtonV2204>span:last-child,html.mobile-device #cdqTo
     id = String(id || '');
     if (!/^[A-Za-z0-9_-]{10,200}$/.test(id)) return false;
     const m = meta(id), type = requestedKind || kind(m);
-    if (window.cdqLocalProvisionalV2537 && type==='note') { try{afficherMessage('Les fichiers distants seront disponibles dès que le serveur aura confirmé la session.',true);}catch(_){} return true; }
     if (!type || !native()) return false;
     if(type==='sheet')return window.cdqOpenSheetV2526(id);
     // Keep an explicitly selected CDQ reader on its established internal route.
@@ -22218,7 +22197,7 @@ html.windows #cdqPcV16 tr.pc22-swiped .pc22-copy-swipe{display:inline-flex!impor
 <script id="cdqfeedbackV2522">
 (function(){
 'use strict';
-const BUILD='2026.09.25-v25.38-persistent-fast-start',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
+const BUILD='2026.09.25-v25.39-clean-fast-start',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
 const jobs=new Map();let serial=0,indicator,update,checking=false,lastCheck=0,available='',deployed='';
 function paint(){
  if(!document.documentElement.classList.contains('windows'))return;
