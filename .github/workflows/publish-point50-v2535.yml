@@ -72,7 +72,8 @@ jobs:
           a['signingBlockBase64']=base64.b64encode(block).decode()
           Path('/tmp/cdq-public-approval.json').write_text(json.dumps(a))
           PY
-          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk /tmp/cdq-handoff/Balance-CDQ-Android-25.35-unsigned.apk --commit "$(python3 -c "import json; print(json.load(open('balance-cdq-android/signing/approval-v2535.json'))['sourceCommit'])")" > /tmp/cdq-handoff/request.json
+          SOURCE_COMMIT=$(python3 -c "import json; print(json.load(open('balance-cdq-android/signing/approval-v2535.json'))['sourceCommit'])")
+          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk /tmp/cdq-handoff/Balance-CDQ-Android-25.35-unsigned.apk --commit "$SOURCE_COMMIT" > /tmp/cdq-handoff/request.json
           python3 balance-cdq-android/signing/detached-apk-v2.py attach --apk /tmp/cdq-handoff/Balance-CDQ-Android-25.35-unsigned.apk --request /tmp/cdq-handoff/request.json --approval /tmp/cdq-public-approval.json --output downloads/Balance-CDQ-Android-25.35.apk
       - uses: actions/setup-node@v4
         with:
