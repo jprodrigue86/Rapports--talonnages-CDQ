@@ -1,6 +1,7 @@
 name: Verify published Balance CDQ release
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -10,8 +11,6 @@ on:
       - 'installer.html'
       - 'iphone/index.html'
       - 'iphone/app/**'
-      - 'tests/published-point50-v2535.mjs'
-      - '.github/workflows/published-point50-v2535.yml'
 
 permissions:
   contents: read
