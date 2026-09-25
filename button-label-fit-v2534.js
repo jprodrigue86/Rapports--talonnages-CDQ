@@ -69,6 +69,15 @@
     const button=el.closest('.quick-button,.cdq-top-action');
     if(!button)return false;
     button.classList.add('cdq-label-stack-v2534');
+    for(const [p,v] of Object.entries({
+      'flex-direction':'column','justify-content':'center','column-gap':'0','row-gap':'0','gap':'0',
+      'padding-left':'1px','padding-right':'1px','height':'auto'
+    }))button.style.setProperty(p,v,'important');
+    el.style.setProperty('display','block','important');
+    el.style.setProperty('width','100%','important');
+    el.style.setProperty('max-width','100%','important');
+    el.style.setProperty('min-width','0','important');
+    el.style.setProperty('flex','0 0 auto','important');
     return true;
   }
   function fitOne(el,maxLines,min){
@@ -84,7 +93,13 @@
     el.style.setProperty('overflow','visible','important');
     const requested=num(getComputedStyle(el).fontSize);
     let size=requested;
-    if(!size||fits(el,maxLines,size))return;
+    if(!size)return;
+    if(el.closest('.quick-button,.cdq-top-action') && el.clientWidth>0 && longestWord(el,size)>el.clientWidth-.5){
+      stackButton(el);
+      size=requested;
+      el.style.setProperty('font-size',size.toFixed(2)+'px','important');
+    }
+    if(fits(el,maxLines,size))return;
     const preferred=Math.max(min,size*.76);
     for(;size>preferred+.01&&!fits(el,maxLines,size);){
       size=Math.max(preferred,size-.25);
@@ -121,10 +136,13 @@
   function reset(){
     document.querySelectorAll('.cdq-label-stack-v2534').forEach(el=>el.classList.remove('cdq-label-stack-v2534'));
     for(const target of targets)document.querySelectorAll(target.selector).forEach(el=>{
-      for(const p of ['display','min-width','max-width','font-size','white-space','overflow-wrap','word-break','hyphens','-webkit-hyphens','text-overflow','overflow'])
+      for(const p of ['display','width','min-width','max-width','flex','font-size','white-space','overflow-wrap','word-break','hyphens','-webkit-hyphens','text-overflow','overflow'])
         el.style.removeProperty(p);
     });
-    document.querySelectorAll('.quick-buttons > .quick-button,#cdqTopActionsV2204 > .cdq-top-action').forEach(el=>el.style.removeProperty('min-height'));
+    document.querySelectorAll('.quick-buttons > .quick-button,#cdqTopActionsV2204 > .cdq-top-action').forEach(el=>{
+      for(const p of ['min-height','flex-direction','justify-content','column-gap','row-gap','gap','padding-left','padding-right','height'])
+        el.style.removeProperty(p);
+    });
   }
   function fit(){
     if(!mobile())return;
