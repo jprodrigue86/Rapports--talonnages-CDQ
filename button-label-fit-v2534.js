@@ -31,34 +31,58 @@
     if(width<=0)return true;
     return longestWord(el,size)<=width+.6 && lineCount(el)<=maxLines && el.scrollWidth<=width+1;
   }
-  function compactButton(el){
+  function ensureStyle(){
+    if(document.getElementById('cdqButtonLabelFitStyleV2534'))return;
+    const style=document.createElement('style');
+    style.id='cdqButtonLabelFitStyleV2534';
+    style.textContent=`
+      .quick-button.cdq-label-stack-v2534,
+      .cdq-top-action.cdq-label-stack-v2534{
+        flex-direction:column!important;
+        justify-content:center!important;
+        column-gap:0!important;row-gap:0!important;gap:0!important;
+        padding-left:1px!important;padding-right:1px!important;
+        height:auto!important;
+      }
+      .quick-button.cdq-label-stack-v2534>.quick-name,
+      .cdq-top-action.cdq-label-stack-v2534>span:last-child{
+        width:100%!important;max-width:100%!important;min-width:0!important;
+        flex:0 0 auto!important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  function stackButton(el){
     const button=el.closest('.quick-button,.cdq-top-action');
-    if(!button)return;
-    button.style.setProperty('column-gap','1px','important');
-    button.style.setProperty('gap','1px','important');
-    button.style.setProperty('padding-left','1px','important');
-    button.style.setProperty('padding-right','1px','important');
+    if(!button)return false;
+    button.classList.add('cdq-label-stack-v2534');
+    return true;
   }
   function fitOne(el,maxLines,min){
-    el.style.setProperty('white-space','normal','important');
-    el.style.setProperty('overflow-wrap','normal','important');
-    el.style.setProperty('word-break','normal','important');
-    el.style.setProperty('hyphens','none','important');
-    el.style.setProperty('-webkit-hyphens','none','important');
-    el.style.setProperty('text-overflow','clip','important');
-    el.style.setProperty('overflow','visible','important');
-    let size=num(getComputedStyle(el).fontSize);
+    el.style.setProperty('white-space','normal');
+    el.style.setProperty('overflow-wrap','normal');
+    el.style.setProperty('word-break','normal');
+    el.style.setProperty('hyphens','none');
+    el.style.setProperty('-webkit-hyphens','none');
+    el.style.setProperty('text-overflow','clip');
+    el.style.setProperty('overflow','visible');
+    const requested=num(getComputedStyle(el).fontSize);
+    let size=requested;
     if(!size||fits(el,maxLines,size))return;
-    const preferred=Math.max(min,size*.68);
+    const preferred=Math.max(min,size*.76);
     for(;size>preferred+.01&&!fits(el,maxLines,size);){
       size=Math.max(preferred,size-.25);
-      el.style.setProperty('font-size',size.toFixed(2)+'px','important');
+      el.style.setProperty('font-size',size.toFixed(2)+'px');
     }
     if(fits(el,maxLines,size))return;
-    compactButton(el);
+    if(stackButton(el)){
+      size=requested;
+      el.style.setProperty('font-size',size.toFixed(2)+'px');
+      if(fits(el,maxLines,size))return;
+    }
     for(;size>min+.01&&!fits(el,maxLines,size);){
       size=Math.max(min,size-.25);
-      el.style.setProperty('font-size',size.toFixed(2)+'px','important');
+      el.style.setProperty('font-size',size.toFixed(2)+'px');
     }
   }
   function equalize(selector){
@@ -69,6 +93,8 @@
   }
   function fit(){
     if(!mobile())return;
+    ensureStyle();
+    document.querySelectorAll('.cdq-label-stack-v2534').forEach(el=>el.classList.remove('cdq-label-stack-v2534'));
     for(const target of targets)document.querySelectorAll(target.selector).forEach(el=>fitOne(el,target.maxLines,target.min));
     equalize('.quick-buttons > .quick-button');
     equalize('#cdqTopActionsV2204 > .cdq-top-action');
