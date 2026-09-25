@@ -1,128 +1,194 @@
-name: Publish signed point-50 Android and iPhone 25.35
+name: Publish certified Balance CDQ release
 
 on:
   push:
-    branches: [fix/standard-point50-v2535]
+    branches: [main]
     paths:
       - 'balance-cdq-android/signing/approval-v2535.json'
+      - '.github/workflows/publish-point50-v2535.yml'
+      - 'scripts/stage-point50-release-v2535.py'
 
 permissions:
   contents: write
   actions: read
+  pages: write
 
 concurrency:
-  group: publish-point50-2535
+  group: publish-certified-balance-cdq
   cancel-in-progress: false
 
 jobs:
-  stage:
+  publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/standard-point50-v2535
+          ref: main
           fetch-depth: 0
-      - name: Bind approval to the exact successful source
+
+      - name: Read current release identity
+        id: meta
+        run: |
+          python3 - <<'PY'
+          import os,re
+          text=open('balance-cdq-android/app/build.gradle.kts').read()
+          code=re.search(r'versionCode\s*=\s*(\d+)',text)
+          name=re.search(r'versionName\s*=\s*"([^"]+)"',text)
+          assert code and name
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('code='+code.group(1)+'\n')
+              f.write('version='+name.group(1)+'\n')
+          PY
+
+      - name: Bind approval to the exact successful main build
         id: approval
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
-          import json,subprocess,os,urllib.request
+          import json,os,re,subprocess,urllib.request
           a=json.load(open('balance-cdq-android/signing/approval-v2535.json'))
-          assert a['artifactName']=='Balance-CDQ-Android-25.35-release-handoff'
+          gradle=open('balance-cdq-android/app/build.gradle.kts').read()
+          version=re.search(r'versionName\s*=\s*"([^"]+)"',gradle).group(1)
+          code=int(re.search(r'versionCode\s*=\s*(\d+)',gradle).group(1))
+          assert a['artifactName']==f'Balance-CDQ-Android-{version}-release-handoff'
           assert isinstance(a['runId'],int) and a['runId']>0
+          assert a['sourceCommit'] and len(a['sourceCommit'])==40
+          subprocess.run(['git','merge-base','--is-ancestor',a['sourceCommit'],'HEAD'],check=True)
           changed=set(subprocess.check_output(['git','diff','--name-only',a['sourceCommit'],'HEAD'],text=True).splitlines())
           allowed={
             'balance-cdq-android/signing/approval-v2535.json',
-            'balance-cdq-android/signing/detached-apk-v2.py',
-            'tests/embedded-v2528-browser.test.mjs',
-            '.github/workflows/personal-sizing-v2533.yml',
             '.github/workflows/build-balance-cdq-android.yml',
-            '.github/workflows/point50-v2535.yml',
-            'scripts/stage-point50-release-v2535.py',
+            '.github/workflows/iphone-install-share.yml',
             '.github/workflows/publish-point50-v2535.yml',
-            'tests/published-point50-v2535.mjs',
-            '.github/workflows/published-point50-v2535.yml'
+            '.github/workflows/published-point50-v2535.yml',
+            'scripts/stage-point50-release-v2535.py',
+            'tests/iphone-install.test.mjs',
+            'tests/published-point50-v2535.mjs'
           }
-          assert changed <= allowed, changed-allowed
+          assert changed<=allowed,'Source changed after signing approval: '+repr(sorted(changed-allowed))
           url='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+'/actions/runs/'+str(a['runId'])
           req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
           with urllib.request.urlopen(req,timeout=30) as r: run=json.load(r)
-          assert run['head_sha']==a['sourceCommit'] and run['conclusion']=='success', 'release-source workflow must pass for this exact commit'
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('run='+str(a['runId'])+'\n')
+          assert run['head_sha']==a['sourceCommit']
+          assert run['head_branch']=='main'
+          assert run['event']=='push'
+          assert run['conclusion']=='success'
+          assert run['path']=='.github/workflows/build-balance-cdq-android.yml'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('run='+str(a['runId'])+'\n')
+              f.write('artifact='+a['artifactName']+'\n')
+              f.write('unsigned=Balance-CDQ-Android-'+version+'-unsigned.apk\n')
+          print(json.dumps({'version':version,'code':code,'sourceCommit':a['sourceCommit'],'runId':a['runId']},sort_keys=True))
           PY
+
       - uses: actions/download-artifact@v4
         with:
-          name: Balance-CDQ-Android-25.35-release-handoff
+          name: ${{ steps.approval.outputs.artifact }}
           run-id: ${{ steps.approval.outputs.run }}
           github-token: ${{ github.token }}
           path: /tmp/cdq-handoff
+
       - name: Attach independently approved public signature
         run: |
+          set -euo pipefail
           python3 - <<'PY'
-          import json,base64,zlib,hashlib
+          import base64,gzip,hashlib,json
           from pathlib import Path
           a=json.loads(Path('balance-cdq-android/signing/approval-v2535.json').read_text())
-          decoder=zlib.decompressobj(31)
-          block=decoder.decompress(base64.b64decode(a['signingBlockGzipBase64'],validate=True),65536)
-          assert decoder.eof and not decoder.unused_data and not decoder.unconsumed_tail
-          assert len(block)==a['signingBlockBytes']
-          assert hashlib.sha256(block).hexdigest()==a['signingBlockSha256']
-          a['signingBlockBase64']=base64.b64encode(block).decode()
+          if 'signingBlockBase64' not in a:
+              raw=gzip.decompress(base64.b64decode(a['signingBlockGzipBase64'],validate=True))
+              assert len(raw)==a['signingBlockBytes']
+              assert hashlib.sha256(raw).hexdigest()==a['signingBlockSha256']
+              a['signingBlockBase64']=base64.b64encode(raw).decode()
           Path('/tmp/cdq-public-approval.json').write_text(json.dumps(a))
           PY
           SOURCE_COMMIT=$(python3 -c "import json; print(json.load(open('balance-cdq-android/signing/approval-v2535.json'))['sourceCommit'])")
-          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk /tmp/cdq-handoff/Balance-CDQ-Android-25.35-unsigned.apk --commit "$SOURCE_COMMIT" > /tmp/cdq-handoff/request.json
-          python3 balance-cdq-android/signing/detached-apk-v2.py attach --apk /tmp/cdq-handoff/Balance-CDQ-Android-25.35-unsigned.apk --request /tmp/cdq-handoff/request.json --approval /tmp/cdq-public-approval.json --output downloads/Balance-CDQ-Android-25.35.apk
+          APK="/tmp/cdq-handoff/${{ steps.approval.outputs.unsigned }}"
+          test -s "$APK"
+          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk "$APK" --commit "$SOURCE_COMMIT" > /tmp/cdq-request.json
+          python3 balance-cdq-android/signing/detached-apk-v2.py attach             --apk "$APK"             --request /tmp/cdq-request.json             --approval /tmp/cdq-public-approval.json             --output "downloads/Balance-CDQ-Android-${{ steps.meta.outputs.version }}.apk"
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          a=json.load(open('balance-cdq-android/signing/approval-v2535.json'))
+          apk=Path('downloads/Balance-CDQ-Android-${{ steps.meta.outputs.version }}.apk')
+          actual=hashlib.sha256(apk.read_bytes()).hexdigest()
+          assert actual==a['signedSha256'],(actual,a['signedSha256'])
+          PY
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Install Android SDK verifier
+
+      - name: Install official Android verifier
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;35.0.0'
-      - name: Verify certificate, signatures, alignment and package
+
+      - name: Verify signed Android release
         run: |
           set -euo pipefail
-          APK=downloads/Balance-CDQ-Android-25.35.apk
+          APK="downloads/Balance-CDQ-Android-${{ steps.meta.outputs.version }}.apk"
           TOOLS="$ANDROID_HOME/build-tools/35.0.0"
           "$TOOLS/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/cdq-signature.txt
+          grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' /tmp/cdq-signature.txt
+          grep -q 'Verified using v3 scheme (APK Signature Scheme v3): true' /tmp/cdq-signature.txt
           grep -qi 'Signer #1 certificate SHA-256 digest: 496030d9cd10e81ff4e9486c38491bc15389112c0c295c61c295981c101c4436' /tmp/cdq-signature.txt
           "$TOOLS/zipalign" -c -P 16 4 "$APK"
           "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-package.txt
-          grep -q "package: name='ca.balancecdq.android' versionCode='2535' versionName='25.35'" /tmp/cdq-package.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='${{ steps.meta.outputs.code }}' versionName='${{ steps.meta.outputs.version }}'" /tmp/cdq-package.txt
           ! grep -q application-debuggable /tmp/cdq-package.txt
-      - name: Generate paired iPhone release and publication metadata
+
+      - name: Generate matching Android and iPhone public interfaces
         run: |
           node scripts/build-embedded-android-v2528.mjs
           node scripts/build-iphone.mjs
-          python3 scripts/stage-point50-release-v2535.py
-          node --test tests/personal-sizing-v2533.test.mjs tests/release-references.test.mjs
           node tests/iphone-install.test.mjs
+          node --test tests/personal-sizing-v2533.test.mjs tests/release-references.test.mjs tests/full-names-v2536.test.mjs
+          python3 scripts/stage-point50-release-v2535.py
           python3 balance-cdq-android/signing/verify-published-release.py --tools "$ANDROID_HOME/build-tools/35.0.0"
-      - name: Commit only the tested public release
+
+      - name: Commit only verified public release outputs
+        id: release
         run: |
+          set -euo pipefail
+          VERSION='${{ steps.meta.outputs.version }}'
           python3 - <<'PY'
           import subprocess
           changed=subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],text=True).splitlines()
+          version='${{ steps.meta.outputs.version }}'
+          allowed={
+            f'downloads/Balance-CDQ-Android-{version}.apk',
+            f'downloads/Balance-CDQ-Android-{version}.zip',
+            'downloads/android-release-update.json',
+            'installer.html',
+            'iphone/index.html'
+          }
           for line in changed:
               p=line[3:]
-              assert p.startswith('iphone/app/') or p in {
-                'iphone/index.html','installer.html',
-                'downloads/Balance-CDQ-Android-25.35.apk',
-                'downloads/Balance-CDQ-Android-25.35.zip',
-                'downloads/android-release-update.json'
-              }, p
+              assert p.startswith('iphone/app/') or p in allowed,p
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add iphone/app iphone/index.html installer.html downloads/Balance-CDQ-Android-25.35.apk downloads/android-release-update.json
-          git add -f downloads/Balance-CDQ-Android-25.35.zip
-          git commit -m 'Stage certified Balance CDQ 25.35 Android and paired iPhone release'
-          git push origin HEAD:fix/standard-point50-v2535
+          git add iphone/app iphone/index.html installer.html "downloads/Balance-CDQ-Android-$VERSION.apk" downloads/android-release-update.json
+          git add -f "downloads/Balance-CDQ-Android-$VERSION.zip"
+          git commit -m "Publish certified Balance CDQ $VERSION Android and iPhone release"
+          git push origin HEAD:main
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Request GitHub Pages refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh api --method POST "repos/$GH_REPO/pages/builds"
