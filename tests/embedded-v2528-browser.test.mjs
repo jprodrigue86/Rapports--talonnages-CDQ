@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const prefix=base+'native/v25.37/';
+const prefix=base+'native/v25.38/';
 const generated='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web/';
 const files=JSON.parse(fs.readFileSync(generated+'asset-manifest.json')).files;
 const bridge=fs.readFileSync('balance-cdq-android/web-source/server-bridge.js','utf8');
@@ -15,17 +15,27 @@ try{
   const bridgeStart=new Promise(resolve=>{bridgeStarted=resolve;});
   page.on('pageerror',error=>errors.push(error.message));
   await page.setViewport({width:393,height:850,isMobile:true,hasTouch:true});
-  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.37 CDQSafeArea/1');
+  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.38 CDQSafeArea/1');
   await page.exposeFunction('recordRpc',name=>calls.push(name));
   await page.evaluateOnNewDocument(()=>{
-    window.testUseLocalTicket=false;
     window.testLocalConfirmCount=0;
     window.testLocalClearCount=0;
     window.BalanceCDQNative={
       biometric(id){window.testBiometricRequested=id;window.testBiometricCount=(window.testBiometricCount||0)+1;},
       loginGoogle(){},
+      startupBiometricState(email,token){
+        if(localStorage.getItem('cdqTestEarlyNative')!=='1')return JSON.stringify({state:'none'});
+        return JSON.stringify({
+          state:'pending',
+          requestId:'native-startup-0123456789abcdef0123456789',
+          email,
+          expiresAt:Date.now()+600000,
+          message:'',
+          grant:''
+        });
+      },
       localSessionAfterBiometric(id,grant,email,token){
-        if(!window.testUseLocalTicket)return JSON.stringify({ok:false});
+        if(localStorage.getItem('cdqTestEarlyNative')!=='1')return JSON.stringify({ok:false});
         return JSON.stringify({ok:true,email,expiresAt:Date.now()+600000});
       },
       confirmLocalSession(){window.testLocalConfirmCount++;return true;},
@@ -73,7 +83,7 @@ try{
       return request.respond({status:200,contentType:'text/html; charset=utf-8',body:`<script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
     }
     // The explicitly live version check is allowed; public/static UI downloads are not.
-    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.25-v25.37-fast-local-unlock'})});
+    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.25-v25.38-persistent-fast-start'})});
     unexpected.push(url);return request.abort();
   });
   // Puppeteer's navigation lifecycle also waits on child frames. Here the
@@ -96,27 +106,29 @@ try{
   assert.deepEqual(errors,[]);
   assert.deepEqual(unexpected,[]);
   assert.ok(calls.includes('obtenirEtatAcces'));
-  // A returning native user with a valid short ticket sees cached/read-only UI
-  // immediately after fingerprint, while the server connection is deliberately held.
-  await page.evaluateOnNewDocument(()=>{
-    if(window.top!==window)return;
+  // A returning native user already has the Android biometric prompt running
+  // while the packaged WebView/Selector loads in parallel.
+  await page.evaluate(()=>{
     localStorage.setItem('cdq_auth_device_token_v2','fixture-device');
     localStorage.setItem('cdqLastUnlockEmailV2511','test@example.invalid');
     localStorage.removeItem('cdqResumeSessionV2524');
-    window.testUseLocalTicket=true;
+    localStorage.setItem('cdqTestEarlyNative','1');
   });
   allowServer=false;allowSelector=true;
   await navigation.send('Page.reload');
-  await page.waitForFunction(()=>window.testBiometricRequested,{timeout:10000});
-  assert.match(await page.evaluate(()=>window.testBiometricRequested),/^startup-/);
-  assert.equal(await page.evaluate(()=>window.testBiometricCount),1);
-  await page.evaluate(()=>window.cdqNativeBiometricResultV2507(
-    window.testBiometricRequested,true,'','grant-secret-01234567890123456789'
-  ));
-  await page.waitForFunction(()=>document.querySelector('#app')?.contentDocument?.querySelector('#accessOverlay'));
+  await page.waitForFunction(()=>document.querySelector('#app')?.contentDocument?.querySelector('#accessOverlay'),{timeout:10000});
   selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');assert.ok(selector);
-  await selector.waitForFunction(()=>cdqAccessState==='ready'&&window.cdqLocalProvisionalV2537===true,{timeout:10000});
-  await page.waitForFunction(()=>getComputedStyle(document.getElementById('app')).visibility==='visible',{timeout:10000});
+  assert.equal(await page.evaluate(()=>window.testBiometricCount||0),0,'Web JS must not launch a duplicate biometric prompt');
+
+  const fastStartAt=Date.now();
+  await page.evaluate(()=>window.cdqNativeStartupBiometricResultV2538(
+    'native-startup-0123456789abcdef0123456789',
+    true,'','grant-secret-01234567890123456789'
+  ));
+  await selector.waitForFunction(()=>cdqAccessState==='ready'&&window.cdqLocalProvisionalV2537===true,{timeout:3000});
+  await page.waitForFunction(()=>getComputedStyle(document.getElementById('app')).visibility==='visible',{timeout:3000});
+  const fastStartMs=Date.now()-fastStartAt;
+  assert.ok(fastStartMs<1000,'Local UI after accepted fingerprint took '+fastStartMs+' ms');
   assert.equal(await selector.evaluate(()=>utilisateurCourantRole),'lecture');
   assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,0);
   assert.equal(await page.evaluate(()=>window.testLocalConfirmCount),0);
@@ -129,8 +141,64 @@ try{
   await selector.waitForFunction(()=>utilisateurCourantRole==='technicien',{timeout:10000});
   await selector.waitForFunction(()=>document.querySelector('#companyList')?.textContent.includes('Client de vérification'),{timeout:10000});
   assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,1);
-  assert.equal(await page.evaluate(()=>window.testBiometricCount),1);
+  assert.equal(await page.evaluate(()=>window.testBiometricCount||0),0);
   assert.equal(await page.evaluate(()=>window.testLocalConfirmCount),1);
+
+  // Custom navigation icons must never leave an empty bar. The packaged sprite
+  // is used when available; removing the ready marker exposes the original icon.
+  await selector.evaluate(()=>{
+    const user=String(utilisateurCourantEmail||'').trim().toLowerCase();
+    if(!user)throw Error('Current user missing for icon-theme test');
+    const key='cdqIconThemeV2514:'+user;
+    localStorage.setItem(key,JSON.stringify({
+      style:'metal-music',
+      revision:Date.now()+1000,
+      pending:false
+    }));
+    window.dispatchEvent(new StorageEvent('storage',{key}));
+    window.cdqIconFallbackV2538?.sync();
+  });
+  await selector.waitForFunction(()=>
+    !!document.querySelector('.bottom-nav > .bottom-nav-item > span.cdq-icon-host-v2514'),
+    {timeout:5000}
+  );
+  await new Promise(r=>setTimeout(r,120));
+  const iconState=await selector.evaluate(async()=>{
+    const host=document.querySelector('.bottom-nav > .bottom-nav-item > span.cdq-icon-host-v2514');
+    if(!host)return null;
+    const hostStyle=getComputedStyle(host);
+    const pseudo=getComputedStyle(host,'::after');
+    const ready=window.cdqIconFallbackV2538?.ready()===true;
+    const originalVisible=hostStyle.visibility!=='hidden';
+    const replacementVisible=pseudo.display!=='none' &&
+      pseudo.visibility!=='hidden' &&
+      pseudo.backgroundImage!=='none';
+    const response=await fetch('./bundles/balance-cdq/v25.15/icons-transparent.webp');
+    const spriteBytes=(await response.arrayBuffer()).byteLength;
+    return {
+      ready,
+      originalVisible,
+      replacementVisible,
+      hostWidth:host.getBoundingClientRect().width,
+      hostHeight:host.getBoundingClientRect().height,
+      pseudoImage:pseudo.backgroundImage,
+      spriteOk:response.ok,
+      spriteBytes
+    };
+  });
+  assert.ok(iconState);
+  assert.ok(iconState.originalVisible||iconState.replacementVisible,
+    'Bottom navigation icon must never be blank while the custom sprite loads');
+  assert.ok(iconState.hostWidth>10&&iconState.hostHeight>10);
+  assert.equal(iconState.spriteOk,true);
+  assert.ok(iconState.spriteBytes>10000);
+  if(iconState.ready){
+    assert.equal(iconState.replacementVisible,true);
+    assert.match(iconState.pseudoImage,/icons-transparent\.webp/);
+  }else{
+    assert.equal(iconState.originalVisible,true);
+  }
+
   assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
   // Disable all nonpackaged requests at the interception boundary. CDP's global
   // emulateNetworkConditions can hang on detached cross-origin iframe targets
@@ -163,7 +231,7 @@ try{
   assert.equal(template.pages,1);assert.ok(template.fields>20);assert.ok(template.pixels>10000);
   // Cancelling the early prompt must not authenticate, even with a live server.
   networkBlocked=false;
-  await page.evaluate(()=>{window.testBiometricRequested='';window.testUseLocalTicket=false;});
+  await page.evaluate(()=>{window.testBiometricRequested='';localStorage.setItem('cdqTestEarlyNative','0');});
   await navigation.send('Page.reload');
   await page.waitForFunction(()=>window.testBiometricRequested,{timeout:10000});
   await page.evaluate(()=>window.cdqNativeBiometricResultV2507(window.testBiometricRequested,false,'Annulée',''));
@@ -173,5 +241,5 @@ try{
   assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,1);
   assert.equal(await page.evaluate(()=>window.testBiometricCount),1);
   assert.deepEqual(errors,[]);
-  console.log('PASS: fingerprint reveals local read-only UI before server response; server confirmation upgrades the same session once; cancelled fingerprint remains locked; installed assets and PDF work offline.');
+  console.log('PASS: native biometric starts before WebView, local UI appears in under 1s after acceptance, server upgrades once, bottom icons always have a local fallback, cancelled fingerprint remains locked, installed assets and PDF work offline.');
 }finally{finished=true;await browser.close();}

@@ -26,6 +26,9 @@ function startup(options={}){
     BalanceCDQNative:{
       biometric:id=>prompts.push(id),
       cancelBiometric:id=>cancelled.push(id),
+      startupBiometricState(email,token){
+        return JSON.stringify(options.nativeStartup||{state:'none'});
+      },
       localSessionAfterBiometric(id,grant,email,token){
         localReads.push({id,grant,email,token});
         return options.localTicket
@@ -146,6 +149,32 @@ test('failed biometric never reads local ticket or primes server authentication'
   assert.deepEqual(received,[false]);
   assert.equal(a.localReads.length,0);
   assert.equal(a.calls.length,0);
+});
+
+test('native biometric already pending before WebView is reused without a second prompt',async()=>{
+  const nativeId='native-startup-0123456789abcdef0123456789';
+  const a=startup({
+    localTicket:true,
+    nativeStartup:{state:'pending',requestId:nativeId,email:'person@example.invalid',expiresAt:121000,message:'',grant:''}
+  });
+  const u=a.c.cdqStartupUnlockV2529,received=[];
+  assert.deepEqual(a.prompts,[],'JavaScript must not launch a duplicate biometric prompt');
+  assert.equal(typeof a.c.cdqNativeStartupBiometricResultV2538,'function');
+  u.attach('person@example.invalid','normal',()=>{});
+  a.c.cdqNativeStartupBiometricResultV2538(nativeId,true,'',grant);
+  assert.equal(u.takeSession('device-token-12345',x=>received.push(x),()=>{}),true);
+  await tick();
+  assert.equal(received[0].cdqLocalProvisionalV2537,true);
+  assert.equal(a.localReads.length,1);
+});
+
+test('Android source always loads the fresh packaged shell instead of restoring WebView state',()=>{
+  const main=fs.readFileSync('balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt','utf8');
+  assert.match(main,/maybeStartEarlyBiometric\(\)/);
+  assert.match(main,/startupBiometricState/);
+  assert.match(main,/webView\.loadUrl\(APP_URL\)/);
+  assert.doesNotMatch(main,/webView\.restoreState\(/);
+  assert.doesNotMatch(main,/webView\.saveState\(/);
 });
 
 test('expired/wrong account and first activation/offline keep existing secure screens',()=>{

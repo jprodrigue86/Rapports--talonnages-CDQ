@@ -10,6 +10,8 @@ on:
       - 'scripts/*safe-area*.mjs'
       - 'scripts/*whole-words*.mjs'
       - 'scripts/*full-names*.mjs'
+      - 'scripts/fast-local-session-v2537.mjs'
+      - 'icon-fallback-v2538.js'
       - 'full-names-v2536.js'
       - 'whole-words-v2534.js'
       - 'personal-sizing-v2533.js'
@@ -17,6 +19,7 @@ on:
       - 'bundles/balance-cdq/v25.28/**'
       - 'tests/embedded-v2528*'
       - 'tests/full-names-v2536*'
+      - 'tests/icon-fallback-v2538.test.mjs'
       - '.github/workflows/test-embedded-v2528.yml'
   pull_request:
     branches: [main]
@@ -28,6 +31,8 @@ on:
       - 'scripts/*safe-area*.mjs'
       - 'scripts/*whole-words*.mjs'
       - 'scripts/*full-names*.mjs'
+      - 'scripts/fast-local-session-v2537.mjs'
+      - 'icon-fallback-v2538.js'
       - 'full-names-v2536.js'
       - 'whole-words-v2534.js'
       - 'personal-sizing-v2533.js'
@@ -35,6 +40,7 @@ on:
       - 'bundles/balance-cdq/v25.28/**'
       - 'tests/embedded-v2528*'
       - 'tests/full-names-v2536*'
+      - 'tests/icon-fallback-v2538.test.mjs'
       - '.github/workflows/test-embedded-v2528.yml'
 
 permissions:
@@ -65,7 +71,7 @@ jobs:
 
       - name: Run source and package regressions
         run: |
-          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs tests/full-names-v2536.test.mjs
+          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs tests/full-names-v2536.test.mjs tests/icon-fallback-v2538.test.mjs
 
       - name: Install Chromium
         run: npm install --no-save --package-lock=false puppeteer-core@24
