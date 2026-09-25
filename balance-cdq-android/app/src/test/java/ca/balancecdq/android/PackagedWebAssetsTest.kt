@@ -25,7 +25,7 @@ class PackagedWebAssetsTest {
         assertTrue(html.contains("id=\"cdqPersonalSizingV2533\""))
         assertTrue(html.contains("id=\"cdqWholeWordsV2534\""))
         assertTrue(html.contains("id=\"cdqFullNamesV2536\""))
-        assertTrue(html.contains("id=\\\"cdqFastLocalV2537\\\""))
+        assertTrue(html.contains("id=\"cdqFastLocalV2537\""))
         assertTrue(html.contains("id=\"cdq-instant-files-2530\""))
         assertTrue(html.contains("id=\"cdqHomeUnderlineV2531\""))
         assertTrue(html.contains("html:is(.android,.ios,.mobile-device) .bottom-nav > .bottom-nav-item.cdq-nav-home.active::after{content:none!important;display:none!important}"))
