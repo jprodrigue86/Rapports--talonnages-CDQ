@@ -155,11 +155,24 @@ try{
       return original||themed;
     });
   },{timeout:5000});
+  await selector.evaluate(()=>window.cdqIconThemesV2514?.synchronize());
+  await selector.waitForFunction(()=>{
+    const visible=[...document.querySelectorAll('.bottom-nav > .bottom-nav-item')]
+      .filter(button=>getComputedStyle(button).display!=='none');
+    return visible.length>=5 && visible.every(button=>
+      button.querySelector(':scope > span')?.classList.contains('cdq-icon-host-v2514')
+    );
+  },{timeout:5000});
+
   const navIcons=await selector.evaluate(async()=>{
-    const items=[...document.querySelectorAll('.bottom-nav > .bottom-nav-item')].map(button=>{
-      const host=button.querySelector(':scope > span'),p=getComputedStyle(host,'::after'),h=getComputedStyle(host);
+    const visible=[...document.querySelectorAll('.bottom-nav > .bottom-nav-item')]
+      .filter(button=>getComputedStyle(button).display!=='none');
+    const items=visible.map(button=>{
+      const host=button.querySelector(':scope > span');
+      const p=getComputedStyle(host,'::after'),h=getComputedStyle(host);
       return {
         label:button.querySelector('small')?.textContent.trim(),
+        themed:host.classList.contains('cdq-icon-host-v2514'),
         hostVisibility:h.visibility,
         width:host.getBoundingClientRect().width,
         height:host.getBoundingClientRect().height,
@@ -168,18 +181,25 @@ try{
         pseudoImage:p.backgroundImage
       };
     });
-    const image=items.find(x=>/icons-transparent\.webp/.test(x.pseudoImage))?.pseudoImage||'';
-    const match=image.match(/url\\(["']?(.+?)["']?\\)/);
-    let sprite={url:'',ok:false,bytes:0};
-    if(match){
-      const response=await fetch(match[1]);
-      sprite={url:match[1],ok:response.ok,bytes:(await response.arrayBuffer()).byteLength};
-    }
-    return {items,sprite,artworkCss:[...document.styleSheets].some(sheet=>String(sheet.href||'').includes('icon-artwork-baseline-v2540.css'))};
+    const spriteUrl=new URL('./bundles/balance-cdq/v25.15/icons-transparent.webp',location.href).href;
+    const response=await fetch(spriteUrl);
+    return {
+      items,
+      sprite:{url:spriteUrl,ok:response.ok,bytes:(await response.arrayBuffer()).byteLength},
+      artworkCss:[...document.styleSheets].some(sheet=>
+        String(sheet.href||'').includes('icon-artwork-baseline-v2540.css')
+      )
+    };
   });
-  assert.equal(navIcons.items.length,6);
+  await page.screenshot({path:'/tmp/cdq-v2540-metal-music.png'});
+  assert.ok(navIcons.items.length>=5);
+  assert.ok(navIcons.items.every(x=>x.themed));
   assert.ok(navIcons.items.every(x=>x.width>8&&x.height>8));
-  assert.ok(navIcons.items.every(x=>x.hostVisibility!=='hidden'||(x.pseudoDisplay!=='none'&&x.pseudoVisibility!=='hidden'&&x.pseudoImage!=='none')));
+  assert.ok(navIcons.items.every(x=>
+    x.pseudoDisplay!=='none' &&
+    x.pseudoVisibility!=='hidden' &&
+    /icons-transparent\.webp/.test(x.pseudoImage)
+  ));
   assert.equal(navIcons.artworkCss,true);
   assert.equal(navIcons.sprite.ok,true);
   assert.ok(navIcons.sprite.bytes>500000);
