@@ -28,7 +28,7 @@
   }
   function fits(el,maxLines,size){
     const width=el.clientWidth;
-    if(width<=0)return true;
+    if(width<=0)return el.offsetParent===null;
     return longestWord(el,size)<=width+.6 && lineCount(el)<=maxLines && el.scrollWidth<=width+1;
   }
   function ensureStyle(){
@@ -59,6 +59,9 @@
     return true;
   }
   function fitOne(el,maxLines,min){
+    el.style.setProperty('display','block','important');
+    el.style.setProperty('min-width','0','important');
+    el.style.setProperty('max-width','100%','important');
     el.style.setProperty('white-space','normal','important');
     el.style.setProperty('overflow-wrap','normal','important');
     el.style.setProperty('word-break','normal','important');
@@ -94,7 +97,7 @@
   function reset(){
     document.querySelectorAll('.cdq-label-stack-v2534').forEach(el=>el.classList.remove('cdq-label-stack-v2534'));
     for(const target of targets)document.querySelectorAll(target.selector).forEach(el=>{
-      for(const p of ['font-size','white-space','overflow-wrap','word-break','hyphens','-webkit-hyphens','text-overflow','overflow'])
+      for(const p of ['display','min-width','max-width','font-size','white-space','overflow-wrap','word-break','hyphens','-webkit-hyphens','text-overflow','overflow'])
         el.style.removeProperty(p);
     });
     document.querySelectorAll('.quick-buttons > .quick-button,#cdqTopActionsV2204 > .cdq-top-action').forEach(el=>el.style.removeProperty('min-height'));
