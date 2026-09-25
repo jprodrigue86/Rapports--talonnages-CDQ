@@ -147,13 +147,21 @@ try{
   // Custom navigation icons must never leave an empty bar. The packaged sprite
   // is used when available; removing the ready marker exposes the original icon.
   await selector.evaluate(()=>{
-    const host=document.querySelector('.bottom-nav > .bottom-nav-item > span');
-    if(!host)throw Error('Bottom navigation icon host missing');
-    host.classList.add('cdq-icon-host-v2514');
-    host.style.setProperty('--cdq-art-size','100% 100%');
-    host.style.setProperty('--cdq-art-position','0% 0%');
+    const user=String(utilisateurCourantEmail||'').trim().toLowerCase();
+    if(!user)throw Error('Current user missing for icon-theme test');
+    const key='cdqIconThemeV2514:'+user;
+    localStorage.setItem(key,JSON.stringify({
+      style:'metal-music',
+      revision:Date.now()+1000,
+      pending:false
+    }));
+    window.dispatchEvent(new StorageEvent('storage',{key}));
     window.cdqIconFallbackV2538?.sync();
   });
+  await selector.waitForFunction(()=>
+    !!document.querySelector('.bottom-nav > .bottom-nav-item > span.cdq-icon-host-v2514'),
+    {timeout:5000}
+  );
   await new Promise(r=>setTimeout(r,120));
   const iconState=await selector.evaluate(async()=>{
     const host=document.querySelector('.bottom-nav > .bottom-nav-item > span.cdq-icon-host-v2514');
