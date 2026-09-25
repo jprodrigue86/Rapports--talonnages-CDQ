@@ -24,29 +24,40 @@ jobs:
         id: approval
         run: |
           python3 - <<'PY'
-          import json,os
-          a=json.load(open('balance-cdq-android/signing/approval-v2534.json'))
-          assert a['artifactName']=='CDQ-Labels2534-unsigned'
-          assert isinstance(a['runId'],int) and a['runId']>0
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('run='+str(a['runId'])+'\n')
+          import json,os,pathlib
+          p=pathlib.Path('balance-cdq-android/signing/approval-v2534.json')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+            if not p.exists():
+              f.write('ready=false\n')
+            else:
+              a=json.loads(p.read_text())
+              assert a['artifactName']=='CDQ-Labels2534-unsigned'
+              assert isinstance(a['runId'],int) and a['runId']>0
+              f.write('ready=true\nrun='+str(a['runId'])+'\n')
           PY
       - uses: actions/download-artifact@v4
+        if: steps.approval.outputs.ready == 'true'
         with:
           name: CDQ-Labels2534-unsigned
           run-id: ${{ steps.approval.outputs.run }}
           github-token: ${{ github.token }}
           path: /tmp/cdq-labels2534
       - uses: actions/setup-node@v4
+        if: steps.approval.outputs.ready == 'true'
         with: {node-version: '22'}
       - uses: actions/setup-java@v4
+        if: steps.approval.outputs.ready == 'true'
         with: {distribution: temurin, java-version: '17'}
       - name: Attach only the approved public signature block
+        if: steps.approval.outputs.ready == 'true'
         run: python3 balance-cdq-android/signing/detached-apk-v2.py attach --apk /tmp/cdq-labels2534/unsigned.apk --request /tmp/cdq-labels2534/request.json --approval balance-cdq-android/signing/approval-v2534.json --output downloads/Balance-CDQ-Android-25.34.apk
       - name: Install official verifier
+        if: steps.approval.outputs.ready == 'true'
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;35.0.0'
       - name: Verify certificate, package and alignment
+        if: steps.approval.outputs.ready == 'true'
         run: |
           set -euo pipefail
           APK=downloads/Balance-CDQ-Android-25.34.apk
@@ -56,6 +67,7 @@ jobs:
           "$TOOLS/zipalign" -c -P 16 4 "$APK"
           "$TOOLS/aapt" dump badging "$APK" | grep -q "versionCode='2534' versionName='25.34'"
       - name: Generate paired iPhone release and metadata
+        if: steps.approval.outputs.ready == 'true'
         run: |
           node scripts/build-embedded-android-v2528.mjs
           node scripts/build-iphone.mjs
@@ -63,6 +75,7 @@ jobs:
           node tests/iphone-install.test.mjs
           node --test tests/button-label-fit-v2534.test.mjs tests/personal-sizing-v2533.test.mjs tests/safe-area-v2532.test.mjs tests/release-references.test.mjs
       - name: Commit only validated public outputs
+        if: steps.approval.outputs.ready == 'true'
         run: |
           python3 - <<'PY'
           import subprocess
