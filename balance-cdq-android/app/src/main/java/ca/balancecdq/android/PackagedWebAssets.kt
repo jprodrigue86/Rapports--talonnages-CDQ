@@ -29,7 +29,10 @@ class PackagedWebAssets(context: Context) {
         if (!entries.has(relative)) return if (reserved) missing() else null
         // Mutable update metadata and server responses are never in this manifest.
         val info = entries.getJSONObject(relative)
-        return WebResourceResponse(info.getString("mime"), if (info.optBoolean("text")) "UTF-8" else null,
+        val mime = if (relative == "bundles/balance-cdq/v25.14/icons-reference.png")
+            "image/jpeg"
+        else info.getString("mime")
+        return WebResourceResponse(mime, if (info.optBoolean("text")) "UTF-8" else null,
             200, "OK", mapOf("Cache-Control" to "no-store", "Access-Control-Allow-Origin" to "https://$HOST", "X-Content-Type-Options" to "nosniff"),
             assets.open("cdq-web/$relative"))
     }
