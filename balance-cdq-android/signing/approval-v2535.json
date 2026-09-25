@@ -13,5 +13,6 @@
   "signingBlockBytes": 8192,
   "paddingBeforeSigningBlock": 1588,
   "signedSha256": "94e1bd793caa6383da65bb74455d17a4681bf8678658f394809aca289545ec23",
-  "paddingEncoding": "zero-bytes-v1"
+  "paddingEncoding": "zero-bytes-v1",
+  "stageRevision": 2
 }
