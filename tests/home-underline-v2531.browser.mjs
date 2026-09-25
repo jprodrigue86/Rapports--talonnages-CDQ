@@ -20,7 +20,7 @@ for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   for(const platform of ['android','ios','mobile-device','windows'])for(const width of [360,390,412]){
    const page=await browser.newPage({viewport:{width,height:844}});
    await page.route('**/*',async route=>{
-    try{const u=new URL(route.request().url()),prefix='/Rapports--talonnages-CDQ/native/v25.34/';
+    try{const u=new URL(route.request().url()),prefix='/Rapports--talonnages-CDQ/native/v25.35/';
      if(u.origin==='https://jprodrigue86.github.io'&&u.pathname.startsWith(prefix)){
       const file=native+u.pathname.slice(prefix.length);if(fs.existsSync(file))return route.fulfill({body:fs.readFileSync(file),contentType:file.endsWith('.webp')?'image/webp':file.endsWith('.png')?'image/png':'application/octet-stream'});
      }

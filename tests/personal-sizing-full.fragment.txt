@@ -1,7 +1,7 @@
   // Exercise the actual application settings, not just a geometry fixture.
   await selector.evaluate(()=>{
     utilisateurCourantRole='admin';
-    for(const [a,v] of [['General',50],['Text',71],['Icon',100]])localStorage.setItem('cdqUi'+a+'ScaleV89',String(v));
+    for(const [a,v] of [['General',50],['Text',50],['Icon',50]])localStorage.setItem('cdqUi'+a+'ScaleV89',String(v));
     localStorage.setItem('cdqUiGeneralScaleMapV2202Done','1');
     cdqApplyAllScalesV89(true);cdqMobileLayout.apply();
   });
@@ -27,5 +27,5 @@
   await new Promise(r=>setTimeout(r,1300));
   assert.equal(calls.filter(n=>n==='rpc:enregistrerPreferencesUtilisateurCDQV72').length,writesBefore,'Personal calibration/reset must not save shared preferences');
   assert.deepEqual(await selector.evaluate(measured),originalSize);
-  assert.deepEqual(await selector.evaluate(()=>['General','Text','Icon'].map(a=>localStorage.getItem('cdqUi'+a+'ScaleV89'))),['50','71','100']);
+  assert.deepEqual(await selector.evaluate(()=>['General','Text','Icon'].map(a=>localStorage.getItem('cdqUi'+a+'ScaleV89'))),['50','50','50']);
   console.log('PASS: actual settings modal opt-in, reopen, movement, direct reset, unchanged geometry and no preference write.');

@@ -1,0 +1,84 @@
+name: Reference midpoint 25.35 — Android and paired browser tests
+on:
+  push:
+    branches: [codex/midpoint-v2535]
+    paths:
+      - 'personal-sizing-v2533.js'
+      - 'scripts/build-embedded-android-v2528.mjs'
+      - 'balance-cdq-android/**'
+      - 'tests/personal-sizing*'
+      - 'scripts/test-personal-full-v2533.mjs'
+      - '.github/workflows/midpoint-v2535.yml'
+  pull_request:
+    paths:
+      - 'personal-sizing-v2533.js'
+      - 'scripts/build-embedded-android-v2528.mjs'
+      - 'balance-cdq-android/**'
+      - 'tests/personal-sizing*'
+permissions:
+  contents: read
+concurrency:
+  group: midpoint2535-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  android:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: codex/midpoint-v2535, fetch-depth: 0}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.10.2'}
+      - name: Install SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Compile production APK and native tests
+        working-directory: balance-cdq-android
+        run: gradle --no-daemon :app:assembleRelease :app:testDebugUnitTest
+      - name: Validate binary and create signing handoff
+        run: |
+          set -euo pipefail
+          APK=balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" > /tmp/badging
+          grep -q "package: name='ca.balancecdq.android' versionCode='2535' versionName='25.35'" /tmp/badging
+          mkdir -p /tmp/cdq-midpoint
+          cp "$APK" /tmp/cdq-midpoint/unsigned.apk
+          cp "$TOOLS/lib/apksigner.jar" /tmp/cdq-midpoint/apksigner.jar
+          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk "$APK" --commit "$(git rev-parse HEAD)" > /tmp/cdq-midpoint/request.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CDQ-Midpoint2535-unsigned
+          path: /tmp/cdq-midpoint/*
+          retention-days: 2
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build Android and iPhone paired interfaces
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node --test tests/personal-sizing-v2533.test.mjs tests/safe-area-v2532.test.mjs tests/embedded-v2528.test.mjs tests/iphone-rpc-compat.test.mjs
+      - name: Install Chromium and WebKit
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2 puppeteer-core@24 >/tmp/browser.log 2>&1 || { tail -40 /tmp/browser.log; exit 1; }
+          npx playwright install --with-deps chromium webkit >>/tmp/browser.log 2>&1 || { tail -40 /tmp/browser.log; exit 1; }
+      - name: Verify 50/50/50 target and personal calibration
+        run: node tests/personal-sizing-v2533.browser.mjs
+      - name: Keep whole-word, safe-area and Home-line regressions
+        run: |
+          node tests/whole-words-v2534.browser.mjs
+          node tests/safe-area-v2532.browser.mjs
+          node tests/home-underline-v2531.browser.mjs
