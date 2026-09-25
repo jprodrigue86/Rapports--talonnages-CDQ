@@ -16,10 +16,8 @@ on:
       - 'vendor/**'
       - 'tests/iphone-*.mjs'
       - '.github/workflows/iphone-install-share.yml'
-      - 'downloads/android-release-update.json'
 permissions:
-  contents: write
-  pages: write
+  contents: read
 concurrency:
   group: cdq-iphone-${{ github.ref }}
   cancel-in-progress: true
@@ -38,7 +36,7 @@ jobs:
         run: |
           node scripts/build-embedded-android-v2528.mjs
           node scripts/build-iphone.mjs
-          node tests/iphone-install.test.mjs
+          CDQ_ALLOW_UNPUBLISHED_ANDROID=1 node tests/iphone-install.test.mjs
           node --test tests/iphone-rpc-compat.test.mjs
       - name: Install browser test engines
         run: |
@@ -49,27 +47,7 @@ jobs:
       - name: Regenerate production output and verify checksums
         run: |
           node scripts/build-iphone.mjs
-          node tests/iphone-install.test.mjs
-      - name: Commit only the verified web release
-        id: generated
-        env:
-          TARGET_BRANCH: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add installer.html iphone/
-          if ! git diff --cached --quiet; then
-            git commit -m 'Publier l’accès iPhone vérifié et les deux liens de partage'
-            git push origin "HEAD:$TARGET_BRANCH"
-            echo 'changed=true' >> "$GITHUB_OUTPUT"
-          fi
-      - name: Refresh Pages after a generated main release
-        if: github.ref_name == 'main' && steps.generated.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh api --method POST "repos/$GH_REPO/pages/builds"
+          CDQ_ALLOW_UNPUBLISHED_ANDROID=1 node tests/iphone-install.test.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
