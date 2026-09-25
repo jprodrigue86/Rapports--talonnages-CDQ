@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {applyPersonalSizing2533} from './personal-sizing-v2533.mjs';
 import {applySafeShell2532,applySafeSelector2532} from './safe-area-v2532.mjs';
 import {applyHomeUnderline2531} from './home-underline-v2531.mjs';
 import {applyInstantFiles2530} from './instant-files-v2530.mjs';
@@ -8,8 +9,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.32/';
-const build='2026.09.25-v25.32-ecran-adaptatif';
+const local=base+'native/v25.33/';
+const build='2026.09.25-v25.33-point50-personnel';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -71,12 +72,13 @@ selector=replace(selector,'Ce bouton sert seulement quand la petite couche Andro
 selector=applyInstantFiles2530(selector);
 selector=applyHomeUnderline2531(selector);
 selector=applySafeSelector2532(selector);
+selector=applyPersonalSizing2533(selector);
 files.set('Selector.html',Buffer.from(selector));
 files.set('safe-viewport-v2532.js',fs.readFileSync('safe-viewport-v2532.js'));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
 files.set('startup-unlock-v2529.js',fs.readFileSync(source+'startup-unlock-v2529.js'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.32',build,files:{}};
+const manifest={version:'25.33',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);
