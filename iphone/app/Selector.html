@@ -1,8 +1,134 @@
 <!DOCTYPE html>
 
-<html data-cdq-iphone-version="25.33" data-cdq-iphone-release="ef78df117025c7bc6c862b04d045aa580df680e39fbe41d1f534cfec6f6daf02">
+<html data-cdq-iphone-version="25.34" data-cdq-iphone-release="834439bfbcedbb8792c34831f7dc268d4517970e0c9ac5c939d175b468471faf">
 <head>
 <script src="./iphone-update.js"></script>
+<script id="cdqWholeWordsV2534">
+/* Fit only CDQ's mobile action/navigation labels. Never change saved scales.
+ * Keep complete phrases; grow the tile/reflow before allowing unreadable text.
+ * No network, storage, account, PDF, or click-handler changes. */
+(function () {
+  'use strict';
+  const labels = new Map([
+    ['Balance intermédiaire', ['Balance', 'intermédiaire']],
+    ['Balance à camion', ['Balance', 'à camion']],
+    ['Balance de précision', ['Balance', 'de précision']],
+    ['Balance multi-tête', ['Balance', 'multi-tête']],
+    ['Balance multi-tete', ['Balance', 'multi-tete']],
+    ['Hors ligne', ['Hors ligne']], ['Note', ['Note']],
+    ['Photos', ['Photos']], ['Réglages', ['Réglages']]
+  ]);
+  const normalize = s => String(s || '').replace(/\s+/g, ' ').trim();
+  const px = n => (Math.round(n * 100) / 100) + 'px';
+  function set(el, props) {
+    for (const [key, value] of Object.entries(props))
+      if (el.style.getPropertyValue(key) !== value || el.style.getPropertyPriority(key) !== 'important')
+        el.style.setProperty(key, value, 'important');
+  }
+  const number = v => parseFloat(v) || 0;
+  function usable(el) {
+    const s = getComputedStyle(el);
+    return el.clientWidth - number(s.paddingLeft) - number(s.paddingRight);
+  }
+  function normalizeLabel(el, expected) {
+    const raw = normalize([...el.childNodes].map(n => n.nodeName === 'BR' ? ' ' : n.textContent).join(''));
+    const lines = labels.get(raw) || expected;
+    if (!lines) return null;
+    if (el.dataset.cdqWholeWords !== lines.join('|') || el.children.length !== lines.length || [...el.children].some(x => !x.classList.contains('cdq-word-line'))) {
+      const spans = lines.map((line, i) => {
+        const span = document.createElement('span'); span.className = 'cdq-word-line';
+        span.textContent = line + (i < lines.length - 1 ? ' ' : ''); return span;
+      });
+      el.replaceChildren(...spans); el.dataset.cdqWholeWords = lines.join('|');
+    }
+    set(el, {'white-space':'normal', 'overflow-wrap':'normal', 'word-break':'normal', 'hyphens':'none', 'overflow':'visible', 'text-overflow':'clip'});
+    for (const line of el.children) set(line, {'display':'block','width':'auto','min-width':'0','max-width':'none',
+      'white-space':'nowrap','word-break':'normal','overflow-wrap':'normal','hyphens':'none','font-size':'inherit','line-height':'inherit'});
+    return el;
+  }
+  function width(el) {
+    let max = 0;
+    for (const line of el.children.length ? el.children : [el]) {
+      const range = document.createRange(); range.selectNodeContents(line);
+      max = Math.max(max, range.getBoundingClientRect().width); range.detach();
+    }
+    return max;
+  }
+  function tilePadding(button) {
+    const s = getComputedStyle(button);
+    return number(s.paddingLeft) + number(s.paddingRight) + number(s.borderLeftWidth) + number(s.borderRightWidth);
+  }
+  function iconWidth(button, selector) {
+    const el = button.querySelector(selector); return el ? el.getBoundingClientRect().width : 0;
+  }
+  function group(container, selector, labelSelector, iconSelector, fontSize, unit) {
+    if (!container || !container.getClientRects().length || usable(container) <= 0) return;
+    const entries = [...container.querySelectorAll(selector)].filter(b => getComputedStyle(b).display !== 'none').map(button => {
+      let label = button.querySelector(labelSelector);
+      // Some older action buttons have an icon followed by an unwrapped text node.
+      if (!label) {
+        const nodes = [...button.childNodes].filter(n => n.nodeType === 3 && normalize(n.textContent));
+        const raw = normalize(nodes.map(n => n.textContent).join(' '));
+        if (labels.has(raw)) { label = document.createElement('span'); label.textContent = raw; nodes[0].before(label); nodes.forEach(n => n.remove()); }
+      }
+      if (!label || !normalizeLabel(label)) return null;
+      set(label, {'font-size':px(fontSize),'min-width':'0','width':'auto','max-width':'100%','flex':'1 1 0'});
+      return {button,label};
+    }).filter(Boolean);
+    if (!entries.length) return;
+    const gap = 4 * unit, available = usable(container), count = entries.length;
+    const cell = n => (available - gap * (n - 1)) / n;
+    let cols = Math.min(4, count), mode = 'row';
+    const metrics = entries.map(({button,label}) => ({padding:tilePadding(button),icon:iconWidth(button,iconSelector),text:width(label)}));
+    // A small, row-wide text adjustment avoids an unnecessary rearrangement.
+    const ratio = Math.min(1,...metrics.map(m => (cell(cols)-m.padding-m.icon-3*unit-1)/Math.max(1,m.text)));
+    if (ratio < .9) {
+      mode = 'column';
+      for (const n of [...new Set([cols,Math.min(2,count),1])]) {
+        cols = n;
+        if (metrics.every(m => Math.max(m.icon,m.text)+m.padding+1 <= cell(cols))) break;
+      }
+    }
+    set(container, {'display':'grid','grid-template-columns':'repeat('+cols+',minmax(0,1fr))','grid-auto-rows':'auto','align-items':'stretch'});
+    for (const {button,label} of entries) {
+      set(button, {'flex-direction':mode,'height':'auto','max-height':'none','min-width':'0','width':'100%','box-sizing':'border-box','overflow':'visible'});
+      set(label, {'font-size':px(fontSize*(mode==='row'?Math.max(.9,ratio):1)), 'flex':mode==='row'?'1 1 0':'0 0 auto', 'width':mode==='column'?'100%':'auto'});
+    }
+    container.dataset.cdqWordLayout = cols+'-'+mode;
+  }
+  window.cdqFitButtonWordsV2534 = function ({unit,topLabel,label}) {
+    if (!document.documentElement.classList.contains('cdq-mobile-layout')) return;
+    group(document.querySelector('.quick-buttons'), ':scope > .quick-button', ':scope > .quick-name', ':scope > .quick-icon', topLabel, unit);
+    group(document.getElementById('cdqTopActionsV2204'), ':scope > .cdq-top-action', ':scope > span:last-child:not(:first-child)', ':scope > svg, :scope > span:first-child:not(:last-child)', topLabel, unit);
+    const nav = document.querySelector('.bottom-nav');
+    if (nav && usable(nav) > 0) {
+      const items = [...nav.querySelectorAll(':scope > .bottom-nav-item')].filter(el => getComputedStyle(el).display !== 'none');
+      const sizes = items.map(button => {
+        const text = button.querySelector('small');
+        if (text) {normalizeLabel(text,[normalize(text.textContent)]); set(text,{'font-size':px(label)});}
+        return Math.max(text?width(text):0,iconWidth(button,':scope > span'))+tilePadding(button)+1;
+      });
+      let cols = items.length || 1;
+      for (const n of [...new Set([cols,Math.ceil(cols/2),2,1])]) {
+        cols = n;
+        if (sizes.every(w => w <= usable(nav)/n)) break;
+      }
+      set(nav,{'grid-template-columns':'repeat('+cols+',minmax(0,1fr))'});
+    }
+    // The refresh icon grows with the same slider; its own tile must grow too.
+    const reset = document.querySelector('.company-reset-button');
+    if (reset) {
+      const s = getComputedStyle(reset), icon = reset.querySelector('svg');
+      const needed = (icon?icon.getBoundingClientRect().width:number(s.fontSize)) + 4*unit;
+      const size = Math.max(reset.getBoundingClientRect().width,needed);
+      set(reset,{'width':px(size),'min-width':px(size),'max-width':px(size),'flex':'0 0 '+px(size),
+        'height':px(Math.max(reset.getBoundingClientRect().height,needed))});
+    }
+  };
+  document.fonts?.ready.then(() => window.cdqMobileLayout?.schedule());
+})();
+
+</script>
 <script id="cdqPersonalSizingV2533">
 /* Personal neutral point: device-local, account-scoped, explicit opt-in.
  * Legacy/account preferences stay untouched. Neither anchors nor positions
@@ -220,7 +346,7 @@
 <meta charset="utf-8">
 <link rel="icon" href="./icons/icon-heavy-v3-192.png">
 <script src="./embedded-rpc.js"></script>
-<meta name="cdq-package-build" content="2026.09.25-v25.33-point50-personnel">
+<meta name="cdq-package-build" content="2026.09.25-v25.34-mots-complets">
 <script id="cdqPcEarlyBootV2166">
 (function(){
   try{
@@ -498,7 +624,7 @@ function cdqAnnounceSelectorReadyV42(){
     type:'CDQ_SELECTOR_READY',
     authProtocol:42,
     accessState:cdqAccessState,
-    build:'2026.09.25-v25.33-point50-personnel'
+    build:'2026.09.25-v25.34-mots-complets'
   });
 }
 
@@ -511,7 +637,7 @@ function cdqAnnounceHealthReadyV97(){
         type:'CDQ_HEALTH_READY',
         authProtocol:42,
         accessState:cdqAccessState,
-        build:'2026.09.25-v25.33-point50-personnel'
+        build:'2026.09.25-v25.34-mots-complets'
       });
     }
   } catch(e) {}
@@ -10906,7 +11032,7 @@ function changerMode(){
 (function(){
   "use strict";
 
-  const CDQ_BUILD = "2026.09.25-v25.33-point50-personnel";
+  const CDQ_BUILD = "2026.09.25-v25.34-mots-complets";
   let cdqRootContent = null;
   let cdqFolderMap = Object.create(null);
   let cdqParentMap = Object.create(null);
@@ -13087,7 +13213,7 @@ function cdqCheckUpdate(){
 (function(){
 "use strict";
 
-const CDQ_V19_BUILD = "2026.09.25-v25.33-point50-personnel";
+const CDQ_V19_BUILD = "2026.09.25-v25.34-mots-complets";
 const CDQ_V19_DAY_KEY = "cdqV19OfflineDay";
 let cdqV19SyncRunning = false;
 let cdqV19OfflineToggleRunning = false;
@@ -14600,7 +14726,7 @@ window.addEventListener("load",function(){
 (function(){
 "use strict";
 
-const CDQ_V20_BUILD = "2026.09.25-v25.33-point50-personnel";
+const CDQ_V20_BUILD = "2026.09.25-v25.34-mots-complets";
 let cdqV20Inventory = null;
 let cdqV20Tab = "stock";
 let cdqV20Location = "";
@@ -15448,7 +15574,7 @@ window.addEventListener("online",function(){setTimeout(v20RefreshAlerts,1200);})
 (function(){
 "use strict";
 
-const CDQ_V21_BUILD = "2026.09.25-v25.33-point50-personnel";
+const CDQ_V21_BUILD = "2026.09.25-v25.34-mots-complets";
 let cdqV21PushPending = false;
 function v21IsAdmin(){return String(utilisateurCourantRole||'')==='admin';}
 
@@ -15976,7 +16102,7 @@ window.ouvrirFacturesCDQ=ouvrirFacturesCDQ;function install(){const nav=document
 (function(){
 'use strict';
 if(!document.documentElement.classList.contains('windows'))return;
-const BUILD='2026.09.25-v25.33-point50-personnel';
+const BUILD='2026.09.25-v25.34-mots-complets';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const st={
@@ -19733,7 +19859,7 @@ html.windows #cdqPcV16 #cdqPcUpdateBtnV2244:hover{filter:brightness(1.08);}
 <script id="cdqPcV2244UpdateBannerJs">
 (function(){
   'use strict';
-  const BUILD='2026.09.25-v25.33-point50-personnel';
+  const BUILD='2026.09.25-v25.34-mots-complets';
   const PARENT_ORIGIN='https://jprodrigue86.github.io';
   let queryTimer=0;
 
@@ -21116,6 +21242,7 @@ html.cdq-mobile-layout #cdqCompanyBackdrop[hidden]{display:none!important}
       'font-size':px(action),'line-height':'1.15','white-space':'normal','overflow-wrap':'anywhere','flex':'0 1 auto'});
     each('.cdq-swipe-action.note,.cdq-swipe-action.photo,.cdq-swipe-action.favorite,.cdq-swipe-action.send,.cdq-swipe-action.protect',
       {'font-size':px(11.5 * unit * textScale),'min-width':px(36 * unit)});
+    window.cdqFitButtonWordsV2534({unit,topLabel,label});
     applyPalette();
     layoutCompanyMenu(unit, textScale);
     measureNavigation();
@@ -21935,7 +22062,7 @@ html.windows #cdqPcV16 tr.pc22-swiped .pc22-copy-swipe{display:inline-flex!impor
 <script id="cdqfeedbackV2522">
 (function(){
 'use strict';
-const BUILD='2026.09.25-v25.33-point50-personnel',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
+const BUILD='2026.09.25-v25.34-mots-complets',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
 const jobs=new Map();let serial=0,indicator,update,checking=false,lastCheck=0,available='',deployed='';
 function paint(){
  if(!document.documentElement.classList.contains('windows'))return;

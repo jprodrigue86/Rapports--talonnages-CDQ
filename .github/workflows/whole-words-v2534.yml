@@ -1,22 +1,14 @@
-name: Personal neutral point 25.33 — build and tests
+name: Whole words 25.34 — Android build and paired layout tests
 on:
   push:
-    branches: [codex/personal-neutral-v2533]
-    paths:
-      - 'personal-sizing-v2533.js'
-      - 'scripts/*personal*v2533*'
-      - 'tests/personal-sizing*'
-      - 'balance-cdq-android/signing/detached-apk-v2.py'
-      - '.github/workflows/personal-sizing-v2533.yml'
+    branches: [codex/whole-words-v2534]
+    paths: ['whole-words-v2534.js','scripts/*whole-words-v2534*','tests/whole-words-v2534*','.github/workflows/whole-words-v2534.yml']
   pull_request:
-    paths:
-      - 'personal-sizing-v2533.js'
-      - 'scripts/*personal*v2533*'
-      - 'tests/personal-sizing*'
+    paths: ['whole-words-v2534.js','scripts/*whole-words-v2534*','tests/whole-words-v2534*']
 permissions:
   contents: read
 concurrency:
-  group: personal-neutral-${{ github.ref }}
+  group: whole-words-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   android:
@@ -28,20 +20,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: codex/personal-neutral-v2533
+          ref: codex/whole-words-v2534
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply guarded integration and version metadata on isolated branch
+      - name: Integrate guarded word layout in isolated branch
         run: |
-          node scripts/prepare-personal-sizing-v2533.mjs
+          node scripts/prepare-whole-words-v2534.mjs
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add scripts/build-embedded-android-v2528.mjs balance-cdq-android/app/build.gradle.kts balance-cdq-android/app/src/main/java/ca/balancecdq/android/PackagedWebAssets.kt balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt tests/embedded-v2528.test.mjs tests/embedded-v2528-browser.test.mjs tests/embedded-startup-v2529.test.mjs tests/home-underline-v2531.browser.mjs
+          git add scripts/build-embedded-android-v2528.mjs balance-cdq-android/app/build.gradle.kts balance-cdq-android/app/src/main/java/ca/balancecdq/android/PackagedWebAssets.kt balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt tests/embedded-v2528.test.mjs tests/embedded-v2528-browser.test.mjs tests/embedded-startup-v2529.test.mjs tests/home-underline-v2531.browser.mjs tests/personal-sizing-v2533.browser.mjs
           if ! git diff --cached --quiet; then
-            git commit -m 'Integrate opt-in local neutral point into paired 25.33 interface'
-            git push origin HEAD:codex/personal-neutral-v2533
+            git commit -m 'Integrate word-safe tiles into paired 25.34 interface without touching calibration'
+            git push origin HEAD:codex/whole-words-v2534
           fi
       - uses: actions/setup-java@v4
         with:
@@ -54,32 +46,32 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Compile production APK and run native tests
+      - name: Compile production APK and native tests
         working-directory: balance-cdq-android
         run: gradle --no-daemon :app:assembleRelease :app:testDebugUnitTest
-      - name: Validate unsigned binary and emit public private-signing request
+      - name: Validate binary and emit public signing request
         run: |
           set -euo pipefail
           APK=balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
           TOOLS="$ANDROID_HOME/build-tools/35.0.0"
           "$TOOLS/zipalign" -c -P 16 4 "$APK"
           "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-badging
-          grep -q "package: name='ca.balancecdq.android' versionCode='2533' versionName='25.33'" /tmp/cdq-badging
+          grep -q "package: name='ca.balancecdq.android' versionCode='2534' versionName='25.34'" /tmp/cdq-badging
           ! grep -q application-debuggable /tmp/cdq-badging
-          mkdir /tmp/cdq-personal-handoff
-          cp "$APK" /tmp/cdq-personal-handoff/unsigned.apk
-          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk "$APK" --commit "$(git rev-parse HEAD)" > /tmp/cdq-personal-handoff/request.json
+          mkdir /tmp/cdq-words-handoff
+          cp "$APK" /tmp/cdq-words-handoff/unsigned.apk
+          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk "$APK" --commit "$(git rev-parse HEAD)" > /tmp/cdq-words-handoff/request.json
           echo 'CDQ_PUBLIC_SIGNING_REQUEST'
-          cat /tmp/cdq-personal-handoff/request.json
+          cat /tmp/cdq-words-handoff/request.json
       - uses: actions/upload-artifact@v4
         with:
-          name: CDQ-Personal2533-unsigned
-          path: /tmp/cdq-personal-handoff/*
+          name: CDQ-Words2534-unsigned
+          path: /tmp/cdq-words-handoff/*
           retention-days: 2
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: CDQ-Personal2533-native-tests
+          name: CDQ-Words2534-native-tests
           path: balance-cdq-android/app/build/test-results/testDebugUnitTest/*.xml
           if-no-files-found: ignore
           retention-days: 2
@@ -93,24 +85,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build paired interfaces and check source regressions
+      - name: Build paired interfaces and source regressions
         run: |
-          # Only the original preparation branch migrates version metadata.
-          # Pull requests test the committed current release and all assertions.
-          if [ "${{ github.event_name }}" = 'push' ]; then node scripts/prepare-personal-sizing-v2533.mjs; fi
+          node scripts/prepare-whole-words-v2534.mjs
           node scripts/build-embedded-android-v2528.mjs
           node scripts/build-iphone.mjs
           node scripts/test-instant-files-v2530.mjs
           node --test tests/personal-sizing-v2533.test.mjs tests/safe-area-v2532.test.mjs tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/iphone-rpc-compat.test.mjs tests/release-references.test.mjs
-      - name: Install browsers
+      - name: Install browser engines
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2 puppeteer-core@24 >/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
           npx playwright install --with-deps chromium webkit >>/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
-      - name: Compare original and personal-neutral geometry; persistence and device isolation
-        run: node tests/personal-sizing-v2533.browser.mjs
-      - name: Exercise actual installed interface settings and shared-preference write isolation
-        run: node scripts/test-personal-full-v2533.mjs
-      - name: Keep safe-screen, Home underline and iPhone recovery regressions
+      - name: Check complete words and tile bounds at normal and enlarged settings
+        run: node tests/whole-words-v2534.browser.mjs
+      - name: Keep personal reference and check real interface at enlarged sizes
+        run: |
+          node tests/personal-sizing-v2533.browser.mjs
+          node tests/whole-words-v2534.full.mjs
+      - name: Keep safe-screen, Home and iPhone connection regressions
         run: |
           node tests/safe-area-v2532.browser.mjs
           node tests/home-underline-v2531.browser.mjs
