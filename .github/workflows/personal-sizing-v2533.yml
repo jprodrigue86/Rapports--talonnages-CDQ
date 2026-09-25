@@ -95,7 +95,9 @@ jobs:
           node-version: '22'
       - name: Build paired interfaces and check source regressions
         run: |
-          node scripts/prepare-personal-sizing-v2533.mjs
+          # Only the original preparation branch migrates version metadata.
+          # Pull requests test the committed current release and all assertions.
+          if [ "${{ github.event_name }}" = 'push' ]; then node scripts/prepare-personal-sizing-v2533.mjs; fi
           node scripts/build-embedded-android-v2528.mjs
           node scripts/build-iphone.mjs
           node scripts/test-instant-files-v2530.mjs
