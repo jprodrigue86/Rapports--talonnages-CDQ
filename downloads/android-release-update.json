@@ -1,11 +1,11 @@
 {
-  "versionName": "25.36",
-  "versionCode": 2536,
-  "apkUrl": "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/downloads/Balance-CDQ-Android-25.36.apk",
-  "sha256": "bd9b03fdcbf689ddbbf5cfeaaf63db95a5dfac305c99c575c09c9bd62c8c8750",
+  "versionName": "25.37",
+  "versionCode": 2537,
+  "apkUrl": "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/downloads/Balance-CDQ-Android-25.37.apk",
+  "sha256": "9a1d1d4eb6701d2bacee452f2429c3b5ccfca0de9b682cffbae6ae78d388fc96",
   "mandatory": false,
   "channel": "stable",
   "signingCertificateSha256": "496030d9cd10e81ff4e9486c38491bc15389112c0c295c61c295981c101c4436",
   "compatibleReleaseIdentityFrom": "25.15",
-  "sourceCommit": "5c0a83f06f6da25d7eae7d59db61ce23ea455619"
+  "sourceCommit": "1089edc420cf106e60c6c7967658bd51113781ac"
 }

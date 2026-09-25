@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" data-cdq-iphone-version="25.36" data-cdq-iphone-release="006ad64f0e8e57d139c6b77b6367d78e03f8e77f765cdf2986c6be9b0abd32ff">
+<html lang="fr" data-cdq-iphone-version="25.37" data-cdq-iphone-release="7668492f9d44b8af598cde753c8dda0b1894d9907d730a35b51852bbd6117234">
 <head>
 <script src="./safe-viewport-v2532.js" data-cdq-viewport="shell"></script>
 <script src="./iphone-update.js"></script>
@@ -473,7 +473,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.25-v25.36-full-names';
+const CDQ_PWA_BUILD = '2026.09.25-v25.37-fast-local-unlock';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -1703,8 +1703,8 @@ bioText.textContent='Activez le déverrouillage de CDQ avec la sécurité de ce 
 bioAction.textContent='Activer la biométrie';
 bioSetup.style.display='flex';
 }
-window.cdqNativeBiometricResultV2507=function(requestId,success,message){
-if(window.cdqStartupUnlockV2529?.receive(requestId,success,message))return;
+window.cdqNativeBiometricResultV2507=function(requestId,success,message,localGrant){
+if(window.cdqStartupUnlockV2529?.receive(requestId,success,message,localGrant))return;
 const ctx=bioContext;
 if(!ctx||!ctx.native||String(ctx.requestId||'')!==String(requestId||''))return;
 bioContext=null;
