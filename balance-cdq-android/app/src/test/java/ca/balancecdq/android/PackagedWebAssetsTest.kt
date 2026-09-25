@@ -17,7 +17,7 @@ class PackagedWebAssetsTest {
         val loader = loader()
         val response = loader.intercept(Uri.parse(PackagedWebAssets.START_URL))!!
         assertEquals(200, response.statusCode)
-        assertTrue(response.data.bufferedReader().readText().contains("25.36-full-names"))
+        assertTrue(response.data.bufferedReader().readText().contains("25.37-fast-local-unlock"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}Selector.html"))!!
         val html = selector.data.bufferedReader().readText()
         assertTrue(html.contains("./embedded-rpc.js"))
@@ -25,6 +25,7 @@ class PackagedWebAssetsTest {
         assertTrue(html.contains("id=\"cdqPersonalSizingV2533\""))
         assertTrue(html.contains("id=\"cdqWholeWordsV2534\""))
         assertTrue(html.contains("id=\"cdqFullNamesV2536\""))
+        assertTrue(html.contains("id=\\\"cdqFastLocalV2537\\\""))
         assertTrue(html.contains("id=\"cdq-instant-files-2530\""))
         assertTrue(html.contains("id=\"cdqHomeUnderlineV2531\""))
         assertTrue(html.contains("html:is(.android,.ios,.mobile-device) .bottom-nav > .bottom-nav-item.cdq-nav-home.active::after{content:none!important;display:none!important}"))
