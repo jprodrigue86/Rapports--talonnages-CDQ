@@ -6,7 +6,7 @@ root=Path(__file__).resolve().parents[1]
 new=root/'downloads/Balance-CDQ-Android-25.35.apk'
 old=root/'downloads/Balance-CDQ-Android-25.34.apk'
 assert new.is_file() and old.is_file()
-extract=lambda text,ident:re.search(r'<script id="'+ident+r'">([\\s\\S]*?)</script>',text)[1]
+extract=lambda text,ident:text.split('<script id="'+ident+'">',1)[1].split('</script>',1)[0]
 with zipfile.ZipFile(old) as a,zipfile.ZipFile(new) as b:
     before=json.loads(a.read('assets/cdq-web/asset-manifest.json'))
     after=json.loads(b.read('assets/cdq-web/asset-manifest.json'))
