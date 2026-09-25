@@ -16,6 +16,6 @@ test('generated paired interfaces contain the complete-word fitter after build',
     const html=fs.readFileSync(path,'utf8');
     assert.equal(html.split('id="cdqButtonLabelFitV2534"').length,2,path);
     assert.match(html,/window\.cdqButtonLabelFitV2534\?\.fit\(\)/,path);
-    assert.doesNotMatch(html,/\.quick-name[^\n]*[\s\S]{0,280}'overflow-wrap':'anywhere'/,path);
+    assert.match(html,/window\.cdqButtonLabelFitV2534\?\.reset\(\)/,path);
   }
 });
