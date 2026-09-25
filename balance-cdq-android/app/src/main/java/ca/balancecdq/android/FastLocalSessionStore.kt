@@ -86,6 +86,32 @@ class FastLocalSessionStore(private val context: Context) {
         }
     }
 
+    fun peek(now: Long = System.currentTimeMillis()): Ticket? {
+        return try {
+            val encoded = prefs.getString(VALUE, null) ?: return null
+            val packed = Base64.decode(encoded, Base64.DEFAULT)
+            if (packed.size <= IV_BYTES + 16) return clearAndNull()
+            val iv = packed.copyOfRange(0, IV_BYTES)
+            val encrypted = packed.copyOfRange(IV_BYTES, packed.size)
+
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
+            val payload = JSONObject(String(cipher.doFinal(encrypted), Charsets.UTF_8))
+            if (payload.optInt("schema") != 1) return clearAndNull()
+
+            val email = normalizeEmail(payload.optString("email"))
+            val expiresAt = payload.optLong("expiresAt", 0L)
+            val issuedAt = payload.optLong("issuedAt", 0L)
+            if (email.isBlank() || issuedAt <= 0L || expiresAt <= now ||
+                expiresAt - issuedAt > TTL_MS + 5_000L
+            ) return clearAndNull()
+
+            Ticket(email, expiresAt)
+        } catch (_: Exception) {
+            clearAndNull()
+        }
+    }
+
     fun read(email: String, deviceToken: String, now: Long = System.currentTimeMillis()): Ticket? {
         val normalized = normalizeEmail(email)
         val token = deviceToken.trim()
