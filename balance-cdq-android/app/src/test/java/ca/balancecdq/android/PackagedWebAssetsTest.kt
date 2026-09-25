@@ -17,10 +17,10 @@ class PackagedWebAssetsTest {
         val loader = loader()
         val response = loader.intercept(Uri.parse(PackagedWebAssets.START_URL))!!
         assertEquals(200, response.statusCode)
-        assertTrue(response.data.bufferedReader().readText().contains("25.37-fast-local-unlock"))
+        assertTrue(response.data.bufferedReader().readText().contains("25.38-persistent-fast-start"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}Selector.html"))!!
         val html = selector.data.bufferedReader().readText()
-        assertTrue(html.contains("./embedded-rpc.js"))
+        assertTrue(html.contains("./embedded-rpc.js"))\n        assertTrue(html.contains("./icon-fallback-v2538.js"))
         assertTrue(html.contains("./safe-viewport-v2532.js"))
         assertTrue(html.contains("id=\"cdqPersonalSizingV2533\""))
         assertTrue(html.contains("id=\"cdqWholeWordsV2534\""))
