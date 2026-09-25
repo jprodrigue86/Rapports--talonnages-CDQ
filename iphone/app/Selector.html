@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html data-cdq-iphone-version="25.34" data-cdq-iphone-release="834439bfbcedbb8792c34831f7dc268d4517970e0c9ac5c939d175b468471faf">
+<html data-cdq-iphone-version="25.35" data-cdq-iphone-release="20c6b77417838fb99ccebfbc9dde2104fcec979d43a6b6852e7c2fbc7faa6a9e">
 <head>
 <script src="./iphone-update.js"></script>
 <script id="cdqWholeWordsV2534">
@@ -136,6 +136,8 @@
 (function () {
   'use strict';
   const axes = ['General', 'Text', 'Icon'];
+  // The user's validated former 50 / 71 / 100 rendering is now the standard 50 / 50 / 50.
+  const standardAnchor = Object.freeze({General:50, Text:71, Icon:100});
   const prefix = 'cdq-personal-sizing-v1:';
   const neutral = () => ({General:50, Text:50, Icon:50});
   const validValue = n => Number.isInteger(n) && n >= 0 && n <= 100;
@@ -155,7 +157,7 @@
     if (!mobile() || !account()) return null;
     try {
       const p = JSON.parse(localStorage.getItem(key()) || 'null');
-      return p && p.schema === 1 && validAxes(p.anchor) && validAxes(p.position) ? p : null;
+      return p && (p.schema === 1 || p.schema === 2) && validAxes(p.anchor) && validAxes(p.position) ? p : null;
     } catch (_) { return null; }
   }
   function write(p) {
@@ -169,14 +171,24 @@
     if (typeof fn !== 'function') throw Error('Les réglages ne sont pas encore prêts.');
     return fn();
   }
-  // Apply each existing rendering curve to the reference and to its control.
-  // At 50 return the reference directly, without rounding it through a slider.
+  // Keep legacy schema-1 personal calibrations exact. Without a personal
+  // calibration, 50 / 50 / 50 now renders exactly like the former validated
+  // 50 / 71 / 100. Schema-2 captures a personal reference on top of that standard.
   function factor(axis, fallback, curve) {
+    if (!axes.includes(axis)) return curve(fallback);
     const p = current();
-    if (!p || !axes.includes(axis)) return curve(fallback);
-    const reference = curve(p.anchor[axis]);
-    if (p.position[axis] === 50) return reference;
-    return reference * curve(p.position[axis]) / curve(50);
+    if (p && p.schema === 1) {
+      const reference = curve(p.anchor[axis]);
+      if (p.position[axis] === 50) return reference;
+      return reference * curve(p.position[axis]) / curve(50);
+    }
+    const position = p && p.schema === 2 ? p.position[axis] : fallback;
+    const standardReference = curve(standardAnchor[axis]);
+    const capturedReference = p && p.schema === 2
+      ? standardReference * curve(p.anchor[axis]) / curve(50)
+      : standardReference;
+    if (position === 50) return capturedReference;
+    return capturedReference * curve(position) / curve(50);
   }
   function render() {
     if (typeof window.cdqApplyAllScalesV89 === 'function') window.cdqApplyAllScalesV89(true);
@@ -213,7 +225,7 @@
     if (!validAxes(anchor)) throw Error('Les tailles actuelles sont invalides.');
     if (!window.confirm('Conserver exactement les tailles actuelles (' + axes.map(axis => anchor[axis]).join(' / ') + ') et les afficher comme 50 / 50 / 50 ?\n\nCe calibrage reste uniquement sur ce téléphone et pour ton compte. Aucun autre appareil ne sera modifié.')) return;
     if (account() !== owner || !admin()) throw Error('Le compte a changé. Rouvre les réglages.');
-    write({schema:1, anchor, position:neutral()});
+    write({schema:2, anchor, position:neutral()});
     render();
   }
   function reset() {
@@ -267,7 +279,7 @@
   }
   ['click','pointerdown','touchstart','input','change','pointerup','touchend','keyup'].forEach(type => window.addEventListener(type, intercept, {capture:true}));
   window.addEventListener('storage', e => { if (e.key?.startsWith(prefix)) render(); });
-  window.cdqPersonalSizing = Object.freeze({factor, mount, current, reset, refreshControls:updateControls});
+  window.cdqPersonalSizing = Object.freeze({factor, mount, current, reset, refreshControls:updateControls, standardAnchor});
 })();
 
 </script>
@@ -346,7 +358,7 @@
 <meta charset="utf-8">
 <link rel="icon" href="./icons/icon-heavy-v3-192.png">
 <script src="./embedded-rpc.js"></script>
-<meta name="cdq-package-build" content="2026.09.25-v25.34-mots-complets">
+<meta name="cdq-package-build" content="2026.09.25-v25.35-point50-standard">
 <script id="cdqPcEarlyBootV2166">
 (function(){
   try{
@@ -624,7 +636,7 @@ function cdqAnnounceSelectorReadyV42(){
     type:'CDQ_SELECTOR_READY',
     authProtocol:42,
     accessState:cdqAccessState,
-    build:'2026.09.25-v25.34-mots-complets'
+    build:'2026.09.25-v25.35-point50-standard'
   });
 }
 
@@ -637,7 +649,7 @@ function cdqAnnounceHealthReadyV97(){
         type:'CDQ_HEALTH_READY',
         authProtocol:42,
         accessState:cdqAccessState,
-        build:'2026.09.25-v25.34-mots-complets'
+        build:'2026.09.25-v25.35-point50-standard'
       });
     }
   } catch(e) {}
@@ -11032,7 +11044,7 @@ function changerMode(){
 (function(){
   "use strict";
 
-  const CDQ_BUILD = "2026.09.25-v25.34-mots-complets";
+  const CDQ_BUILD = "2026.09.25-v25.35-point50-standard";
   let cdqRootContent = null;
   let cdqFolderMap = Object.create(null);
   let cdqParentMap = Object.create(null);
@@ -13213,7 +13225,7 @@ function cdqCheckUpdate(){
 (function(){
 "use strict";
 
-const CDQ_V19_BUILD = "2026.09.25-v25.34-mots-complets";
+const CDQ_V19_BUILD = "2026.09.25-v25.35-point50-standard";
 const CDQ_V19_DAY_KEY = "cdqV19OfflineDay";
 let cdqV19SyncRunning = false;
 let cdqV19OfflineToggleRunning = false;
@@ -14726,7 +14738,7 @@ window.addEventListener("load",function(){
 (function(){
 "use strict";
 
-const CDQ_V20_BUILD = "2026.09.25-v25.34-mots-complets";
+const CDQ_V20_BUILD = "2026.09.25-v25.35-point50-standard";
 let cdqV20Inventory = null;
 let cdqV20Tab = "stock";
 let cdqV20Location = "";
@@ -15574,7 +15586,7 @@ window.addEventListener("online",function(){setTimeout(v20RefreshAlerts,1200);})
 (function(){
 "use strict";
 
-const CDQ_V21_BUILD = "2026.09.25-v25.34-mots-complets";
+const CDQ_V21_BUILD = "2026.09.25-v25.35-point50-standard";
 let cdqV21PushPending = false;
 function v21IsAdmin(){return String(utilisateurCourantRole||'')==='admin';}
 
@@ -16102,7 +16114,7 @@ window.ouvrirFacturesCDQ=ouvrirFacturesCDQ;function install(){const nav=document
 (function(){
 'use strict';
 if(!document.documentElement.classList.contains('windows'))return;
-const BUILD='2026.09.25-v25.34-mots-complets';
+const BUILD='2026.09.25-v25.35-point50-standard';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const st={
@@ -19859,7 +19871,7 @@ html.windows #cdqPcV16 #cdqPcUpdateBtnV2244:hover{filter:brightness(1.08);}
 <script id="cdqPcV2244UpdateBannerJs">
 (function(){
   'use strict';
-  const BUILD='2026.09.25-v25.34-mots-complets';
+  const BUILD='2026.09.25-v25.35-point50-standard';
   const PARENT_ORIGIN='https://jprodrigue86.github.io';
   let queryTimer=0;
 
@@ -22062,7 +22074,7 @@ html.windows #cdqPcV16 tr.pc22-swiped .pc22-copy-swipe{display:inline-flex!impor
 <script id="cdqfeedbackV2522">
 (function(){
 'use strict';
-const BUILD='2026.09.25-v25.34-mots-complets',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
+const BUILD='2026.09.25-v25.35-point50-standard',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
 const jobs=new Map();let serial=0,indicator,update,checking=false,lastCheck=0,available='',deployed='';
 function paint(){
  if(!document.documentElement.classList.contains('windows'))return;
