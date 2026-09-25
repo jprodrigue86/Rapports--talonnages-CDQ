@@ -17,7 +17,7 @@
   const unavailable='La connexion CDQ ne répond pas. Vérifiez Internet et publiez la mise à jour V25.28 dans Script Manager, puis réessayez.';
   function settle(id,ok,value){
     const job=pending.get(id);if(!job)return;
-    pending.delete(id);clearTimeout(job.timer);
+    pending.delete(id);if(job.timer)clearTimeout(job.timer);
     const handler=ok?job.success:job.failure;
     if(typeof handler==='function')handler(ok?value:Error(String(value||unavailable)),job.userObject);
   }
@@ -28,7 +28,18 @@
   function send(job){
     if(!peer||job.sent)return;
     job.sent=true;
+    if(!job.timer)job.timer=setTimeout(
+      ()=>settle(job.id,false,'La demande a expiré. Vérifiez son résultat avant de relancer une écriture.'),
+      90000
+    );
     peer.postMessage({type:'CDQ_EMBEDDED_CALL',protocol:1,channel,id:job.id,name:job.name,args:job.args},peerOrigin);
+  }
+  function provisional(){
+    try{return window.cdqStartupUnlockV2529?.isProvisional?.()===true;}catch(_){return false;}
+  }
+  function flushHeld(){
+    if(provisional())return;
+    for(const job of pending.values())send(job);
   }
   function runner(success,failure,userObject,bypassStartup=false){
     return new Proxy(Object.create(null),{get(_target,name){
@@ -38,10 +49,13 @@
       if(typeof name!=='string'||name==='then')return undefined;
       return (...args)=>{
         if(!bypassStartup&&name==='restaurerSessionApresBiometrie'&&window.cdqStartupUnlockV2529?.takeSession(args[0],success,failure,userObject))return;
-        const id=String(++serial),job={id,name,args,success,failure,userObject,sent:false};
+        const id=String(++serial),job={id,name,args,success,failure,userObject,sent:false,timer:null};
         pending.set(id,job);
-        job.timer=setTimeout(()=>settle(id,false,'La demande a expiré. Vérifiez son résultat avant de relancer une écriture.'),90000);
         if(!allowed.has(name)){settle(id,false,'Appel serveur non autorisé.');return;}
+        // During a trusted local startup, the unchanged Selector can render
+        // immediately, but nothing crosses to Apps Script until the server
+        // session is confirmed.
+        if(!bypassStartup&&provisional())return;
         if(navigator.onLine===false){settle(id,false,'Connexion Internet indisponible. Utilisez les copies hors ligne.');return;}
         if(failed){settle(id,false,failed);return;}
         send(job);
@@ -72,9 +86,16 @@
       settle(String(data.id),data.ok===true,data.ok?data.value:data.error);
     }
   });
+  window.addEventListener('cdq:startup-confirmed-v2539',flushHeld);
+  window.addEventListener('cdq:startup-revoked-v2539',()=>{
+    for(const [id,job] of [...pending.entries()])
+      if(!job.sent)settle(id,false,'La session locale a été révoquée par le serveur.');
+  });
   window.addEventListener('offline',()=>{
-    // Do not replay a write whose response may have been lost.
-    for(const id of [...pending.keys()])settle(id,false,'Connexion interrompue. Vérifiez le résultat avant de relancer une écriture.');
+    // Do not replay a write whose response may have been lost. Held requests
+    // have not crossed the network and remain blocked locally.
+    for(const [id,job] of [...pending.entries()])
+      if(job.sent)settle(id,false,'Connexion interrompue. Vérifiez le résultat avant de relancer une écriture.');
   });
   window.google={script:{run:runner()}};
   window.cdqEmbeddedRpcV2529={run:window.google.script.run,
