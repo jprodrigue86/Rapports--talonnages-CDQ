@@ -98,10 +98,10 @@ jobs:
           npx playwright install --with-deps chromium webkit >>/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
       - name: Check complete words and tile bounds at normal and enlarged settings
         run: node tests/whole-words-v2534.browser.mjs
-      - name: Keep personal reference, persistence and shared-preference isolation
+      - name: Keep personal reference and check real interface at enlarged sizes
         run: |
           node tests/personal-sizing-v2533.browser.mjs
-          node scripts/test-personal-full-v2533.mjs
+          node tests/whole-words-v2534.full.mjs
       - name: Keep safe-screen, Home and iPhone connection regressions
         run: |
           node tests/safe-area-v2532.browser.mjs
