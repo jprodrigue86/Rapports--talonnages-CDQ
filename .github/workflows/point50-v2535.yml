@@ -1,0 +1,99 @@
+name: Point 50 standard 25.35 — release source
+
+on:
+  push:
+    branches: [fix/standard-point50-v2535]
+    paths:
+      - 'personal-sizing-v2533.js'
+      - 'scripts/build-embedded-android-v2528.mjs'
+      - 'tests/personal-sizing-v2533.test.mjs'
+      - 'tests/personal-sizing-v2533.browser.mjs'
+      - 'tests/embedded-v2528.test.mjs'
+      - 'tests/embedded-v2528-browser.test.mjs'
+      - 'balance-cdq-android/**'
+      - '.github/workflows/point50-v2535.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: point50-2535-source
+  cancel-in-progress: false
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/standard-point50-v2535
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build embedded production interface
+        run: node scripts/build-embedded-android-v2528.mjs
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Install Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Compile release and native tests
+        working-directory: balance-cdq-android
+        run: gradle --no-daemon :app:assembleRelease :app:testDebugUnitTest
+      - name: Validate and create detached signing request
+        run: |
+          set -euo pipefail
+          APK=balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-badging
+          grep -q "package: name='ca.balancecdq.android' versionCode='2535' versionName='25.35'" /tmp/cdq-badging
+          ! grep -q application-debuggable /tmp/cdq-badging
+          mkdir -p /tmp/cdq-point50-handoff
+          cp "$APK" /tmp/cdq-point50-handoff/unsigned.apk
+          python3 balance-cdq-android/signing/detached-apk-v2.py request --apk "$APK" --commit "$(git rev-parse HEAD)" > /tmp/cdq-point50-handoff/request.json
+          sha256sum "$APK" > /tmp/cdq-point50-handoff/unsigned-sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CDQ-Point50-2535-unsigned
+          path: /tmp/cdq-point50-handoff/*
+          retention-days: 2
+
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build paired interfaces and source regressions
+        run: |
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node scripts/test-instant-files-v2530.mjs
+          node --test tests/personal-sizing-v2533.test.mjs tests/safe-area-v2532.test.mjs tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/iphone-rpc-compat.test.mjs tests/release-references.test.mjs
+      - name: Install browser engines
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2 puppeteer-core@24 >/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
+          npx playwright install --with-deps chromium webkit >>/tmp/browser-install.log 2>&1 || { tail -40 /tmp/browser-install.log; exit 1; }
+      - name: Verify new standard point and preserved layouts
+        run: |
+          node tests/personal-sizing-v2533.browser.mjs
+          node tests/embedded-v2528-browser.test.mjs
+          node tests/whole-words-v2534.browser.mjs
+          node tests/whole-words-v2534.full.mjs
+          node tests/safe-area-v2532.browser.mjs
+          node tests/home-underline-v2531.browser.mjs
+          node tests/iphone-recovery.browser.mjs
