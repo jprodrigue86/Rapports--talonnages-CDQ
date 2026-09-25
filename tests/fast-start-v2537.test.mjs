@@ -10,7 +10,7 @@ test('V25.37 fast startup runtime is syntax-valid and keeps server authority',()
   new vm.Script(runtime);
   assert.match(runtime,/LOCAL_TTL_MS=8\*60\*60\*1000/);
   assert.match(runtime,/takeLocalTicket/);
-  assert.match(runtime,/cdqAccessState==='local'/);
+  assert.match(runtime,/cdqSetAccessState\('local'\)/);
   assert.match(runtime,/restaurerSessionApresBiometrie/);
   assert.match(runtime,/clearLocalSession/);
   assert.match(runtime,/saveLocalSession/);
