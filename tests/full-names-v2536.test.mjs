@@ -30,7 +30,7 @@ test('V25.36 patch runs after legacy mobile company ellipsis is applied', () => 
   const result = applyFullNames2536(source);
   assert.match(result,/id="cdqFullNamesV2536"/);
   const old = result.indexOf('layoutCompanyMenu(unit, textScale);');
-  const fix = result.indexOf('window.cdqFitFullNamesV2536();');
+  const fix = result.indexOf('window.cdqFitFullNamesV2536?.();');
   assert.ok(old >= 0 && fix > old);
 });
 
