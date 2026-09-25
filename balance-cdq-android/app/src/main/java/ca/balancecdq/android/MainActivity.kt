@@ -55,6 +55,10 @@ class MainActivity : Activity() {
     private var localGrantSecret = ""
     private var localGrantUntilElapsed = 0L
     @Volatile private var localOnlyMode = false
+    private var earlyBiometricRequestId = ""
+    private var earlyBiometricSuccess: Boolean? = null
+    private var earlyBiometricMessage = ""
+    private var earlyBiometricGrant = ""
 
     private val startupUpdateExecutor = Executors.newSingleThreadExecutor()
     @Volatile private var startupUpdateStarted = false
@@ -152,6 +156,33 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
+        fun startupBiometricState(account: String?, deviceToken: String?): String {
+            val id = earlyBiometricRequestId
+            if (id.isBlank()) return """{"state":"none"}"""
+
+            // Never expose the one-time biometric grant unless the caller also
+            // proves it has the current account and device token bound to the ticket.
+            val ticket = fastLocalSessionStore.read(
+                account.orEmpty(),
+                deviceToken.orEmpty()
+            ) ?: return """{"state":"none"}"""
+
+            val state = when (earlyBiometricSuccess) {
+                null -> "pending"
+                true -> "success"
+                false -> "failure"
+            }
+            return JSONObject()
+                .put("state", state)
+                .put("requestId", id)
+                .put("email", ticket.email)
+                .put("expiresAt", ticket.expiresAt)
+                .put("message", earlyBiometricMessage)
+                .put("grant", if (earlyBiometricSuccess == true) earlyBiometricGrant else "")
+                .toString()
+        }
+
+        @JavascriptInterface
         fun biometric(requestId: String?) {
             val id = requestId.orEmpty().trim()
             if (!id.matches(Regex("^[A-Za-z0-9._-]{1,120}$"))) return
@@ -204,7 +235,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.37 CDQSafeArea/1"
+                settings.userAgentString + " BalanceCDQAndroid/25.38 CDQSafeArea/1"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -283,12 +314,12 @@ class MainActivity : Activity() {
 
         setContentView(SafeContentInsets.host(this, webView))
 
-        if (savedInstanceState == null || savedInstanceState.getString("cdqEmbeddedVersion") != "25.37") {
-            webView.loadUrl(APP_URL)
-            checkForNativeUpdateOnLaunch()
-        } else {
-            if (webView.restoreState(savedInstanceState) == null) webView.loadUrl(APP_URL)
-        }
+        // Never restore an old WebView snapshot. A fresh packaged shell is small,
+        // deterministic and guarantees that the secure startup bootstrap runs
+        // on every Activity recreation instead of falling back to the old slow path.
+        maybeStartEarlyBiometric()
+        webView.loadUrl(APP_URL)
+        checkForNativeUpdateOnLaunch()
 
         handleAuthCallback(intent)
     }
@@ -413,6 +444,17 @@ class MainActivity : Activity() {
         webView.evaluateJavascript(script, null)
     }
 
+    private fun maybeStartEarlyBiometric() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        if (fastLocalSessionStore.peek() == null) return
+        val id = "native-startup-" + UUID.randomUUID().toString()
+        earlyBiometricRequestId = id
+        earlyBiometricSuccess = null
+        earlyBiometricMessage = ""
+        earlyBiometricGrant = ""
+        startNativeBiometric(id)
+    }
+
     private fun validLocalGrant(requestId: String?, grant: String?): Boolean {
         val now = SystemClock.elapsedRealtime()
         val id = requestId.orEmpty()
@@ -493,13 +535,21 @@ class MainActivity : Activity() {
             localOnlyMode = false
         }
 
+        val early = requestId == earlyBiometricRequestId
+        if (early) {
+            earlyBiometricSuccess = success
+            earlyBiometricMessage = message
+            earlyBiometricGrant = grant
+        }
+
         if (!::webView.isInitialized) return
         val idQuoted = JSONObject.quote(requestId)
         val messageQuoted = JSONObject.quote(message)
         val grantQuoted = JSONObject.quote(grant)
+        val callback = if (early) "window.cdqNativeStartupBiometricResultV2538"
+            else "window.cdqNativeBiometricResultV2507"
         webView.evaluateJavascript(
-            "window.cdqNativeBiometricResultV2507 && " +
-                "window.cdqNativeBiometricResultV2507($idQuoted,$success,$messageQuoted,$grantQuoted);",
+            "$callback && $callback($idQuoted,$success,$messageQuoted,$grantQuoted);",
             null
         )
     }
@@ -741,8 +791,7 @@ class MainActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("cdqEmbeddedVersion", "25.37")
-        webView.saveState(outState)
+        outState.putString("cdqEmbeddedVersion", "25.38")
         super.onSaveInstanceState(outState)
     }
 
@@ -762,6 +811,10 @@ class MainActivity : Activity() {
         biometricCancellation = null
         clearLocalGrant()
         localOnlyMode = false
+        earlyBiometricRequestId = ""
+        earlyBiometricSuccess = null
+        earlyBiometricMessage = ""
+        earlyBiometricGrant = ""
         if (::webView.isInitialized) {
             webView.stopLoading()
             webView.removeAllViews()
