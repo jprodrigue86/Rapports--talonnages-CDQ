@@ -1,0 +1,46 @@
+name: Verify published personal-neutral 25.33
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'downloads/Balance-CDQ-Android-25.33.apk'
+      - 'personal-sizing-v2533.js'
+      - '.github/workflows/personal-sizing-published-v2533.yml'
+permissions:
+  contents: read
+jobs:
+  published:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify public release bytes, paired interface and installation links
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          import assert from 'node:assert/strict';
+          const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
+          const release=JSON.parse(fs.readFileSync('downloads/android-release-update.json'));
+          const iphone=JSON.parse(fs.readFileSync('iphone/app/release.json'));
+          assert.equal(release.versionName,'25.33');assert.equal(iphone.version,'25.33');
+          const deadline=Date.now()+300000;let ready=false;
+          while(Date.now()<deadline){
+            try{const r=await fetch(base+'downloads/android-release-update.json?verify='+Date.now(),{signal:AbortSignal.timeout(15000)});if(r.ok&&(await r.json()).sha256===release.sha256){ready=true;break;}}catch{}
+            await new Promise(r=>setTimeout(r,10000));
+          }
+          assert(ready,'Expected Pages release not yet published');
+          const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+          for(const name of ['downloads/Balance-CDQ-Android-25.33.apk','downloads/Balance-CDQ-Android-25.33.zip','downloads/android-release-update.json','installer.html','iphone/index.html','iphone/app/release.json','iphone/app/Selector.html','iphone/app/sw.js']){
+            const r=await fetch(base+name+'?verify='+Date.now(),{signal:AbortSignal.timeout(30000)});assert(r.ok,name);assert.equal(sha(Buffer.from(await r.arrayBuffer())),sha(fs.readFileSync(name)),name+' served bytes');
+          }
+          const installer=fs.readFileSync('installer.html','utf8');
+          assert.match(installer,/Balance-CDQ-Android-25\.33\.apk/);assert.match(installer,/Copier le lien iPhone/);assert.match(installer,/connection-repair\.html/);
+          assert.equal(iphone.connectionRevision,'2026.09.24-iphone-rpc-r1');
+          console.log(JSON.stringify({android:release.versionName,iphone:iphone.version,certificate:release.signingCertificateSha256,sha256:release.sha256,sharing:'Android and iPhone checked',published:'exact bytes verified'}));
+          JS
