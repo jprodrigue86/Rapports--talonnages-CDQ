@@ -1,7 +1,7 @@
 name: Embedded Android interface V25.29
 on:
   push:
-    paths: ['balance-cdq-android/web-source/**', 'scripts/*embedded*v2528*', 'bundles/balance-cdq/v25.28/**', 'tests/embedded-v2528*', '.github/workflows/test-embedded-v2528.yml']
+    paths: ['balance-cdq-android/web-source/**', 'scripts/*embedded*v2528*', 'full-names-v2536.js', 'scripts/full-names-v2536.mjs', 'bundles/balance-cdq/v25.28/**', 'tests/embedded-v2528*', 'tests/full-names-v2536.test.mjs', 'tests/full-names-v2536.browser.mjs', '.github/workflows/test-embedded-v2528.yml']
   pull_request:
     paths: ['balance-cdq-android/web-source/**', 'scripts/*embedded*v2528*', 'bundles/balance-cdq/v25.28/**', 'tests/embedded-v2528*', '.github/workflows/test-embedded-v2528.yml']
 permissions:
@@ -17,9 +17,9 @@ jobs:
           node-version: '22'
       - run: node scripts/build-embedded-android-v2528.mjs && node scripts/build-embedded-package-v2528.mjs
       - run: git diff --exit-code -- bundles/balance-cdq/v25.28
-      - run: node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs
+      - run: node --test tests/embedded-v2528.test.mjs tests/full-names-v2536.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs
       - run: npm install --no-save puppeteer-core@24
-      - run: node tests/embedded-v2528-browser.test.mjs
+      - run: node tests/embedded-v2528-browser.test.mjs\n      - run: node tests/full-names-v2536.browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
