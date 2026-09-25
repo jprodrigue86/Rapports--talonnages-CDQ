@@ -231,7 +231,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.39 CDQSafeArea/1"
+                settings.userAgentString + " BalanceCDQAndroid/25.40 CDQSafeArea/1"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -785,7 +785,7 @@ class MainActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("cdqEmbeddedVersion", "25.39")
+        outState.putString("cdqEmbeddedVersion", "25.40")
         super.onSaveInstanceState(outState)
     }
 

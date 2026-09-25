@@ -10,6 +10,8 @@ on:
       - 'scripts/*safe-area*.mjs'
       - 'scripts/*whole-words*.mjs'
       - 'scripts/*full-names*.mjs'
+      - 'balance-cdq-android/web-source/warm-unlock-v2540.js'
+      - 'icon-artwork-baseline-v2540.css'
       - 'full-names-v2536.js'
       - 'whole-words-v2534.js'
       - 'personal-sizing-v2533.js'
@@ -17,6 +19,8 @@ on:
       - 'bundles/balance-cdq/v25.28/**'
       - 'tests/embedded-v2528*'
       - 'tests/full-names-v2536*'
+      - 'tests/warm-unlock-v2540.test.mjs'
+      - 'tests/icon-artwork-v2540.test.mjs'
       - '.github/workflows/test-embedded-v2528.yml'
   pull_request:
     branches: [main]
@@ -28,6 +32,8 @@ on:
       - 'scripts/*safe-area*.mjs'
       - 'scripts/*whole-words*.mjs'
       - 'scripts/*full-names*.mjs'
+      - 'balance-cdq-android/web-source/warm-unlock-v2540.js'
+      - 'icon-artwork-baseline-v2540.css'
       - 'full-names-v2536.js'
       - 'whole-words-v2534.js'
       - 'personal-sizing-v2533.js'
@@ -35,6 +41,8 @@ on:
       - 'bundles/balance-cdq/v25.28/**'
       - 'tests/embedded-v2528*'
       - 'tests/full-names-v2536*'
+      - 'tests/warm-unlock-v2540.test.mjs'
+      - 'tests/icon-artwork-v2540.test.mjs'
       - '.github/workflows/test-embedded-v2528.yml'
 
 permissions:
@@ -65,7 +73,7 @@ jobs:
 
       - name: Run source and package regressions
         run: |
-          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs tests/full-names-v2536.test.mjs
+          node --test tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/performance-v2527.test.mjs tests/full-names-v2536.test.mjs tests/warm-unlock-v2540.test.mjs tests/icon-artwork-v2540.test.mjs
 
       - name: Install Chromium
         run: npm install --no-save --package-lock=false puppeteer-core@24

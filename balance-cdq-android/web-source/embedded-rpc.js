@@ -35,7 +35,10 @@
     peer.postMessage({type:'CDQ_EMBEDDED_CALL',protocol:1,channel,id:job.id,name:job.name,args:job.args},peerOrigin);
   }
   function provisional(){
-    try{return window.cdqStartupUnlockV2529?.isProvisional?.()===true;}catch(_){return false;}
+    try{
+      return window.cdqStartupUnlockV2529?.isProvisional?.()===true ||
+        window.cdqWarmUnlockV2540?.isProvisional?.()===true;
+    }catch(_){return false;}
   }
   function flushHeld(){
     if(provisional())return;
@@ -48,7 +51,15 @@
       if(name==='withUserObject')return obj=>runner(success,failure,obj,bypassStartup);
       if(typeof name!=='string'||name==='then')return undefined;
       return (...args)=>{
-        if(!bypassStartup&&name==='restaurerSessionApresBiometrie'&&window.cdqStartupUnlockV2529?.takeSession(args[0],success,failure,userObject))return;
+        if(!bypassStartup&&name==='restaurerSessionApresBiometrie'){
+          if(window.cdqStartupUnlockV2529?.takeSession(args[0],success,failure,userObject))return;
+          if(window.cdqWarmUnlockV2540?.takeSession(
+            args[0],success,failure,userObject,
+            token=>new Promise((resolve,reject)=>
+              runner(resolve,reject,undefined,true).restaurerSessionApresBiometrie(token)
+            )
+          ))return;
+        }
         const id=String(++serial),job={id,name,args,success,failure,userObject,sent:false,timer:null};
         pending.set(id,job);
         if(!allowed.has(name)){settle(id,false,'Appel serveur non autorisé.');return;}
@@ -87,10 +98,13 @@
     }
   });
   window.addEventListener('cdq:startup-confirmed-v2539',flushHeld);
-  window.addEventListener('cdq:startup-revoked-v2539',()=>{
+  window.addEventListener('cdq:warm-confirmed-v2540',flushHeld);
+  function revokeHeld(){
     for(const [id,job] of [...pending.entries()])
       if(!job.sent)settle(id,false,'La session locale a été révoquée par le serveur.');
-  });
+  }
+  window.addEventListener('cdq:startup-revoked-v2539',revokeHeld);
+  window.addEventListener('cdq:warm-revoked-v2540',revokeHeld);
   window.addEventListener('offline',()=>{
     // Do not replay a write whose response may have been lost. Held requests
     // have not crossed the network and remain blocked locally.

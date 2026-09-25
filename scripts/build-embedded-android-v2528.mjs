@@ -11,8 +11,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.39/';
-const build='2026.09.25-v25.39-clean-fast-start';
+const local=base+'native/v25.40/';
+const build='2026.09.25-v25.40-icons-repeat-fast';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -34,7 +34,7 @@ function replace(source,search,replacement){
   return source.replace(search,replacement);
 }
 let shell=read('index.html');
-shell=replace(shell,'<head>','<head>\n<script src="./startup-unlock-v2529.js"></script>\n<script src="./embedded-rpc.js"></script>\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">');
+shell=replace(shell,'<head>','<head>\n<script src="./startup-unlock-v2529.js"></script>\n<script src="./warm-unlock-v2540.js"></script>\n<script src="./embedded-rpc.js"></script>\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">');
 shell=replace(shell,"const CDQ_PWA_BUILD = '2026.09.23-v25.27-demarrage-dossiers';",`const CDQ_PWA_BUILD = '${build}';`);
 shell=replace(shell,"if ('serviceWorker' in navigator) {","if (false && 'serviceWorker' in navigator) {");
 shell=replace(shell,"function cdqFreshAppUrl(reason='boot'){","function cdqFreshAppUrl(reason='boot'){\n  return new URL('./Selector.html',location.href).href;\n}");
@@ -50,14 +50,18 @@ shell=replace(shell,"if(cdqSelectorBuildV2254)setTimeout(function(){cdqVerifierM
 shell=replace(shell,'    BalanceCDQNative.biometric(String(requestId||\'\'));',`    if(mode==='unlock' && window.cdqStartupUnlockV2529?.attach(email,requestId,
       (ok,message)=>window.cdqNativeBiometricResultV2507(requestId,ok,message)))return;
     BalanceCDQNative.biometric(String(requestId||''));`);
-shell=replace(shell,'window.cdqNativeBiometricResultV2507=function(requestId,success,message){',`window.cdqNativeBiometricResultV2507=function(requestId,success,message){
-if(window.cdqStartupUnlockV2529?.receive(requestId,success,message))return;`);
+shell=replace(shell,'window.cdqNativeBiometricResultV2507=function(requestId,success,message){',`window.cdqNativeBiometricResultV2507=function(requestId,success,message,grant){
+if(window.cdqStartupUnlockV2529?.receive(requestId,success,message,grant))return;
+try{
+  const __ctx=bioContext;
+  if(__ctx&&__ctx.mode==='unlock')window.cdqWarmUnlockV2540?.observe(requestId,success,message,grant);
+}catch(_){ }`);
 shell=replace(shell,"if(ctx&&ctx.native){",`if(ctx&&ctx.native){
   window.cdqStartupUnlockV2529?.cancel(String(ctx.requestId||''));`);
 shell=applySafeShell2532(shell);
 files.set('index.html',Buffer.from(shell));
 let selector=gunzipSync(fs.readFileSync(source+'Selector.html.gz')).toString('utf8');
-selector=replace(selector,'<head>','<head>\n<meta charset="utf-8">\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">\n<script src="./embedded-rpc.js"></script>');
+selector=replace(selector,'<head>','<head>\n<meta charset="utf-8">\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">\n<link rel="stylesheet" href="./icon-artwork-baseline-v2540.css">\n<script src="./embedded-rpc.js"></script>');
 selector=selector.replaceAll('2026.09.23-v25.27-demarrage-dossiers',build);
 // A prompt already running over the music wall must not wait behind a failed
 // network-only resume attempt. Returning from Sheets keeps the existing page.
@@ -81,8 +85,10 @@ files.set('Selector.html',Buffer.from(selector));
 files.set('safe-viewport-v2532.js',fs.readFileSync('safe-viewport-v2532.js'));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
 files.set('startup-unlock-v2529.js',fs.readFileSync(source+'startup-unlock-v2529.js'));
+files.set('warm-unlock-v2540.js',fs.readFileSync(source+'warm-unlock-v2540.js'));
+files.set('icon-artwork-baseline-v2540.css',fs.readFileSync('icon-artwork-baseline-v2540.css'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.39',build,files:{}};
+const manifest={version:'25.40',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);

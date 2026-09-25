@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const prefix=base+'native/v25.39/';
+const prefix=base+'native/v25.40/';
 const generated='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web/';
 const files=JSON.parse(fs.readFileSync(generated+'asset-manifest.json')).files;
 const bridge=fs.readFileSync('balance-cdq-android/web-source/server-bridge.js','utf8');
@@ -15,7 +15,7 @@ try{
   const bridgeStart=new Promise(resolve=>{bridgeStarted=resolve;});
   page.on('pageerror',error=>errors.push(error.message));
   await page.setViewport({width:393,height:850,isMobile:true,hasTouch:true});
-  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.39 CDQSafeArea/1');
+  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.40 CDQSafeArea/1');
   await page.exposeFunction('recordRpc',name=>calls.push(name));
   await page.evaluateOnNewDocument(()=>{
     window.testTicketConfirmCount=0;
@@ -27,7 +27,7 @@ try{
       },
       loginGoogle(){},
       startupBiometricState(email,token){
-        if(localStorage.getItem('cdqTestTicketV2539')!=='1')return JSON.stringify({state:'none'});
+        if(localStorage.getItem('cdqTestTicketV2540')!=='1')return JSON.stringify({state:'none'});
         return JSON.stringify({
           state:'pending',
           requestId:'native-startup-0123456789abcdef0123456789',
@@ -38,7 +38,7 @@ try{
         });
       },
       localStartupTicket(id,grant,email,token){
-        if(localStorage.getItem('cdqTestTicketV2539')!=='1')return JSON.stringify({ok:false});
+        if(localStorage.getItem('cdqTestTicketV2540')!=='1')return JSON.stringify({ok:false});
         return JSON.stringify({ok:true,email,expiresAt:Date.now()+3600000});
       },
       confirmStartupTicket(){window.testTicketConfirmCount++;return true;},
@@ -86,7 +86,7 @@ try{
       return request.respond({status:200,contentType:'text/html; charset=utf-8',body:`<script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
     }
     // The explicitly live version check is allowed; public/static UI downloads are not.
-    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.25-v25.39-clean-fast-start'})});
+    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.25-v25.40-icons-repeat-fast'})});
     unexpected.push(url);return request.abort();
   });
   // Puppeteer's navigation lifecycle also waits on child frames. Here the
@@ -109,13 +109,13 @@ try{
   assert.deepEqual(errors,[]);
   assert.deepEqual(unexpected,[]);
   assert.ok(calls.includes('obtenirEtatAcces'));
-  // V25.39 returning startup: Android already owns the biometric prompt and
+  // V25.40 returning startup: Android already owns the biometric prompt and
   // the untouched Selector is allowed to parse while the server is held.
   await page.evaluate(()=>{
     localStorage.setItem('cdq_auth_device_token_v2','fixture-device');
     localStorage.setItem('cdqLastUnlockEmailV2511','test@example.invalid');
     localStorage.removeItem('cdqResumeSessionV2524');
-    localStorage.setItem('cdqTestTicketV2539','1');
+    localStorage.setItem('cdqTestTicketV2540','1');
   });
   allowServer=false;allowSelector=true;
   await navigation.send('Page.reload');
@@ -155,21 +155,55 @@ try{
       return original||themed;
     });
   },{timeout:5000});
-  const navIcons=await selector.evaluate(()=>[...document.querySelectorAll('.bottom-nav > .bottom-nav-item')].map(button=>{
-    const host=button.querySelector(':scope > span'),p=getComputedStyle(host,'::after'),h=getComputedStyle(host);
+  await selector.evaluate(()=>window.cdqIconThemesV2514?.synchronize());
+  await selector.waitForFunction(()=>{
+    const visible=[...document.querySelectorAll('.bottom-nav > .bottom-nav-item')]
+      .filter(button=>getComputedStyle(button).display!=='none');
+    return visible.length>=5 && visible.every(button=>
+      button.querySelector(':scope > span')?.classList.contains('cdq-icon-host-v2514')
+    );
+  },{timeout:5000});
+
+  const navIcons=await selector.evaluate(async()=>{
+    const visible=[...document.querySelectorAll('.bottom-nav > .bottom-nav-item')]
+      .filter(button=>getComputedStyle(button).display!=='none');
+    const items=visible.map(button=>{
+      const host=button.querySelector(':scope > span');
+      const p=getComputedStyle(host,'::after'),h=getComputedStyle(host);
+      return {
+        label:button.querySelector('small')?.textContent.trim(),
+        themed:host.classList.contains('cdq-icon-host-v2514'),
+        hostVisibility:h.visibility,
+        width:host.getBoundingClientRect().width,
+        height:host.getBoundingClientRect().height,
+        pseudoDisplay:p.display,
+        pseudoVisibility:p.visibility,
+        pseudoImage:p.backgroundImage
+      };
+    });
+    const spriteUrl=new URL('./bundles/balance-cdq/v25.15/icons-transparent.webp',location.href).href;
+    const response=await fetch(spriteUrl);
     return {
-      label:button.querySelector('small')?.textContent.trim(),
-      hostVisibility:h.visibility,
-      width:host.getBoundingClientRect().width,
-      height:host.getBoundingClientRect().height,
-      pseudoDisplay:p.display,
-      pseudoVisibility:p.visibility,
-      pseudoImage:p.backgroundImage
+      items,
+      sprite:{url:spriteUrl,ok:response.ok,bytes:(await response.arrayBuffer()).byteLength},
+      artworkCss:[...document.styleSheets].some(sheet=>
+        String(sheet.href||'').includes('icon-artwork-baseline-v2540.css')
+      )
     };
-  }));
-  assert.equal(navIcons.length,6);
-  assert.ok(navIcons.every(x=>x.width>8&&x.height>8));
-  assert.ok(navIcons.every(x=>x.hostVisibility!=='hidden'||(x.pseudoDisplay!=='none'&&x.pseudoVisibility!=='hidden'&&x.pseudoImage!=='none')));
+  });
+  await page.screenshot({path:'/tmp/cdq-v2540-metal-music.png'});
+  assert.ok(navIcons.items.length>=5);
+  assert.ok(navIcons.items.every(x=>x.themed));
+  assert.ok(navIcons.items.every(x=>x.width>8&&x.height>8));
+  assert.ok(navIcons.items.every(x=>
+    x.pseudoDisplay!=='none' &&
+    x.pseudoVisibility!=='hidden' &&
+    /icons-transparent\.webp/.test(x.pseudoImage)
+  ));
+  assert.equal(navIcons.artworkCss,true);
+  assert.equal(navIcons.sprite.ok,true);
+  assert.ok(navIcons.sprite.bytes>500000);
+  assert.match(navIcons.sprite.url,/native\/v25\.40\/bundles\/balance-cdq\/v25\.15\/icons-transparent\.webp/);
   assert.equal(await selector.evaluate(()=>typeof window.cdqIconFallbackV2538),'undefined');
 
   // The server now confirms; held RPC may leave the device only after this point.
@@ -179,8 +213,33 @@ try{
   await selector.waitForFunction(()=>document.querySelector('#companyList')?.textContent.includes('Client de vérification'),{timeout:10000});
   assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,1);
   assert.equal(await page.evaluate(()=>window.testBiometricCount||0),0);
-  assert.equal(await page.evaluate(()=>window.testTicketConfirmCount),1);
+  await page.waitForFunction(()=>window.testTicketConfirmCount===1,{timeout:5000});
   assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
+
+  // A later unlock on the same loaded WebView must also use the local ticket.
+  const repeatAt=Date.now();
+  const observed=await page.evaluate(()=>window.cdqWarmUnlockV2540?.observe(
+    'warm-reopen-01234567890123456789',
+    true,'','grant-repeat-012345678901234567890'
+  ));
+  assert.equal(observed,true);
+  await selector.evaluate(()=>{
+    window.testWarmResults=[];
+    google.script.run
+      .withSuccessHandler(value=>window.testWarmResults.push(value))
+      .withFailureHandler(error=>window.testWarmResults.push({error:error?.message||String(error)}))
+      .restaurerSessionApresBiometrie(cdqObtenirJetonAppareil());
+  });
+  await selector.waitForFunction(()=>window.testWarmResults?.length>=1,{timeout:3000});
+  const warmFirst=await selector.evaluate(()=>window.testWarmResults[0]);
+  assert.equal(warmFirst.cdqWarmReadOnlyV2540,true);
+  assert.ok(Date.now()-repeatAt<1000,'Repeated warm unlock did not reveal local UI under 1 second');
+  await selector.waitForFunction(()=>window.testWarmResults?.length>=2,{timeout:5000});
+  const warmSecond=await selector.evaluate(()=>window.testWarmResults[1]);
+  assert.equal(warmSecond.autorise,true);
+  assert.equal(warmSecond.cdqWarmReadOnlyV2540,undefined);
+  assert.equal(await page.evaluate(()=>window.testTicketConfirmCount),2);
+
   // Disable all nonpackaged requests at the interception boundary. CDP's global
   // emulateNetworkConditions can hang on detached cross-origin iframe targets
   // after reload, and would also disable HTTPS URLs served by Android assets.
@@ -212,15 +271,15 @@ try{
   assert.equal(template.pages,1);assert.ok(template.fields>20);assert.ok(template.pixels>10000);
   // Cancelling the early prompt must not authenticate, even with a live server.
   networkBlocked=false;
-  await page.evaluate(()=>{window.testBiometricRequested='';localStorage.setItem('cdqTestTicketV2539','0');});
+  await page.evaluate(()=>{window.testBiometricRequested='';localStorage.setItem('cdqTestTicketV2540','0');});
   await navigation.send('Page.reload');
   await page.waitForFunction(()=>window.testBiometricRequested,{timeout:10000});
   await page.evaluate(()=>window.cdqNativeBiometricResultV2507(window.testBiometricRequested,false,'Annulée',''));
   await page.waitForFunction(()=>document.querySelector('#app')?.contentDocument?.querySelector('#accessOverlay'));
   selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');
   await selector.waitForFunction(()=>cdqAccessState==='input',{timeout:15000});
-  assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,1);
+  assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,2);
   assert.equal(await page.evaluate(()=>window.testBiometricCount),1);
   assert.deepEqual(errors,[]);
-  console.log('PASS: pre-V25.37 icons remain visible, local UI opens under 1s after native fingerprint, remote RPC waits for server confirmation, cancellation stays locked, installed PDF works offline.');
+  console.log('PASS: Metal Music artwork is loaded from packaged V25.15 assets, cold and repeated warm unlocks reveal local UI under 1s, remote RPC waits for server confirmation, cancellation stays locked, installed PDF works offline.');
 }finally{finished=true;await browser.close();}
