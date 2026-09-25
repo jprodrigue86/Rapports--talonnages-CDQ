@@ -38,7 +38,7 @@ jobs:
         run: |
           node scripts/build-embedded-android-v2528.mjs
           node scripts/build-iphone.mjs
-          node tests/iphone-install.test.mjs
+          CDQ_ALLOW_UNPUBLISHED_ANDROID=1 node tests/iphone-install.test.mjs
           node --test tests/iphone-rpc-compat.test.mjs
       - name: Install browser engines
         run: |

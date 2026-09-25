@@ -27,12 +27,10 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/if \(false && 'serviceWorker' in navigator\)/);
   assert.doesNotMatch(html,/<script src="https:\/\/accounts.google.com/);
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
-  assert.match(selector,/native\/v25.38\/vendor\/pdf-lib/);
+  assert.match(selector,/native\/v25.39\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);
   assert.match(selector,/id="cdqFullNamesV2536"/);
-  assert.match(selector,/icon-fallback-v2538\.js/);
-  assert.match(selector,/cdqLocalProvisionalV2537/);
-  assert.match(selector,/cdqServerConfirmed/);
+  assert.doesNotMatch(selector,/cdqLocalProvisionalV2537|icon-fallback-v2538|cdq-icon-art-ready-v2538/);
 });
 
 test('server package accepts both delivered bases without the previous company-list patch mismatch',()=>{
@@ -55,13 +53,15 @@ test('server bootstrap emits a small page with no application UI or account data
   assert.throws(()=>c.cdqEmbeddedBridgeV2528_({channel:'</script>'}));
 });
 
-function client(){
+function client(options={}){
   const listeners={},timers=new Map(),sent=[],parent={},iframe={contentWindow:parent,setAttribute(){}};
+  const provisional=options.provisional||{value:false};
   parent.parent=parent;
   const peer={parent,postMessage(data,origin){sent.push({data,origin});}};
   const document={readyState:'complete',body:{append(){}},createElement(){return iframe;}};
   const c={crypto:{randomUUID:()=> 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'},Map,Set,URL,Error,Proxy,Object,String,Array,navigator:{onLine:true},document,
-    setTimeout(fn){const id=timers.size+1;timers.set(id,fn);return id;},clearTimeout(id){timers.delete(id);},addEventListener(name,fn){listeners[name]=fn;}};
+    setTimeout(fn){const id=timers.size+1;timers.set(id,fn);return id;},clearTimeout(id){timers.delete(id);},addEventListener(name,fn){listeners[name]=fn;},
+    cdqStartupUnlockV2529:{isProvisional:()=>provisional.value}};
   c.window=c;vm.runInNewContext(read(source+'embedded-rpc.js'),c);
   const channel=new URL(iframe.src).searchParams.get('channel');
   function message(data,options={}){listeners.message({origin:'https://test-script.googleusercontent.com',source:peer,data:{protocol:1,channel,...data},...options});}
@@ -80,6 +80,31 @@ test('RPC waits for its own authenticated-origin frame, preserves callbacks and 
   assert.equal(a.sent[0].data.userObject,undefined);
   a.message({type:'CDQ_EMBEDDED_RESULT',id:'1',ok:true,value:['client']});
   assert.deepEqual(received,[[['client'],user]]);
+});
+
+test('clean startup holds every remote call locally until authoritative confirmation',()=>{
+  const provisional={value:true},a=client({provisional}),received=[],errors=[];
+  a.message({type:'CDQ_EMBEDDED_READY'});
+  a.c.google.script.run.withSuccessHandler(x=>received.push(x)).withFailureHandler(e=>errors.push(e.message))
+    .cdqRpc('obtenirDossiersClients',[],'session');
+  assert.equal(a.sent.length,0,'No RPC may leave the device while local startup is provisional');
+  provisional.value=false;
+  a.listeners['cdq:startup-confirmed-v2539']();
+  assert.equal(a.sent.length,1);
+  a.message({type:'CDQ_EMBEDDED_RESULT',id:'1',ok:true,value:['client']});
+  assert.deepEqual(received,[['client']]);
+  assert.deepEqual(errors,[]);
+});
+
+test('server revocation drops held remote calls without sending them',()=>{
+  const provisional={value:true},a=client({provisional}),errors=[];
+  a.message({type:'CDQ_EMBEDDED_READY'});
+  a.c.google.script.run.withFailureHandler(e=>errors.push(e.message))
+    .cdqRpc('renommerFichier',['id','new'],'session');
+  assert.equal(a.sent.length,0);
+  a.listeners['cdq:startup-revoked-v2539']();
+  assert.equal(a.sent.length,0);
+  assert.match(errors[0],/révoquée/);
 });
 
 test('disconnected or expired requests fail without replaying a possibly completed write',()=>{

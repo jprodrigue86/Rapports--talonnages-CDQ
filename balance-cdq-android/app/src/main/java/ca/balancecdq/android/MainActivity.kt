@@ -50,11 +50,11 @@ class MainActivity : Activity() {
 
     private var biometricCancellation: CancellationSignal? = null
     private var biometricRequestId = ""
-    private val fastLocalSessionStore by lazy { FastLocalSessionStore(this) }
-    private var localGrantRequestId = ""
-    private var localGrantSecret = ""
-    private var localGrantUntilElapsed = 0L
-    @Volatile private var localOnlyMode = false
+    private val startupTicketStore by lazy { StartupTicketStore(this) }
+    private var startupGrantRequestId = ""
+    private var startupGrantSecret = ""
+    private var startupGrantUntilElapsed = 0L
+    @Volatile private var startupRemoteLocked = false
     private var earlyBiometricRequestId = ""
     private var earlyBiometricSuccess: Boolean? = null
     private var earlyBiometricMessage = ""
@@ -66,11 +66,11 @@ class MainActivity : Activity() {
     inner class NativeBridge {
         @JavascriptInterface
         fun openSheet(fileId: String?, account: String?, readOnly: Boolean) {
-            if (localOnlyMode) {
+            if (startupRemoteLocked) {
                 runOnUiThread {
                     Toast.makeText(
                         this@MainActivity,
-                        "Connexion sécurisée en arrière-plan. Google Sheets sera disponible dans un instant.",
+                        "Validation sécurisée en arrière-plan. Google Sheets sera disponible dans un instant.",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -109,64 +109,13 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
-        fun localSessionAfterBiometric(
-            requestId: String?,
-            grant: String?,
-            account: String?,
-            deviceToken: String?
-        ): String {
-            if (!validLocalGrant(requestId, grant)) return """{"ok":false}"""
-            val ticket = fastLocalSessionStore.read(
-                account.orEmpty(),
-                deviceToken.orEmpty()
-            ) ?: return """{"ok":false}"""
-            localOnlyMode = true
-            return JSONObject()
-                .put("ok", true)
-                .put("email", ticket.email)
-                .put("expiresAt", ticket.expiresAt)
-                .toString()
-        }
-
-        @JavascriptInterface
-        fun confirmLocalSession(
-            requestId: String?,
-            grant: String?,
-            account: String?,
-            deviceToken: String?
-        ): Boolean {
-            if (!validLocalGrant(requestId, grant)) return false
-            val saved = fastLocalSessionStore.save(
-                account.orEmpty(),
-                deviceToken.orEmpty()
-            )
-            if (saved) {
-                localOnlyMode = false
-                clearLocalGrant()
-            }
-            return saved
-        }
-
-        @JavascriptInterface
-        fun clearLocalSession(requestId: String?, grant: String?) {
-            if (!validLocalGrant(requestId, grant)) return
-            fastLocalSessionStore.clear()
-            localOnlyMode = false
-            clearLocalGrant()
-        }
-
-        @JavascriptInterface
         fun startupBiometricState(account: String?, deviceToken: String?): String {
             val id = earlyBiometricRequestId
             if (id.isBlank()) return """{"state":"none"}"""
-
-            // Never expose the one-time biometric grant unless the caller also
-            // proves it has the current account and device token bound to the ticket.
-            val ticket = fastLocalSessionStore.read(
+            val ticket = startupTicketStore.read(
                 account.orEmpty(),
                 deviceToken.orEmpty()
             ) ?: return """{"state":"none"}"""
-
             val state = when (earlyBiometricSuccess) {
                 null -> "pending"
                 true -> "success"
@@ -180,6 +129,53 @@ class MainActivity : Activity() {
                 .put("message", earlyBiometricMessage)
                 .put("grant", if (earlyBiometricSuccess == true) earlyBiometricGrant else "")
                 .toString()
+        }
+
+        @JavascriptInterface
+        fun localStartupTicket(
+            requestId: String?,
+            grant: String?,
+            account: String?,
+            deviceToken: String?
+        ): String {
+            if (!validStartupGrant(requestId, grant)) return """{"ok":false}"""
+            val ticket = startupTicketStore.read(
+                account.orEmpty(),
+                deviceToken.orEmpty()
+            ) ?: return """{"ok":false}"""
+            startupRemoteLocked = true
+            return JSONObject()
+                .put("ok", true)
+                .put("email", ticket.email)
+                .put("expiresAt", ticket.expiresAt)
+                .toString()
+        }
+
+        @JavascriptInterface
+        fun confirmStartupTicket(
+            requestId: String?,
+            grant: String?,
+            account: String?,
+            deviceToken: String?
+        ): Boolean {
+            if (!validStartupGrant(requestId, grant)) return false
+            val saved = startupTicketStore.save(
+                account.orEmpty(),
+                deviceToken.orEmpty()
+            )
+            if (saved) {
+                startupRemoteLocked = false
+                clearStartupGrant()
+            }
+            return saved
+        }
+
+        @JavascriptInterface
+        fun clearStartupTicket(requestId: String?, grant: String?) {
+            if (!validStartupGrant(requestId, grant)) return
+            startupTicketStore.clear()
+            startupRemoteLocked = false
+            clearStartupGrant()
         }
 
         @JavascriptInterface
@@ -235,7 +231,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.38 CDQSafeArea/1"
+                settings.userAgentString + " BalanceCDQAndroid/25.39 CDQSafeArea/1"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -314,9 +310,8 @@ class MainActivity : Activity() {
 
         setContentView(SafeContentInsets.host(this, webView))
 
-        // Never restore an old WebView snapshot. A fresh packaged shell is small,
-        // deterministic and guarantees that the secure startup bootstrap runs
-        // on every Activity recreation instead of falling back to the old slow path.
+        // Always run the tiny packaged startup shell. Restoring an old WebView
+        // can skip the fast biometric bootstrap and reintroduce the slow path.
         maybeStartEarlyBiometric()
         webView.loadUrl(APP_URL)
         checkForNativeUpdateOnLaunch()
@@ -446,7 +441,7 @@ class MainActivity : Activity() {
 
     private fun maybeStartEarlyBiometric() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
-        if (fastLocalSessionStore.peek() == null) return
+        if (startupTicketStore.peek() == null) return
         val id = "native-startup-" + UUID.randomUUID().toString()
         earlyBiometricRequestId = id
         earlyBiometricSuccess = null
@@ -455,21 +450,20 @@ class MainActivity : Activity() {
         startNativeBiometric(id)
     }
 
-    private fun validLocalGrant(requestId: String?, grant: String?): Boolean {
-        val now = SystemClock.elapsedRealtime()
+    private fun validStartupGrant(requestId: String?, grant: String?): Boolean {
         val id = requestId.orEmpty()
         val secret = grant.orEmpty()
         return id.isNotBlank() &&
             secret.length in 20..120 &&
-            id == localGrantRequestId &&
-            secret == localGrantSecret &&
-            now < localGrantUntilElapsed
+            id == startupGrantRequestId &&
+            secret == startupGrantSecret &&
+            SystemClock.elapsedRealtime() < startupGrantUntilElapsed
     }
 
-    private fun clearLocalGrant() {
-        localGrantRequestId = ""
-        localGrantSecret = ""
-        localGrantUntilElapsed = 0L
+    private fun clearStartupGrant() {
+        startupGrantRequestId = ""
+        startupGrantSecret = ""
+        startupGrantUntilElapsed = 0L
     }
 
     @Suppress("DEPRECATION")
@@ -527,12 +521,12 @@ class MainActivity : Activity() {
 
         val grant = if (success) UUID.randomUUID().toString() else ""
         if (success) {
-            localGrantRequestId = requestId
-            localGrantSecret = grant
-            localGrantUntilElapsed = SystemClock.elapsedRealtime() + 90_000L
+            startupGrantRequestId = requestId
+            startupGrantSecret = grant
+            startupGrantUntilElapsed = SystemClock.elapsedRealtime() + 90_000L
         } else {
-            clearLocalGrant()
-            localOnlyMode = false
+            clearStartupGrant()
+            startupRemoteLocked = false
         }
 
         val early = requestId == earlyBiometricRequestId
@@ -546,7 +540,7 @@ class MainActivity : Activity() {
         val idQuoted = JSONObject.quote(requestId)
         val messageQuoted = JSONObject.quote(message)
         val grantQuoted = JSONObject.quote(grant)
-        val callback = if (early) "window.cdqNativeStartupBiometricResultV2538"
+        val callback = if (early) "window.cdqNativeStartupBiometricResultV2539"
             else "window.cdqNativeBiometricResultV2507"
         webView.evaluateJavascript(
             "$callback && $callback($idQuoted,$success,$messageQuoted,$grantQuoted);",
@@ -705,6 +699,20 @@ class MainActivity : Activity() {
                 NativeBridge().openSheet(sheetId, uri.getQueryParameter("authuser"), uri.path.orEmpty().endsWith("/preview"))
                 return true
             }
+            if (startupRemoteLocked && (
+                    url.startsWith("cdqpdf://", true) ||
+                    url.startsWith("cdqsheet://", true) ||
+                    url.startsWith("cdqnote://", true) ||
+                    url.startsWith("intent://open?", true)
+                )
+            ) {
+                Toast.makeText(
+                    this,
+                    "Validation sécurisée en arrière-plan. Les fichiers distants seront disponibles dans un instant.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return true
+            }
             when {
                 url.startsWith("intent://", ignoreCase = true) -> {
                     val parsed = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
@@ -724,20 +732,6 @@ class MainActivity : Activity() {
                             ).show()
                         }
                     }
-                    true
-                }
-
-                localOnlyMode && (
-                    url.startsWith("cdqpdf://", true) ||
-                    url.startsWith("cdqsheet://", true) ||
-                    url.startsWith("cdqnote://", true) ||
-                    url.startsWith("intent://open?", true)
-                ) -> {
-                    Toast.makeText(
-                        this,
-                        "Connexion sécurisée en arrière-plan. Les fichiers distants seront disponibles dans un instant.",
-                        Toast.LENGTH_SHORT
-                    ).show()
                     true
                 }
 
@@ -791,7 +785,7 @@ class MainActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("cdqEmbeddedVersion", "25.38")
+        outState.putString("cdqEmbeddedVersion", "25.39")
         super.onSaveInstanceState(outState)
     }
 
@@ -809,8 +803,8 @@ class MainActivity : Activity() {
         biometricRequestId = ""
         biometricCancellation?.cancel()
         biometricCancellation = null
-        clearLocalGrant()
-        localOnlyMode = false
+        clearStartupGrant()
+        startupRemoteLocked = false
         earlyBiometricRequestId = ""
         earlyBiometricSuccess = null
         earlyBiometricMessage = ""

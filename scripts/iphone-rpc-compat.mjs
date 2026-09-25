@@ -23,7 +23,13 @@ export function adaptIphoneRpc(source){
       pending.get(String(data.id))?.sent===true&&typeof data.ok==='boolean'){`);
   once("  const unavailable='La connexion CDQ ne répond pas. Vérifiez Internet et publiez la mise à jour V25.28 dans Script Manager, puis réessayez.';",
        "  const unavailable='La connexion CDQ ne répond pas. Vérifiez Internet et réessayez. Si CDQ est déjà installé, actualisez l’application iPhone.';");
-  once("job.timer=setTimeout(()=>settle(id,false,'La demande a expiré. Vérifiez son résultat avant de relancer une écriture.'),90000);",
-       "job.timer=setTimeout(()=>settle(id,false,name==='obtenirEtatAcces'?'La vérification de connexion a expiré. Appuyez sur Réessayer la connexion.':'La demande a expiré. Vérifiez son résultat avant de relancer une écriture.'),90000);");
+  once(`    if(!job.timer)job.timer=setTimeout(
+      ()=>settle(job.id,false,'La demande a expiré. Vérifiez son résultat avant de relancer une écriture.'),
+      90000
+    );`,
+`    if(!job.timer)job.timer=setTimeout(
+      ()=>settle(job.id,false,job.name==='obtenirEtatAcces'?'La vérification de connexion a expiré. Appuyez sur Réessayer la connexion.':'La demande a expiré. Vérifiez son résultat avant de relancer une écriture.'),
+      90000
+    );`);
   return '/* iPhone connection compatibility: '+IPHONE_CONNECTION_REVISION+' */\n'+source;
 }
