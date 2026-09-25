@@ -29,7 +29,7 @@
   function fits(el,maxLines,size){
     const width=el.clientWidth;
     if(width<=0)return el.offsetParent===null;
-    return longestWord(el,size)<=width+.6 && lineCount(el)<=maxLines && el.scrollWidth<=width+1;
+    return longestWord(el,size)<=width+.1 && lineCount(el)<=maxLines && el.scrollWidth<=width+.25;
   }
   function ensureStyle(){
     if(document.getElementById('cdqButtonLabelFitStyleV2534'))return;
