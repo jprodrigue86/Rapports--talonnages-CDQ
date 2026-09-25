@@ -6,7 +6,9 @@
     cdqApplyAllScalesV89(true);cdqMobileLayout.apply();
   });
   await new Promise(r=>setTimeout(r,500));
-  const measured=()=>[...document.querySelectorAll('.app-header,.company-wrapper,.quick-buttons,#cdqTopActionsV2204,.bottom-nav,.bottom-nav-item,.bottom-nav-item>span,.bottom-nav-item small')].map(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return [el.className,r.x,r.y,r.width,r.height,s.fontSize,s.padding,s.borderRadius]});
+  // Compare exact bounds, computed styles and stable tag identity, not the
+  // asynchronous cdq-v19-six/seven bookkeeping class (which is not a size).
+  const measured=()=>[...document.querySelectorAll('.app-header,.company-wrapper,.quick-buttons,#cdqTopActionsV2204,.bottom-nav,.bottom-nav-item,.bottom-nav-item>span,.bottom-nav-item small')].map(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return [el.tagName,r.x,r.y,r.width,r.height,s.fontSize,s.padding,s.borderRadius]});
   const originalSize=await selector.evaluate(measured);
   await selector.evaluate(()=>cdqOpenSettingsV2294());
   await selector.waitForSelector('#cdqPersonalSizingActivate',{visible:true});
