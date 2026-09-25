@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.hardware.biometrics.BiometricPrompt
 import android.os.Build
 import android.os.CancellationSignal
+import android.os.SystemClock
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.CookieManager
@@ -27,6 +28,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 import java.util.concurrent.Executors
 
 class MainActivity : Activity() {
@@ -48,6 +50,15 @@ class MainActivity : Activity() {
 
     private var biometricCancellation: CancellationSignal? = null
     private var biometricRequestId = ""
+    private val startupTicketStore by lazy { StartupTicketStore(this) }
+    private var startupGrantRequestId = ""
+    private var startupGrantSecret = ""
+    private var startupGrantUntilElapsed = 0L
+    @Volatile private var startupRemoteLocked = false
+    private var earlyBiometricRequestId = ""
+    private var earlyBiometricSuccess: Boolean? = null
+    private var earlyBiometricMessage = ""
+    private var earlyBiometricGrant = ""
 
     private val startupUpdateExecutor = Executors.newSingleThreadExecutor()
     @Volatile private var startupUpdateStarted = false
@@ -55,6 +66,16 @@ class MainActivity : Activity() {
     inner class NativeBridge {
         @JavascriptInterface
         fun openSheet(fileId: String?, account: String?, readOnly: Boolean) {
+            if (startupRemoteLocked) {
+                runOnUiThread {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Validation sécurisée en arrière-plan. Google Sheets sera disponible dans un instant.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                return
+            }
             val id = fileId.orEmpty()
             if (!id.matches(Regex("^[A-Za-z0-9_-]{10,200}$"))) return
             val email = account.orEmpty().trim().take(320)
@@ -85,6 +106,76 @@ class MainActivity : Activity() {
             runOnUiThread {
                 openWebGoogleLogin(challenge, n, client)
             }
+        }
+
+        @JavascriptInterface
+        fun startupBiometricState(account: String?, deviceToken: String?): String {
+            val id = earlyBiometricRequestId
+            if (id.isBlank()) return """{"state":"none"}"""
+            val ticket = startupTicketStore.read(
+                account.orEmpty(),
+                deviceToken.orEmpty()
+            ) ?: return """{"state":"none"}"""
+            val state = when (earlyBiometricSuccess) {
+                null -> "pending"
+                true -> "success"
+                false -> "failure"
+            }
+            return JSONObject()
+                .put("state", state)
+                .put("requestId", id)
+                .put("email", ticket.email)
+                .put("expiresAt", ticket.expiresAt)
+                .put("message", earlyBiometricMessage)
+                .put("grant", if (earlyBiometricSuccess == true) earlyBiometricGrant else "")
+                .toString()
+        }
+
+        @JavascriptInterface
+        fun localStartupTicket(
+            requestId: String?,
+            grant: String?,
+            account: String?,
+            deviceToken: String?
+        ): String {
+            if (!validStartupGrant(requestId, grant)) return """{"ok":false}"""
+            val ticket = startupTicketStore.read(
+                account.orEmpty(),
+                deviceToken.orEmpty()
+            ) ?: return """{"ok":false}"""
+            startupRemoteLocked = true
+            return JSONObject()
+                .put("ok", true)
+                .put("email", ticket.email)
+                .put("expiresAt", ticket.expiresAt)
+                .toString()
+        }
+
+        @JavascriptInterface
+        fun confirmStartupTicket(
+            requestId: String?,
+            grant: String?,
+            account: String?,
+            deviceToken: String?
+        ): Boolean {
+            if (!validStartupGrant(requestId, grant)) return false
+            val saved = startupTicketStore.save(
+                account.orEmpty(),
+                deviceToken.orEmpty()
+            )
+            if (saved) {
+                startupRemoteLocked = false
+                clearStartupGrant()
+            }
+            return saved
+        }
+
+        @JavascriptInterface
+        fun clearStartupTicket(requestId: String?, grant: String?) {
+            if (!validStartupGrant(requestId, grant)) return
+            startupTicketStore.clear()
+            startupRemoteLocked = false
+            clearStartupGrant()
         }
 
         @JavascriptInterface
@@ -140,7 +231,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.36 CDQSafeArea/1"
+                settings.userAgentString + " BalanceCDQAndroid/25.39 CDQSafeArea/1"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -219,12 +310,11 @@ class MainActivity : Activity() {
 
         setContentView(SafeContentInsets.host(this, webView))
 
-        if (savedInstanceState == null || savedInstanceState.getString("cdqEmbeddedVersion") != "25.36") {
-            webView.loadUrl(APP_URL)
-            checkForNativeUpdateOnLaunch()
-        } else {
-            if (webView.restoreState(savedInstanceState) == null) webView.loadUrl(APP_URL)
-        }
+        // Always run the tiny packaged startup shell. Restoring an old WebView
+        // can skip the fast biometric bootstrap and reintroduce the slow path.
+        maybeStartEarlyBiometric()
+        webView.loadUrl(APP_URL)
+        checkForNativeUpdateOnLaunch()
 
         handleAuthCallback(intent)
     }
@@ -349,6 +439,33 @@ class MainActivity : Activity() {
         webView.evaluateJavascript(script, null)
     }
 
+    private fun maybeStartEarlyBiometric() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        if (startupTicketStore.peek() == null) return
+        val id = "native-startup-" + UUID.randomUUID().toString()
+        earlyBiometricRequestId = id
+        earlyBiometricSuccess = null
+        earlyBiometricMessage = ""
+        earlyBiometricGrant = ""
+        startNativeBiometric(id)
+    }
+
+    private fun validStartupGrant(requestId: String?, grant: String?): Boolean {
+        val id = requestId.orEmpty()
+        val secret = grant.orEmpty()
+        return id.isNotBlank() &&
+            secret.length in 20..120 &&
+            id == startupGrantRequestId &&
+            secret == startupGrantSecret &&
+            SystemClock.elapsedRealtime() < startupGrantUntilElapsed
+    }
+
+    private fun clearStartupGrant() {
+        startupGrantRequestId = ""
+        startupGrantSecret = ""
+        startupGrantUntilElapsed = 0L
+    }
+
     @Suppress("DEPRECATION")
     private fun startNativeBiometric(requestId: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
@@ -402,12 +519,31 @@ class MainActivity : Activity() {
         biometricRequestId = ""
         biometricCancellation = null
 
+        val grant = if (success) UUID.randomUUID().toString() else ""
+        if (success) {
+            startupGrantRequestId = requestId
+            startupGrantSecret = grant
+            startupGrantUntilElapsed = SystemClock.elapsedRealtime() + 90_000L
+        } else {
+            clearStartupGrant()
+            startupRemoteLocked = false
+        }
+
+        val early = requestId == earlyBiometricRequestId
+        if (early) {
+            earlyBiometricSuccess = success
+            earlyBiometricMessage = message
+            earlyBiometricGrant = grant
+        }
+
         if (!::webView.isInitialized) return
         val idQuoted = JSONObject.quote(requestId)
         val messageQuoted = JSONObject.quote(message)
+        val grantQuoted = JSONObject.quote(grant)
+        val callback = if (early) "window.cdqNativeStartupBiometricResultV2539"
+            else "window.cdqNativeBiometricResultV2507"
         webView.evaluateJavascript(
-            "window.cdqNativeBiometricResultV2507 && " +
-                "window.cdqNativeBiometricResultV2507($idQuoted,$success,$messageQuoted);",
+            "$callback && $callback($idQuoted,$success,$messageQuoted,$grantQuoted);",
             null
         )
     }
@@ -563,6 +699,20 @@ class MainActivity : Activity() {
                 NativeBridge().openSheet(sheetId, uri.getQueryParameter("authuser"), uri.path.orEmpty().endsWith("/preview"))
                 return true
             }
+            if (startupRemoteLocked && (
+                    url.startsWith("cdqpdf://", true) ||
+                    url.startsWith("cdqsheet://", true) ||
+                    url.startsWith("cdqnote://", true) ||
+                    url.startsWith("intent://open?", true)
+                )
+            ) {
+                Toast.makeText(
+                    this,
+                    "Validation sécurisée en arrière-plan. Les fichiers distants seront disponibles dans un instant.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return true
+            }
             when {
                 url.startsWith("intent://", ignoreCase = true) -> {
                     val parsed = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
@@ -635,8 +785,7 @@ class MainActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("cdqEmbeddedVersion", "25.36")
-        webView.saveState(outState)
+        outState.putString("cdqEmbeddedVersion", "25.39")
         super.onSaveInstanceState(outState)
     }
 
@@ -654,6 +803,12 @@ class MainActivity : Activity() {
         biometricRequestId = ""
         biometricCancellation?.cancel()
         biometricCancellation = null
+        clearStartupGrant()
+        startupRemoteLocked = false
+        earlyBiometricRequestId = ""
+        earlyBiometricSuccess = null
+        earlyBiometricMessage = ""
+        earlyBiometricGrant = ""
         if (::webView.isInitialized) {
             webView.stopLoading()
             webView.removeAllViews()
