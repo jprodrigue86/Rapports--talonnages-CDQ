@@ -23,8 +23,21 @@
     },0);
   }
   function lineCount(el){
-    const cs=getComputedStyle(el),size=num(cs.fontSize),lh=num(cs.lineHeight)||size*1.12;
-    return Math.max(1,Math.ceil((el.scrollHeight-.35)/Math.max(1,lh)));
+    const tops=[];
+    const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);
+    for(let node=walker.nextNode();node;node=walker.nextNode()){
+      const text=node.nodeValue||'';
+      for(const match of text.matchAll(/\S+/g)){
+        const range=document.createRange();
+        range.setStart(node,match.index);
+        range.setEnd(node,match.index+match[0].length);
+        for(const rect of range.getClientRects()){
+          if(rect.width<=.1||rect.height<=.1)continue;
+          if(!tops.some(top=>Math.abs(top-rect.top)<1))tops.push(rect.top);
+        }
+      }
+    }
+    return Math.max(1,tops.length);
   }
   function fits(el,maxLines,size){
     const width=el.clientWidth;
@@ -89,7 +102,7 @@
     }
     // WebKit rounds text and client widths differently. Keep a small real
     // margin after the normal fit so no final glyph can be painted outside.
-    const emergency=Math.max(4.5,min*.78);
+    const emergency=min;
     let guard=0;
     while(el.offsetParent!==null && guard++<48 && size>emergency+.01){
       const width=el.clientWidth;
