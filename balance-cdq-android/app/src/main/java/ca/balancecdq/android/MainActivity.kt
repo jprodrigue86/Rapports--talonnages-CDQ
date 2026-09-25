@@ -34,7 +34,6 @@ import java.util.concurrent.Executors
 class MainActivity : Activity() {
     companion object {
         private const val REQ_FILE_CHOOSER = 25050
-        private const val APP_URL = PackagedWebAssets.START_URL
         private const val AUTH_URL =
             "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/android-auth.html"
         private const val UPDATE_MANIFEST_URL =
@@ -313,7 +312,7 @@ class MainActivity : Activity() {
         // Always run the tiny packaged startup shell. Restoring an old WebView
         // can skip the fast biometric bootstrap and reintroduce the slow path.
         maybeStartEarlyBiometric()
-        webView.loadUrl(APP_URL)
+        webView.loadUrl(packagedAssets.startUrl)
         checkForNativeUpdateOnLaunch()
 
         handleAuthCallback(intent)
