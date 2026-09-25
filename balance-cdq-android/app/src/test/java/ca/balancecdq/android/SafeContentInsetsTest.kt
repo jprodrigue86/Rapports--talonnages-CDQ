@@ -36,7 +36,11 @@ class SafeContentInsetsTest {
         assertEquals(Insets.of(0, 32, 0, 48), SafeContentInsets.padding(insets(32,48)))
     }
 
-    @Test fun cutoutsAndMandatoryBottomGesturesAreReserved() {
+    // Mandatory system gestures and typed cutout construction belong to the
+    // modern WindowInsets API. API 28 retains its separate system-window tests.
+    @Test
+    @Config(sdk = [35])
+    fun cutoutsAndMandatoryBottomGesturesAreReserved() {
         val supplied = WindowInsetsCompat.Builder()
             .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, 24, 0, 0))
             .setInsets(WindowInsetsCompat.Type.displayCutout(), Insets.of(35, 38, 20, 0))
