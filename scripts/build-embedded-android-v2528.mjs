@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import {applyWholeWords2534} from './whole-words-v2534.mjs';
 import {applyFullNames2536} from './full-names-v2536.mjs';
-import {applyFastLocalShell2537,applyFastLocalSelector2537} from './fast-local-session-v2537.mjs';
 import {applyPersonalSizing2533} from './personal-sizing-v2533.mjs';
 import {applySafeShell2532,applySafeSelector2532} from './safe-area-v2532.mjs';
 import {applyHomeUnderline2531} from './home-underline-v2531.mjs';
@@ -12,8 +11,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.38/';
-const build='2026.09.25-v25.38-persistent-fast-start';
+const local=base+'native/v25.36/';
+const build='2026.09.25-v25.36-full-names';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -55,11 +54,10 @@ shell=replace(shell,'window.cdqNativeBiometricResultV2507=function(requestId,suc
 if(window.cdqStartupUnlockV2529?.receive(requestId,success,message))return;`);
 shell=replace(shell,"if(ctx&&ctx.native){",`if(ctx&&ctx.native){
   window.cdqStartupUnlockV2529?.cancel(String(ctx.requestId||''));`);
-shell=applyFastLocalShell2537(shell);
 shell=applySafeShell2532(shell);
 files.set('index.html',Buffer.from(shell));
 let selector=gunzipSync(fs.readFileSync(source+'Selector.html.gz')).toString('utf8');
-selector=replace(selector,'<head>','<head>\n<meta charset="utf-8">\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">\n<script src="./embedded-rpc.js"></script>\n<script src="./icon-fallback-v2538.js"></script>');
+selector=replace(selector,'<head>','<head>\n<meta charset="utf-8">\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">\n<script src="./embedded-rpc.js"></script>');
 selector=selector.replaceAll('2026.09.23-v25.27-demarrage-dossiers',build);
 // A prompt already running over the music wall must not wait behind a failed
 // network-only resume attempt. Returning from Sheets keeps the existing page.
@@ -79,14 +77,12 @@ selector=applySafeSelector2532(selector);
 selector=applyPersonalSizing2533(selector);
 selector=applyWholeWords2534(selector);
 selector=applyFullNames2536(selector);
-selector=applyFastLocalSelector2537(selector);
 files.set('Selector.html',Buffer.from(selector));
 files.set('safe-viewport-v2532.js',fs.readFileSync('safe-viewport-v2532.js'));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
 files.set('startup-unlock-v2529.js',fs.readFileSync(source+'startup-unlock-v2529.js'));
-files.set('icon-fallback-v2538.js',fs.readFileSync('icon-fallback-v2538.js'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.38',build,files:{}};
+const manifest={version:'25.36',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);
