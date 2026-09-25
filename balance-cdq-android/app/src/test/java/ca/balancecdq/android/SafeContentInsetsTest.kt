@@ -1,6 +1,7 @@
 package ca.balancecdq.android
 
 import android.app.Activity
+import android.os.Build
 import android.view.View
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -15,18 +16,33 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28, 35])
 class SafeContentInsetsTest {
-    private fun insets(top: Int, bottom: Int, left: Int = 0, right: Int = 0, ime: Int = 0): WindowInsetsCompat =
-        WindowInsetsCompat.Builder()
+    private fun insets(top: Int, bottom: Int, left: Int = 0, right: Int = 0, ime: Int = 0): WindowInsetsCompat {
+        // Before API 30 the platform WindowInsets round-trip has no separate IME
+        // type. Its system-window bottom represents the visible keyboard too.
+        // Model that legacy framework value, rather than an AndroidX-only IME
+        // override which dispatchApplyWindowInsets cannot transport on API 28.
+        val platformBottom = if (Build.VERSION.SDK_INT < 30) maxOf(bottom, ime) else bottom
+        return WindowInsetsCompat.Builder()
             .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, top, 0, 0))
-            .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(left, 0, right, bottom))
+            .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(left, 0, right, platformBottom))
             .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, ime))
             .build()
+    }
 
     @Test fun systemNavigationAndKeyboardUseTheirActualSizes() {
         assertEquals(Insets.of(0, 32, 0, 24), SafeContentInsets.padding(insets(32,24)))
         assertEquals(Insets.of(0, 32, 0, 48), SafeContentInsets.padding(insets(32,48)))
         assertEquals(Insets.of(0, 32, 0, 340), SafeContentInsets.padding(insets(32,48,ime=340)))
         assertEquals(Insets.of(0, 32, 0, 48), SafeContentInsets.padding(insets(32,48)))
+    }
+
+    @Test fun cutoutsAndMandatoryBottomGesturesAreReserved() {
+        val supplied = WindowInsetsCompat.Builder()
+            .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, 24, 0, 0))
+            .setInsets(WindowInsetsCompat.Type.displayCutout(), Insets.of(35, 38, 20, 0))
+            .setInsets(WindowInsetsCompat.Type.mandatorySystemGestures(), Insets.of(0, 0, 0, 26))
+            .build()
+        assertEquals(Insets.of(35, 38, 20, 26), SafeContentInsets.padding(supplied))
     }
 
     @Test fun contentRemainsInsideSafeRectangleWithoutDoublePadding() {

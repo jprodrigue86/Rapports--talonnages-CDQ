@@ -17,13 +17,17 @@ class PackagedWebAssetsTest {
         val loader = loader()
         val response = loader.intercept(Uri.parse(PackagedWebAssets.START_URL))!!
         assertEquals(200, response.statusCode)
-        assertTrue(response.data.bufferedReader().readText().contains("25.31-accueil-sans-trait"))
+        assertTrue(response.data.bufferedReader().readText().contains("25.32-ecran-adaptatif"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}Selector.html"))!!
         val html = selector.data.bufferedReader().readText()
         assertTrue(html.contains("./embedded-rpc.js"))
+        assertTrue(html.contains("./safe-viewport-v2532.js"))
         assertTrue(html.contains("id=\"cdq-instant-files-2530\""))
         assertTrue(html.contains("id=\"cdqHomeUnderlineV2531\""))
         assertTrue(html.contains("html:is(.android,.ios,.mobile-device) .bottom-nav > .bottom-nav-item.cdq-nav-home.active::after{content:none!important;display:none!important}"))
+        val safe = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}safe-viewport-v2532.js"))!!
+        assertEquals(200, safe.statusCode)
+        assertTrue(safe.data.bufferedReader().readText().contains("cdqSafeFrame"))
         val image = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${PackagedWebAssets.PREFIX}assets/music-wall-android-v2523.webp"))!!
         assertEquals("image/webp", image.mimeType)
         assertTrue(image.data.readBytes().size > 100000)
