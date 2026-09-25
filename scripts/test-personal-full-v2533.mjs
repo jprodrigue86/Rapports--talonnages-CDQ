@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 const source=fs.readFileSync('tests/embedded-v2528-browser.test.mjs','utf8');
-const anchor='  // A returning native user with a valid short ticket sees cached/read-only UI';
+const anchor='  // A returning native user already has the Android biometric prompt running';
 assert.equal(source.split(anchor).length,2);
 let test=source.replace(anchor,fs.readFileSync('tests/personal-sizing-full.fragment.txt','utf8')+'\n'+anchor);
 // Start with the real administrator fixture response: changing roles after boot
