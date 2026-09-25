@@ -2,7 +2,7 @@ name: Validate detached private signature and stage personal 25.33 release
 on:
   push:
     branches: [codex/personal-neutral-v2533]
-    paths: ['balance-cdq-android/signing/approval-v2533.json']
+    paths: ['balance-cdq-android/signing/approval-v2533.json', '.github/workflows/publish-personal-sizing-v2533.yml']
 permissions:
   contents: write
   actions: read
@@ -34,7 +34,7 @@ jobs:
           assert isinstance(a['runId'],int) and a['runId']>0
           assert a['artifactName']=='CDQ-Personal2533-unsigned'
           changed=set(subprocess.check_output(['git','diff','--name-only',a['sourceCommit'],'HEAD'],text=True).splitlines())
-          allowed={'balance-cdq-android/signing/approval-v2533.json','.github/workflows/build-balance-cdq-android.yml'}
+          allowed={'balance-cdq-android/signing/approval-v2533.json','.github/workflows/build-balance-cdq-android.yml','.github/workflows/publish-personal-sizing-v2533.yml'}
           assert changed<=allowed,repr(changed-allowed)
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('run='+str(a['runId'])+'\n')
           PY
@@ -80,6 +80,7 @@ jobs:
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add iphone/app iphone/index.html installer.html downloads/Balance-CDQ-Android-25.33.apk downloads/Balance-CDQ-Android-25.33.zip downloads/android-release-update.json
+          git add iphone/app iphone/index.html installer.html downloads/Balance-CDQ-Android-25.33.apk downloads/android-release-update.json
+          git add -f downloads/Balance-CDQ-Android-25.33.zip
           git commit -m 'Stage certified 25.33 Android release and matching opt-in iPhone interface'
           git push origin HEAD:codex/personal-neutral-v2533
