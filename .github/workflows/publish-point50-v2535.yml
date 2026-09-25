@@ -7,6 +7,17 @@ on:
       - 'balance-cdq-android/signing/approval-v2535.json'
       - '.github/workflows/publish-point50-v2535.yml'
       - 'scripts/stage-point50-release-v2535.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'balance-cdq-android/signing/approval-v2535.json'
+      - '.github/workflows/build-balance-cdq-android.yml'
+      - '.github/workflows/iphone-install-share.yml'
+      - '.github/workflows/publish-point50-v2535.yml'
+      - '.github/workflows/published-point50-v2535.yml'
+      - 'scripts/stage-point50-release-v2535.py'
+      - 'tests/iphone-install.test.mjs'
+      - 'tests/published-point50-v2535.mjs'
 
 permissions:
   contents: write
@@ -18,7 +29,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  regression:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate publication scripts and paired interface generation
+        run: |
+          python3 -m py_compile scripts/stage-point50-release-v2535.py balance-cdq-android/signing/detached-apk-v2.py balance-cdq-android/signing/verify-published-release.py
+          node --check tests/published-point50-v2535.mjs
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          CDQ_ALLOW_UNPUBLISHED_ANDROID=1 node tests/iphone-install.test.mjs
+          node --test tests/release-references.test.mjs tests/personal-sizing-v2533.test.mjs tests/full-names-v2536.test.mjs
+
   publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
