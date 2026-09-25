@@ -1,0 +1,114 @@
+name: Prepare and test adaptive safe screen 25.32
+on:
+  push:
+    branches: [fix/safe-area-v2532]
+    paths:
+      - 'safe-viewport-v2532.js'
+      - 'scripts/safe-area-v2532.mjs'
+      - 'scripts/prepare-safe-area-v2532.mjs'
+      - 'tests/safe-area-v2532*'
+      - 'balance-cdq-android/app/src/**/SafeContentInsets*'
+      - '.github/workflows/safe-area-v2532.yml'
+permissions:
+  contents: read
+concurrency:
+  group: cdq-safe-2532-preparation
+  cancel-in-progress: false
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/safe-area-v2532
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare guarded native and shared viewport correction
+        run: node scripts/prepare-safe-area-v2532.mjs
+      - name: Commit source changes only to isolated branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/build-embedded-android-v2528.mjs balance-cdq-android/app/build.gradle.kts balance-cdq-android/app/src/main/java/ca/balancecdq/android/MainActivity.kt balance-cdq-android/app/src/main/java/ca/balancecdq/android/PackagedWebAssets.kt tests/embedded-v2528.test.mjs tests/embedded-v2528-browser.test.mjs tests/embedded-startup-v2529.test.mjs tests/home-underline-v2531.browser.mjs .github/workflows/build-balance-cdq-android.yml
+          if ! git diff --cached --quiet; then
+            git commit -m 'Apply measured Android safe rectangle and paired mobile layout 25.32'
+            git push origin HEAD:fix/safe-area-v2532
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Compile native release and test all native units
+        working-directory: balance-cdq-android
+        run: gradle --no-daemon :app:assembleRelease :app:testDebugUnitTest
+      - name: Prepare unsigned private-signing handoff
+        run: |
+          set -euo pipefail
+          APK=balance-cdq-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          mkdir -p /tmp/cdq-safe-handoff
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" > /tmp/cdq-safe-handoff/badging.txt
+          grep -q "package: name='ca.balancecdq.android' versionCode='2532' versionName='25.32'" /tmp/cdq-safe-handoff/badging.txt
+          ! grep -q application-debuggable /tmp/cdq-safe-handoff/badging.txt
+          cp "$APK" /tmp/cdq-safe-handoff/Balance-CDQ-Android-25.32-unsigned.apk
+          cp "$TOOLS/lib/apksigner.jar" "$TOOLS/zipalign" /tmp/cdq-safe-handoff/
+          cp balance-cdq-android/signing/sign-release.py balance-cdq-android/signing/release-certificate.json /tmp/cdq-safe-handoff/
+          git rev-parse HEAD > /tmp/cdq-safe-handoff/source-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Balance-CDQ-Android-25.32-release-handoff
+          path: /tmp/cdq-safe-handoff/*
+          retention-days: 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CDQ-Safe-25.32-native-tests
+          path: balance-cdq-android/app/build/test-results/testDebugUnitTest/*.xml
+          if-no-files-found: ignore
+          retention-days: 2
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/safe-area-v2532
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build paired interfaces and run source regression tests
+        run: |
+          node scripts/prepare-safe-area-v2532.mjs
+          node scripts/build-embedded-android-v2528.mjs
+          node scripts/build-iphone.mjs
+          node scripts/test-instant-files-v2530.mjs
+          node tests/iphone-install.test.mjs
+          node --test tests/safe-area-v2532.test.mjs tests/embedded-v2528.test.mjs tests/embedded-startup-v2529.test.mjs tests/iphone-rpc-compat.test.mjs tests/release-references.test.mjs
+      - name: Install browser engines
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2 puppeteer-core@24 >/tmp/cdq-browser.log 2>&1 || { tail -40 /tmp/cdq-browser.log; exit 1; }
+          npx playwright install --with-deps chromium webkit >>/tmp/cdq-browser.log 2>&1 || { tail -40 /tmp/cdq-browser.log; exit 1; }
+      - name: Verify geometry and unchanged user preferences
+        run: node tests/safe-area-v2532.browser.mjs
+      - name: Verify Home underline regression and full installed startup
+        run: |
+          node tests/home-underline-v2531.browser.mjs
+          node tests/embedded-v2528-browser.test.mjs
+      - name: Verify paired iPhone update and real anonymous Google connection
+        run: |
+          node tests/iphone-recovery.browser.mjs
+          node tests/iphone-rpc-live.test.mjs
