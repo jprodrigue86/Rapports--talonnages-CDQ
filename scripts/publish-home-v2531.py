@@ -18,7 +18,12 @@ check((a.handoff/'source-commit.txt').read_text().strip()==s['sourceCommit'],'So
 subprocess.run(['git','diff','--exit-code',s['sourceCommit'],'--','balance-cdq-android','scripts/build-embedded-android-v2528.mjs','scripts/home-underline-v2531.mjs','scripts/instant-files-v2530.mjs','assets','icons','vendor'],check=True)
 start,removed=s['prefixBytes'],s['removeBytes']
 check(isinstance(start,int) and isinstance(removed,int) and 0<=start<=len(base) and 0<=removed<=len(base)-start,'Invalid delta range')
-compressed=base64.b64decode(s['insertZlibBase64'],validate=True)
+encoded=s['insertZlibBase64']
+if isinstance(encoded,list):
+    check(0<len(encoded)<=16 and all(isinstance(part,str) and len(part)<=5000 for part in encoded),'Invalid signature transport chunks')
+    encoded=''.join(encoded)
+check(isinstance(encoded,str) and len(encoded)<300000,'Oversized encoded signature')
+compressed=base64.b64decode(encoded,validate=True)
 check(len(compressed)<200000,'Oversized signature delta')
 dec=zlib.decompressobj();insert=dec.decompress(compressed,1000000)
 check(dec.eof and not dec.unused_data and not dec.unconsumed_tail,'Invalid or oversized signature delta')
