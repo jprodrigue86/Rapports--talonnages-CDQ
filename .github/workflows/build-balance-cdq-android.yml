@@ -91,7 +91,7 @@ jobs:
       - name: Build and test current embedded interface
         run: |
           node scripts/build-embedded-android-v2528.mjs
-          node --test tests/full-names-v2536.test.mjs tests/fast-start-v2537.test.mjs
+          node --test tests/full-names-v2536.test.mjs tests/fast-start-v2537.test.mjs tests/fast-start-v2537.test.mjs
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
