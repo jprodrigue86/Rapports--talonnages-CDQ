@@ -71,7 +71,7 @@ test('V25.39 ticket is a work-shift ticket, not the former 30 minute ticket',()=
 test('Android starts biometrics before WebView only when a valid ticket exists',()=>{
   assert.match(mainSource,/maybeStartEarlyBiometric\(\)/);
   assert.match(mainSource,/startupTicketStore\.peek\(\)/);
-  assert.match(mainSource,/webView\.loadUrl\(APP_URL\)/);
+  assert.match(mainSource,/webView\.loadUrl\(packagedAssets\.startUrl\)/);
   assert.doesNotMatch(mainSource,/webView\.restoreState\(/);
   assert.doesNotMatch(mainSource,/webView\.saveState\(/);
 });
