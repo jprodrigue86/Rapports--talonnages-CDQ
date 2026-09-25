@@ -12,6 +12,9 @@ assert.equal(test.split(role).length,2);test=test.replace(role,"role:'admin',jet
 const measured='  const originalSize=await selector.evaluate(measured);';assert.equal(test.split(measured).length,2);
 test=test.replace(measured,"  await selector.waitForFunction(()=>document.querySelectorAll('.bottom-nav > .bottom-nav-item').length===6);\n  await new Promise(r=>setTimeout(r,300));\n"+measured);
 const rpc="          if(name==='cdqRpc'){";assert.equal(test.split(rpc).length,2);test=test.replace(rpc,rpc+"window.recordRpc?.('rpc:'+args[0]);");
+const confirmedRole="  await selector.waitForFunction(()=>utilisateurCourantRole==='technicien',{timeout:10000});";
+assert.equal(test.split(confirmedRole).length,2);
+test=test.replace(confirmedRole,"  await selector.waitForFunction(()=>utilisateurCourantRole==='admin',{timeout:10000});");
 const restart='  // Disable all nonpackaged requests at the interception boundary.';assert.equal(test.split(restart).length,2);
 test=test.replace(restart,"  assert.equal(await selector.evaluate(()=>cdqPersonalSizing.current()?.anchor.Text),71,'Personal reference survives the real UI restart');\n"+restart);
 const generated='tests/.personal-full-generated.mjs';
