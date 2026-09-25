@@ -39,7 +39,7 @@ test('generated Android interface contains the V25.36 full-name override', () =>
   assert.ok(fs.existsSync(path),'build embedded interface first');
   const html=fs.readFileSync(path,'utf8');
   assert.match(html,/id="cdqFullNamesV2536"/);
-  assert.match(html,/layoutCompanyMenu\(unit, textScale\);\n    window\.cdqFitFullNamesV2536\(\);/);
+  assert.match(html,/layoutCompanyMenu\(unit, textScale\);\n    window\.cdqFitFullNamesV2536\?\.\(\);/);
   assert.match(html,/#companyList \.cdq-company-name/);
   assert.match(html,/\.file-name-text/);
 });
