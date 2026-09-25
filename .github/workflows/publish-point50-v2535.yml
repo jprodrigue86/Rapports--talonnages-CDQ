@@ -5,8 +5,6 @@ on:
     branches: [main]
     paths:
       - 'balance-cdq-android/signing/approval-v2535.json'
-      - '.github/workflows/publish-point50-v2535.yml'
-      - 'scripts/stage-point50-release-v2535.py'
   pull_request:
     branches: [main]
     paths:
@@ -225,3 +223,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: gh api --method POST "repos/$GH_REPO/pages/builds"
+
+      - name: Verify the real public release after Pages deployment
+        run: node tests/published-point50-v2535.mjs
+
+      - name: Install browser engines for public iPhone verification
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2 >/tmp/public-browsers.log 2>&1 || { tail -40 /tmp/public-browsers.log; exit 1; }
+          npx playwright install --with-deps chromium webkit >>/tmp/public-browsers.log 2>&1 || { tail -40 /tmp/public-browsers.log; exit 1; }
+
+      - name: Verify published iPhone against the real Google relay
+        env:
+          CDQ_TEST_PUBLISHED: '1'
+        run: node tests/iphone-rpc-live.test.mjs
