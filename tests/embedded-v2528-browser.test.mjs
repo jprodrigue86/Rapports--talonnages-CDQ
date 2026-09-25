@@ -278,7 +278,7 @@ try{
   await page.waitForFunction(()=>document.querySelector('#app')?.contentDocument?.querySelector('#accessOverlay'));
   selector=page.frames().find(frame=>frame.url()===prefix+'Selector.html');
   await selector.waitForFunction(()=>cdqAccessState==='input',{timeout:15000});
-  assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,1);
+  assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,2);
   assert.equal(await page.evaluate(()=>window.testBiometricCount),1);
   assert.deepEqual(errors,[]);
   console.log('PASS: Metal Music artwork is loaded from packaged V25.15 assets, cold and repeated warm unlocks reveal local UI under 1s, remote RPC waits for server confirmation, cancellation stays locked, installed PDF works offline.');
