@@ -84,11 +84,8 @@
     const requested=num(getComputedStyle(el).fontSize);
     let size=requested;
     if(!size)return false;
-    // Preserve the exact established geometry when the current label already fits.
-    if(fits(el,maxLines,size))return false;
-    el.style.setProperty('display','block','important');
-    el.style.setProperty('min-width','0','important');
-    el.style.setProperty('max-width','100%','important');
+    // Whole words are a hard rule, even when the legacy layout happened to fit
+    // only because overflow-wrap:anywhere was allowed.
     el.style.setProperty('white-space','normal','important');
     el.style.setProperty('overflow-wrap','normal','important');
     el.style.setProperty('word-break','normal','important');
@@ -96,6 +93,10 @@
     el.style.setProperty('-webkit-hyphens','none','important');
     el.style.setProperty('text-overflow','clip','important');
     el.style.setProperty('overflow','visible','important');
+    if(fits(el,maxLines,size))return false;
+    el.style.setProperty('display','block','important');
+    el.style.setProperty('min-width','0','important');
+    el.style.setProperty('max-width','100%','important');
     if(el.closest('.quick-button,.cdq-top-action') && el.clientWidth>0 && longestWord(el,size)>el.clientWidth-.5){
       stackButton(el);
       size=requested;
