@@ -10,9 +10,11 @@ import java.io.ByteArrayInputStream
 class PackagedWebAssets(context: Context) {
     companion object {
         const val ROOT = "/Rapports--talonnages-CDQ/"
-        const val PREFIX = ROOT + "native/v25.35/"
         const val HOST = "jprodrigue86.github.io"
-        const val START_URL = "https://" + HOST + PREFIX + "index.html"
+        val PREFIX: String
+            get() = ROOT + "native/v" + BuildConfig.VERSION_NAME + "/"
+        val START_URL: String
+            get() = "https://" + HOST + PREFIX + "index.html"
     }
     private val assets = context.applicationContext.assets
     private val entries = JSONObject(assets.open("cdq-web/asset-manifest.json").bufferedReader().use { it.readText() }).getJSONObject("files")
