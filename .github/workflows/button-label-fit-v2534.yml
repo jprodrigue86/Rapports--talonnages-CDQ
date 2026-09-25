@@ -4,6 +4,8 @@ on:
     branches: [fix/button-labels-v2534]
     paths:
       - 'button-label-fit-v2534.js'
+      - 'personal-sizing-v2533.js'
+      - 'tests/personal-sizing-v2533*'
       - 'scripts/button-label-fit-v2534.mjs'
       - 'scripts/build-embedded-android-v2528.mjs'
       - 'balance-cdq-android/**'
@@ -13,6 +15,8 @@ on:
     branches: [main]
     paths:
       - 'button-label-fit-v2534.js'
+      - 'personal-sizing-v2533.js'
+      - 'tests/personal-sizing-v2533*'
       - 'scripts/button-label-fit-v2534.mjs'
       - 'scripts/build-embedded-android-v2528.mjs'
       - 'balance-cdq-android/**'
