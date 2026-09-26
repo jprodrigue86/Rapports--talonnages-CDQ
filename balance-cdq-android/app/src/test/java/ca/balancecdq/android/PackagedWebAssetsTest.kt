@@ -64,6 +64,16 @@ class PackagedWebAssetsTest {
         assertTrue(copyRefreshText.contains("cdqCopyRefreshV2548"))
         assertTrue(copyRefreshText.contains("overlay.style.display = 'none'"))
         assertTrue(copyRefreshText.contains("paintVisible"))
+        val reader = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}reader-v2525.html"))!!
+        assertEquals(200, reader.statusCode)
+        val readerText = reader.data.bufferedReader().readText()
+        assertTrue(readerText.contains("cdq-keyboard-field"))
+        assertTrue(readerText.contains("height:calc(58px + var(--reader-safe-top))"))
+        val readerModule = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}reader-v2525.mjs"))!!
+        assertEquals(200, readerModule.statusCode)
+        val readerModuleText = readerModule.data.bufferedReader().readText()
+        assertTrue(readerModuleText.contains("cdqKeyboardFieldV2548"))
+        assertTrue(readerModuleText.contains("scrollIntoView({block:'center'"))
         val artwork = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}icon-artwork-baseline-v2540.css"))!!
         assertEquals(200, artwork.statusCode)
         assertTrue(artwork.data.bufferedReader().readText().contains("icons-transparent.webp"))
