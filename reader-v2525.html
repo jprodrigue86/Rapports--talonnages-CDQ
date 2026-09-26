@@ -38,15 +38,18 @@ header{background:#161a20;border-color:#3d4652}header button,#more button{backgr
 /* V25.46 — interface lecteur mobile compacte, zones système respectées. */
 #zoomControls{display:flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto}
 #back{display:inline-flex;align-items:center;justify-content:center;gap:6px}
-#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_vert" i],
-#viewer .annotationLayer .buttonWidgetAnnotation input[type="radio"][name*="conforme_vert" i],
-#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_ok" i]{
-  accent-color:#25e67a!important;filter:brightness(1.35) saturate(1.35)!important;opacity:1!important
+/* V25.51 — fidélité PDF: la couche interactive reste transparente et les
+   apparences embarquées dans le PDF gardent leurs couleurs originales. */
+#viewer .annotationLayer .buttonWidgetAnnotation:is(.checkBox,.radioButton) input{
+  background:none!important;background-image:none!important;background-color:transparent!important;
+  border:0!important;box-shadow:none!important;opacity:1!important;filter:none!important
 }
-#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_rouge" i],
-#viewer .annotationLayer .buttonWidgetAnnotation input[type="radio"][name*="conforme_rouge" i],
-#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="non_conforme" i]{
-  accent-color:#ff4b5d!important;filter:brightness(1.35) saturate(1.35)!important;opacity:1!important
+#viewer .annotationLayer .buttonWidgetAnnotation:is(.checkBox,.radioButton) [data-canvas-name],
+#viewer .annotationLayer .buttonWidgetAnnotation.pushButton [data-canvas-name]{
+  filter:none!important;opacity:1!important
+}
+#viewer .annotationLayer .buttonWidgetAnnotation.pushButton > a{
+  filter:none!important;opacity:1!important
 }
 .canvasWrapper{backface-visibility:visible!important}
 .canvasWrapper canvas{backface-visibility:visible!important;will-change:auto!important}
