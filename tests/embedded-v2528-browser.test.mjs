@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const prefix=base+'native/v25.46/';
+const prefix=base+'native/v25.47/';
 const generated='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web/';
 const files=JSON.parse(fs.readFileSync(generated+'asset-manifest.json')).files;
 const bridge=fs.readFileSync('balance-cdq-android/web-source/server-bridge.js','utf8');
@@ -15,7 +15,7 @@ try{
   const bridgeStart=new Promise(resolve=>{bridgeStarted=resolve;});
   page.on('pageerror',error=>errors.push(error.message));
   await page.setViewport({width:393,height:850,isMobile:true,hasTouch:true});
-  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.46 CDQSafeArea/1');
+  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.47 CDQSafeArea/1');
   await page.exposeFunction('recordRpc',name=>calls.push(name));
   await page.evaluateOnNewDocument(()=>{
     window.testTicketConfirmCount=0;
@@ -42,7 +42,9 @@ try{
         return JSON.stringify({ok:true,email,expiresAt:Date.now()+3600000});
       },
       confirmStartupTicket(){window.testTicketConfirmCount++;return true;},
-      clearStartupTicket(){window.testTicketClearCount++;}
+      clearStartupTicket(){window.testTicketClearCount++;},
+      updateIdentity(){return JSON.stringify({versionName:'25.47',versionCode:2547});},
+      openUpdater(){window.testUpdaterOpenCount=(window.testUpdaterOpenCount||0)+1;}
     };
   });
   await page.setRequestInterception(true);
@@ -85,8 +87,9 @@ try{
       }})}};`;
       return request.respond({status:200,contentType:'text/html; charset=utf-8',body:`<script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
     }
+    if(url.includes('/downloads/android-release-update.json'))return request.respond({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*','Cache-Control':'no-store'},body:JSON.stringify({versionName:'25.48',versionCode:2548,apkUrl:'https://example.invalid/Balance-CDQ-Android-25.48.apk',sha256:'deadbeef',channel:'stable'})});
     // The explicitly live version check is allowed; public/static UI downloads are not.
-    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.26-v25.46-pdf-viewer-polish'})});
+    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.26-v25.47-native-update-center'})});
     unexpected.push(url);return request.abort();
   });
   // Puppeteer's navigation lifecycle also waits on child frames. Here the
@@ -109,7 +112,7 @@ try{
   assert.deepEqual(errors,[]);
   assert.deepEqual(unexpected,[]);
   assert.ok(calls.includes('obtenirEtatAcces'));
-  // V25.46 returning startup: Android already owns the biometric prompt and
+  // V25.47 returning startup: Android already owns the biometric prompt and
   // the untouched Selector is allowed to parse while the server is held.
   await page.evaluate(()=>{
     localStorage.setItem('cdq_auth_device_token_v2','fixture-device');
@@ -180,6 +183,33 @@ try{
   assert.equal(integratedProgress.beforeFiles,true);
   assert.notEqual(integratedProgress.position,'fixed');
   assert.notEqual(integratedProgress.display,'none');
+
+  // V25.47: Android settings must compare the installed APK against the
+  // durable Android release manifest, not the web/Script Manager bundle.
+  const updateUi=await selector.evaluate(async()=>{
+    window.ouvrirReglagesAffichage();
+    window.cdqCheckUpdate();
+    for(let i=0;i<100;i++){
+      const latest=document.getElementById('cdqUpdateLatest')?.textContent||'';
+      const state=document.getElementById('cdqUpdateStatus')?.textContent||'';
+      if(latest==='V25.48'&&/disponible/i.test(state))break;
+      await new Promise(resolve=>setTimeout(resolve,25));
+    }
+    return {
+      installed:document.getElementById('cdqUpdateInstalled')?.textContent||'',
+      latest:document.getElementById('cdqUpdateLatest')?.textContent||'',
+      state:document.getElementById('cdqUpdateStatus')?.textContent||'',
+      installText:document.getElementById('cdqInstallUpdateButton')?.textContent||'',
+      disabled:!!document.getElementById('cdqInstallUpdateButton')?.disabled
+    };
+  });
+  assert.equal(updateUi.installed,'V25.47');
+  assert.equal(updateUi.latest,'V25.48');
+  assert.match(updateUi.state,/disponible/i);
+  assert.match(updateUi.installText,/Installer V25\.48/);
+  assert.equal(updateUi.disabled,false);
+  await selector.click('#cdqInstallUpdateButton');
+  await page.waitForFunction(()=>window.testUpdaterOpenCount===1,{timeout:3000});
 
   // V25.45: a normal unfiltered company row gets its id on first touch, so
   // cache warming starts before the click handler opens the client.
@@ -305,7 +335,7 @@ try{
   assert.equal(navIcons.artworkCss,true);
   assert.equal(navIcons.sprite.ok,true);
   assert.ok(navIcons.sprite.bytes>500000);
-  assert.match(navIcons.sprite.url,/native\/v25\.46\/bundles\/balance-cdq\/v25\.15\/icons-transparent\.webp/);
+  assert.match(navIcons.sprite.url,/native\/v25\.47\/bundles\/balance-cdq\/v25\.15\/icons-transparent\.webp/);
   assert.equal(await selector.evaluate(()=>typeof window.cdqIconFallbackV2538),'undefined');
 
   // The server now confirms; held RPC may leave the device only after this point.
