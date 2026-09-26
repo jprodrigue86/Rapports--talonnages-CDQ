@@ -197,7 +197,7 @@ test('V25.46 : le pincement garde le canvas composité sans délai de rendu forc
   const listeners={},calls=[],surface={style:{},getBoundingClientRect:()=>({left:0,top:0})};
   const container={scrollLeft:0,scrollTop:0,addEventListener:(name,fn)=>listeners[name]=fn};
   const viewer={currentScale:1,updateScale(options){calls.push(options);this.currentScale*=options.scaleFactor;}};
-  installTouchNavigation2525({container,surface,getViewer:()=>viewer,now:()=>100});
+  installTouchNavigation2525({container,surface,getViewer:()=>viewer,now:()=>100,requestFrame:fn=>{fn();return 1;},cancelFrame:()=>{}});
   const fire=(type,points=[])=>listeners[type]({type,touches:points.map(([x,y])=>({clientX:x,clientY:y})),preventDefault(){},stopPropagation(){}});
   fire('touchstart',[[100,200],[200,200]]);
   assert.equal(surface.style.willChange,'');
