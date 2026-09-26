@@ -7,6 +7,15 @@ const tell=data=>{if(hosted&&parentOrigin)parent.postMessage(data,parentOrigin)}
 let api,viewer,scripting,doc,touch,form,readOnly=false,dirty=false,version=0,savedVersion=0,saving=false;
 let lastAttempt=null,fieldDefinitions=null,nativeInput;
 function commitActive(){if($('viewer').contains(document.activeElement)){const sink=$('status');sink.tabIndex=-1;sink.focus({preventScroll:true});}}
+function cdqTextEntryFieldV2548(el){return !!el&&el.matches?.('.textWidgetAnnotation input,.textWidgetAnnotation textarea')&&!el.disabled&&!el.readOnly;}
+function cdqKeyboardFieldV2548(active,field){
+  document.body.classList.toggle('cdq-keyboard-field',!!active);
+  if(!active||!field)return;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(document.activeElement!==field)return;
+    field.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+  }));
+}
 let name='Rapport.pdf',fileId='',pending=null,opening=false,closeAfterSave=false,closed=false;
 const status=value=>{$('status').textContent=value;};
 function busy(value){saving=value;$('viewer').inert=value;$('savingMask').hidden=!value;for(const id of ['save','saveClose','discard','file'])$(id).disabled=value||!doc||readOnly;}
@@ -80,6 +89,8 @@ $('discard').onclick=()=>{
 };
 $('closeDialog').addEventListener('cancel',e=>{if(saving)e.preventDefault();closeAfterSave=false;});
 $('viewer').addEventListener('input',modified);$('viewer').addEventListener('change',modified);
+$('viewer').addEventListener('focusin',e=>{if(cdqTextEntryFieldV2548(e.target))cdqKeyboardFieldV2548(true,e.target);});
+$('viewer').addEventListener('focusout',()=>{setTimeout(()=>{const active=document.activeElement;if(!cdqTextEntryFieldV2548(active))cdqKeyboardFieldV2548(false);},60);});
 window.addEventListener('beforeunload',e=>{if(!closed&&(dirty||saving)){e.preventDefault();e.returnValue='';}});
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save();}else if(e.key==='Escape'&&!$('closeDialog').open){e.preventDefault();requestClose();}});
 $('file').onchange=()=>{if(doc){status('Fermez le PDF actuel avant d’en ouvrir un autre.');return;}const f=$('file').files[0];if(f)open({blob:f,name:f.name}).catch(fail);};
