@@ -74,6 +74,37 @@ test('Excentricité : charge, quatre avant, quatre après', () => {
   const expected=['charge_excentricite',...['avant','apres'].flatMap(g=>corners.map(c=>`excentricite_${g}_${c}`))];
   assert.deepEqual(orderFields([...expected].reverse().map(name=>({name}))).map(f=>f.name),expected);
 });
+test('V25.52 : la géométrie réelle ne casse jamais l’ordre métier des mesures', () => {
+  const page={dataset:{pageNumber:'1'},getBoundingClientRect:()=>({top:0,left:0,width:1000,height:1000})};
+  const specs=[
+    ['client_nom',20,100],
+    ['charge_point_1_charge_utilisee',100,100],['charge_point_1_avant_correction',100,350],['charge_point_1_apres_correction',100,600],
+    ['charge_point_2_charge_utilisee',130,100],['charge_point_2_avant_correction',130,350],['charge_point_2_apres_correction',130,600],
+    ['charge_excentricite',520,420],
+    ['excentricite_avant_arriere_gauche',600,120],['excentricite_avant_arriere_droit',600,650],
+    ['excentricite_avant_avant_gauche',650,120],['excentricite_avant_avant_droit',650,650],
+    ['excentricite_apres_arriere_gauche',720,120],['excentricite_apres_arriere_droit',720,650],
+    ['excentricite_apres_avant_gauche',770,120],['excentricite_apres_avant_droit',770,650],
+    ['resume_commentaires',900,100]
+  ];
+  const items=specs.map(([name,top,left])=>({
+    name,
+    getBoundingClientRect:()=>({top,left,width:100,height:24,right:left+100,bottom:top+24}),
+    closest:selector=>selector==='.page'?page:null
+  }));
+  const corners=['arriere_gauche','avant_gauche','arriere_droit','avant_droit'];
+  const expected=[
+    'client_nom',
+    'charge_point_1_charge_utilisee','charge_point_2_charge_utilisee',
+    'charge_point_1_avant_correction','charge_point_2_avant_correction',
+    'charge_point_1_apres_correction','charge_point_2_apres_correction',
+    'charge_excentricite',
+    ...corners.map(x=>`excentricite_avant_${x}`),
+    ...corners.map(x=>`excentricite_apres_${x}`),
+    'resume_commentaires'
+  ];
+  assert.deepEqual(orderFields(items).map(x=>x.name),expected);
+});
 test('Les champs inconnus, indicateurs et calculs ne sont pas permutés', () => {
   const names=['client_nom','charge_point_1_apres_correction','charge_point_1_tolerance','charge_point_1_charge_utilisee','Bouton_Conforme','resume_commentaires'];
   assert.deepEqual(orderFields(names,n=>n),['client_nom','charge_point_1_charge_utilisee','charge_point_1_tolerance','charge_point_1_apres_correction','Bouton_Conforme','resume_commentaires']);
@@ -90,7 +121,7 @@ test('Le cache hors ligne contient exactement les nouveaux modules du lecteur', 
   assert.match(sw,/'\.\/reader\.mjs\?v=21\.33'/);assert.match(sw,/'\.\/reader-interactions\.mjs\?v=21\.33'/);
 });
 
-function formHarness(names, installer=installFormNavigation) {
+function formHarness(names, installer=installFormNavigation, options={}) {
   const classes = new Set(), allFields = [], blurEvents = [];
   function node(props = {}) {
     return Object.assign({listeners:{}, children:[], hidden:false, disabled:false, dataset:{}, attributes:{},
@@ -120,7 +151,7 @@ function formHarness(names, installer=installFormNavigation) {
   }
   const getStyle=globalThis.getComputedStyle;
   globalThis.getComputedStyle=field=>({visibility:field.visibility||'visible'});
-  const navigation=installer({surface,toolbar,previous,next,done,owner});
+  const navigation=installer({surface,toolbar,previous,next,done,owner,...options});
   function fire(target,type,field=target,extra={}) {
     const e={target:field,key:'',prevented:false,stopped:false,preventDefault(){this.prevented=true;},stopPropagation(){this.stopped=true;},...extra};
     const listeners=[...(target.listeners[type]||[])].sort((a,b)=>Number(!!b.capture)-Number(!!a.capture));
@@ -197,6 +228,25 @@ test('Excentricité dans les contrôles : charge puis avant complet puis après 
     assert.equal(h.next.disabled,true);
   } finally {h.cleanup();}
 });
+test('V25.52 : Suivant quitte le dernier Après correction vers la charge d’excentricité et révèle chaque champ', () => {
+  const corners=['arriere_gauche','avant_gauche','arriere_droit','avant_droit'];
+  const central=[
+    ...[1,2].map(i=>`charge_point_${i}_charge_utilisee`),
+    ...[1,2].map(i=>`charge_point_${i}_avant_correction`),
+    ...[1,2].map(i=>`charge_point_${i}_apres_correction`)
+  ];
+  const excentricity=['charge_excentricite',...corners.map(x=>`excentricite_avant_${x}`),...corners.map(x=>`excentricite_apres_${x}`)];
+  const revealed=[];
+  const h=formHarness([...central,...excentricity],installFormNavigation2525,{reveal:field=>revealed.push(field.name)});
+  try{
+    h.navigation.refresh();
+    h.field('charge_point_2_apres_correction').focus();
+    h.fire(h.next,'click');
+    assert.equal(h.owner.activeElement.name,'charge_excentricite');
+    for(const name of excentricity.slice(1)){h.fire(h.next,'click');assert.equal(h.owner.activeElement.name,name);}
+    assert.deepEqual(revealed,excentricity);
+  }finally{h.cleanup();}
+});
 test('Commentaires multilignes et composition du clavier ne sont pas interceptés', () => {
   const h=formHarness(['resume_commentaires','charge_point_1_charge_utilisee','charge_point_2_charge_utilisee']);
   try {
@@ -266,10 +316,12 @@ test('V25.50 : le clavier garde la grande zone PDF sans recentrages répétés',
   assert.match(html,/data-cdq-auto-field="true"/);
   assert.match(js,/function cdqTextEntryFieldV2550/);
   assert.match(js,/function cdqKeyboardFieldV2550/);
-  assert.match(js,/function cdqRevealFieldV2550/);
+  assert.match(js,/function cdqRevealFieldV2552/);
   assert.match(js,/visualViewport\?\.addEventListener\('resize',cdqScheduleViewportFieldV2550\)/);
   assert.match(js,/cdqViewportFieldTimerV2550=setTimeout/);
-  assert.match(js,/container\.scrollTop\+=centerY-targetY/);
+  assert.match(js,/container\.scrollTop\+=dy/);
+  assert.match(js,/container\.scrollLeft\+=dx/);
+  assert.match(js,/reveal:field=>cdqRevealFieldV2552\(field,true\)/);
   assert.doesNotMatch(js,/\[80,180,320,520\]/);
   assert.doesNotMatch(js,/scrollIntoView\(\{block:'center'/);
 });
