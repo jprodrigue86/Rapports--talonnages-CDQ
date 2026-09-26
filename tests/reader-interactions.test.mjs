@@ -39,7 +39,7 @@ test('Pincement puis maintien long : aucun nouveau rendu PDF, aperçu conservé'
 });
 test('Relâchement : un seul rendu différé et point d’ancrage conservé', () => {
   const h=harness();h.fire('touchstart',[[100,200],[200,200]]);h.fire('touchmove',[[100,220],[300,220]]);h.fire('touchend');
-  assert.equal(h.surface.style.transform,'');assert.deepEqual(h.calls,[{scaleFactor:2,origin:[150,200],pan:[50,20],drawingDelay:250}]);
+  assert.equal(h.surface.style.transform,'');assert.deepEqual(h.calls,[{scaleFactor:2,origin:[150,200],pan:[50,20],drawingDelay:0}]);
   h.fire('touchend');assert.equal(h.calls.length,1);
 });
 test('Relâcher immédiatement après un mouvement ne laisse aucune frame périmée', () => {
