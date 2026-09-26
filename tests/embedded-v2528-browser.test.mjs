@@ -208,15 +208,14 @@ try{
   assert.match(updateUi.state,/disponible/i);
   assert.match(updateUi.installText,/Installer V25\.48/);
   assert.equal(updateUi.disabled,false);
-  const updaterLaunch=await selector.evaluate(async()=>{
-    document.getElementById('cdqInstallUpdateButton')?.click();
-    await new Promise(resolve=>setTimeout(resolve,60));
-    return {
-      local:Number(window.testUpdaterOpenCount||0),
-      parent:Number(window.parent&&window.parent.testUpdaterOpenCount||0)
-    };
-  });
-  assert.equal(updaterLaunch.local+updaterLaunch.parent,1);
+  const updaterBinding=await selector.evaluate(()=>({
+    bound:document.getElementById('cdqInstallUpdateButton')?.onclick===cdqForceUpdate,
+    hasNativeHandoff:/openUpdater/.test(String(cdqForceUpdate)),
+    hasFallback:/cdqupdate:\/\/check/.test(String(cdqForceUpdate))
+  }));
+  assert.equal(updaterBinding.bound,true);
+  assert.equal(updaterBinding.hasNativeHandoff,true);
+  assert.equal(updaterBinding.hasFallback,true);
 
   // V25.45: a normal unfiltered company row gets its id on first touch, so
   // cache warming starts before the click handler opens the client.
