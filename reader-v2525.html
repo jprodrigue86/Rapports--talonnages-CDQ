@@ -29,8 +29,54 @@ header{background:#161a20;border-color:#3d4652}header button,#more button{backgr
 .annotationLayer :is(input,textarea,select){cursor:text;opacity:1!important;color:#000!important;-webkit-text-fill-color:#000!important}
 #container.dragging .annotationLayer{pointer-events:none}header{box-shadow:none}
 @media(max-width:600px){header{height:96px;padding:4px 8px}#container{top:96px}#savingMask{top:96px}#more{top:94px}}
+
+/* V25.46 — interface lecteur mobile compacte, zones système respectées. */
+#zoomControls{display:flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto}
+#back{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_vert" i],
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="radio"][name*="conforme_vert" i],
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_ok" i]{
+  accent-color:#25e67a!important;filter:brightness(1.35) saturate(1.35)!important;opacity:1!important
+}
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_rouge" i],
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="radio"][name*="conforme_rouge" i],
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="non_conforme" i]{
+  accent-color:#ff4b5d!important;filter:brightness(1.35) saturate(1.35)!important;opacity:1!important
+}
+.canvasWrapper{backface-visibility:visible!important}
+.canvasWrapper canvas{backface-visibility:visible!important;will-change:auto!important}
+@media(max-width:600px){
+  html,body{height:100dvh;min-height:100dvh;overflow:hidden}
+  body{display:flex;flex-direction:column;padding-top:max(10px,env(safe-area-inset-top,0px))}
+  header#readerTop{
+    position:relative;flex:0 0 auto;width:100%;height:auto!important;min-height:0;
+    display:grid;grid-template-columns:46px minmax(0,1fr) auto 46px;
+    grid-template-areas:"back name save menu" "zoom zoom zoom zoom";
+    align-items:center;gap:6px 8px;padding:6px 8px 8px!important;
+    background:#121820;border-bottom:1px solid #2d3944
+  }
+  #back{grid-area:back;width:44px;min-width:44px;min-height:42px;padding:0;border-radius:12px;font-size:0}
+  #back:before{content:'←';font-size:26px;line-height:1}
+  #back span{display:none}
+  #name{grid-area:name;min-width:0;flex:none;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #save{grid-area:save;margin:0!important;min-height:42px;padding:8px 11px;border-radius:12px}
+  #menu{grid-area:menu;width:44px;min-width:44px;min-height:42px;padding:0;border-radius:12px;font-size:24px;line-height:1}
+  #zoomControls{
+    grid-area:zoom;justify-self:center;display:grid;grid-template-columns:44px 72px 44px;
+    align-items:center;gap:2px;padding:3px;border:1px solid #34424d;border-radius:14px;background:#1a232c
+  }
+  #zoomControls button{min-width:0;min-height:36px;padding:0;border:0;border-radius:10px;background:transparent;font-size:22px}
+  #zoom{min-width:0;text-align:center;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+  #container{position:relative!important;top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;flex:1 1 auto;min-height:0;width:100%}
+  #formNav{position:relative!important;bottom:auto!important;left:auto!important;right:auto!important;height:50px;flex:0 0 auto;padding:4px 8px;background:#121820;border-top:1px solid #2d3944}
+  #formNav button{min-height:40px;border-radius:11px;padding:7px 11px;background:#223442;border-color:#536777}
+  body.form-navigation #container{bottom:auto!important}
+  #status{position:relative!important;bottom:auto!important;left:auto!important;right:auto!important;height:30px;flex:0 0 auto;padding:7px 8px;background:#111820}
+  #more{position:fixed;right:8px;top:calc(max(10px,env(safe-area-inset-top,0px)) + 98px);width:min(260px,calc(100vw - 16px));z-index:70}
+  #savingMask{position:fixed!important;inset:max(10px,env(safe-area-inset-top,0px)) 0 30px!important}
+}
 </style></head><body>
-<header><button id="back" aria-label="Retour dans CDQ">← Retour</button><span id="name">PDF</span><button id="minus" class="zoom-button" aria-label="Réduire">−</button><span id="zoom">100 %</span><button id="plus" class="zoom-button" aria-label="Agrandir">+</button><button id="save" class="primary" disabled>Enregistrer</button><button id="menu" aria-label="Options du PDF" aria-expanded="false">⋯</button></header>
+<header id="readerTop"><button id="back" aria-label="Retour dans CDQ">← <span>Retour</span></button><span id="name">PDF</span><div id="zoomControls" aria-label="Zoom du PDF"><button id="minus" class="zoom-button" aria-label="Réduire">−</button><span id="zoom">100 %</span><button id="plus" class="zoom-button" aria-label="Agrandir">+</button></div><button id="save" class="primary" disabled>Enregistrer</button><button id="menu" aria-label="Options du PDF" aria-expanded="false">⋯</button></header>
 <div id="more" hidden><button id="rotate">Pivoter de 90°</button><button id="fit">Ajuster à la largeur</button><button id="download">Télécharger le PDF rempli</button><button id="external">Télécharger pour Adobe</button><label class="action" for="file">Ouvrir un PDF local</label></div>
 <div id="container"><div id="viewer" class="pdfViewer"></div><div id="empty"><label class="action" for="file">Ouvrir un PDF</label></div></div><input id="file" type="file" accept="application/pdf,.pdf"><div id="status" role="status">Chargement du lecteur…</div>
 <nav id="formNav" aria-label="Saisie du formulaire" hidden><button id="previousField">↑ Précédent</button><button id="nextField">Suivant ↓</button><button id="doneFields">Terminer</button></nav>
