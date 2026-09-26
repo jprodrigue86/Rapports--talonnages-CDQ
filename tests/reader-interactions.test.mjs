@@ -193,7 +193,7 @@ test('Changer de document masque la navigation; aucune boucle au dernier champ',
 });
 
 
-test('V25.46 : le pincement garde le canvas composité sans délai de rendu forcé', () => {
+test('V25.48 : le pincement garde le canvas composité pendant le nouveau rendu', () => {
   const listeners={},calls=[],surface={style:{},getBoundingClientRect:()=>({left:0,top:0})};
   const container={scrollLeft:0,scrollTop:0,addEventListener:(name,fn)=>listeners[name]=fn};
   const viewer={currentScale:1,updateScale(options){calls.push(options);this.currentScale*=options.scaleFactor;}};
@@ -205,29 +205,31 @@ test('V25.46 : le pincement garde le canvas composité sans délai de rendu forc
   assert.match(surface.style.transform,/scale\(1\.4\)/);
   fire('touchend');
   assert.equal(calls.length,1);
-  assert.equal(calls[0].drawingDelay,0);
+  assert.equal(calls[0].drawingDelay,250);
 });
 
-test('V25.46 : choisir un menu déroulant passe automatiquement au prochain champ', async () => {
+test('V25.48 : choisir un menu déroulant passe automatiquement au prochain champ après fermeture du picker', async () => {
   const h=formHarness(['frequence_etalonnage','client_nom'],installFormNavigation2525);
   try{
     h.allFields[0].tagName='SELECT';
     h.navigation.refresh();
     h.allFields[0].focus();
     h.fire(h.surface,'change',h.allFields[0]);
-    await Promise.resolve();
+    await new Promise(resolve=>setTimeout(resolve,100));
     assert.equal(h.owner.activeElement,h.allFields[1]);
     assert.deepEqual(h.blurEvents,[{from:'frequence_etalonnage',to:'client_nom'}]);
   }finally{h.cleanup();}
 });
 
-test('V25.46 : nouvelle interface mobile, marge Android et couleurs de conformité claires', () => {
+test('V25.48 : interface mobile compacte, marge Android et couleurs de conformité claires', () => {
   const html=readFileSync(new URL('../reader-v2525.html',import.meta.url),'utf8');
   assert.match(html,/id="zoomControls"/);
-  assert.match(html,/--reader-safe-top:max\(10px,env\(safe-area-inset-top,0px\)\)/);
+  assert.match(html,/--reader-safe-top:max\(34px,env\(safe-area-inset-top,0px\)\)/);
   assert.match(html,/conforme_vert/);
-  assert.match(html,/#25e67a/);
+  assert.match(html,/#63ff9a/);
   assert.match(html,/conforme_rouge/);
-  assert.match(html,/#ff4b5d/);
+  assert.match(html,/#ff6f78/);
   assert.match(html,/backface-visibility:visible!important/);
+  assert.match(html,/position:fixed!important;left:50%;bottom:/);
+  assert.match(html,/backdrop-filter:blur\(10px\)/);
 });
