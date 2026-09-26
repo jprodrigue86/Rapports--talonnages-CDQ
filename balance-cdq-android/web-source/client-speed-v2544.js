@@ -302,7 +302,7 @@ html:is(.android,.ios,.mobile-device) #cdqGlobalProgressV2293[data-cdq-integrate
 
   document.addEventListener('pointerdown',event=>{
     const row=event.target?.closest?.('.company-item');
-    if(!row||row.classList.contains('company-reset-item')||!ready())return;
+    if(!row||row.classList.contains('company-reset-item'))return;
     let id=String(row.dataset.companyId||'');
     if(!id&&typeof toutesLesCompagnies!=='undefined'){
       const name=String(row.textContent||'').replace(/\s+/g,' ').trim();
@@ -310,7 +310,7 @@ html:is(.android,.ios,.mobile-device) #cdqGlobalProgressV2293[data-cdq-integrate
       id=String(match?.id||'');
       if(id)row.dataset.companyId=id;
     }
-    if(id)warm(id,account());
+    if(id&&ready())warm(id,account());
   },true);
 
   window.addEventListener('cdq:access-ready',()=>setTimeout(prewarm,30));
