@@ -391,7 +391,7 @@ try{
   assert.equal(navIcons.artworkCss,true);
   assert.equal(navIcons.sprite.ok,true);
   assert.ok(navIcons.sprite.bytes>500000);
-  assert.match(navIcons.sprite.url,/native\/v25\.50\/bundles\/balance-cdq\/v25\.15\/icons-transparent\.webp/);
+  assert.match(navIcons.sprite.url,/native\/v25\.51\/bundles\/balance-cdq\/v25\.15\/icons-transparent\.webp/);
   assert.equal(await selector.evaluate(()=>typeof window.cdqIconFallbackV2538),'undefined');
 
   // The server now confirms; held RPC may leave the device only after this point.
