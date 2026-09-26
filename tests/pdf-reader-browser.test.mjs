@@ -45,6 +45,17 @@ try{
   let f=await open();assert.ok(await f.$$eval('.annotationLayer input',x=>x.length)>100);
   const input=async(value)=>{await f.$eval('input[name="client_nom"]',(e,v)=>{e.focus();e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));e.blur();},value)};
   const colors=await f.$eval('input[name="client_nom"]',e=>({inline:e.style.backgroundColor,computed:getComputedStyle(e).backgroundColor,image:getComputedStyle(e).backgroundImage}));assert.equal(colors.image,'none');assert.equal(colors.computed,colors.inline==='transparent'?'rgba(0, 0, 0, 0)':colors.inline);
+  const viewerUi=await f.evaluate(()=>{const green=document.querySelector('input[name*="conforme_vert"]'),red=document.querySelector('input[name*="conforme_rouge"]');return {
+    zoomControls:!!document.getElementById('zoomControls'),
+    green:green?getComputedStyle(green).accentColor:'',
+    red:red?getComputedStyle(red).accentColor:'',
+    headerDisplay:getComputedStyle(document.getElementById('readerTop')).display,
+    bodyPaddingTop:parseFloat(getComputedStyle(document.body).paddingTop)||0
+  }});
+  assert.equal(viewerUi.zoomControls,true);
+  assert.match(viewerUi.green,/37, 230, 122|rgb\(37, 230, 122\)|#25e67a/i);
+  assert.match(viewerUi.red,/255, 75, 93|rgb\(255, 75, 93\)|#ff4b5d/i);
+  if(mobile){assert.equal(viewerUi.headerDisplay,'grid');assert.ok(viewerUi.bodyPaddingTop>=9);}
   for(const [name,value] of [['echelon','1'],['charge_point_1_charge_utilisee','1000'],['charge_point_1_avant_correction','1003']]){
     await f.click('input[name="'+name+'"]');await new Promise(r=>setTimeout(r,120));await page.keyboard.type(value,{delay:65});await page.keyboard.press('Tab');await new Promise(r=>setTimeout(r,150));
   }
