@@ -81,7 +81,8 @@ try{
     assert.equal(keyboardUi.restored,true);
   }
   for(const [name,value] of [['echelon','1'],['charge_point_1_charge_utilisee','1000'],['charge_point_1_avant_correction','1003']]){
-    await f.click('input[name="'+name+'"]');await new Promise(r=>setTimeout(r,120));await page.keyboard.type(value,{delay:65});await page.keyboard.press('Tab');await new Promise(r=>setTimeout(r,150));
+    await f.$eval('input[name="'+name+'"]',e=>e.focus({preventScroll:true}));
+    await new Promise(r=>setTimeout(r,120));await page.keyboard.type(value,{delay:65});await page.keyboard.press('Tab');await new Promise(r=>setTimeout(r,150));
   }
   await f.waitForFunction(()=>document.querySelector('input[name="charge_point_1_tolerance"]').value.includes('1')&&document.querySelector('input[name="charge_point_1_erreur_avant"]').value.includes('3'),{timeout:5000}).catch(async e=>{console.log('Calculations',await f.$$eval('input',es=>es.filter(e=>/echelon|charge_point_1/.test(e.name)).map(e=>({n:e.name,v:e.value}))));throw e});
   assert.equal(await f.$eval('input[name="charge_point_1_conforme_rouge"]',e=>e.checked),true);
