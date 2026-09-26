@@ -76,8 +76,10 @@ class PackagedWebAssetsTest {
         val readerModuleText = readerModule.data.bufferedReader().readText()
         assertTrue(readerModuleText.contains("cdqKeyboardFieldV2550"))
         assertTrue(readerModuleText.contains("visualViewport?.addEventListener('resize'"))
-        assertTrue(readerModuleText.contains("cdqViewportFieldTimerV2550"))\n        assertTrue(readerModuleText.contains("cdqRevealFieldV2552"))
-        assertTrue(readerModuleText.contains("container.scrollTop+=centerY-targetY"))
+        assertTrue(readerModuleText.contains("cdqViewportFieldTimerV2550"))
+        assertTrue(readerModuleText.contains("cdqRevealFieldV2552"))
+        assertTrue(readerModuleText.contains("container.scrollTop+=dy"))
+        assertTrue(readerModuleText.contains("container.scrollLeft+=dx"))
         val artwork = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}icon-artwork-baseline-v2540.css"))!!
         assertEquals(200, artwork.statusCode)
         assertTrue(artwork.data.bufferedReader().readText().contains("icons-transparent.webp"))
