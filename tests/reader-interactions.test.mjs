@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {installTouchNavigation, installFormNavigation, fieldRank, orderFields} from '../reader-interactions-v2520.mjs';
+import {installTouchNavigation as installTouchNavigation2525, installFormNavigation as installFormNavigation2525} from '../reader-interactions-v2525.mjs';
 
 function harness() {
   const listeners = {}, calls = [], surface = {style:{}, getBoundingClientRect:() => ({left:-100,top:-200})};
@@ -89,7 +90,7 @@ test('Le cache hors ligne contient exactement les nouveaux modules du lecteur', 
   assert.match(sw,/'\.\/reader\.mjs\?v=21\.33'/);assert.match(sw,/'\.\/reader-interactions\.mjs\?v=21\.33'/);
 });
 
-function formHarness(names) {
+function formHarness(names, installer=installFormNavigation) {
   const classes = new Set(), allFields = [], blurEvents = [];
   function node(props = {}) {
     return Object.assign({listeners:{}, children:[], hidden:false, disabled:false,
@@ -118,7 +119,7 @@ function formHarness(names) {
   }
   const getStyle=globalThis.getComputedStyle;
   globalThis.getComputedStyle=field=>({visibility:field.visibility||'visible'});
-  const navigation=installFormNavigation({surface,toolbar,previous,next,done,owner});
+  const navigation=installer({surface,toolbar,previous,next,done,owner});
   function fire(target,type,field=target,extra={}) {
     const e={target:field,key:'',prevented:false,stopped:false,preventDefault(){this.prevented=true;},stopPropagation(){this.stopped=true;},...extra};
     const listeners=[...(target.listeners[type]||[])].sort((a,b)=>Number(!!b.capture)-Number(!!a.capture));
@@ -189,4 +190,44 @@ test('Changer de document masque la navigation; aucune boucle au dernier champ',
     assert.equal(h.fire(h.surface,'keydown',h.allFields[1],{key:'Tab'}).prevented,false);
     h.navigation.reset();assert(h.toolbar.hidden);assert(!h.classes.has('form-navigation'));
   } finally {h.cleanup();}
+});
+
+
+test('V25.46 : le pincement garde le canvas composité sans délai de rendu forcé', () => {
+  const listeners={},calls=[],surface={style:{},getBoundingClientRect:()=>({left:0,top:0})};
+  const container={scrollLeft:0,scrollTop:0,addEventListener:(name,fn)=>listeners[name]=fn};
+  const viewer={currentScale:1,updateScale(options){calls.push(options);this.currentScale*=options.scaleFactor;}};
+  installTouchNavigation2525({container,surface,getViewer:()=>viewer,now:()=>100});
+  const fire=(type,points=[])=>listeners[type]({type,touches:points.map(([x,y])=>({clientX:x,clientY:y})),preventDefault(){},stopPropagation(){}});
+  fire('touchstart',[[100,200],[200,200]]);
+  assert.equal(surface.style.willChange,'');
+  fire('touchmove',[[80,200],[220,200]]);
+  assert.match(surface.style.transform,/scale\(1\.4\)/);
+  fire('touchend');
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].drawingDelay,0);
+});
+
+test('V25.46 : choisir un menu déroulant passe automatiquement au prochain champ', async () => {
+  const h=formHarness(['frequence_etalonnage','client_nom'],installFormNavigation2525);
+  try{
+    h.allFields[0].tagName='SELECT';
+    h.navigation.refresh();
+    h.allFields[0].focus();
+    h.fire(h.surface,'change',h.allFields[0]);
+    await Promise.resolve();
+    assert.equal(h.owner.activeElement,h.allFields[1]);
+    assert.deepEqual(h.blurEvents,[{from:'frequence_etalonnage',to:'client_nom'}]);
+  }finally{h.cleanup();}
+});
+
+test('V25.46 : nouvelle interface mobile, marge Android et couleurs de conformité claires', () => {
+  const html=readFileSync(new URL('../reader-v2525.html',import.meta.url),'utf8');
+  assert.match(html,/id="zoomControls"/);
+  assert.match(html,/padding-top:max\(10px,env\(safe-area-inset-top,0px\)\)/);
+  assert.match(html,/conforme_vert/);
+  assert.match(html,/#25e67a/);
+  assert.match(html,/conforme_rouge/);
+  assert.match(html,/#ff4b5d/);
+  assert.match(html,/backface-visibility:visible!important/);
 });
