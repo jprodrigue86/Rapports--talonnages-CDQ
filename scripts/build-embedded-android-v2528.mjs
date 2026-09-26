@@ -143,6 +143,10 @@ selector=replace(selector,
   '      item.textContent =\n        compagnie.nom;\n      item.dataset.companyId=String(compagnie.id||"");\n\n\n      item.onclick ='
 );
 selector=replace(selector,
+  '      const row=document.createElement("div"); row.className="company-item cdq-company-row";',
+  '      const row=document.createElement("div"); row.className="company-item cdq-company-row"; row.dataset.companyId=String(comp.id||"");'
+);
+selector=replace(selector,
   '      afficherDossierRecursif(sousDossier, contenu);',
   '      if(!document.documentElement.classList.contains("mobile-device"))afficherDossierRecursif(sousDossier, contenu);'
 );
