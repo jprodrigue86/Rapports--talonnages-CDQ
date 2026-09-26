@@ -15,15 +15,15 @@ class PackagedWebAssetsTest {
 
     @Test fun `startup and images are supplied from installed assets`() {
         val loader = loader()
-        assertEquals("/Rapports--talonnages-CDQ/native/v25.45/", loader.prefix)
+        assertEquals("/Rapports--talonnages-CDQ/native/v25.46/", loader.prefix)
         assertEquals(
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.45/index.html",
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.46/index.html",
             loader.startUrl
         )
         val response = loader.intercept(Uri.parse(loader.startUrl))!!
         assertEquals(200, response.statusCode)
         val shell = response.data.bufferedReader().readText()
-        assertTrue(shell.contains("25.45-fast-client-render"))
+        assertTrue(shell.contains("25.46-pdf-viewer-polish"))
         assertTrue(shell.contains("CDQ_FIRST_FRAME_STABLE_V2543"))
         assertTrue(shell.contains("2500"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}Selector.html"))!!
