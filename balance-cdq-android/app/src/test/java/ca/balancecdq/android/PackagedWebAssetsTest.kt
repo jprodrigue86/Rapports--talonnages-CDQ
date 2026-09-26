@@ -43,8 +43,9 @@ class PackagedWebAssetsTest {
         assertTrue(warm.data.bufferedReader().readText().contains("cdqWarmUnlockV2540"))
         val settle = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}first-frame-stable-v2543.js"))!!
         assertEquals(200, settle.statusCode)
-        assertTrue(settle.data.bufferedReader().readText().contains("CDQ_FIRST_FRAME_ARM_V2543"))
-        assertTrue(settle.data.bufferedReader().readText().contains("CDQ_FIRST_FRAME_STABLE_V2543"))
+        val settleText = settle.data.bufferedReader().readText()
+        assertTrue(settleText.contains("CDQ_FIRST_FRAME_ARM_V2543"))
+        assertTrue(settleText.contains("CDQ_FIRST_FRAME_STABLE_V2543"))
         val artwork = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}icon-artwork-baseline-v2540.css"))!!
         assertEquals(200, artwork.statusCode)
         assertTrue(artwork.data.bufferedReader().readText().contains("icons-transparent.webp"))
