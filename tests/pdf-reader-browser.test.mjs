@@ -55,6 +55,45 @@ try{
   assert.equal(viewerUi.zoomControls,true);
   assert.match(viewerUi.green,/37, 230, 122|rgb\(37, 230, 122\)|#25e67a/i);
   assert.match(viewerUi.red,/255, 75, 93|rgb\(255, 75, 93\)|#ff4b5d/i);
+
+  const navigationAudit=await f.evaluate(()=>{
+    const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    const all=[...document.querySelectorAll('.annotationLayer input,.annotationLayer textarea,.annotationLayer select')];
+    const auto=all.filter(el=>el.dataset.cdqAutoField==='true').map(el=>({name:el.name,tabIndex:el.tabIndex}));
+    const echelon=all.find(el=>normalize(el.name)==='echelon');
+    const typeBalance=all.find(el=>{const n=normalize(el.name);return n.includes('type')&&n.includes('balance')});
+    const calculated=all.filter(el=>/(tolerance|erreur|conforme)/.test(normalize(el.name)));
+    const manual=all.filter(el=>/^charge_point_\d+_(charge_utilisee|avant_correction|apres_correction)$/.test(el.name)&&el.dataset.cdqNavIndex!=null)
+      .map(el=>{
+        const page=el.closest('.page'),pr=page?.getBoundingClientRect(),r=el.getBoundingClientRect();
+        return {name:el.name,index:Number(el.dataset.cdqNavIndex),page:Number(page?.dataset.pageNumber||0),y:pr?(r.top-pr.top)/Math.max(1,pr.height):r.top,x:pr?(r.left-pr.left)/Math.max(1,pr.width):r.left};
+      }).sort((a,b)=>a.index-b.index);
+    const excentricity=all.filter(el=>/^(charge_excentricite|excentricite_)/.test(el.name)&&el.dataset.cdqNavIndex!=null)
+      .map(el=>({name:el.name,index:Number(el.dataset.cdqNavIndex)})).sort((a,b)=>a.index-b.index);
+    return {auto,echelon:echelon&&{name:echelon.name,tabIndex:echelon.tabIndex,auto:echelon.dataset.cdqAutoField},
+      typeBalance:typeBalance&&{name:typeBalance.name,tabIndex:typeBalance.tabIndex,auto:typeBalance.dataset.cdqAutoField},
+      calculated:calculated.slice(0,20).map(el=>({name:el.name,tabIndex:el.tabIndex,auto:el.dataset.cdqAutoField})),
+      manual,excentricity};
+  });
+  assert.ok(navigationAudit.echelon,'Le champ échelon doit exister dans le PDF de référence');
+  assert.equal(navigationAudit.echelon.auto,'true');
+  assert.equal(navigationAudit.echelon.tabIndex,-1);
+  if(navigationAudit.typeBalance){
+    assert.equal(navigationAudit.typeBalance.auto,'true');
+    assert.equal(navigationAudit.typeBalance.tabIndex,-1);
+  }
+  assert.ok(navigationAudit.calculated.length>0);
+  assert.ok(navigationAudit.calculated.every(x=>x.auto==='true'&&x.tabIndex===-1));
+  assert.ok(navigationAudit.manual.length>=6);
+  for(let i=1;i<navigationAudit.manual.length;i++){
+    const a=navigationAudit.manual[i-1],b=navigationAudit.manual[i];
+    assert.ok(b.page>a.page || (b.page===a.page && b.y>=a.y-.006),
+      'Bloc 3 doit progresser visuellement de haut en bas: '+a.name+' -> '+b.name);
+  }
+  if(navigationAudit.excentricity.length){
+    assert.ok(Math.min(...navigationAudit.excentricity.map(x=>x.index))>Math.max(...navigationAudit.manual.map(x=>x.index)),
+      'L’excentricité ne doit pas couper la séquence du bloc 3');
+  }
   if(mobile){
     assert.equal(viewerUi.headerDisplay,'grid');assert.ok(viewerUi.headerPaddingTop>=15);
     const keyboardUi=await f.evaluate(async()=>{
