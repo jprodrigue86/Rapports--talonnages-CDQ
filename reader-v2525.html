@@ -74,6 +74,28 @@ header{background:#161a20;border-color:#3d4652}header button,#more button{backgr
   #status{position:absolute!important;bottom:0!important;left:0!important;right:0!important;height:30px;padding:7px 8px;background:#111820}
   #more{position:absolute;right:8px;top:calc(102px + var(--reader-safe-top));width:min(260px,calc(100vw - 16px));z-index:70}
   #savingMask{position:absolute!important;top:calc(104px + var(--reader-safe-top))!important;bottom:30px!important;left:0!important;right:0!important}
+  /* V25.48 — saisie mobile: libérer l’espace occupé par le zoom et l’état
+     pendant que le clavier est ouvert, sans changer l’interface au repos. */
+  body.cdq-keyboard-field header#readerTop{
+    height:calc(58px + var(--reader-safe-top))!important;
+    grid-template-areas:"back name save menu"!important;
+    grid-template-rows:1fr!important;
+    padding:calc(var(--reader-safe-top) + 5px) 8px 5px!important
+  }
+  body.cdq-keyboard-field #zoomControls{display:none!important}
+  body.cdq-keyboard-field #status{display:none!important}
+  body.cdq-keyboard-field #container{
+    top:calc(58px + var(--reader-safe-top))!important;
+    bottom:48px!important
+  }
+  body.cdq-keyboard-field.form-navigation #container{bottom:48px!important}
+  body.cdq-keyboard-field #formNav{
+    bottom:0!important;height:48px!important;padding:3px 8px!important
+  }
+  body.cdq-keyboard-field #savingMask{
+    top:calc(58px + var(--reader-safe-top))!important;bottom:0!important
+  }
+  body.cdq-keyboard-field #more{display:none!important}
 }
 </style></head><body>
 <header id="readerTop"><button id="back" aria-label="Retour dans CDQ">← <span>Retour</span></button><span id="name">PDF</span><div id="zoomControls" aria-label="Zoom du PDF"><button id="minus" class="zoom-button" aria-label="Réduire">−</button><span id="zoom">100 %</span><button id="plus" class="zoom-button" aria-label="Agrandir">+</button></div><button id="save" class="primary" disabled>Enregistrer</button><button id="menu" aria-label="Options du PDF" aria-expanded="false">⋯</button></header>

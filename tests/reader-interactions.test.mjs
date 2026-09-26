@@ -231,3 +231,16 @@ test('V25.46 : nouvelle interface mobile, marge Android et couleurs de conformit
   assert.match(html,/#ff4b5d/);
   assert.match(html,/backface-visibility:visible!important/);
 });
+
+test('V25.48 : la saisie mobile agrandit la fenêtre du PDF sans changer le mode normal', () => {
+  const html=readFileSync(new URL('../reader-v2525.html',import.meta.url),'utf8');
+  const js=readFileSync(new URL('../reader-v2525.mjs',import.meta.url),'utf8');
+  assert.match(html,/body\.cdq-keyboard-field #zoomControls\{display:none!important\}/);
+  assert.match(html,/body\.cdq-keyboard-field #status\{display:none!important\}/);
+  assert.match(html,/height:calc\(58px \+ var\(--reader-safe-top\)\)!important/);
+  assert.match(html,/body\.cdq-keyboard-field #container\{[\s\S]*?bottom:48px!important/);
+  assert.match(html,/body\.cdq-keyboard-field #formNav\{[\s\S]*?bottom:0!important/);
+  assert.match(js,/function cdqTextEntryFieldV2548/);
+  assert.match(js,/function cdqKeyboardFieldV2548/);
+  assert.match(js,/scrollIntoView\(\{block:'center',inline:'nearest',behavior:'instant'\}\)/);
+});
