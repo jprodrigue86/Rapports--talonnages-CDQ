@@ -219,15 +219,17 @@ try{
     compagnieSelectionnee=id;nomCompagnieSelectionnee='Client rendu';
     cacheContenuCompagnies[id]=nested;cacheDerniereVerificationCompagnies[id]=Date.now();cdqRootContent=nested;
     const host=document.createElement('div');
+    host.id='cdq-v2545-render-fixture';
+    document.body.appendChild(host);
     afficherDossierRecursif(nested,host);
     const before={rows:host.querySelectorAll('.file-row').length,folders:host.querySelectorAll('.folder-header').length};
     const topFolder=host.querySelector('.folder');
-    const topContent=topFolder?.querySelector(':scope > .folder-content');
-    if(topContent){
-      afficherDossierRecursif(nested.dossiers[0],topContent);
-      topFolder.classList.add('open');
-    }
-    const after={rows:host.querySelectorAll('.file-row').length,folders:host.querySelectorAll('.folder-header').length,open:!!host.querySelector('.folder.open')};
+    const topContent=topFolder?.querySelector('.folder-content');
+    if(!topFolder||!topContent)throw Error('V25.45 fixture folder missing');
+    afficherDossierRecursif(nested.dossiers[0],topContent);
+    topFolder.classList.add('open');
+    const after={rows:host.querySelectorAll('.file-row').length,folders:host.querySelectorAll('.folder-header').length,open:topFolder.classList.contains('open')};
+    host.remove();
     delete cacheContenuCompagnies[id];delete cacheDerniereVerificationCompagnies[id];
     compagnieSelectionnee=previous.client;nomCompagnieSelectionnee=previous.name;cdqRootContent=previous.root;
     return {before,after};
