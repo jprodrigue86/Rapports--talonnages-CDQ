@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const prefix=base+'native/v25.42/';
+const prefix=base+'native/v25.43/';
 const generated='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web/';
 const files=JSON.parse(fs.readFileSync(generated+'asset-manifest.json')).files;
 const bridge=fs.readFileSync('balance-cdq-android/web-source/server-bridge.js','utf8');
@@ -15,7 +15,7 @@ try{
   const bridgeStart=new Promise(resolve=>{bridgeStarted=resolve;});
   page.on('pageerror',error=>errors.push(error.message));
   await page.setViewport({width:393,height:850,isMobile:true,hasTouch:true});
-  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.42 CDQSafeArea/1');
+  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.43 CDQSafeArea/1');
   await page.exposeFunction('recordRpc',name=>calls.push(name));
   await page.evaluateOnNewDocument(()=>{
     window.testTicketConfirmCount=0;
@@ -86,7 +86,7 @@ try{
       return request.respond({status:200,contentType:'text/html; charset=utf-8',body:`<script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
     }
     // The explicitly live version check is allowed; public/static UI downloads are not.
-    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.25-v25.42-first-frame-settle'})});
+    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.25-v25.43-stable-first-frame'})});
     unexpected.push(url);return request.abort();
   });
   // Puppeteer's navigation lifecycle also waits on child frames. Here the
@@ -109,7 +109,7 @@ try{
   assert.deepEqual(errors,[]);
   assert.deepEqual(unexpected,[]);
   assert.ok(calls.includes('obtenirEtatAcces'));
-  // V25.42 returning startup: Android already owns the biometric prompt and
+  // V25.43 returning startup: Android already owns the biometric prompt and
   // the untouched Selector is allowed to parse while the server is held.
   await page.evaluate(()=>{
     localStorage.setItem('cdq_auth_device_token_v2','fixture-device');
@@ -130,13 +130,28 @@ try{
   ));
   await selector.waitForFunction(()=>cdqAccessState==='ready',{timeout:3000});
   const firstFrameSettleAt=Date.now();
+  assert.equal(await page.evaluate(()=>cdqFirstFrameStableV2543),false,
+    'Native shell must wait for the Selector stable-frame signal');
   assert.equal(await page.evaluate(()=>getComputedStyle(document.getElementById('app')).visibility),'hidden',
     'Android must keep the first authenticated frame covered while icons settle');
+  const lateIconMutation=await selector.evaluate(()=>{
+    const offline=[...document.querySelectorAll('button,[role="button"],a')]
+      .find(el=>String(el.textContent||'').replace(/\s+/g,' ').trim().toLowerCase().includes('hors ligne'));
+    if(!offline)return false;
+    setTimeout(()=>{
+      const icon=offline.querySelector('span,i,svg')||document.createElement('span');
+      if(!icon.parentNode)offline.prepend(icon);
+      icon.setAttribute('data-cdq-late-icon-test','1');
+    },180);
+    return true;
+  });
+  assert.equal(lateIconMutation,true,'Offline control must exist in the real Selector fixture');
   await page.waitForFunction(()=>getComputedStyle(document.getElementById('app')).visibility==='visible',{timeout:3000});
   const firstFrameSettleMs=Date.now()-firstFrameSettleAt;
-  assert.ok(firstFrameSettleMs>=70,'First-frame settle was too short: '+firstFrameSettleMs+' ms');
+  assert.ok(firstFrameSettleMs>=320,'Stable-frame gate revealed too early: '+firstFrameSettleMs+' ms');
+  assert.equal(await page.evaluate(()=>cdqFirstFrameStableV2543),true);
   const fastStartMs=Date.now()-fastStartAt;
-  assert.ok(fastStartMs<1000,'Local UI after fingerprint took '+fastStartMs+' ms');
+  assert.ok(fastStartMs<1200,'Local UI after fingerprint took '+fastStartMs+' ms');
   assert.equal(await selector.evaluate(()=>utilisateurCourantRole),'technicien');
   assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,0,'Server is still deliberately held');
 
@@ -208,7 +223,7 @@ try{
   assert.equal(navIcons.artworkCss,true);
   assert.equal(navIcons.sprite.ok,true);
   assert.ok(navIcons.sprite.bytes>500000);
-  assert.match(navIcons.sprite.url,/native\/v25\.42\/bundles\/balance-cdq\/v25\.15\/icons-transparent\.webp/);
+  assert.match(navIcons.sprite.url,/native\/v25\.43\/bundles\/balance-cdq\/v25\.15\/icons-transparent\.webp/);
   assert.equal(await selector.evaluate(()=>typeof window.cdqIconFallbackV2538),'undefined');
 
   // The server now confirms; held RPC may leave the device only after this point.
