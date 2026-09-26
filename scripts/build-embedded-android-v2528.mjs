@@ -62,9 +62,15 @@ shell=replace(shell,`setTimeout(()=>{
   if(!iframeLoaded || selectorReady)return;`,`setTimeout(()=>{
   if(window.BalanceCDQNative)return;
   if(!iframeLoaded || selectorReady)return;`);
-shell=replace(shell,'selectorAwaitingAccess = false;',`selectorAwaitingAccess = false;
+shell=replace(shell,`selectorReady = false;
+iframeLoaded = false;
+selectorAwaitingAccess = false;
+clearTimeout(accessWaitTimer);`,`selectorReady = false;
+iframeLoaded = false;
+selectorAwaitingAccess = false;
 cdqFirstFrameStableV2543=!window.BalanceCDQNative;
-clearTimeout(cdqFirstFrameFallbackV2543);`);
+clearTimeout(cdqFirstFrameFallbackV2543);
+clearTimeout(accessWaitTimer);`);
 shell=replace(shell,`if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
 
 if(data.type==='CDQ_FILE_HANDOFF_FREEZE_V2307'){`,`if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
