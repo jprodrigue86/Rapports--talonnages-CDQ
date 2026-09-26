@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html data-cdq-iphone-version="25.46" data-cdq-iphone-release="7945bc89174c1a506749df787cbad75f8b7ef8419ad243dccf4538da57798758">
+<html data-cdq-iphone-version="25.47" data-cdq-iphone-release="cc1ac08156779961f8751c36bd3c96745f7bc99fb5a4f1108f6a073fb86d0d9b">
 <head>
 <script src="./iphone-update.js"></script>
 <script id="cdqFullNamesV2536">
@@ -481,7 +481,7 @@
 <link rel="icon" href="./icons/icon-heavy-v3-192.png">
 <link rel="stylesheet" href="./icon-artwork-baseline-v2540.css">
 <script src="./embedded-rpc.js"></script>
-<meta name="cdq-package-build" content="2026.09.26-v25.46-pdf-viewer-polish">
+<meta name="cdq-package-build" content="2026.09.26-v25.47-native-update-center">
 <script id="cdqPcEarlyBootV2166">
 (function(){
   try{
@@ -759,7 +759,7 @@ function cdqAnnounceSelectorReadyV42(){
     type:'CDQ_SELECTOR_READY',
     authProtocol:42,
     accessState:cdqAccessState,
-    build:'2026.09.26-v25.46-pdf-viewer-polish'
+    build:'2026.09.26-v25.47-native-update-center'
   });
 }
 
@@ -772,7 +772,7 @@ function cdqAnnounceHealthReadyV97(){
         type:'CDQ_HEALTH_READY',
         authProtocol:42,
         accessState:cdqAccessState,
-        build:'2026.09.26-v25.46-pdf-viewer-polish'
+        build:'2026.09.26-v25.47-native-update-center'
       });
     }
   } catch(e) {}
@@ -11168,7 +11168,7 @@ function changerMode(){
 (function(){
   "use strict";
 
-  const CDQ_BUILD = "2026.09.26-v25.46-pdf-viewer-polish";
+  const CDQ_BUILD = "2026.09.26-v25.47-native-update-center";
   let cdqRootContent = null;
   let cdqFolderMap = Object.create(null);
   let cdqParentMap = Object.create(null);
@@ -12151,14 +12151,54 @@ function cdqCompareVersionV2248(a,b){
   return 0;
 }
 
+function cdqNativeUpdateBridgeV2547(){
+  try{return window.BalanceCDQNative || (window.parent&&window.parent.BalanceCDQNative) || null;}catch(_){return window.BalanceCDQNative||null;}
+}
+function cdqNativeUpdateIdentityV2547(){
+  const bridge=cdqNativeUpdateBridgeV2547();
+  try{
+    if(bridge&&typeof bridge.updateIdentity==='function'){
+      const raw=JSON.parse(String(bridge.updateIdentity()||'{}'));
+      const name=String(raw.versionName||'').trim().replace(/^V/i,'');
+      const code=Number(raw.versionCode||0);
+      if(name&&code>0)return {version:'V'+name,code};
+    }
+  }catch(_){}
+  const m=String(navigator.userAgent||'').match(/BalanceCDQAndroid\/(\d+(?:\.\d+)?)/i);
+  if(!m)return null;
+  const p=m[1].split('.');
+  return {version:'V'+m[1],code:(Number(p[0]||0)*100)+Number(p[1]||0)};
+}
+async function cdqFetchNativeUpdateManifestV2547(){
+  const stamp=Date.now();
+  const urls=[
+    'https://jprodrigue86.github.io/Rapports--talonnages-CDQ/downloads/android-release-update.json?cdq_ts='+stamp,
+    'https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/android-release-update.json?cdq_ts='+stamp
+  ];
+  const settled=await Promise.allSettled(urls.map(async function(url){
+    const response=await fetch(url,{cache:'no-store'});
+    if(!response.ok)throw Error('HTTP '+response.status);
+    const json=await response.json();
+    const code=Number(json&&json.versionCode||0);
+    if(!code||!json.versionName||!json.apkUrl)throw Error('Manifeste Android incomplet.');
+    return json;
+  }));
+  const values=settled.filter(function(x){return x.status==='fulfilled';}).map(function(x){return x.value;});
+  if(!values.length)throw Error('Impossible de joindre le canal Android stable.');
+  values.sort(function(a,b){return Number(b.versionCode||0)-Number(a.versionCode||0);});
+  return values[0];
+}
+
 function cdqRefreshUpdateCenterUI(){
     const status=document.getElementById("cdqUpdateStatus");
     const installed=document.getElementById("cdqUpdateInstalled");
     const latest=document.getElementById("cdqUpdateLatest");
     const install=document.getElementById("cdqInstallUpdateButton");
-    const installedBuild=CDQ_BUILD;
+    const identity=cdqNativeUpdateIdentityV2547();
+    const installedBuild=identity?identity.version:String(cdqUpdateInfo.current||CDQ_BUILD);
     const remoteBuild=String(cdqUpdateInfo.latest||"");
-    const newer=cdqCompareVersionV2248(remoteBuild,installedBuild)>0;
+    const updateError=String(cdqUpdateInfo.erreur||"");
+    const newer=!!cdqUpdateInfo.disponible || cdqCompareVersionV2248(remoteBuild,installedBuild)>0;
     const availableBuild=newer?remoteBuild:"";
 
     if(installed){
@@ -12167,12 +12207,15 @@ function cdqRefreshUpdateCenterUI(){
     }
     if(latest){
       latest.textContent=newer?cdqVersionLabelV87(availableBuild):"—";
-      latest.title=newer?cdqVersionDetailV87(availableBuild):"Aucune version plus récente.";
+      latest.title=updateError?updateError:(newer?cdqVersionDetailV87(availableBuild):"Aucune version plus récente.");
     }
 
     if(status){
       if(!cdqUpdateInfo.verifie){
         status.textContent="Vérification en cours…";
+        status.className="cdq-update-state checking";
+      }else if(updateError){
+        status.textContent="Vérification impossible";
         status.className="cdq-update-state checking";
       }else if(newer){
         status.textContent="Mise à jour disponible";
@@ -12184,13 +12227,13 @@ function cdqRefreshUpdateCenterUI(){
     }
 
     if(install){
-      install.disabled=!newer;
-      install.textContent=newer
-        ? ("Installer "+cdqVersionLabelV87(availableBuild))
-        : "Déjà à jour";
-      install.title=newer
-        ? ("Installer la dernière version publiée : "+availableBuild)
-        : "Aucune mise à jour plus récente n’est disponible.";
+      install.disabled=!newer&&!updateError;
+      install.textContent=updateError
+        ? "Vérifier avec Android"
+        : (newer ? ("Installer "+cdqVersionLabelV87(availableBuild)) : "Déjà à jour");
+      install.title=updateError
+        ? "Ouvrir le vérificateur Android natif."
+        : (newer ? ("Installer la dernière version publiée : "+availableBuild) : "Aucune mise à jour plus récente n’est disponible.");
     }
   }
 
@@ -13194,14 +13237,43 @@ function cdqApplyTheme(theme,noSync){
   
 window.cdqPcSettingsV2518={apply:cdqForceUpdate,check:()=>{cdqUpdateInfo.verifie=false;cdqCheckUpdate()},diagnostic:cdqOpenDiagnostic,save:cdqScheduleSavePreferencesV72,status:()=>({checked:cdqUpdateInfo.verifie,latest:cdqUpdateInfo.latest,current:CDQ_BUILD})};
 function cdqCheckUpdate(){
+    const identity=cdqNativeUpdateIdentityV2547();
+    if(identity){
+      cdqUpdateInfo={disponible:false,latest:"",current:identity.version,verifie:false,erreur:""};
+      cdqRefreshUpdateCenterUI();
+      cdqFetchNativeUpdateManifestV2547().then(function(manifest){
+        const latest='V'+String(manifest.versionName||'').replace(/^V/i,'');
+        cdqUpdateInfo={
+          disponible:Number(manifest.versionCode||0)>Number(identity.code||0),
+          latest:latest,current:identity.version,verifie:true,erreur:""
+        };
+        cdqRefreshUpdateCenterUI();
+      }).catch(function(error){
+        cdqUpdateInfo={
+          disponible:false,latest:"",current:identity.version,verifie:true,
+          erreur:error&&error.message?error.message:String(error||"Vérification Android impossible.")
+        };
+        cdqRefreshUpdateCenterUI();
+      });
+      return;
+    }
     if(!cdqPwaAvailable()){
-      cdqUpdateInfo={disponible:false,latest:"",current:CDQ_BUILD,verifie:true};
+      cdqUpdateInfo={disponible:false,latest:"",current:CDQ_BUILD,verifie:true,erreur:""};
       cdqRefreshUpdateCenterUI();
       return;
     }
     try{cdqPostToPwa({type:"CDQ_CHECK_UPDATE",authProtocol:42,accessState:cdqAccessState,build:CDQ_BUILD});}catch(e){}
   }
   function cdqForceUpdate(){
+    const identity=cdqNativeUpdateIdentityV2547();
+    if(identity){
+      const bridge=cdqNativeUpdateBridgeV2547();
+      try{
+        if(bridge&&typeof bridge.openUpdater==='function'){bridge.openUpdater();return;}
+      }catch(_){}
+      try{window.top.location.href='cdqupdate://check';}catch(_){location.href='cdqupdate://check';}
+      return;
+    }
     if(cdqCompareVersionV2248(cdqUpdateInfo.latest,CDQ_BUILD)<=0)return;
     const install=document.getElementById("cdqInstallUpdateButton");
     const status=document.getElementById("cdqUpdateStatus");
@@ -13349,7 +13421,7 @@ function cdqCheckUpdate(){
 (function(){
 "use strict";
 
-const CDQ_V19_BUILD = "2026.09.26-v25.46-pdf-viewer-polish";
+const CDQ_V19_BUILD = "2026.09.26-v25.47-native-update-center";
 const CDQ_V19_DAY_KEY = "cdqV19OfflineDay";
 let cdqV19SyncRunning = false;
 let cdqV19OfflineToggleRunning = false;
@@ -14862,7 +14934,7 @@ window.addEventListener("load",function(){
 (function(){
 "use strict";
 
-const CDQ_V20_BUILD = "2026.09.26-v25.46-pdf-viewer-polish";
+const CDQ_V20_BUILD = "2026.09.26-v25.47-native-update-center";
 let cdqV20Inventory = null;
 let cdqV20Tab = "stock";
 let cdqV20Location = "";
@@ -15710,7 +15782,7 @@ window.addEventListener("online",function(){setTimeout(v20RefreshAlerts,1200);})
 (function(){
 "use strict";
 
-const CDQ_V21_BUILD = "2026.09.26-v25.46-pdf-viewer-polish";
+const CDQ_V21_BUILD = "2026.09.26-v25.47-native-update-center";
 let cdqV21PushPending = false;
 function v21IsAdmin(){return String(utilisateurCourantRole||'')==='admin';}
 
@@ -16238,7 +16310,7 @@ window.ouvrirFacturesCDQ=ouvrirFacturesCDQ;function install(){const nav=document
 (function(){
 'use strict';
 if(!document.documentElement.classList.contains('windows'))return;
-const BUILD='2026.09.26-v25.46-pdf-viewer-polish';
+const BUILD='2026.09.26-v25.47-native-update-center';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const st={
@@ -19995,7 +20067,7 @@ html.windows #cdqPcV16 #cdqPcUpdateBtnV2244:hover{filter:brightness(1.08);}
 <script id="cdqPcV2244UpdateBannerJs">
 (function(){
   'use strict';
-  const BUILD='2026.09.26-v25.46-pdf-viewer-polish';
+  const BUILD='2026.09.26-v25.47-native-update-center';
   const PARENT_ORIGIN='https://jprodrigue86.github.io';
   let queryTimer=0;
 
@@ -22199,7 +22271,7 @@ html.windows #cdqPcV16 tr.pc22-swiped .pc22-copy-swipe{display:inline-flex!impor
 <script id="cdqfeedbackV2522">
 (function(){
 'use strict';
-const BUILD='2026.09.26-v25.46-pdf-viewer-polish',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
+const BUILD='2026.09.26-v25.47-native-update-center',ORIGIN='https://jprodrigue86.github.io',BASE=ORIGIN+'/Rapports--talonnages-CDQ/';
 const jobs=new Map();let serial=0,indicator,update,checking=false,lastCheck=0,available='',deployed='';
 function paint(){
  if(!document.documentElement.classList.contains('windows'))return;
