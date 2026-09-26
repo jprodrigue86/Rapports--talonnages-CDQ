@@ -34,7 +34,7 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.doesNotMatch(selector,/cdqLocalProvisionalV2537|icon-fallback-v2538|cdq-icon-art-ready-v2538/);
   assert.match(html,/CDQ_FIRST_FRAME_STABLE_V2543/);
   assert.match(html,/CDQ_FIRST_FRAME_ARM_V2543/);
-  assert.match(html,/1500/);
+  assert.match(html,/2500/);
   assert.match(selector,/first-frame-stable-v2543\.js/);
   assert.match(read(source+'first-frame-stable-v2543.js'),/now-started>=450/);
   assert.match(read(source+'first-frame-stable-v2543.js'),/now-stableSince>=220/);
