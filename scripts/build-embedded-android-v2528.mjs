@@ -11,8 +11,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.47/';
-const build='2026.09.26-v25.47-native-update-center';
+const local=base+'native/v25.48/';
+const build='2026.09.26-v25.48-keyboard-copy-flow';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -282,6 +282,85 @@ selector=applySafeSelector2532(selector);
 selector=applyPersonalSizing2533(selector);
 selector=applyWholeWords2534(selector);
 selector=applyFullNames2536(selector);
+
+// V25.48 — création PDF: masquer le modal immédiatement, montrer la barre
+// intégrée déjà acceptée, puis ne rafraîchir que le client concerné.
+selector=replace(selector,'async function confirmerCopie(){',`async function cdqRefreshCreatedPdfV2548(clientId,expectedId,expectedName){
+  clientId=String(clientId||'');expectedId=String(expectedId||'');expectedName=String(expectedName||'');
+  const owner=String(utilisateurCourantEmail||'');
+  const delays=[250,650,1200,2000,3000];
+  const hasTarget=function(root){
+    if(!root)return false;
+    for(const f of (root.fichiers||[])){
+      if(expectedId&&String(f.id||'')===expectedId)return true;
+      if(expectedName&&String(f.nom||'')===expectedName)return true;
+    }
+    return (root.dossiers||[]).some(hasTarget);
+  };
+  for(const delay of delays){
+    await new Promise(resolve=>setTimeout(resolve,delay));
+    if(cdqAccessState!=='ready'||owner!==String(utilisateurCourantEmail||''))return false;
+    try{
+      const result=await window.cdqAppelServeur('actualiserContenuClient',[clientId]);
+      if(cdqAccessState!=='ready'||owner!==String(utilisateurCourantEmail||''))return false;
+      let content=result&&result.contenu?result.contenu:result;
+      const verifiedAt=result&&result.genereLe?Number(result.genereLe):Date.now();
+      if(!content)continue;
+      content=window.cdqInstantFiles2530.overlay(clientId,content);
+      const old=cacheContenuCompagnies[clientId];
+      if(old&&window.cdqMergeClientV2527)content=window.cdqMergeClientV2527(old,content);
+      cacheContenuCompagnies[clientId]=content;
+      cacheDerniereVerificationCompagnies[clientId]=verifiedAt;
+      sauvegarderCachePersistantClient(clientId,content,verifiedAt);
+      if(String(compagnieSelectionnee)===clientId)afficherContenu(content);
+      if(hasTarget(content))return true;
+    }catch(_){}
+  }
+  return false;
+}
+
+async function confirmerCopie(){`);
+
+selector=replace(selector,`  cdqCopieEnCours=true;
+  setBusy(true);
+  setStatus("Création : "+nomModele+"…","working");`,`  cdqCopieEnCours=true;
+  setBusy(true);
+  setStatus("Création : "+nomModele+"…","working");
+  fermerCopie();
+  try{window.cdqProgressSetV2293?.(18,"Création du PDF");}catch(_){}`);
+
+selector=replace(selector,`    if(navigator.onLine === false || (modeleId==='plancher' && cdqPwaAvailable())){
+      await window.cdqCopierTemplateHorsLigne(String(destinationId),idClient,modeleId,cdqCopieRequestId);
+      cdqCopieRequestId="";cdqCopieRequestScope="";
+      setStatus("Copie créée sur cet appareil. Synchronisation dès que possible.","success");
+      fermerCopie();
+      return;
+    }`,`    if(navigator.onLine === false || (modeleId==='plancher' && cdqPwaAvailable())){
+      const localResult=await window.cdqCopierTemplateHorsLigne(String(destinationId),idClient,modeleId,cdqCopieRequestId);
+      if(navigator.onLine!==false){
+        try{window.cdqProgressSetV2293?.(58,"Synchronisation Drive");}catch(_){}
+        await cdqRefreshCreatedPdfV2548(idClient,'',String(localResult&&localResult.name||''));
+      }
+      cdqCopieRequestId="";cdqCopieRequestScope="";
+      setStatus("Copie créée sur cet appareil. Synchronisation dès que possible.","success");
+      return;
+    }`);
+
+selector=replace(selector,`    if(resultat?.ok===true&&resultat.id){
+      window.cdqInstantFiles2530.confirm(resultat,idClient,String(destinationId),{type:'PDF'});
+      await window.cdqCreationV2523.created(resultat,idClient,cdqCopieRequestId);
+    }`,`    if(resultat?.ok===true&&resultat.id){
+      const visibleNow=window.cdqInstantFiles2530.confirm(resultat,idClient,String(destinationId),{
+        type:'PDF',
+        nom:String(resultat.nom||nomModele+'.pdf'),
+        dateModification:String(resultat.dateModification||new Date().toISOString())
+      });
+      try{window.cdqProgressSetV2293?.(72,visibleNow?"PDF créé — finalisation":"PDF créé — actualisation");}catch(_){}
+      const visible=visibleNow?Promise.resolve(true):cdqRefreshCreatedPdfV2548(idClient,String(resultat.id),String(resultat.nom||''));
+      await Promise.all([window.cdqCreationV2523.created(resultat,idClient,cdqCopieRequestId),visible]);
+      try{window.cdqProgressSetV2293?.(94,"PDF prêt");}catch(_){}
+    }`);
+
 selector=replace(selector,
   '      item.textContent =\n        compagnie.nom;\n\n\n      item.onclick =',
   '      item.textContent =\n        compagnie.nom;\n      item.dataset.companyId=String(compagnie.id||"");\n\n\n      item.onclick ='
@@ -303,7 +382,7 @@ files.set('first-frame-stable-v2543.js',fs.readFileSync(source+'first-frame-stab
 files.set('client-speed-v2544.js',fs.readFileSync(source+'client-speed-v2544.js'));
 files.set('icon-artwork-baseline-v2540.css',fs.readFileSync('icon-artwork-baseline-v2540.css'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.47',build,files:{}};
+const manifest={version:'25.48',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);
