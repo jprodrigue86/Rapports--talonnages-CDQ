@@ -46,13 +46,13 @@ header{background:#161a20;border-color:#3d4652}header button,#more button{backgr
 .canvasWrapper{backface-visibility:visible!important}
 .canvasWrapper canvas{backface-visibility:visible!important;will-change:auto!important}
 @media(max-width:600px){
-  html,body{height:100dvh;min-height:100dvh;overflow:hidden}
-  body{display:flex;flex-direction:column;padding-top:max(10px,env(safe-area-inset-top,0px))}
+  html{--reader-safe-top:max(10px,env(safe-area-inset-top,0px))}
+  html,body{height:100%;min-height:100%;overflow:hidden}
   header#readerTop{
-    position:relative;flex:0 0 auto;width:100%;height:auto!important;min-height:0;
+    position:absolute;top:0;left:0;right:0;height:calc(104px + var(--reader-safe-top))!important;
     display:grid;grid-template-columns:46px minmax(0,1fr) auto 46px;
     grid-template-areas:"back name save menu" "zoom zoom zoom zoom";
-    align-items:center;gap:6px 8px;padding:6px 8px 8px!important;
+    align-items:center;gap:6px 8px;padding:calc(var(--reader-safe-top) + 6px) 8px 8px!important;
     background:#121820;border-bottom:1px solid #2d3944
   }
   #back{grid-area:back;width:44px;min-width:44px;min-height:42px;padding:0;border-radius:12px;font-size:0}
@@ -67,13 +67,13 @@ header{background:#161a20;border-color:#3d4652}header button,#more button{backgr
   }
   #zoomControls button{min-width:0;min-height:36px;padding:0;border:0;border-radius:10px;background:transparent;font-size:22px}
   #zoom{min-width:0;text-align:center;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
-  #container{position:relative!important;top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;flex:1 1 auto;min-height:0;width:100%}
-  #formNav{position:relative!important;bottom:auto!important;left:auto!important;right:auto!important;height:50px;flex:0 0 auto;padding:4px 8px;background:#121820;border-top:1px solid #2d3944}
+  #container{position:absolute!important;top:calc(104px + var(--reader-safe-top))!important;bottom:30px!important;left:0!important;right:0!important;width:auto!important;min-height:0}
+  #formNav{position:absolute!important;bottom:30px!important;left:0!important;right:0!important;height:48px;padding:3px 8px;background:#121820;border-top:1px solid #2d3944}
   #formNav button{min-height:40px;border-radius:11px;padding:7px 11px;background:#223442;border-color:#536777}
-  body.form-navigation #container{bottom:auto!important}
-  #status{position:relative!important;bottom:auto!important;left:auto!important;right:auto!important;height:30px;flex:0 0 auto;padding:7px 8px;background:#111820}
-  #more{position:fixed;right:8px;top:calc(max(10px,env(safe-area-inset-top,0px)) + 98px);width:min(260px,calc(100vw - 16px));z-index:70}
-  #savingMask{position:fixed!important;inset:max(10px,env(safe-area-inset-top,0px)) 0 30px!important}
+  body.form-navigation #container{bottom:78px!important}
+  #status{position:absolute!important;bottom:0!important;left:0!important;right:0!important;height:30px;padding:7px 8px;background:#111820}
+  #more{position:absolute;right:8px;top:calc(102px + var(--reader-safe-top));width:min(260px,calc(100vw - 16px));z-index:70}
+  #savingMask{position:absolute!important;top:calc(104px + var(--reader-safe-top))!important;bottom:30px!important;left:0!important;right:0!important}
 }
 </style></head><body>
 <header id="readerTop"><button id="back" aria-label="Retour dans CDQ">← <span>Retour</span></button><span id="name">PDF</span><div id="zoomControls" aria-label="Zoom du PDF"><button id="minus" class="zoom-button" aria-label="Réduire">−</button><span id="zoom">100 %</span><button id="plus" class="zoom-button" aria-label="Agrandir">+</button></div><button id="save" class="primary" disabled>Enregistrer</button><button id="menu" aria-label="Options du PDF" aria-expanded="false">⋯</button></header>
