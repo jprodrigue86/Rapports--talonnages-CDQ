@@ -209,7 +209,7 @@ try{
   assert.match(updateUi.installText,/Installer V25\.48/);
   assert.equal(updateUi.disabled,false);
   await selector.click('#cdqInstallUpdateButton');
-  await page.waitForFunction(()=>window.testUpdaterOpenCount===1,{timeout:3000});
+  await selector.waitForFunction(()=>window.testUpdaterOpenCount===1,{timeout:3000});
 
   // V25.45: a normal unfiltered company row gets its id on first touch, so
   // cache warming starts before the click handler opens the client.
