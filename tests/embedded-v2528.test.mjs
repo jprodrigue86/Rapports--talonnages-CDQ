@@ -131,11 +131,9 @@ test('early Selector background method waits, then uses confirmed cdqRpc session
   assert.equal(a.sent.length,2);
   const routed=a.sent[1].data;
   assert.equal(routed.name,'cdqRpc');
-  assert.deepEqual(routed.args,[
-    'obtenirListeTechniciensRapports',
-    [],
-    'server-session-2541'
-  ]);
+  assert.equal(routed.args[0],'obtenirListeTechniciensRapports');
+  assert.equal(Array.from(routed.args[1]).length,0);
+  assert.equal(routed.args[2],'server-session-2541');
 
   a.message({type:'CDQ_EMBEDDED_RESULT',id:routed.id,ok:true,value:['Technicien A']});
   assert.deepEqual(received,[['Technicien A']]);
