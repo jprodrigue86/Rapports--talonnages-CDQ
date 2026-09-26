@@ -55,7 +55,31 @@ try{
   assert.equal(viewerUi.zoomControls,true);
   assert.match(viewerUi.green,/37, 230, 122|rgb\(37, 230, 122\)|#25e67a/i);
   assert.match(viewerUi.red,/255, 75, 93|rgb\(255, 75, 93\)|#ff4b5d/i);
-  if(mobile){assert.equal(viewerUi.headerDisplay,'grid');assert.ok(viewerUi.headerPaddingTop>=15);}
+  if(mobile){
+    assert.equal(viewerUi.headerDisplay,'grid');assert.ok(viewerUi.headerPaddingTop>=15);
+    const keyboardUi=await f.evaluate(async()=>{
+      const field=document.querySelector('input[name="client_nom"]');
+      const header=document.getElementById('readerTop');
+      const normalHeader=header.getBoundingClientRect().height;
+      field.focus();
+      await new Promise(resolve=>setTimeout(resolve,120));
+      const compactHeader=header.getBoundingClientRect().height;
+      const zoomDisplay=getComputedStyle(document.getElementById('zoomControls')).display;
+      const statusDisplay=getComputedStyle(document.getElementById('status')).display;
+      const active=document.body.classList.contains('cdq-keyboard-field');
+      field.blur();
+      await new Promise(resolve=>setTimeout(resolve,120));
+      return {
+        normalHeader,compactHeader,zoomDisplay,statusDisplay,active,
+        restored:!document.body.classList.contains('cdq-keyboard-field')
+      };
+    });
+    assert.equal(keyboardUi.active,true);
+    assert.equal(keyboardUi.zoomDisplay,'none');
+    assert.equal(keyboardUi.statusDisplay,'none');
+    assert.ok(keyboardUi.compactHeader<keyboardUi.normalHeader);
+    assert.equal(keyboardUi.restored,true);
+  }
   for(const [name,value] of [['echelon','1'],['charge_point_1_charge_utilisee','1000'],['charge_point_1_avant_correction','1003']]){
     await f.click('input[name="'+name+'"]');await new Promise(r=>setTimeout(r,120));await page.keyboard.type(value,{delay:65});await page.keyboard.press('Tab');await new Promise(r=>setTimeout(r,150));
   }
