@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" data-cdq-iphone-version="25.42" data-cdq-iphone-release="333c80f467debc600f64fe6c5ff1dbfc80ac0a9c78cd8a2909e69186a5d9563b">
+<html lang="fr" data-cdq-iphone-version="25.43" data-cdq-iphone-release="ad0537062a2b8f079ee3ee401d0900020cbd82d281d44acc275bdf48694938b9">
 <head>
 <script src="./safe-viewport-v2532.js" data-cdq-viewport="shell"></script>
 <script src="./iphone-update.js"></script>
@@ -474,7 +474,7 @@ referrerpolicy="strict-origin-when-cross-origin">
 </div>
 
 <script>
-const CDQ_PWA_BUILD = '2026.09.25-v25.42-first-frame-settle';
+const CDQ_PWA_BUILD = '2026.09.25-v25.43-stable-first-frame';
 const CDQ_STABLE_DEVICE_TOKEN_KEY = 'cdq_auth_device_token_v2';
 let slowLoadingTimer = null;
 const CDQ_ACTIVATION_SESSION_KEY = 'cdq_activation_pending_v41';
@@ -595,7 +595,9 @@ function cdqFreshAppUrl(reason='boot'){
   return new URL('./Selector.html',location.href).href;
 }
 const MIN_LOADING_MS = 0;
-const CDQ_NATIVE_FIRST_FRAME_SETTLE_MS = 100;
+let cdqFirstFrameStableV2543=!window.BalanceCDQNative;
+let cdqFirstFrameStableSourceV2543=window.BalanceCDQNative?'':'non-native';
+let cdqFirstFrameFallbackV2543=null;
 let loadingShownAt = performance.now();
 let selectorReady = false;
 let iframeLoaded = false;
@@ -948,6 +950,11 @@ if(authMask)authMask.classList.toggle('cdq-auth-ready-v2507',state==='ready');
 const wasPending = selectorAwaitingAccess;
 selectorAwaitingAccess = state === 'pending';
 if (selectorAwaitingAccess) {
+if(window.BalanceCDQNative){
+  cdqFirstFrameStableV2543=false;
+  cdqFirstFrameStableSourceV2543='';
+  clearTimeout(cdqFirstFrameFallbackV2543);
+}
 clearTimeout(hideLoadingTimer);
 loading.style.display = 'grid';
 const pcOneWall=window.matchMedia && matchMedia('(min-width:900px) and (min-aspect-ratio:4/3)').matches;
@@ -973,7 +980,18 @@ loading.style.display = 'grid';
 
 function masquerMurApresDelaiMinimum() {
 const elapsed = performance.now() - loadingShownAt;
-const remaining = Math.max(window.BalanceCDQNative ? CDQ_NATIVE_FIRST_FRAME_SETTLE_MS : 0, MIN_LOADING_MS - elapsed);
+if(window.BalanceCDQNative && !cdqFirstFrameStableV2543){
+  const generation=loadGeneration;
+  clearTimeout(cdqFirstFrameFallbackV2543);
+  cdqFirstFrameFallbackV2543=setTimeout(()=>{
+    if(generation!==loadGeneration || cdqFirstFrameStableV2543)return;
+    cdqFirstFrameStableV2543=true;
+    cdqFirstFrameStableSourceV2543='fallback';
+    masquerMurApresDelaiMinimum();
+  },2500);
+  return;
+}
+const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
 clearTimeout(hideLoadingTimer);
 const generation = loadGeneration;
 hideLoadingTimer = setTimeout(() => {
@@ -998,6 +1016,7 @@ if(pcOneWall){
 // Sur certains Android/PWA, le Selector est chargé mais CDQ_SELECTOR_READY peut se perdre.
 // Après un très court délai, montrer l'iframe chargée au lieu de bloquer l'utilisateur.
 setTimeout(()=>{
+  if(window.BalanceCDQNative)return;
   if(!iframeLoaded || selectorReady)return;
   clearTimeout(loadingTimer);
   clearTimeout(slowLoadingTimer);
@@ -1016,6 +1035,9 @@ cdqOffline.then(controller=>controller.lock());
 selectorReady = false;
 iframeLoaded = false;
 selectorAwaitingAccess = false;
+cdqFirstFrameStableV2543=!window.BalanceCDQNative;
+cdqFirstFrameStableSourceV2543=window.BalanceCDQNative?'':'non-native';
+clearTimeout(cdqFirstFrameFallbackV2543);
 clearTimeout(accessWaitTimer);
 annulerPontBiometrique();
 selectorWindow = null;
@@ -1420,6 +1442,15 @@ else if (!selectorAwaitingAccess) masquerMurApresDelaiMinimum();
 }
 if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
 
+if(data.type==='CDQ_FIRST_FRAME_STABLE_V2543'){
+  if(Number(data.generation)!==loadGeneration)return;
+  cdqFirstFrameStableV2543=true;
+  cdqFirstFrameStableSourceV2543='signal';
+  clearTimeout(cdqFirstFrameFallbackV2543);
+  masquerMurApresDelaiMinimum();
+  return;
+}
+
 if(data.type==='CDQ_FILE_HANDOFF_FREEZE_V2307'){
   cdqStartFileHandoffFreezeV2307(data.duration);
   return;
@@ -1453,7 +1484,10 @@ if(data.type==='CDQ_GOOGLE_AUTH_ERROR'){
 if(data.type==='CDQ_GOOGLE_AUTH_HIDE')masquerConnexionGoogleV42();
 if(String(data.type||'').startsWith('CDQ_OFFLINE_'))cdqOffline.then(controller=>controller.handle(data));
 if(data.type==='CDQ_ACCESS_STATE' && data.state!=='ready')cdqOffline.then(controller=>controller.lock());
-if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready'))replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
+if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready')){
+  replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
+  if(window.BalanceCDQNative)replyToSelector(event.source,{type:'CDQ_FIRST_FRAME_ARM_V2543',generation:loadGeneration});
+}
 if (data.type === 'CDQ_OPEN_PDF') cdqAfficherPdf(data);
 if (data.type === 'CDQ_ACCESS_STATE') recevoirEtatAcces(data.state);
 if (data.type === 'CDQ_BACKEND_STATUS') backendBuild = String(data.build || 'inconnue');
