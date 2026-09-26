@@ -40,7 +40,7 @@ export function installTouchNavigation({container, surface, getViewer, now = Dat
       scaleFactor:previous.targetScale / previous.scale,
       origin:[previous.start.x, previous.start.y],
       pan:[previous.mid.x - previous.start.x, previous.mid.y - previous.start.y],
-      drawingDelay:0,
+      drawingDelay:250,
     });
   }
   function startPan(t) {
@@ -186,8 +186,15 @@ export function installFormNavigation({surface, toolbar, previous, next, done, o
   // Laisser PDF.js recevoir change, puis déplacer le focus au prochain champ.
   surface.addEventListener('change', e => {
     if (!e.target.matches('.choiceWidgetAnnotation select') || !isEditable(e.target)) return;
-    active = e.target; update();
-    Promise.resolve().then(() => go(1, e.target));
+    const field=e.target;
+    active=field;update();
+    // Android ferme son menu natif après l'événement change. L'ancien microtask
+    // partait parfois trop tôt et le focus revenait sur le select. Attendre
+    // brièvement la fermeture du picker avant de passer au champ suivant.
+    setTimeout(() => {
+      if (!surface.contains(field) || !isEditable(field)) return;
+      go(1, field);
+    }, 80);
   });
   for (const button of [previous, next]) button.addEventListener('pointerdown', e => e.preventDefault());
   previous.addEventListener('click', () => go(-1));

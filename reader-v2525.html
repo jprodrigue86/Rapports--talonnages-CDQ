@@ -30,50 +30,103 @@ header{background:#161a20;border-color:#3d4652}header button,#more button{backgr
 #container.dragging .annotationLayer{pointer-events:none}header{box-shadow:none}
 @media(max-width:600px){header{height:96px;padding:4px 8px}#container{top:96px}#savingMask{top:96px}#more{top:94px}}
 
-/* V25.46 — interface lecteur mobile compacte, zones système respectées. */
+/* V25.48 — lecteur mobile : rendu stable, barre compacte et contrôles intégrés. */
 #zoomControls{display:flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto}
 #back{display:inline-flex;align-items:center;justify-content:center;gap:6px}
 #viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_vert" i],
 #viewer .annotationLayer .buttonWidgetAnnotation input[type="radio"][name*="conforme_vert" i],
 #viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_ok" i]{
-  accent-color:#25e67a!important;filter:brightness(1.35) saturate(1.35)!important;opacity:1!important
+  accent-color:#63ff9a!important;filter:brightness(1.9) saturate(1.55) contrast(1.05)!important;
+  opacity:1!important;forced-color-adjust:none
+}
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_vert" i]:checked,
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="radio"][name*="conforme_vert" i]:checked,
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_ok" i]:checked{
+  box-shadow:0 0 0 1px #c5ffda,0 0 7px rgba(83,255,148,.55)!important
 }
 #viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_rouge" i],
 #viewer .annotationLayer .buttonWidgetAnnotation input[type="radio"][name*="conforme_rouge" i],
 #viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="non_conforme" i]{
-  accent-color:#ff4b5d!important;filter:brightness(1.35) saturate(1.35)!important;opacity:1!important
+  accent-color:#ff6f78!important;filter:brightness(1.9) saturate(1.55) contrast(1.05)!important;
+  opacity:1!important;forced-color-adjust:none
 }
-.canvasWrapper{backface-visibility:visible!important}
-.canvasWrapper canvas{backface-visibility:visible!important;will-change:auto!important}
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="conforme_rouge" i]:checked,
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="radio"][name*="conforme_rouge" i]:checked,
+#viewer .annotationLayer .buttonWidgetAnnotation input[type="checkbox"][name*="non_conforme" i]:checked{
+  box-shadow:0 0 0 1px #ffc4c8,0 0 7px rgba(255,91,102,.55)!important
+}
+.canvasWrapper{backface-visibility:visible!important;background:#fff!important}
+.canvasWrapper canvas{backface-visibility:visible!important;will-change:auto!important;visibility:visible!important;opacity:1!important}
 @media(max-width:600px){
-  html{--reader-safe-top:max(10px,env(safe-area-inset-top,0px))}
-  html,body{height:100%;min-height:100%;overflow:hidden}
+  html{
+    --reader-safe-top:max(34px,env(safe-area-inset-top,0px));
+    --reader-safe-bottom:max(0px,env(safe-area-inset-bottom,0px))
+  }
+  html,body{height:100%;min-height:100%;overflow:hidden;background:#0c1218}
   header#readerTop{
-    position:absolute;top:0;left:0;right:0;height:calc(104px + var(--reader-safe-top))!important;
+    position:absolute;top:0;left:0;right:0;height:calc(60px + var(--reader-safe-top))!important;
     display:grid;grid-template-columns:46px minmax(0,1fr) auto 46px;
-    grid-template-areas:"back name save menu" "zoom zoom zoom zoom";
-    align-items:center;gap:6px 8px;padding:calc(var(--reader-safe-top) + 6px) 8px 8px!important;
-    background:#121820;border-bottom:1px solid #2d3944
+    grid-template-areas:"back name save menu";
+    align-items:center;gap:8px;padding:calc(var(--reader-safe-top) + 6px) 8px 8px!important;
+    background:rgba(13,22,29,.98);border-bottom:1px solid #2b3944;
+    box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:55
   }
-  #back{grid-area:back;width:44px;min-width:44px;min-height:42px;padding:0;border-radius:12px;font-size:0}
-  #back:before{content:'←';font-size:26px;line-height:1}
+  #back{
+    grid-area:back;width:44px;min-width:44px;min-height:44px;padding:0;border-radius:14px;
+    font-size:0;background:#1b2a35;border-color:#405361
+  }
+  #back:before{content:'←';font-size:27px;line-height:1;color:#f4fbff}
   #back span{display:none}
-  #name{grid-area:name;min-width:0;flex:none;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #save{grid-area:save;margin:0!important;min-height:42px;padding:8px 11px;border-radius:12px}
-  #menu{grid-area:menu;width:44px;min-width:44px;min-height:42px;padding:0;border-radius:12px;font-size:24px;line-height:1}
-  #zoomControls{
-    grid-area:zoom;justify-self:center;display:grid;grid-template-columns:44px 72px 44px;
-    align-items:center;gap:2px;padding:3px;border:1px solid #34424d;border-radius:14px;background:#1a232c
+  #name{
+    grid-area:name;min-width:0;flex:none;font-size:14px;font-weight:750;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#eef8ff
   }
-  #zoomControls button{min-width:0;min-height:36px;padding:0;border:0;border-radius:10px;background:transparent;font-size:22px}
-  #zoom{min-width:0;text-align:center;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
-  #container{position:absolute!important;top:calc(104px + var(--reader-safe-top))!important;bottom:30px!important;left:0!important;right:0!important;width:auto!important;min-height:0}
-  #formNav{position:absolute!important;bottom:30px!important;left:0!important;right:0!important;height:48px;padding:3px 8px;background:#121820;border-top:1px solid #2d3944}
-  #formNav button{min-height:40px;border-radius:11px;padding:7px 11px;background:#223442;border-color:#536777}
-  body.form-navigation #container{bottom:78px!important}
-  #status{position:absolute!important;bottom:0!important;left:0!important;right:0!important;height:30px;padding:7px 8px;background:#111820}
-  #more{position:absolute;right:8px;top:calc(102px + var(--reader-safe-top));width:min(260px,calc(100vw - 16px));z-index:70}
-  #savingMask{position:absolute!important;top:calc(104px + var(--reader-safe-top))!important;bottom:30px!important;left:0!important;right:0!important}
+  #save{
+    grid-area:save;margin:0!important;min-height:42px;padding:8px 12px;border-radius:13px;
+    background:#0b82bd;border-color:#56cfff;box-shadow:none
+  }
+  #menu{
+    grid-area:menu;width:44px;min-width:44px;min-height:44px;padding:0;border-radius:14px;
+    font-size:24px;line-height:1;background:#1b2a35;border-color:#405361
+  }
+  #zoomControls{
+    position:fixed!important;left:50%;bottom:calc(38px + var(--reader-safe-bottom));z-index:65;
+    transform:translateX(-50%);display:grid;grid-template-columns:42px 68px 42px;
+    align-items:center;gap:2px;padding:4px;border:1px solid rgba(103,132,151,.72);
+    border-radius:16px;background:rgba(18,30,39,.94);box-shadow:0 7px 24px rgba(0,0,0,.28);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
+  }
+  body.form-navigation #zoomControls{bottom:calc(86px + var(--reader-safe-bottom))}
+  #zoomControls button{
+    min-width:0;min-height:36px;padding:0;border:0;border-radius:11px;
+    background:transparent;font-size:22px;color:#f4fbff
+  }
+  #zoomControls button:active{background:#29404f}
+  #zoom{min-width:0;text-align:center;font-size:13px;font-weight:750;font-variant-numeric:tabular-nums;color:#e4f5ff}
+  #container{
+    position:absolute!important;top:calc(60px + var(--reader-safe-top))!important;
+    bottom:calc(30px + var(--reader-safe-bottom))!important;left:0!important;right:0!important;
+    width:auto!important;min-height:0;background:#111820
+  }
+  #formNav{
+    position:absolute!important;bottom:calc(30px + var(--reader-safe-bottom))!important;left:0!important;right:0!important;
+    height:48px;padding:3px 8px;background:rgba(13,22,29,.98);border-top:1px solid #2d3944;z-index:60
+  }
+  #formNav button{min-height:40px;border-radius:12px;padding:7px 11px;background:#223442;border-color:#536777}
+  body.form-navigation #container{bottom:calc(78px + var(--reader-safe-bottom))!important}
+  #status{
+    position:absolute!important;bottom:var(--reader-safe-bottom)!important;left:0!important;right:0!important;
+    height:30px;padding:7px 8px;background:#0d161d;color:#b9cbd7
+  }
+  #more{
+    position:absolute;right:8px;top:calc(58px + var(--reader-safe-top));
+    width:min(270px,calc(100vw - 16px));z-index:70;background:#142631;border-color:#3d5665;border-radius:16px
+  }
+  #more button,#more label{border-radius:11px;background:#1e3442;border-color:#4f6877}
+  #savingMask{
+    position:absolute!important;top:calc(60px + var(--reader-safe-top))!important;
+    bottom:calc(30px + var(--reader-safe-bottom))!important;left:0!important;right:0!important
+  }
 }
 </style></head><body>
 <header id="readerTop"><button id="back" aria-label="Retour dans CDQ">← <span>Retour</span></button><span id="name">PDF</span><div id="zoomControls" aria-label="Zoom du PDF"><button id="minus" class="zoom-button" aria-label="Réduire">−</button><span id="zoom">100 %</span><button id="plus" class="zoom-button" aria-label="Agrandir">+</button></div><button id="save" class="primary" disabled>Enregistrer</button><button id="menu" aria-label="Options du PDF" aria-expanded="false">⋯</button></header>
