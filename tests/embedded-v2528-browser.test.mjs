@@ -221,8 +221,9 @@ try{
     const host=document.createElement('div');
     afficherDossierRecursif(nested,host);
     const before={rows:host.querySelectorAll('.file-row').length,folders:host.querySelectorAll('.folder-header').length};
-    host.querySelector('.folder-header')?.click();
-    await new Promise(resolve=>setTimeout(resolve,80));
+    const header=host.querySelector('.folder-header');
+    if(typeof header?.onclick==='function')header.onclick();
+    await new Promise(resolve=>setTimeout(resolve,160));
     const after={rows:host.querySelectorAll('.file-row').length,folders:host.querySelectorAll('.folder-header').length,open:!!host.querySelector('.folder.open')};
     delete cacheContenuCompagnies[id];delete cacheDerniereVerificationCompagnies[id];
     compagnieSelectionnee=previous.client;nomCompagnieSelectionnee=previous.name;cdqRootContent=previous.root;
