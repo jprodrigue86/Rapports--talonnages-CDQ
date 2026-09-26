@@ -1,4 +1,4 @@
-/* V25.44 — faster client opening + integrated mobile progress.
+/* V25.45 — faster client opening/rendering + integrated mobile progress.
  * Keeps V25.43 startup/biometric/icon stabilization unchanged.
  * - Recent client caches are warmed from IndexedDB after unlock.
  * - A client tap shares one local-cache read and one server request.
@@ -16,6 +16,7 @@
   const SERVER_GRACE_MS=110;
   const warmJobs=new Map();
   const serverJobs=new Map();
+  let prewarmBatch=null;
 
   const account=()=>String(typeof utilisateurCourantEmail!=='undefined'?utilisateurCourantEmail:'').trim().toLowerCase();
   const client=()=>String(typeof compagnieSelectionnee!=='undefined'?compagnieSelectionnee:'');
@@ -147,7 +148,7 @@
       if(current(id,email)&&!(typeof cacheContenuCompagnies!=='undefined'&&cacheContenuCompagnies[id])){
         afficherErreur(error);
       }else{
-        try{console.log('Chargement client V25.44 :',error);}catch(_){}
+        try{console.log('Chargement client V25.45 :',error);}catch(_){}
       }
       return null;
     }).finally(()=>serverJobs.delete(key));
@@ -194,9 +195,48 @@
   }
 
   function prewarm(){
-    if(!ready())return;
+    if(!ready())return Promise.resolve();
     const email=account();
-    for(const id of recentIds())warm(id,email);
+    const ids=recentIds().filter(id=>!(typeof cacheContenuCompagnies!=='undefined'&&cacheContenuCompagnies[id]));
+    if(!ids.length)return Promise.resolve();
+    if(prewarmBatch)return prewarmBatch;
+
+    if(typeof ouvrirBaseCache!=='function'||typeof cleCacheLocale!=='function'||typeof CACHE_STORE_NAME==='undefined'){
+      return Promise.all(ids.map(id=>warm(id,email)));
+    }
+
+    const job=ouvrirBaseCache().then(db=>new Promise(resolve=>{
+      let done=false;
+      const finish=()=>{
+        if(done)return;
+        done=true;
+        try{db.close();}catch(_){}
+        resolve();
+      };
+      let tx;
+      try{
+        tx=db.transaction(CACHE_STORE_NAME,'readonly');
+        const store=tx.objectStore(CACHE_STORE_NAME);
+        for(const id of ids){
+          const req=store.get(cleCacheLocale('client',id));
+          req.onsuccess=()=>{
+            if(!ready()||account()!==email)return;
+            const record=req.result;
+            if(record?.contenu){
+              cacheContenuCompagnies[id]=record.contenu;
+              cacheDerniereVerificationCompagnies[id]=Number(record.verifiedAt)||0;
+            }
+          };
+        }
+        tx.oncomplete=finish;
+        tx.onerror=finish;
+        tx.onabort=finish;
+      }catch(_){finish();}
+    })).catch(()=>Promise.all(ids.map(id=>warm(id,email)))).finally(()=>{
+      if(prewarmBatch===job)prewarmBatch=null;
+    });
+    prewarmBatch=job;
+    return job;
   }
 
   function mobile(){
@@ -261,9 +301,15 @@ html:is(.android,.ios,.mobile-device) #cdqGlobalProgressV2293[data-cdq-integrate
   new MutationObserver(mountProgress).observe(document.body,{childList:true,subtree:true});
 
   document.addEventListener('pointerdown',event=>{
-    const row=event.target?.closest?.('.company-item[data-company-id]');
-    if(!row||!ready())return;
-    const id=String(row.dataset.companyId||'');
+    const row=event.target?.closest?.('.company-item');
+    if(!row||row.classList.contains('company-reset-item')||!ready())return;
+    let id=String(row.dataset.companyId||'');
+    if(!id&&typeof toutesLesCompagnies!=='undefined'){
+      const name=String(row.textContent||'').replace(/\s+/g,' ').trim();
+      const match=(toutesLesCompagnies||[]).find(c=>String(c?.nom||'').replace(/\s+/g,' ').trim()===name);
+      id=String(match?.id||'');
+      if(id)row.dataset.companyId=id;
+    }
     if(id)warm(id,account());
   },true);
 
@@ -287,7 +333,7 @@ html:is(.android,.ios,.mobile-device) #cdqGlobalProgressV2293[data-cdq-integrate
   window.cdqClientSpeedV2544={
     warm,requestServer,prewarm,mountProgress,remember,
     state:{warmJobs,serverJobs},
-    version:'25.44'
+    version:'25.45'
   };
 
   setTimeout(prewarm,80);
