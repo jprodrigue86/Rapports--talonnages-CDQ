@@ -15,15 +15,15 @@ class PackagedWebAssetsTest {
 
     @Test fun `startup and images are supplied from installed assets`() {
         val loader = loader()
-        assertEquals("/Rapports--talonnages-CDQ/native/v25.49/", loader.prefix)
+        assertEquals("/Rapports--talonnages-CDQ/native/v25.50/", loader.prefix)
         assertEquals(
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.49/index.html",
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.50/index.html",
             loader.startUrl
         )
         val response = loader.intercept(Uri.parse(loader.startUrl))!!
         assertEquals(200, response.statusCode)
         val shell = response.data.bufferedReader().readText()
-        assertTrue(shell.contains("25.49-reader-keyboard-space"))
+        assertTrue(shell.contains("25.50-reader-navigation"))
         assertTrue(shell.contains("CDQ_FIRST_FRAME_STABLE_V2543"))
         assertTrue(shell.contains("2500"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}Selector.html"))!!
@@ -68,15 +68,16 @@ class PackagedWebAssetsTest {
         assertEquals(200, reader.statusCode)
         val readerText = reader.data.bufferedReader().readText()
         assertTrue(readerText.contains("cdq-keyboard-field"))
+        assertTrue(readerText.contains("data-cdq-auto-field"))
         assertTrue(readerText.contains("height:calc(46px + var(--reader-safe-top))"))
         assertTrue(readerText.contains("body.cdq-keyboard-field #save"))
         val readerModule = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}reader-v2525.mjs"))!!
         assertEquals(200, readerModule.statusCode)
         val readerModuleText = readerModule.data.bufferedReader().readText()
-        assertTrue(readerModuleText.contains("cdqKeyboardFieldV2549"))
+        assertTrue(readerModuleText.contains("cdqKeyboardFieldV2550"))
         assertTrue(readerModuleText.contains("visualViewport?.addEventListener('resize'"))
-        assertTrue(readerModuleText.contains("[80,180,320,520]"))
-        assertTrue(readerModuleText.contains("scrollIntoView({block:'center'"))
+        assertTrue(readerModuleText.contains("cdqViewportFieldTimerV2550"))
+        assertTrue(readerModuleText.contains("container.scrollTop+=centerY-targetY"))
         val artwork = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}icon-artwork-baseline-v2540.css"))!!
         assertEquals(200, artwork.statusCode)
         assertTrue(artwork.data.bufferedReader().readText().contains("icons-transparent.webp"))

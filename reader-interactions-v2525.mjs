@@ -34,8 +34,6 @@ export function installTouchNavigation({container, surface, getViewer, now = Dat
     if (previous.mode !== 'pinch' || !commit) return;
     const viewer = getViewer();
     if (!viewer) return;
-    // Une seule mise à l'échelle PDF.js au relâchement. drawingDelay conserve
-    // le canvas précédent pendant la préparation du nouveau rendu.
     viewer.updateScale({
       scaleFactor:previous.targetScale / previous.scale,
       origin:[previous.start.x, previous.start.y],
@@ -49,7 +47,7 @@ export function installTouchNavigation({container, surface, getViewer, now = Dat
   }
   function start(e) {
     stopInertia();
-    if (e.touches.length === 1) {gesture=null;return;} // Native compositor scrolling, including inertia.
+    if (e.touches.length === 1) {gesture=null;return;}
     else if (e.touches.length === 2 && getViewer()) {
       if (gesture?.mode === 'pinch') finish();
       const [a, b] = e.touches, mid = middle(a, b);
@@ -81,15 +79,12 @@ export function installTouchNavigation({container, surface, getViewer, now = Dat
       const ratio = gesture.targetScale / gesture.scale, {start, mid, rect} = gesture;
       const x = mid.x - rect.left - (start.x - rect.left) * ratio;
       const y = mid.y - rect.top - (start.y - rect.top) * ratio;
-      // Ne pas toucher à currentScale, aux dimensions ou aux pixels du canvas
-      // pendant le geste (y compris lorsque les doigts restent immobiles).
       surface.style.transform = `translate(${x}px, ${y}px) scale(${ratio})`;
     }
   }
   function end(e) {
     finish(e.type !== 'touchcancel' && (gesture?.mode==='pinch'||e.touches.length===0));
     if(e.type==='touchcancel')stopInertia();
-    // After a pinch, wait for the next gesture; do not compete with native scrolling.
   }
   function click(e) {
     if (now() < suppressClickUntil) { e.preventDefault(); e.stopPropagation(); }
@@ -103,6 +98,20 @@ export function installTouchNavigation({container, surface, getViewer, now = Dat
   return {reset:() => {stopInertia();finish(false)}};
 }
 
+function normalizedName(value){
+  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+}
+
+export function isAutomaticFieldName(name){
+  const n=normalizedName(name);
+  if(!n)return false;
+  if(/(^|_)echelon($|_)/.test(n))return true;
+  if((n.includes('type')&&n.includes('balance'))||n==='balance_type')return true;
+  if(/(^|_)(tolerance|erreur|conforme|non_conforme|statut_conformite)($|_)/.test(n))return true;
+  return false;
+}
+
 export function fieldRank(name) {
   const match = /^charge_point_(\d+)_(charge_utilisee|avant_correction|apres_correction)$/.exec(name || '');
   if (match) return ['charge_utilisee','avant_correction','apres_correction'].indexOf(match[2]) * 100 + Number(match[1]);
@@ -113,9 +122,40 @@ export function fieldRank(name) {
   return null;
 }
 
-// Ne permuter que les champs connus : les autres modèles, liens, boutons de
-// calendrier et indicateurs de conformité conservent leur ordre et leurs actions.
+function visualPosition(field){
+  if(!field||typeof field.getBoundingClientRect!=='function')return null;
+  const rect=field.getBoundingClientRect();
+  if(!rect||![rect.top,rect.left,rect.width,rect.height].every(Number.isFinite))return null;
+  const page=field.closest?.('.page');
+  const pageRect=page&&typeof page.getBoundingClientRect==='function'?page.getBoundingClientRect():null;
+  const pageNumber=Number(page?.dataset?.pageNumber||page?.getAttribute?.('data-page-number')||0);
+  const width=Math.max(1,Number(pageRect?.width)||1),height=Math.max(1,Number(pageRect?.height)||1);
+  return {
+    page:Number.isFinite(pageNumber)?pageNumber:0,
+    top:pageRect?(rect.top-pageRect.top)/height:rect.top,
+    left:pageRect?(rect.left-pageRect.left)/width:rect.left,
+    height:pageRect?rect.height/height:Math.max(1,rect.height)
+  };
+}
+
+// Les vrais champs du PDF suivent leur position visuelle: page par page,
+// de haut en bas, puis de gauche à droite sur une même ligne. Pour les petits
+// tests sans géométrie, conserver l’ordre CDQ historique comme repli.
 export function orderFields(items, nameOf = item => item.name) {
+  const enriched=items.map((item,index)=>({item,index,pos:visualPosition(item),rank:fieldRank(nameOf(item))}));
+  const positioned=enriched.filter(x=>x.pos);
+  if(positioned.length===enriched.length&&enriched.length){
+    enriched.sort((a,b)=>{
+      if(a.pos.page!==b.pos.page)return a.pos.page-b.pos.page;
+      const rowTolerance=Math.max(.004,Math.min(a.pos.height,b.pos.height)*.45);
+      const dy=a.pos.top-b.pos.top;
+      if(Math.abs(dy)>rowTolerance)return dy;
+      const dx=a.pos.left-b.pos.left;
+      if(Math.abs(dx)>.001)return dx;
+      return a.index-b.index;
+    });
+    return enriched.map(x=>x.item);
+  }
   const selected = items.filter(item => fieldRank(nameOf(item)) !== null)
     .sort((a, b) => fieldRank(nameOf(a)) - fieldRank(nameOf(b)));
   let i = 0;
@@ -128,10 +168,14 @@ export function isEditable(field) {
     getComputedStyle(field).visibility !== 'hidden';
 }
 
-export function installFormNavigation({surface, toolbar, previous, next, done, owner = document}) {
+export function isNavigableField(field){
+  return isEditable(field)&&!isAutomaticFieldName(field.name);
+}
+
+export function installFormNavigation({surface, toolbar, previous, next, done, owner = document, reveal}) {
   const selector = '.textWidgetAnnotation input, .textWidgetAnnotation textarea, .choiceWidgetAnnotation select';
   let active = null;
-  const fields = () => orderFields(Array.from(surface.querySelectorAll(selector)).filter(isEditable));
+  const fields = () => orderFields(Array.from(surface.querySelectorAll(selector)).filter(isNavigableField));
   function update() {
     const list = fields(), index = list.indexOf(active);
     toolbar.hidden = index < 0;
@@ -139,53 +183,55 @@ export function installFormNavigation({surface, toolbar, previous, next, done, o
     previous.disabled = index <= 0;
     next.disabled = index < 0 || index === list.length - 1;
   }
+  function revealTarget(target){
+    if(typeof reveal==='function'){reveal(target);return;}
+    try{target.scrollIntoView({block:'nearest', inline:'nearest', behavior:'instant'});}catch(_){}
+  }
   function go(step, from = active) {
     const list = fields(), index = list.indexOf(from), target = list[index + step];
     if (index < 0 || !target) return false;
-    // focus() déclenche les vrais Blur/Focus de PDF.js, donc la validation et
-    // les calculs embarqués. Ne pas modifier directement annotationStorage.
     target.focus({preventScroll:true});
-    target.scrollIntoView({block:'nearest', inline:'nearest', behavior:'instant'});
+    revealTarget(target);
     return true;
   }
   function refresh() {
-    for (const layer of surface.querySelectorAll('.annotationLayer')) {
-      const original = Array.from(layer.children);
-      const sorted = orderFields(original, section => section.querySelector('input,textarea,select')?.name);
-      if (sorted.some((section, i) => section !== original[i])) {
-        const focused = owner.activeElement;
-        for (const section of sorted) layer.appendChild(section);
-        if (focused && surface.contains(focused) && owner.activeElement !== focused) focused.focus({preventScroll:true});
-      }
-    }
+    const navigable=fields(), navSet=new Set(navigable);
+    let index=0;
     for (const field of surface.querySelectorAll(selector)) {
-      field.tabIndex = field.disabled || field.readOnly ? -1 : 0;
-      if (field.tagName !== 'TEXTAREA') field.enterKeyHint = 'next';
+      const auto=isAutomaticFieldName(field.name);
+      field.tabIndex = navSet.has(field) ? 0 : -1;
+      if(auto){
+        field.dataset.cdqAutoField='true';
+        field.setAttribute?.('aria-readonly','true');
+      }else{
+        delete field.dataset.cdqAutoField;
+        field.removeAttribute?.('aria-readonly');
+      }
+      if(navSet.has(field))field.dataset.cdqNavIndex=String(index++);
+      else delete field.dataset.cdqNavIndex;
+      if (field.tagName !== 'TEXTAREA'&&navSet.has(field)) field.enterKeyHint = 'next';
     }
+    if(active&&!navSet.has(active))active=null;
     update();
   }
   surface.addEventListener('focusin', e => {
-    if (!e.target.matches(selector) || !isEditable(e.target)) return;
+    if (!e.target.matches(selector) || !isNavigableField(e.target)) return;
     active = e.target; update();
   });
   owner.addEventListener('focusin', e => {
     if (!surface.contains(e.target) && !toolbar.contains(e.target)) {active = null; update();}
   });
-  // Capture seulement Entrée des champs CDQ concernés. Les anciens PDF peuvent
-  // avoir un script Entrée avec un autre ordre : le Blur conserve leurs calculs.
   surface.addEventListener('keydown', e => {
     if (e.isComposing || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
-    if (e.key === 'Enter' && fieldRank(e.target.name) !== null && e.target.tagName === 'INPUT') {
+    if (e.key === 'Enter' && fieldRank(e.target.name) !== null && isNavigableField(e.target) && e.target.tagName === 'INPUT') {
       if (go(e.shiftKey ? -1 : 1, e.target)) {e.preventDefault(); e.stopPropagation();}
     }
   }, {capture:true});
   surface.addEventListener('keydown', e => {
-    if (e.key === 'Tab' && !e.isComposing && e.target.matches(selector) && go(e.shiftKey ? -1 : 1, e.target)) e.preventDefault();
+    if (e.key === 'Tab' && !e.isComposing && e.target.matches(selector) && isNavigableField(e.target) && go(e.shiftKey ? -1 : 1, e.target)) e.preventDefault();
   });
-  // Un choix dans un menu déroulant est déjà une validation explicite.
-  // Laisser PDF.js recevoir change, puis déplacer le focus au prochain champ.
   surface.addEventListener('change', e => {
-    if (!e.target.matches('.choiceWidgetAnnotation select') || !isEditable(e.target)) return;
+    if (!e.target.matches('.choiceWidgetAnnotation select') || !isNavigableField(e.target)) return;
     active = e.target; update();
     Promise.resolve().then(() => go(1, e.target));
   });
@@ -193,11 +239,9 @@ export function installFormNavigation({surface, toolbar, previous, next, done, o
   previous.addEventListener('click', () => go(-1));
   next.addEventListener('click', () => go(1));
   done.addEventListener('click', () => {done.focus({preventScroll:true}); active = null; update();});
-  return {refresh, reset:() => {active = null; update();}};
+  return {refresh, reset:() => {active = null; update();}, fields};
 }
 
-// Let the keyboard commit composition/autocorrection itself. PDF.js still receives
-// input, blur and willCommit, so validation and document calculations remain active.
 export function installNativeTextInput(surface){
   const composing=new WeakSet();
   const editable=e=>e.target?.matches?.('.textWidgetAnnotation input,.textWidgetAnnotation textarea');

@@ -21,6 +21,11 @@
 #viewer .annotationLayer .buttonWidgetAnnotation :is(input,button,a){opacity:1!important;filter:none!important;color-scheme:only light;forced-color-adjust:none}
 #viewer .annotationLayer .buttonWidgetAnnotation :is(input,button,a):disabled{opacity:1!important}
 #viewer .annotationLayer :is(input,select,textarea){min-height:0;min-width:0;margin:0}
+/* V25.50 - champs calcules/remplis automatiquement: visibles, mais jamais
+   selectionnes par Suivant/Precedent ni par un toucher accidentel. */
+#viewer .annotationLayer :is(input,textarea,select)[data-cdq-auto-field="true"]{
+  pointer-events:none!important;cursor:default!important;caret-color:transparent!important;user-select:none!important
+}
 header{background:#161a20;border-color:#3d4652}header button,#more button{background:#293541;border-color:#718190;color:#fff}header #save{background:#087ab5;border-color:#4dc7ff}
 
 /* One composite page, one canvas: no moving detail tile layered over the PDF. */
