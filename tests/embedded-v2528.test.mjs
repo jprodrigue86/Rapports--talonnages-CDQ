@@ -28,7 +28,7 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/if \(false && 'serviceWorker' in navigator\)/);
   assert.doesNotMatch(html,/<script src="https:\/\/accounts.google.com/);
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
-  assert.match(selector,/native\/v25.47\/vendor\/pdf-lib/);
+  assert.match(selector,/native\/v25.48\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);
   assert.match(selector,/id="cdqFullNamesV2536"/);
   assert.match(selector,/icon-artwork-baseline-v2540\.css/);
@@ -41,6 +41,12 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(selector,/cdqNativeUpdateIdentityV2547/);
   assert.match(selector,/android-release-update\.json/);
   assert.match(selector,/Vérifier avec Android/);
+  assert.match(selector,/cdqRefreshCreatedPdfV2548/);
+  assert.match(selector,/fermerCopie\(\);[\s\S]{0,220}cdqProgressSetV2293/);
+  assert.match(selector,/PDF créé — actualisation/);
+  assert.match(selector,/actualiserContenuClient/);
+  assert.match(read('reader-v2525.html'),/cdq-keyboard-field/);
+  assert.match(read('reader-v2525.mjs'),/cdqKeyboardFieldV2548/);
   assert.match(read(source+'client-speed-v2544.js'),/SERVER_GRACE_MS=110/);
   assert.match(read(source+'client-speed-v2544.js'),/cdqIntegratedV2544/);
   assert.match(read(source+'client-speed-v2544.js'),/prewarmBatch/);
