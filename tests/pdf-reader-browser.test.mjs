@@ -45,16 +45,26 @@ try{
   let f=await open();assert.ok(await f.$$eval('.annotationLayer input',x=>x.length)>100);
   const input=async(value)=>{await f.$eval('input[name="client_nom"]',(e,v)=>{e.focus();e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));e.blur();},value);await new Promise(r=>setTimeout(r,120));};
   const colors=await f.$eval('input[name="client_nom"]',e=>({inline:e.style.backgroundColor,computed:getComputedStyle(e).backgroundColor,image:getComputedStyle(e).backgroundImage}));assert.equal(colors.image,'none');assert.equal(colors.computed,colors.inline==='transparent'?'rgba(0, 0, 0, 0)':colors.inline);
-  const viewerUi=await f.evaluate(()=>{const green=document.querySelector('input[name*="conforme_vert"]'),red=document.querySelector('input[name*="conforme_rouge"]');return {
-    zoomControls:!!document.getElementById('zoomControls'),
-    green:green?getComputedStyle(green).accentColor:'',
-    red:red?getComputedStyle(red).accentColor:'',
-    headerDisplay:getComputedStyle(document.getElementById('readerTop')).display,
-    headerPaddingTop:parseFloat(getComputedStyle(document.getElementById('readerTop')).paddingTop)||0
-  }});
+  const viewerUi=await f.evaluate(()=>{const green=document.querySelector('input[name*="conforme_vert"]'),red=document.querySelector('input[name*="conforme_rouge"]');
+    const fidelity=input=>{if(!input)return null;const host=input.closest('.buttonWidgetAnnotation'),appearance=host?.querySelector('[data-canvas-name]'),style=getComputedStyle(input);return {
+      image:style.backgroundImage,background:style.backgroundColor,borderWidth:style.borderWidth,filter:style.filter,
+      appearanceFilter:appearance?getComputedStyle(appearance).filter:''
+    }};
+    return {
+      zoomControls:!!document.getElementById('zoomControls'),
+      green:fidelity(green),red:fidelity(red),
+      headerDisplay:getComputedStyle(document.getElementById('readerTop')).display,
+      headerPaddingTop:parseFloat(getComputedStyle(document.getElementById('readerTop')).paddingTop)||0
+    }});
   assert.equal(viewerUi.zoomControls,true);
-  assert.match(viewerUi.green,/37, 230, 122|rgb\(37, 230, 122\)|#25e67a/i);
-  assert.match(viewerUi.red,/255, 75, 93|rgb\(255, 75, 93\)|#ff4b5d/i);
+  for(const state of [viewerUi.green,viewerUi.red]){
+    assert.ok(state);
+    assert.equal(state.image,'none');
+    assert.match(state.background,/rgba?\(0, 0, 0(?:, 0)?\)|transparent/i);
+    assert.equal(state.borderWidth,'0px');
+    assert.equal(state.filter,'none');
+    assert.equal(state.appearanceFilter,'none');
+  }
 
   const navigationAudit=await f.evaluate(()=>{
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
