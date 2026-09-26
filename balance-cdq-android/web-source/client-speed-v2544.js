@@ -17,9 +17,9 @@
   const warmJobs=new Map();
   const serverJobs=new Map();
 
-  const account=()=>String(window.utilisateurCourantEmail||'').trim().toLowerCase();
-  const client=()=>String(window.compagnieSelectionnee||'');
-  const ready=()=>String(window.cdqAccessState||'')==='ready'&&!!account();
+  const account=()=>String(typeof utilisateurCourantEmail!=='undefined'?utilisateurCourantEmail:'').trim().toLowerCase();
+  const client=()=>String(typeof compagnieSelectionnee!=='undefined'?compagnieSelectionnee:'');
+  const ready=()=>String(typeof cdqAccessState!=='undefined'?cdqAccessState:'')==='ready'&&!!account();
 
   function storageKey(){
     return 'cdqRecentClientsV2544:'+(account()||'sans-compte');
@@ -56,15 +56,15 @@
 
   function displayCached(id,email){
     if(!current(id,email))return false;
-    const content=window.cacheContenuCompagnies&&window.cacheContenuCompagnies[String(id)];
+    const content=(typeof cacheContenuCompagnies!=='undefined'&&cacheContenuCompagnies[String(id)]);
     if(!content)return false;
-    window.afficherContenu(content);
+    afficherContenu(content);
     clearMessage();
     const k=serverKey(id,email);
-    if(!serverJobs.has(k)&&typeof window.planifierActualisationCompagnie==='function'){
-      window.planifierActualisationCompagnie(
+    if(!serverJobs.has(k)&&typeof planifierActualisationCompagnie==='function'){
+      planifierActualisationCompagnie(
         String(id),
-        Number(window.cacheDerniereVerificationCompagnies?.[String(id)]||0)
+        Number((typeof cacheDerniereVerificationCompagnies!=='undefined'?cacheDerniereVerificationCompagnies[String(id)]:0)||0)
       );
     }
     return true;
@@ -73,23 +73,23 @@
   function warm(id,email=account()){
     id=String(id||'');
     if(!id||!email||!ready()||account()!==email)return Promise.resolve(null);
-    if(window.cacheContenuCompagnies?.[id]){
+    if((typeof cacheContenuCompagnies!=='undefined'&&cacheContenuCompagnies[id])){
       return Promise.resolve({
-        contenu:window.cacheContenuCompagnies[id],
-        verifiedAt:Number(window.cacheDerniereVerificationCompagnies?.[id]||0)
+        contenu:cacheContenuCompagnies[id],
+        verifiedAt:Number((typeof cacheDerniereVerificationCompagnies!=='undefined'?cacheDerniereVerificationCompagnies[id]:0)||0)
       });
     }
     const key=serverKey(id,email);
     if(warmJobs.has(key))return warmJobs.get(key);
-    if(typeof window.lireCachePersistantClient!=='function')return Promise.resolve(null);
+    if(typeof lireCachePersistantClient!=='function')return Promise.resolve(null);
 
     const job=Promise.resolve()
-      .then(()=>window.lireCachePersistantClient(id))
+      .then(()=>lireCachePersistantClient(id))
       .then(record=>{
         if(!ready()||account()!==email)return null;
         if(record?.contenu){
-          window.cacheContenuCompagnies[id]=record.contenu;
-          window.cacheDerniereVerificationCompagnies[id]=Number(record.verifiedAt)||0;
+          cacheContenuCompagnies[id]=record.contenu;
+          cacheDerniereVerificationCompagnies[id]=Number(record.verifiedAt)||0;
         }
         return record||null;
       })
@@ -107,7 +107,7 @@
 
     const job=new Promise((resolve,reject)=>{
       try{
-        window.cdqApiRun()
+        cdqApiRun()
           .withSuccessHandler(resolve)
           .withFailureHandler(reject)
           .obtenirContenuClientOptimise(id,false);
@@ -122,30 +122,30 @@
       if(window.cdqInstantFiles2530?.overlay){
         content=window.cdqInstantFiles2530.overlay(id,content);
       }
-      const old=window.cacheContenuCompagnies?.[id];
+      const old=(typeof cacheContenuCompagnies!=='undefined'&&cacheContenuCompagnies[id]);
       if(old&&window.cdqMergeClientV2527){
         content=window.cdqMergeClientV2527(old,content);
       }
 
-      window.cacheContenuCompagnies[id]=content;
-      window.cacheDerniereVerificationCompagnies[id]=verifiedAt;
-      try{window.sauvegarderCachePersistantClient(id,content,verifiedAt);}catch(_){}
+      cacheContenuCompagnies[id]=content;
+      cacheDerniereVerificationCompagnies[id]=verifiedAt;
+      try{sauvegarderCachePersistantClient(id,content,verifiedAt);}catch(_){}
 
       if(current(id,email)){
-        window.afficherContenu(content);
+        afficherContenu(content);
         clearMessage();
       }
-      if(source==='cache'&&typeof window.planifierActualisationCompagnie==='function'){
+      if(source==='cache'&&typeof planifierActualisationCompagnie==='function'){
         setTimeout(()=>{
           if(ready()&&account()===email){
-            window.planifierActualisationCompagnie(id,verifiedAt);
+            planifierActualisationCompagnie(id,verifiedAt);
           }
         },0);
       }
       return content;
     }).catch(error=>{
-      if(current(id,email)&&!window.cacheContenuCompagnies?.[id]){
-        window.afficherErreur(error);
+      if(current(id,email)&&!(typeof cacheContenuCompagnies!=='undefined'&&cacheContenuCompagnies[id])){
+        afficherErreur(error);
       }else{
         try{console.log('Chargement client V25.44 :',error);}catch(_){}
       }
@@ -157,23 +157,23 @@
   }
 
   function loadClient(){
-    if(!window.compagnieSelectionnee)return;
+    if(typeof compagnieSelectionnee==='undefined'||!compagnieSelectionnee)return;
     const id=client(),email=account();
     if(!id||!email||!ready())return;
     remember(id);
 
-    if(window.cacheContenuCompagnies?.[id]){
+    if((typeof cacheContenuCompagnies!=='undefined'&&cacheContenuCompagnies[id])){
       displayCached(id,email);
       return;
     }
 
-    if(typeof window.afficherMessage==='function'){
-      window.afficherMessage('Chargement des fichiers...',false);
+    if(typeof afficherMessage==='function'){
+      afficherMessage('Chargement des fichiers...',false);
     }
 
     let serverStarted=false;
     const startServer=()=>{
-      if(serverStarted||!current(id,email)||window.cacheContenuCompagnies?.[id])return;
+      if(serverStarted||!current(id,email)||(typeof cacheContenuCompagnies!=='undefined'&&cacheContenuCompagnies[id]))return;
       serverStarted=true;
       requestServer(id,email);
     };
@@ -182,7 +182,7 @@
     warm(id,email).then(record=>{
       clearTimeout(timer);
       if(!current(id,email))return;
-      if(record?.contenu||window.cacheContenuCompagnies?.[id]){
+      if(record?.contenu||(typeof cacheContenuCompagnies!=='undefined'&&cacheContenuCompagnies[id])){
         displayCached(id,email);
         return;
       }
