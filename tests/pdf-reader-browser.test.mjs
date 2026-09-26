@@ -104,6 +104,35 @@ try{
     assert.ok(Math.min(...navigationAudit.excentricity.map(x=>x.index))>Math.max(...navigationAudit.manual.map(x=>x.index)),
       'L’excentricité ne doit pas couper la séquence du bloc 3');
   }
+  const followAudit=await f.evaluate(async()=>{
+    const last=document.querySelector('input[name="charge_point_6_apres_correction"]');
+    const charge=document.querySelector('input[name="charge_excentricite"]');
+    const next=document.getElementById('nextField'),plus=document.getElementById('plus'),fit=document.getElementById('fit');
+    if(!last||!charge||!next||!plus)return {skipped:true};
+    plus.click();plus.click();
+    await new Promise(resolve=>setTimeout(resolve,360));
+    const zoomBefore=document.getElementById('zoom')?.textContent||'';
+    last.focus();
+    await new Promise(resolve=>setTimeout(resolve,80));
+    const container=document.getElementById('container');
+    const before={left:container.scrollLeft,top:container.scrollTop};
+    next.click();
+    await new Promise(resolve=>setTimeout(resolve,180));
+    const active=document.activeElement,rect=active?.getBoundingClientRect(),host=container.getBoundingClientRect();
+    const result={
+      skipped:false,name:active?.name||'',zoomBefore,zoomAfter:document.getElementById('zoom')?.textContent||'',
+      visible:!!rect&&rect.left>=host.left-1&&rect.right<=host.right+1&&rect.top>=host.top-1&&rect.bottom<=host.bottom+1,
+      moved:Math.abs(container.scrollLeft-before.left)>1||Math.abs(container.scrollTop-before.top)>1
+    };
+    fit?.click();
+    return result;
+  });
+  if(!followAudit.skipped){
+    assert.equal(followAudit.name,'charge_excentricite');
+    assert.equal(followAudit.zoomAfter,followAudit.zoomBefore);
+    assert.equal(followAudit.visible,true);
+    assert.equal(followAudit.moved,true);
+  }
   if(mobile){
     assert.equal(viewerUi.headerDisplay,'grid');assert.ok(viewerUi.headerPaddingTop>=15);
     const keyboardUi=await f.evaluate(async()=>{
