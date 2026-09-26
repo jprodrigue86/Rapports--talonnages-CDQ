@@ -25,7 +25,7 @@ class PackagedWebAssetsTest {
         val shell = response.data.bufferedReader().readText()
         assertTrue(shell.contains("25.43-stable-first-frame"))
         assertTrue(shell.contains("CDQ_FIRST_FRAME_STABLE_V2543"))
-        assertTrue(shell.contains("1500"))
+        assertTrue(shell.contains("2500"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}Selector.html"))!!
         val html = selector.data.bufferedReader().readText()
         assertTrue(html.contains("./embedded-rpc.js"))
