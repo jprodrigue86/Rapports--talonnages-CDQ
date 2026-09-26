@@ -11,7 +11,7 @@ const manifest=JSON.parse(read('bundles/balance-cdq/v25.28/manifest.json'));
 
 test('every packaged asset matches its manifest and includes interface, artwork and PDF engine',()=>{
   const assets=JSON.parse(read(generated+'asset-manifest.json'));
-  for(const name of ['index.html','Selector.html','embedded-rpc.js','warm-unlock-v2540.js','first-frame-stable-v2543.js','client-speed-v2544.js','icon-artwork-baseline-v2540.css','vendor/pdf-lib-1.17.1.min.js','vendor/pdfjs-6.3.289/build/pdf.worker.mjs','assets/templates/balance-plancher-v2519.pdf','bundles/balance-cdq/v25.14/icons-reference.png','bundles/balance-cdq/v25.15/icons-transparent.webp','bundles/balance-cdq/v25.17/banner-original.webp'])assert.ok(assets.files[name],name);
+  for(const name of ['index.html','Selector.html','embedded-rpc.js','warm-unlock-v2540.js','first-frame-stable-v2543.js','client-speed-v2544.js','copy-refresh-v2548.js','icon-artwork-baseline-v2540.css','vendor/pdf-lib-1.17.1.min.js','vendor/pdfjs-6.3.289/build/pdf.worker.mjs','assets/templates/balance-plancher-v2519.pdf','bundles/balance-cdq/v25.14/icons-reference.png','bundles/balance-cdq/v25.15/icons-transparent.webp','bundles/balance-cdq/v25.17/banner-original.webp'])assert.ok(assets.files[name],name);
   for(const [name,entry] of Object.entries(assets.files)){
     const bytes=fs.readFileSync(generated+name);
     assert.equal(bytes.length,entry.bytes);assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),entry.sha256);
@@ -28,7 +28,7 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/if \(false && 'serviceWorker' in navigator\)/);
   assert.doesNotMatch(html,/<script src="https:\/\/accounts.google.com/);
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
-  assert.match(selector,/native\/v25.47\/vendor\/pdf-lib/);
+  assert.match(selector,/native\/v25.48\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);
   assert.match(selector,/id="cdqFullNamesV2536"/);
   assert.match(selector,/icon-artwork-baseline-v2540\.css/);
@@ -38,6 +38,10 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/2500/);
   assert.match(selector,/first-frame-stable-v2543\.js/);
   assert.match(selector,/client-speed-v2544\.js/);
+  assert.match(selector,/copy-refresh-v2548\.js/);
+  assert.match(read(source+'copy-refresh-v2548.js'),/cdqCopyRefreshV2548/);
+  assert.match(read(source+'copy-refresh-v2548.js'),/overlay\.style\.display = 'none'/);
+  assert.match(read(source+'copy-refresh-v2548.js'),/paintVisible/);
   assert.match(selector,/cdqNativeUpdateIdentityV2547/);
   assert.match(selector,/android-release-update\.json/);
   assert.match(selector,/Vérifier avec Android/);
