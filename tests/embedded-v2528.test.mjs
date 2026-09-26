@@ -100,6 +100,48 @@ test('clean startup holds every remote call locally until authoritative confirma
   assert.deepEqual(errors,[]);
 });
 
+test('early Selector background method waits, then uses confirmed cdqRpc session',async()=>{
+  const provisional={value:true},a=client({provisional}),received=[],errors=[];
+  a.message({type:'CDQ_EMBEDDED_READY'});
+
+  a.c.google.script.run
+    .withSuccessHandler(value=>received.push(value))
+    .withFailureHandler(error=>errors.push(error.message))
+    .obtenirListeTechniciensRapports();
+
+  assert.equal(a.sent.length,0,'Background method must stay on-device while startup is provisional');
+
+  const session=a.c.cdqEmbeddedRpcV2529.prepareSession('device-token');
+  assert.equal(a.sent.length,1);
+  assert.equal(a.sent[0].data.name,'restaurerSessionApresBiometrie');
+  const restoreId=a.sent[0].data.id;
+
+  const state={
+    autorise:true,
+    email:'person@example.invalid',
+    role:'technicien',
+    jetonSession:'server-session-2541'
+  };
+  a.message({type:'CDQ_EMBEDDED_RESULT',id:restoreId,ok:true,value:state});
+  assert.deepEqual(await session,state);
+
+  provisional.value=false;
+  a.listeners['cdq:startup-confirmed-v2539']();
+
+  assert.equal(a.sent.length,2);
+  const routed=a.sent[1].data;
+  assert.equal(routed.name,'cdqRpc');
+  assert.deepEqual(routed.args,[
+    'obtenirListeTechniciensRapports',
+    [],
+    'server-session-2541'
+  ]);
+
+  a.message({type:'CDQ_EMBEDDED_RESULT',id:routed.id,ok:true,value:['Technicien A']});
+  assert.deepEqual(received,[['Technicien A']]);
+  assert.deepEqual(errors,[]);
+});
+
 test('server revocation drops held remote calls without sending them',()=>{
   const provisional={value:true},a=client({provisional}),errors=[];
   a.message({type:'CDQ_EMBEDDED_READY'});
