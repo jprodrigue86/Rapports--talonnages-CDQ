@@ -126,7 +126,7 @@ open class UpdateActivity : Activity() {
 
         executor.execute {
             try {
-                val json = fetchJson(MANIFEST_URL)
+                val json = AndroidUpdateChannel.fetchLatest()
                 val latestCode = json.getLong("versionCode")
                 latestVersionCode = latestCode
                 latestVersionName = json.optString("versionName", latestCode.toString())
