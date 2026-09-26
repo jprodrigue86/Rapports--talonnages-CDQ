@@ -39,7 +39,7 @@ test('Pincement puis maintien long : aucun nouveau rendu PDF, aperçu conservé'
 });
 test('Relâchement : un seul rendu différé et point d’ancrage conservé', () => {
   const h=harness();h.fire('touchstart',[[100,200],[200,200]]);h.fire('touchmove',[[100,220],[300,220]]);h.fire('touchend');
-  assert.equal(h.surface.style.transform,'');assert.deepEqual(h.calls,[{scaleFactor:2,origin:[150,200],pan:[50,20],drawingDelay:0}]);
+  assert.equal(h.surface.style.transform,'');assert.deepEqual(h.calls,[{scaleFactor:2,origin:[150,200],pan:[50,20],drawingDelay:250}]);
   h.fire('touchend');assert.equal(h.calls.length,1);
 });
 test('Relâcher immédiatement après un mouvement ne laisse aucune frame périmée', () => {
@@ -216,7 +216,7 @@ test('Changer de document masque la navigation; aucune boucle au dernier champ',
 });
 
 
-test('V25.46 : le pincement garde le canvas composité sans délai de rendu forcé', () => {
+test('V25.51 : le pincement garde le rendu précédent pendant le redraw', () => {
   const listeners={},calls=[],surface={style:{},getBoundingClientRect:()=>({left:0,top:0})};
   const container={scrollLeft:0,scrollTop:0,addEventListener:(name,fn)=>listeners[name]=fn};
   const viewer={currentScale:1,updateScale(options){calls.push(options);this.currentScale*=options.scaleFactor;}};
@@ -228,7 +228,7 @@ test('V25.46 : le pincement garde le canvas composité sans délai de rendu forc
   assert.match(surface.style.transform,/scale\(1\.4\)/);
   fire('touchend');
   assert.equal(calls.length,1);
-  assert.equal(calls[0].drawingDelay,0);
+  assert.equal(calls[0].drawingDelay,250);
 });
 
 test('V25.46 : choisir un menu déroulant passe automatiquement au prochain champ', async () => {
@@ -244,14 +244,17 @@ test('V25.46 : choisir un menu déroulant passe automatiquement au prochain cham
   }finally{h.cleanup();}
 });
 
-test('V25.46 : nouvelle interface mobile, marge Android et couleurs de conformité claires', () => {
+test('V25.51 : les boutons PDF gardent les couleurs originales sans voile de la visionneuse', () => {
   const html=readFileSync(new URL('../reader-v2525.html',import.meta.url),'utf8');
   assert.match(html,/id="zoomControls"/);
   assert.match(html,/--reader-safe-top:max\(10px,env\(safe-area-inset-top,0px\)\)/);
-  assert.match(html,/conforme_vert/);
-  assert.match(html,/#25e67a/);
-  assert.match(html,/conforme_rouge/);
-  assert.match(html,/#ff4b5d/);
+  assert.match(html,/buttonWidgetAnnotation:is\(\.checkBox,\.radioButton\) input/);
+  assert.match(html,/background-color:transparent!important/);
+  assert.match(html,/border:0!important/);
+  assert.match(html,/\[data-canvas-name\]/);
+  assert.match(html,/filter:none!important;opacity:1!important/);
+  assert.doesNotMatch(html,/#25e67a/i);
+  assert.doesNotMatch(html,/#ff4b5d/i);
   assert.match(html,/backface-visibility:visible!important/);
 });
 
