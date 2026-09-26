@@ -1,0 +1,127 @@
+name: Inspect original Android 25.11 signing cache
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/inspect-android-signing.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the exact source that produced Android 25.11
+        uses: actions/checkout@v4
+        with:
+          ref: 1d4f80f4b724abda175fa7086a588fd4149a9e4f
+          persist-credentials: false
+
+      - name: Set up original JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restore original Gradle state without changing its cache
+        id: historical
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /home/runner/.gradle/caches
+            /home/runner/.gradle/notifications
+            /home/runner/.gradle/.setup-gradle
+          key: 'gradle-home-v1|Linux-X64|build-apk[d8c6f3702f7c97a031e7412a2fae54b1]-1d4f80f4b724abda175fa7086a588fd4149a9e4f'
+
+      - name: Restore dedicated Android signing cache if one exists
+        id: signing
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: balance-cdq-android-debug-keystore-v1
+
+      - name: Inspect restored state before invoking Gradle
+        env:
+          HISTORICAL_CACHE_HIT: ${{ steps.historical.outputs.cache-hit }}
+          SIGNING_CACHE_HIT: ${{ steps.signing.outputs.cache-hit }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, io, json, os, subprocess, tarfile, tempfile, zipfile
+
+          expected = '9a09502e98d1069df393099f9302053ca209497a2e8c21af0bacd8d46f1b8a21'
+          roots = [Path.home()/'.gradle', Path.home()/'.android', Path.home()/'.config'/'android']
+          counts = {'files': 0, 'archives': 0, 'key_candidates': 0, 'matching_private_keys': 0}
+          candidates = []
+
+          def inspect_key(label, data):
+              counts['key_candidates'] += 1
+              with tempfile.NamedTemporaryFile(suffix='.keystore') as candidate:
+                  candidate.write(data)
+                  candidate.flush()
+                  result = subprocess.run(['keytool', '-list', '-v', '-keystore', candidate.name,
+                      '-storepass', 'android'], capture_output=True, text=True, timeout=20)
+              normalized = result.stdout.lower().replace(':', '')
+              matches = expected in normalized and 'privatekeyentry' in normalized
+              counts['matching_private_keys'] += int(matches)
+              # Only paths and public matching status are reported. No key bytes,
+              # passwords, environment dump, signing or APK publication.
+              candidates.append({'path': label, 'readable_debug_store': result.returncode == 0,
+                  'matches_original_private_key': matches})
+
+          def is_key(name, data):
+              return name.lower().endswith(('.keystore', '.jks', '.p12', '.pfx')) or data[:4] in (b'\xfe\xed\xfe\xed', b'\xce\xce\xce\xce')
+
+          def inspect_file(path):
+              counts['files'] += 1
+              if path.stat().st_size > 64 * 1024 * 1024:
+                  return
+              data = path.read_bytes()
+              if is_key(path.name, data):
+                  inspect_key(str(path), data)
+                  return
+              # Gradle's local build cache stores TAR entries with opaque names.
+              # Inspect members without extracting paths or executing content.
+              try:
+                  with tarfile.open(fileobj=io.BytesIO(data), mode='r:*') as archive:
+                      counts['archives'] += 1
+                      for member in archive:
+                          if member.isfile() and member.size < 16 * 1024 * 1024:
+                              payload = archive.extractfile(member).read()
+                              if is_key(member.name, payload):
+                                  inspect_key(str(path) + '::' + member.name, payload)
+                  return
+              except tarfile.TarError:
+                  pass
+              if zipfile.is_zipfile(io.BytesIO(data)):
+                  counts['archives'] += 1
+                  with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                      for member in archive.infolist():
+                          if member.filename.lower().endswith(('.keystore', '.jks', '.p12', '.pfx')) and member.file_size < 16 * 1024 * 1024:
+                              inspect_key(str(path) + '::' + member.filename, archive.read(member))
+
+          for root in roots:
+              if root.exists():
+                  for path in root.rglob('*'):
+                      if path.is_file() and not path.is_symlink():
+                          inspect_file(path)
+          print(json.dumps({'historical_cache_hit': os.environ.get('HISTORICAL_CACHE_HIT'),
+              'dedicated_signing_cache_hit': os.environ.get('SIGNING_CACHE_HIT'),
+              'counts': counts, 'candidates': candidates}, indent=2))
+          PY
+
+      - name: Set up original Gradle without writing caches
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+          cache-disabled: true
+
+      - name: Report configured signing location without creating or signing an APK
+        working-directory: balance-cdq-android
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: gradle --no-daemon :app:signingReport
