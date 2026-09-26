@@ -224,7 +224,7 @@ test('V25.46 : choisir un menu déroulant passe automatiquement au prochain cham
 test('V25.46 : nouvelle interface mobile, marge Android et couleurs de conformité claires', () => {
   const html=readFileSync(new URL('../reader-v2525.html',import.meta.url),'utf8');
   assert.match(html,/id="zoomControls"/);
-  assert.match(html,/padding-top:max\(10px,env\(safe-area-inset-top,0px\)\)/);
+  assert.match(html,/--reader-safe-top:max\(10px,env\(safe-area-inset-top,0px\)\)/);
   assert.match(html,/conforme_vert/);
   assert.match(html,/#25e67a/);
   assert.match(html,/conforme_rouge/);
