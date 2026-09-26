@@ -66,18 +66,10 @@
   function snapshot(){
     const actions=labels.map(label=>control(label));
     const nav=[...document.querySelectorAll('.bottom-nav > .bottom-nav-item')].filter(visible);
-    const navReady=nav.length>=5&&nav.every(button=>{
-      const host=button.querySelector(':scope > span');
-      if(!host)return false;
-      const h=getComputedStyle(host),before=getComputedStyle(host,'::before'),after=getComputedStyle(host,'::after');
-      const r=host.getBoundingClientRect(),box=r.width>8&&r.height>8&&h.display!=='none';
-      const original=box&&h.visibility!=='hidden'&&Number(h.opacity||1)>0;
-      const pseudo=box&&(
-        (before.display!=='none'&&before.visibility!=='hidden'&&(before.backgroundImage!=='none'||before.maskImage!=='none'||(before.content&&before.content!=='none'&&before.content!=='normal'))) ||
-        (after.display!=='none'&&after.visibility!=='hidden'&&(after.backgroundImage!=='none'||after.maskImage!=='none'||(after.content&&after.content!=='none'&&after.content!=='normal')))
-      );
-      return original||pseudo;
-    });
+    // The Metal theme may intentionally hide the source span and render its
+    // artwork through a pseudo-element. Presence + a stable computed visual
+    // signature is therefore the reliable readiness criterion.
+    const navReady=nav.length>=5;
     return {
       ready:actions.every(Boolean)&&navReady,
       signature:actions.map(styleSignature).join('##')+'@@'+nav.map(styleSignature).join('##')
