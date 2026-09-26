@@ -130,7 +130,7 @@ function formHarness(names, installer=installFormNavigation) {
     field:name=>allFields.find(f=>f.name===name),cleanup(){globalThis.getComputedStyle=getStyle;}};
 }
 test('V25.50 : l’ordre logique ne déplace plus physiquement les widgets PDF.js', () => {
-  const h=formHarness(['charge_point_1_charge_utilisee','charge_point_1_avant_correction','charge_point_2_charge_utilisee']);
+  const h=formHarness(['charge_point_1_charge_utilisee','charge_point_1_avant_correction','charge_point_2_charge_utilisee'],installFormNavigation2525);
   try {
     h.navigation.refresh();
     assert.deepEqual(h.surface.querySelectorAll('').map(f=>f.name),[
