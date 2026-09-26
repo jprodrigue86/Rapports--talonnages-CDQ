@@ -184,16 +184,20 @@ try{
   // V25.45: a normal unfiltered company row gets its id on first touch, so
   // cache warming starts before the click handler opens the client.
   const touchWarm=await selector.evaluate(()=>{
+    const previous=toutesLesCompagnies;
+    toutesLesCompagnies=[{id:'client_touch_fixture_2545',nom:'Client toucher V25.45'}];
     remplirListeCompagnies();
     const row=document.querySelector('#companyList .company-item:not(.company-reset-item)');
-    if(!row)return null;
+    if(!row){toutesLesCompagnies=previous;return null;}
     const before=String(row.dataset.companyId||'');
     row.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
-    return {before,after:String(row.dataset.companyId||''),name:String(row.textContent||'').trim()};
+    const after=String(row.dataset.companyId||'');
+    toutesLesCompagnies=previous;remplirListeCompagnies();
+    return {before,after};
   });
   assert.ok(touchWarm);
-  assert.equal(touchWarm.before,'client_fixture_12345');
-  assert.equal(touchWarm.after,'client_fixture_12345');
+  assert.equal(touchWarm.before,'client_touch_fixture_2545');
+  assert.equal(touchWarm.after,'client_touch_fixture_2545');
 
   // V25.45: mobile rendering creates only the visible level. Opening a folder
   // whose data is already cached renders that level instantly without Drive.
