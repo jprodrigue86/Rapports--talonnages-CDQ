@@ -74,26 +74,36 @@ header{background:#161a20;border-color:#3d4652}header button,#more button{backgr
   #status{position:absolute!important;bottom:0!important;left:0!important;right:0!important;height:30px;padding:7px 8px;background:#111820}
   #more{position:absolute;right:8px;top:calc(102px + var(--reader-safe-top));width:min(260px,calc(100vw - 16px));z-index:70}
   #savingMask{position:absolute!important;top:calc(104px + var(--reader-safe-top))!important;bottom:30px!important;left:0!important;right:0!important}
-  /* V25.48 — saisie mobile: libérer l’espace occupé par le zoom et l’état
-     pendant que le clavier est ouvert, sans changer l’interface au repos. */
+  /* V25.49 — saisie mobile: dès qu’un champ texte prend le focus, la
+     barre de zoom, les actions non nécessaires et l’état disparaissent pour
+     laisser le maximum d’espace au PDF au-dessus du clavier Android. */
   body.cdq-keyboard-field header#readerTop{
-    height:calc(58px + var(--reader-safe-top))!important;
-    grid-template-areas:"back name save menu"!important;
+    height:calc(46px + var(--reader-safe-top))!important;
+    grid-template-columns:40px minmax(0,1fr)!important;
+    grid-template-areas:"back name"!important;
     grid-template-rows:1fr!important;
-    padding:calc(var(--reader-safe-top) + 5px) 8px 5px!important
+    gap:6px!important;
+    padding:calc(var(--reader-safe-top) + 3px) 6px 3px!important
   }
-  body.cdq-keyboard-field #zoomControls{display:none!important}
+  body.cdq-keyboard-field #back{width:40px!important;min-width:40px!important;min-height:36px!important;border-radius:10px!important}
+  body.cdq-keyboard-field #name{font-size:13px!important}
+  body.cdq-keyboard-field #zoomControls,
+  body.cdq-keyboard-field #save,
+  body.cdq-keyboard-field #menu,
   body.cdq-keyboard-field #status{display:none!important}
   body.cdq-keyboard-field #container{
-    top:calc(58px + var(--reader-safe-top))!important;
-    bottom:48px!important
+    top:calc(46px + var(--reader-safe-top))!important;
+    bottom:44px!important
   }
-  body.cdq-keyboard-field.form-navigation #container{bottom:48px!important}
+  body.cdq-keyboard-field.form-navigation #container{bottom:44px!important}
   body.cdq-keyboard-field #formNav{
-    bottom:0!important;height:48px!important;padding:3px 8px!important
+    bottom:0!important;height:44px!important;padding:2px 6px!important
+  }
+  body.cdq-keyboard-field #formNav button{
+    min-height:38px!important;padding:5px 9px!important;border-radius:10px!important
   }
   body.cdq-keyboard-field #savingMask{
-    top:calc(58px + var(--reader-safe-top))!important;bottom:0!important
+    top:calc(46px + var(--reader-safe-top))!important;bottom:0!important
   }
   body.cdq-keyboard-field #more{display:none!important}
 }
