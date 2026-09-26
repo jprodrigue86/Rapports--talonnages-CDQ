@@ -86,6 +86,8 @@ try{
   }
   await f.waitForFunction(()=>document.querySelector('input[name="charge_point_1_tolerance"]').value.includes('1')&&document.querySelector('input[name="charge_point_1_erreur_avant"]').value.includes('3'),{timeout:5000}).catch(async e=>{console.log('Calculations',await f.$$eval('input',es=>es.filter(e=>/echelon|charge_point_1/.test(e.name)).map(e=>({n:e.name,v:e.value}))));throw e});
   assert.equal(await f.$eval('input[name="charge_point_1_conforme_rouge"]',e=>e.checked),true);
+  await f.evaluate(()=>document.activeElement?.blur());
+  await new Promise(r=>setTimeout(r,120));
   await f.click('#menu');await f.click('#rotate');await f.waitForFunction(()=>(()=>{const p=document.querySelector('.page');return p&&p.clientWidth>p.clientHeight})());
   await f.click('#menu');await f.click('#rotate');await f.click('#menu');await f.click('#rotate');await f.click('#menu');await f.click('#rotate');
   await input('Essai CDQ');await f.click('#plus');await f.click('#plus');await f.click('#minus');
