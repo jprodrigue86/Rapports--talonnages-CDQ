@@ -40,7 +40,7 @@ export function installTouchNavigation({container, surface, getViewer, now = Dat
       scaleFactor:previous.targetScale / previous.scale,
       origin:[previous.start.x, previous.start.y],
       pan:[previous.mid.x - previous.start.x, previous.mid.y - previous.start.y],
-      drawingDelay:150,
+      drawingDelay:0,
     });
   }
   function startPan(t) {
@@ -57,7 +57,7 @@ export function installTouchNavigation({container, surface, getViewer, now = Dat
       gesture = {mode:'pinch', distance:Math.max(1, distance(a, b)), scale,
         targetScale:scale, start:mid, mid, rect:surface.getBoundingClientRect()};
       surface.style.transformOrigin = '0 0';
-      surface.style.willChange = 'transform';
+      surface.style.willChange = '';
       e.preventDefault();
     } else finish(false);
   }
@@ -181,6 +181,13 @@ export function installFormNavigation({surface, toolbar, previous, next, done, o
   }, {capture:true});
   surface.addEventListener('keydown', e => {
     if (e.key === 'Tab' && !e.isComposing && e.target.matches(selector) && go(e.shiftKey ? -1 : 1, e.target)) e.preventDefault();
+  });
+  // Un choix dans un menu déroulant est déjà une validation explicite.
+  // Laisser PDF.js recevoir change, puis déplacer le focus au prochain champ.
+  surface.addEventListener('change', e => {
+    if (!e.target.matches('.choiceWidgetAnnotation select') || !isEditable(e.target)) return;
+    active = e.target; update();
+    Promise.resolve().then(() => go(1, e.target));
   });
   for (const button of [previous, next]) button.addEventListener('pointerdown', e => e.preventDefault());
   previous.addEventListener('click', () => go(-1));
