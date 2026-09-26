@@ -41,10 +41,12 @@ shell=replace(shell,"if ('serviceWorker' in navigator) {","if (false && 'service
 // The Selector explicitly reports when its icon/theme/layout controls are stable.
 shell=replace(shell,'const MIN_LOADING_MS = 0;',`const MIN_LOADING_MS = 0;
 let cdqFirstFrameStableV2543=!window.BalanceCDQNative;
+let cdqFirstFrameStableSourceV2543=window.BalanceCDQNative?'':'non-native';
 let cdqFirstFrameFallbackV2543=null;`);
 shell=replace(shell,'if (selectorAwaitingAccess) {',`if (selectorAwaitingAccess) {
 if(window.BalanceCDQNative){
   cdqFirstFrameStableV2543=false;
+  cdqFirstFrameStableSourceV2543='';
   clearTimeout(cdqFirstFrameFallbackV2543);
 }`);
 shell=replace(shell,'const remaining = Math.max(0, MIN_LOADING_MS - elapsed);',`if(window.BalanceCDQNative && !cdqFirstFrameStableV2543){
@@ -53,6 +55,7 @@ shell=replace(shell,'const remaining = Math.max(0, MIN_LOADING_MS - elapsed);',`
   cdqFirstFrameFallbackV2543=setTimeout(()=>{
     if(generation!==loadGeneration || cdqFirstFrameStableV2543)return;
     cdqFirstFrameStableV2543=true;
+    cdqFirstFrameStableSourceV2543='fallback';
     masquerMurApresDelaiMinimum();
   },1500);
   return;
@@ -69,6 +72,7 @@ clearTimeout(accessWaitTimer);`,`selectorReady = false;
 iframeLoaded = false;
 selectorAwaitingAccess = false;
 cdqFirstFrameStableV2543=!window.BalanceCDQNative;
+cdqFirstFrameStableSourceV2543=window.BalanceCDQNative?'':'non-native';
 clearTimeout(cdqFirstFrameFallbackV2543);
 clearTimeout(accessWaitTimer);`);
 shell=replace(shell,`if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
@@ -78,6 +82,7 @@ if(data.type==='CDQ_FILE_HANDOFF_FREEZE_V2307'){`,`if (event.source !== selector
 if(data.type==='CDQ_FIRST_FRAME_STABLE_V2543'){
   if(Number(data.generation)!==loadGeneration)return;
   cdqFirstFrameStableV2543=true;
+  cdqFirstFrameStableSourceV2543='signal';
   clearTimeout(cdqFirstFrameFallbackV2543);
   masquerMurApresDelaiMinimum();
   return;
