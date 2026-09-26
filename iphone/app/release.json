@@ -1,10 +1,10 @@
 {
   "platform": "iphone-pwa",
-  "version": "25.49",
-  "release": "d4f44549ca4d6c84a5ce76feb37947d9062d57e52d501231551f4395a5851187",
+  "version": "25.50",
+  "release": "88e1f5a029ec3be0a97974211b112e8116fea05a197a4891a64bef35dcebade8",
   "connectionRevision": "2026.09.24-iphone-rpc-r1",
-  "androidSourceBuild": "2026.09.26-v25.49-reader-keyboard-space",
-  "androidSelectorSha256": "f99e545db1a6d1423e6ff4cece06a25e14a2ff3cd1abd889a63c5325a347e05c",
+  "androidSourceBuild": "2026.09.26-v25.50-reader-navigation",
+  "androidSelectorSha256": "10bd8602e368e19dbd176f3293d5340658a377567faf8e0942ecbfaa40d447be",
   "generatedFrom": "scripts/build-embedded-android-v2528.mjs",
   "files": 273
 }
