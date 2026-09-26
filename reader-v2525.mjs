@@ -59,7 +59,7 @@ async function open(data){
   tell({type:'CDQ_READER_OPENED'});
 }
 function menu(hide=false){$('more').hidden=hide?true:!$('more').hidden;$('menu').setAttribute('aria-expanded',String(!$('more').hidden));}
-function zoom(factor,origin){if(viewer&&doc){const target=Math.max(.35,Math.min(4,viewer.currentScale*factor));viewer.updateScale({scaleFactor:target/viewer.currentScale,origin,drawingDelay:250});}}
+function zoom(factor,origin){if(viewer&&doc){const target=Math.max(.35,Math.min(4,viewer.currentScale*factor));viewer.updateScale({scaleFactor:target/viewer.currentScale,origin,drawingDelay:0});}}
 $('menu').onclick=()=>menu();$('fit').onclick=()=>{if(viewer)viewer.currentScaleValue='page-width';menu(true);};
 $('rotate').onclick=()=>{if(doc)viewer.pagesRotation=(viewer.pagesRotation+90)%360;menu(true);};
 $('plus').onclick=()=>zoom(1.2);$('minus').onclick=()=>zoom(1/1.2);
