@@ -154,12 +154,12 @@ export function orderFields(items, nameOf = item => item.name) {
       if(Math.abs(dx)>.001)return dx;
       return a.index-b.index;
     });
-    return enriched.map(x=>x.item);
   }
-  const selected = items.filter(item => fieldRank(nameOf(item)) !== null)
-    .sort((a, b) => fieldRank(nameOf(a)) - fieldRank(nameOf(b)));
-  let i = 0;
-  return items.map(item => fieldRank(nameOf(item)) === null ? item : selected[i++]);
+  // V25.52 — garder l'ordre visuel pour les champs ordinaires, mais les champs
+  // de mesure CDQ conservent toujours leur séquence métier, même dans le vrai PDF.
+  const ranked=enriched.filter(x=>x.rank!==null).sort((a,b)=>a.rank-b.rank);
+  let rankedIndex=0;
+  return enriched.map(x=>x.rank===null?x.item:ranked[rankedIndex++].item);
 }
 
 export function isEditable(field) {
