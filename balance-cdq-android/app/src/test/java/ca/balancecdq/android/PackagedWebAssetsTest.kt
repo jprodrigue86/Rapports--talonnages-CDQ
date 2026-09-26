@@ -15,19 +15,21 @@ class PackagedWebAssetsTest {
 
     @Test fun `startup and images are supplied from installed assets`() {
         val loader = loader()
-        assertEquals("/Rapports--talonnages-CDQ/native/v25.42/", loader.prefix)
+        assertEquals("/Rapports--talonnages-CDQ/native/v25.43/", loader.prefix)
         assertEquals(
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.42/index.html",
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.43/index.html",
             loader.startUrl
         )
         val response = loader.intercept(Uri.parse(loader.startUrl))!!
         assertEquals(200, response.statusCode)
         val shell = response.data.bufferedReader().readText()
-        assertTrue(shell.contains("25.42-first-frame-settle"))
-        assertTrue(shell.contains("CDQ_NATIVE_FIRST_FRAME_SETTLE_MS = 100"))
+        assertTrue(shell.contains("25.43-stable-first-frame"))
+        assertTrue(shell.contains("CDQ_FIRST_FRAME_STABLE_V2543"))
+        assertTrue(shell.contains("1500"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}Selector.html"))!!
         val html = selector.data.bufferedReader().readText()
         assertTrue(html.contains("./embedded-rpc.js"))
+        assertTrue(html.contains("./first-frame-stable-v2543.js"))
         assertTrue(html.contains("./icon-artwork-baseline-v2540.css"))
         assertTrue(html.contains("./safe-viewport-v2532.js"))
         assertTrue(html.contains("id=\"cdqPersonalSizingV2533\""))
@@ -39,6 +41,11 @@ class PackagedWebAssetsTest {
         val warm = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}warm-unlock-v2540.js"))!!
         assertEquals(200, warm.statusCode)
         assertTrue(warm.data.bufferedReader().readText().contains("cdqWarmUnlockV2540"))
+        val settle = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}first-frame-stable-v2543.js"))!!
+        assertEquals(200, settle.statusCode)
+        val settleText = settle.data.bufferedReader().readText()
+        assertTrue(settleText.contains("CDQ_FIRST_FRAME_ARM_V2543"))
+        assertTrue(settleText.contains("CDQ_FIRST_FRAME_STABLE_V2543"))
         val artwork = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}icon-artwork-baseline-v2540.css"))!!
         assertEquals(200, artwork.statusCode)
         assertTrue(artwork.data.bufferedReader().readText().contains("icons-transparent.webp"))

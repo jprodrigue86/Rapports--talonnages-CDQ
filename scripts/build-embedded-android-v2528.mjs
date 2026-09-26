@@ -11,8 +11,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.42/';
-const build='2026.09.25-v25.42-first-frame-settle';
+const local=base+'native/v25.43/';
+const build='2026.09.25-v25.43-stable-first-frame';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -37,11 +37,62 @@ let shell=read('index.html');
 shell=replace(shell,'<head>','<head>\n<script src="./startup-unlock-v2529.js"></script>\n<script src="./warm-unlock-v2540.js"></script>\n<script src="./embedded-rpc.js"></script>\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">');
 shell=replace(shell,"const CDQ_PWA_BUILD = '2026.09.23-v25.27-demarrage-dossiers';",`const CDQ_PWA_BUILD = '${build}';`);
 shell=replace(shell,"if ('serviceWorker' in navigator) {","if (false && 'serviceWorker' in navigator) {");
-// Android V25.42: the app is now fast enough to expose the Selector before
-// its first-frame icon/status work has visually settled. Keep only the final
-// native frame covered for 100 ms; web/PC timing is unchanged.
-shell=replace(shell,'const MIN_LOADING_MS = 0;',"const MIN_LOADING_MS = 0;\nconst CDQ_NATIVE_FIRST_FRAME_SETTLE_MS = 100;");
-shell=replace(shell,'const remaining = Math.max(0, MIN_LOADING_MS - elapsed);',"const remaining = Math.max(window.BalanceCDQNative ? CDQ_NATIVE_FIRST_FRAME_SETTLE_MS : 0, MIN_LOADING_MS - elapsed);");
+// Android V25.43: do not reveal the first authenticated frame on a clock.
+// The Selector explicitly reports when its icon/theme/layout controls are stable.
+shell=replace(shell,'const MIN_LOADING_MS = 0;',`const MIN_LOADING_MS = 0;
+let cdqFirstFrameStableV2543=!window.BalanceCDQNative;
+let cdqFirstFrameStableSourceV2543=window.BalanceCDQNative?'':'non-native';
+let cdqFirstFrameFallbackV2543=null;`);
+shell=replace(shell,'if (selectorAwaitingAccess) {',`if (selectorAwaitingAccess) {
+if(window.BalanceCDQNative){
+  cdqFirstFrameStableV2543=false;
+  cdqFirstFrameStableSourceV2543='';
+  clearTimeout(cdqFirstFrameFallbackV2543);
+}`);
+shell=replace(shell,'const remaining = Math.max(0, MIN_LOADING_MS - elapsed);',`if(window.BalanceCDQNative && !cdqFirstFrameStableV2543){
+  const generation=loadGeneration;
+  clearTimeout(cdqFirstFrameFallbackV2543);
+  cdqFirstFrameFallbackV2543=setTimeout(()=>{
+    if(generation!==loadGeneration || cdqFirstFrameStableV2543)return;
+    cdqFirstFrameStableV2543=true;
+    cdqFirstFrameStableSourceV2543='fallback';
+    masquerMurApresDelaiMinimum();
+  },1500);
+  return;
+}
+const remaining = Math.max(0, MIN_LOADING_MS - elapsed);`);
+shell=replace(shell,`setTimeout(()=>{
+  if(!iframeLoaded || selectorReady)return;`,`setTimeout(()=>{
+  if(window.BalanceCDQNative)return;
+  if(!iframeLoaded || selectorReady)return;`);
+shell=replace(shell,`selectorReady = false;
+iframeLoaded = false;
+selectorAwaitingAccess = false;
+clearTimeout(accessWaitTimer);`,`selectorReady = false;
+iframeLoaded = false;
+selectorAwaitingAccess = false;
+cdqFirstFrameStableV2543=!window.BalanceCDQNative;
+cdqFirstFrameStableSourceV2543=window.BalanceCDQNative?'':'non-native';
+clearTimeout(cdqFirstFrameFallbackV2543);
+clearTimeout(accessWaitTimer);`);
+shell=replace(shell,`if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
+
+if(data.type==='CDQ_FILE_HANDOFF_FREEZE_V2307'){`,`if (event.source !== selectorWindow || event.origin !== selectorOrigin) return;
+
+if(data.type==='CDQ_FIRST_FRAME_STABLE_V2543'){
+  if(Number(data.generation)!==loadGeneration)return;
+  cdqFirstFrameStableV2543=true;
+  cdqFirstFrameStableSourceV2543='signal';
+  clearTimeout(cdqFirstFrameFallbackV2543);
+  masquerMurApresDelaiMinimum();
+  return;
+}
+
+if(data.type==='CDQ_FILE_HANDOFF_FREEZE_V2307'){`);
+shell=replace(shell,`if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready'))replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});`,`if((data.type==='CDQ_ACCESS_STATE' && data.state==='ready') || (data.type==='CDQ_SELECTOR_READY' && data.accessState==='ready')){
+  replyToSelector(event.source,{type:'CDQ_OFFLINE_PREPARE'});
+  if(window.BalanceCDQNative)replyToSelector(event.source,{type:'CDQ_FIRST_FRAME_ARM_V2543',generation:loadGeneration});
+}`);
 shell=replace(shell,"function cdqFreshAppUrl(reason='boot'){","function cdqFreshAppUrl(reason='boot'){\n  return new URL('./Selector.html',location.href).href;\n}");
 // Remove the former function body after replacing its opening.
 shell=replace(shell,"\n  const sep=APP_URL.includes('?')?'&':'?';\n  return APP_URL+sep+'cdq_boot=1&cdq_reason='+encodeURIComponent(reason)+'&cdq_live='+encodeURIComponent(CDQ_BOOT_NONCE)+'&ts='+Date.now();\n}",'');
@@ -67,6 +118,7 @@ shell=applySafeShell2532(shell);
 files.set('index.html',Buffer.from(shell));
 let selector=gunzipSync(fs.readFileSync(source+'Selector.html.gz')).toString('utf8');
 selector=replace(selector,'<head>','<head>\n<meta charset="utf-8">\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">\n<link rel="stylesheet" href="./icon-artwork-baseline-v2540.css">\n<script src="./embedded-rpc.js"></script>');
+selector=replace(selector,'</body>','<script src="./first-frame-stable-v2543.js"></script>\n</body>');
 selector=selector.replaceAll('2026.09.23-v25.27-demarrage-dossiers',build);
 // A prompt already running over the music wall must not wait behind a failed
 // network-only resume attempt. Returning from Sheets keeps the existing page.
@@ -91,9 +143,10 @@ files.set('safe-viewport-v2532.js',fs.readFileSync('safe-viewport-v2532.js'));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
 files.set('startup-unlock-v2529.js',fs.readFileSync(source+'startup-unlock-v2529.js'));
 files.set('warm-unlock-v2540.js',fs.readFileSync(source+'warm-unlock-v2540.js'));
+files.set('first-frame-stable-v2543.js',fs.readFileSync(source+'first-frame-stable-v2543.js'));
 files.set('icon-artwork-baseline-v2540.css',fs.readFileSync('icon-artwork-baseline-v2540.css'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.42',build,files:{}};
+const manifest={version:'25.43',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);

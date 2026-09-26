@@ -11,7 +11,7 @@ const manifest=JSON.parse(read('bundles/balance-cdq/v25.28/manifest.json'));
 
 test('every packaged asset matches its manifest and includes interface, artwork and PDF engine',()=>{
   const assets=JSON.parse(read(generated+'asset-manifest.json'));
-  for(const name of ['index.html','Selector.html','embedded-rpc.js','warm-unlock-v2540.js','icon-artwork-baseline-v2540.css','vendor/pdf-lib-1.17.1.min.js','vendor/pdfjs-6.3.289/build/pdf.worker.mjs','assets/templates/balance-plancher-v2519.pdf','bundles/balance-cdq/v25.14/icons-reference.png','bundles/balance-cdq/v25.15/icons-transparent.webp','bundles/balance-cdq/v25.17/banner-original.webp'])assert.ok(assets.files[name],name);
+  for(const name of ['index.html','Selector.html','embedded-rpc.js','warm-unlock-v2540.js','first-frame-stable-v2543.js','icon-artwork-baseline-v2540.css','vendor/pdf-lib-1.17.1.min.js','vendor/pdfjs-6.3.289/build/pdf.worker.mjs','assets/templates/balance-plancher-v2519.pdf','bundles/balance-cdq/v25.14/icons-reference.png','bundles/balance-cdq/v25.15/icons-transparent.webp','bundles/balance-cdq/v25.17/banner-original.webp'])assert.ok(assets.files[name],name);
   for(const [name,entry] of Object.entries(assets.files)){
     const bytes=fs.readFileSync(generated+name);
     assert.equal(bytes.length,entry.bytes);assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),entry.sha256);
@@ -27,13 +27,17 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/if \(false && 'serviceWorker' in navigator\)/);
   assert.doesNotMatch(html,/<script src="https:\/\/accounts.google.com/);
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
-  assert.match(selector,/native\/v25.42\/vendor\/pdf-lib/);
+  assert.match(selector,/native\/v25.43\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);
   assert.match(selector,/id="cdqFullNamesV2536"/);
   assert.match(selector,/icon-artwork-baseline-v2540\.css/);
   assert.doesNotMatch(selector,/cdqLocalProvisionalV2537|icon-fallback-v2538|cdq-icon-art-ready-v2538/);
-  assert.match(html,/CDQ_NATIVE_FIRST_FRAME_SETTLE_MS = 100/);
-  assert.match(html,/Math\.max\(window\.BalanceCDQNative \? CDQ_NATIVE_FIRST_FRAME_SETTLE_MS : 0, MIN_LOADING_MS - elapsed\)/);
+  assert.match(html,/CDQ_FIRST_FRAME_STABLE_V2543/);
+  assert.match(html,/CDQ_FIRST_FRAME_ARM_V2543/);
+  assert.match(html,/1500/);
+  assert.match(selector,/first-frame-stable-v2543\.js/);
+  assert.match(read(source+'first-frame-stable-v2543.js'),/now-started>=450/);
+  assert.match(read(source+'first-frame-stable-v2543.js'),/now-stableSince>=220/);
   assert.match(html,/warm-unlock-v2540\.js/);
   assert.match(html,/cdqNativeBiometricResultV2507=function\(requestId,success,message,grant\)/);
   assert.match(html,/cdqWarmUnlockV2540\?\.observe/);
