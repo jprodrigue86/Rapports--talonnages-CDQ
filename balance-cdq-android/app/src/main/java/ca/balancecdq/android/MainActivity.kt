@@ -195,6 +195,28 @@ class MainActivity : Activity() {
                 }
             }
         }
+
+        @JavascriptInterface
+        fun updateIdentity(): String {
+            val info = packageManager.getPackageInfo(packageName, 0)
+            val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                info.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                info.versionCode.toLong()
+            }
+            return JSONObject()
+                .put("versionName", info.versionName.orEmpty())
+                .put("versionCode", code)
+                .toString()
+        }
+
+        @JavascriptInterface
+        fun openUpdater() {
+            runOnUiThread {
+                startActivity(Intent(this@MainActivity, UpdateActivity::class.java))
+            }
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
@@ -230,7 +252,7 @@ class MainActivity : Activity() {
             settings.setSupportMultipleWindows(false)
             settings.mediaPlaybackRequiresUserGesture = false
             settings.userAgentString =
-                settings.userAgentString + " BalanceCDQAndroid/25.46 CDQSafeArea/1"
+                settings.userAgentString + " BalanceCDQAndroid/25.47 CDQSafeArea/1"
 
             addJavascriptInterface(NativeBridge(), "BalanceCDQNative")
 
@@ -638,21 +660,7 @@ class MainActivity : Activity() {
 
         startupUpdateExecutor.execute {
             try {
-                val conn = URL(UPDATE_MANIFEST_URL).openConnection() as HttpURLConnection
-                conn.connectTimeout = 6000
-                conn.readTimeout = 6000
-                conn.instanceFollowRedirects = true
-                conn.setRequestProperty("Cache-Control", "no-cache, no-store")
-                conn.setRequestProperty("Pragma", "no-cache")
-
-                val body = try {
-                    if (conn.responseCode !in 200..299) return@execute
-                    conn.inputStream.bufferedReader().use { it.readText() }
-                } finally {
-                    conn.disconnect()
-                }
-
-                val json = JSONObject(body)
+                val json = AndroidUpdateChannel.fetchLatest(6000, 6000)
                 val latestCode = json.optLong("versionCode", 0L)
                 val updatePolicy = NativeUpdatePolicy(
                     getSharedPreferences(NativeUpdatePolicy.PREFERENCES, MODE_PRIVATE)
@@ -784,7 +792,7 @@ class MainActivity : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("cdqEmbeddedVersion", "25.46")
+        outState.putString("cdqEmbeddedVersion", "25.47")
         super.onSaveInstanceState(outState)
     }
 

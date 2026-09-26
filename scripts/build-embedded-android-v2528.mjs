@@ -11,8 +11,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.46/';
-const build='2026.09.26-v25.46-pdf-viewer-polish';
+const local=base+'native/v25.47/';
+const build='2026.09.26-v25.47-native-update-center';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -132,6 +132,150 @@ Object.assign(window,{cdqGeneralValueV89,cdqTextValueV89,cdqIconValueV89,cdqGene
 selector=replace(selector,'Balance CDQ / Selector se met à jour avec Script Manager. La couche Android se met à jour séparément.','Les écrans et les images se mettent à jour avec l’APK. Script Manager met à jour les services CDQ.');
 selector=replace(selector,'Les mises à jour normales de Balance CDQ continuent avec Script Manager. ','Les écrans, images et outils PDF font partie de cette installation. ');
 selector=replace(selector,'Ce bouton sert seulement quand la petite couche Android native doit être mise à jour.','Ce bouton vérifie les nouvelles versions de l’application Android.');
+// Android V25.47: the in-app update center must read the durable APK channel,
+ // never the web/Script Manager bundle channel.
+selector=replace(selector,'function cdqRefreshUpdateCenterUI(){',`function cdqNativeUpdateBridgeV2547(){
+  try{return window.BalanceCDQNative || (window.parent&&window.parent.BalanceCDQNative) || null;}catch(_){return window.BalanceCDQNative||null;}
+}
+function cdqNativeUpdateIdentityV2547(){
+  const bridge=cdqNativeUpdateBridgeV2547();
+  try{
+    if(bridge&&typeof bridge.updateIdentity==='function'){
+      const raw=JSON.parse(String(bridge.updateIdentity()||'{}'));
+      const name=String(raw.versionName||'').trim().replace(/^V/i,'');
+      const code=Number(raw.versionCode||0);
+      if(name&&code>0)return {version:'V'+name,code};
+    }
+  }catch(_){}
+  const m=String(navigator.userAgent||'').match(/BalanceCDQAndroid\\/(\\d+(?:\\.\\d+)?)/i);
+  if(!m)return null;
+  const p=m[1].split('.');
+  return {version:'V'+m[1],code:(Number(p[0]||0)*100)+Number(p[1]||0)};
+}
+async function cdqFetchNativeUpdateManifestV2547(){
+  const stamp=Date.now();
+  const urls=[
+    'https://jprodrigue86.github.io/Rapports--talonnages-CDQ/downloads/android-release-update.json?cdq_ts='+stamp,
+    'https://raw.githubusercontent.com/jprodrigue86/Rapports--talonnages-CDQ/main/downloads/android-release-update.json?cdq_ts='+stamp
+  ];
+  const settled=await Promise.allSettled(urls.map(async function(url){
+    const response=await fetch(url,{cache:'no-store'});
+    if(!response.ok)throw Error('HTTP '+response.status);
+    const json=await response.json();
+    const code=Number(json&&json.versionCode||0);
+    if(!code||!json.versionName||!json.apkUrl)throw Error('Manifeste Android incomplet.');
+    return json;
+  }));
+  const values=settled.filter(function(x){return x.status==='fulfilled';}).map(function(x){return x.value;});
+  if(!values.length)throw Error('Impossible de joindre le canal Android stable.');
+  values.sort(function(a,b){return Number(b.versionCode||0)-Number(a.versionCode||0);});
+  return values[0];
+}
+
+function cdqRefreshUpdateCenterUI(){`);
+
+selector=replace(selector,`    const installedBuild=CDQ_BUILD;
+    const remoteBuild=String(cdqUpdateInfo.latest||"");
+    const newer=cdqCompareVersionV2248(remoteBuild,installedBuild)>0;
+    const availableBuild=newer?remoteBuild:"";`,`    const identity=cdqNativeUpdateIdentityV2547();
+    const installedBuild=identity?identity.version:String(cdqUpdateInfo.current||CDQ_BUILD);
+    const remoteBuild=String(cdqUpdateInfo.latest||"");
+    const updateError=String(cdqUpdateInfo.erreur||"");
+    const newer=!!cdqUpdateInfo.disponible || cdqCompareVersionV2248(remoteBuild,installedBuild)>0;
+    const availableBuild=newer?remoteBuild:"";`);
+
+selector=replace(selector,`    if(latest){
+      latest.textContent=newer?cdqVersionLabelV87(availableBuild):"—";
+      latest.title=newer?cdqVersionDetailV87(availableBuild):"Aucune version plus récente.";
+    }`,`    if(latest){
+      latest.textContent=newer?cdqVersionLabelV87(availableBuild):"—";
+      latest.title=updateError?updateError:(newer?cdqVersionDetailV87(availableBuild):"Aucune version plus récente.");
+    }`);
+
+selector=replace(selector,`      }else if(newer){
+        status.textContent="Mise à jour disponible";
+        status.className="cdq-update-state available";
+      }else{
+        status.textContent="À jour";
+        status.className="cdq-update-state current";
+      }`,`      }else if(updateError){
+        status.textContent="Vérification impossible";
+        status.className="cdq-update-state checking";
+      }else if(newer){
+        status.textContent="Mise à jour disponible";
+        status.className="cdq-update-state available";
+      }else{
+        status.textContent="À jour";
+        status.className="cdq-update-state current";
+      }`);
+
+selector=replace(selector,`    if(install){
+      install.disabled=!newer;
+      install.textContent=newer
+        ? ("Installer "+cdqVersionLabelV87(availableBuild))
+        : "Déjà à jour";
+      install.title=newer
+        ? ("Installer la dernière version publiée : "+availableBuild)
+        : "Aucune mise à jour plus récente n’est disponible.";
+    }`,`    if(install){
+      install.disabled=!newer&&!updateError;
+      install.textContent=updateError
+        ? "Vérifier avec Android"
+        : (newer ? ("Installer "+cdqVersionLabelV87(availableBuild)) : "Déjà à jour");
+      install.title=updateError
+        ? "Ouvrir le vérificateur Android natif."
+        : (newer ? ("Installer la dernière version publiée : "+availableBuild) : "Aucune mise à jour plus récente n’est disponible.");
+    }`);
+
+selector=replace(selector,`function cdqCheckUpdate(){
+    if(!cdqPwaAvailable()){
+      cdqUpdateInfo={disponible:false,latest:"",current:CDQ_BUILD,verifie:true};
+      cdqRefreshUpdateCenterUI();
+      return;
+    }
+    try{cdqPostToPwa({type:"CDQ_CHECK_UPDATE",authProtocol:42,accessState:cdqAccessState,build:CDQ_BUILD});}catch(e){}
+  }`,`function cdqCheckUpdate(){
+    const identity=cdqNativeUpdateIdentityV2547();
+    if(identity){
+      cdqUpdateInfo={disponible:false,latest:"",current:identity.version,verifie:false,erreur:""};
+      cdqRefreshUpdateCenterUI();
+      cdqFetchNativeUpdateManifestV2547().then(function(manifest){
+        const latest='V'+String(manifest.versionName||'').replace(/^V/i,'');
+        cdqUpdateInfo={
+          disponible:Number(manifest.versionCode||0)>Number(identity.code||0),
+          latest:latest,current:identity.version,verifie:true,erreur:""
+        };
+        cdqRefreshUpdateCenterUI();
+      }).catch(function(error){
+        cdqUpdateInfo={
+          disponible:false,latest:"",current:identity.version,verifie:true,
+          erreur:error&&error.message?error.message:String(error||"Vérification Android impossible.")
+        };
+        cdqRefreshUpdateCenterUI();
+      });
+      return;
+    }
+    if(!cdqPwaAvailable()){
+      cdqUpdateInfo={disponible:false,latest:"",current:CDQ_BUILD,verifie:true,erreur:""};
+      cdqRefreshUpdateCenterUI();
+      return;
+    }
+    try{cdqPostToPwa({type:"CDQ_CHECK_UPDATE",authProtocol:42,accessState:cdqAccessState,build:CDQ_BUILD});}catch(e){}
+  }`);
+
+selector=replace(selector,`  function cdqForceUpdate(){
+    if(cdqCompareVersionV2248(cdqUpdateInfo.latest,CDQ_BUILD)<=0)return;`,`  function cdqForceUpdate(){
+    const identity=cdqNativeUpdateIdentityV2547();
+    if(identity){
+      const bridge=cdqNativeUpdateBridgeV2547();
+      try{
+        if(bridge&&typeof bridge.openUpdater==='function'){bridge.openUpdater();return;}
+      }catch(_){}
+      try{window.top.location.href='cdqupdate://check';}catch(_){location.href='cdqupdate://check';}
+      return;
+    }
+    if(cdqCompareVersionV2248(cdqUpdateInfo.latest,CDQ_BUILD)<=0)return;`);
+
 selector=applyInstantFiles2530(selector);
 selector=applyHomeUnderline2531(selector);
 selector=applySafeSelector2532(selector);
@@ -159,7 +303,7 @@ files.set('first-frame-stable-v2543.js',fs.readFileSync(source+'first-frame-stab
 files.set('client-speed-v2544.js',fs.readFileSync(source+'client-speed-v2544.js'));
 files.set('icon-artwork-baseline-v2540.css',fs.readFileSync('icon-artwork-baseline-v2540.css'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.46',build,files:{}};
+const manifest={version:'25.47',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);
