@@ -43,7 +43,7 @@ try{
       },
       confirmStartupTicket(){window.testTicketConfirmCount++;return true;},
       clearStartupTicket(){window.testTicketClearCount++;},
-      updateIdentity(){return JSON.stringify({versionName:'25.51',versionCode:2551});},
+      updateIdentity(){return JSON.stringify({versionName:'25.50',versionCode:2550});},
       openUpdater(){window.testUpdaterOpenCount=(window.testUpdaterOpenCount||0)+1;}
     };
   });
@@ -253,7 +253,7 @@ try{
       disabled:!!document.getElementById('cdqInstallUpdateButton')?.disabled
     };
   });
-  assert.equal(updateUi.installed,'V25.51');
+  assert.equal(updateUi.installed,'V25.50');
   assert.equal(updateUi.latest,'V25.51');
   assert.match(updateUi.state,/disponible/i);
   assert.match(updateUi.installText,/Installer V25\.51/);
