@@ -242,7 +242,7 @@ try{
     for(let i=0;i<100;i++){
       const latest=document.getElementById('cdqUpdateLatest')?.textContent||'';
       const state=document.getElementById('cdqUpdateStatus')?.textContent||'';
-      if(latest==='V25.49'&&/disponible/i.test(state))break;
+      if(latest==='V25.50'&&/disponible/i.test(state))break;
       await new Promise(resolve=>setTimeout(resolve,25));
     }
     return {
