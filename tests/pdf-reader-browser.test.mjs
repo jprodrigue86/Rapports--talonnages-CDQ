@@ -124,7 +124,10 @@ try{
       visible:!!rect&&rect.left>=host.left-1&&rect.right<=host.right+1&&rect.top>=host.top-1&&rect.bottom<=host.bottom+1,
       moved:Math.abs(container.scrollLeft-before.left)>1||Math.abs(container.scrollTop-before.top)>1
     };
+    active?.blur?.();
+    await new Promise(resolve=>setTimeout(resolve,140));
     fit?.click();
+    await new Promise(resolve=>setTimeout(resolve,360));
     return result;
   });
   if(!followAudit.skipped){
