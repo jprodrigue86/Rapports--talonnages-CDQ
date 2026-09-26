@@ -66,18 +66,22 @@ try{
       const compactHeader=header.getBoundingClientRect().height;
       const zoomDisplay=getComputedStyle(document.getElementById('zoomControls')).display;
       const statusDisplay=getComputedStyle(document.getElementById('status')).display;
+      const saveDisplay=getComputedStyle(document.getElementById('save')).display;
+      const menuDisplay=getComputedStyle(document.getElementById('menu')).display;
       const active=document.body.classList.contains('cdq-keyboard-field');
       field.blur();
-      await new Promise(resolve=>setTimeout(resolve,120));
+      await new Promise(resolve=>setTimeout(resolve,140));
       return {
-        normalHeader,compactHeader,zoomDisplay,statusDisplay,active,
+        normalHeader,compactHeader,zoomDisplay,statusDisplay,saveDisplay,menuDisplay,active,
         restored:!document.body.classList.contains('cdq-keyboard-field')
       };
     });
     assert.equal(keyboardUi.active,true);
     assert.equal(keyboardUi.zoomDisplay,'none');
     assert.equal(keyboardUi.statusDisplay,'none');
-    assert.ok(keyboardUi.compactHeader<keyboardUi.normalHeader);
+    assert.equal(keyboardUi.saveDisplay,'none');
+    assert.equal(keyboardUi.menuDisplay,'none');
+    assert.ok(keyboardUi.compactHeader<=keyboardUi.normalHeader-40);
     assert.equal(keyboardUi.restored,true);
   }
   for(const [name,value] of [['echelon','1'],['charge_point_1_charge_utilisee','1000'],['charge_point_1_avant_correction','1003']]){
