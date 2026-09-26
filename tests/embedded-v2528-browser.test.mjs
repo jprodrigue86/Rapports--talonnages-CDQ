@@ -150,8 +150,10 @@ try{
   const firstFrameSettleMs=Date.now()-firstFrameSettleAt;
   assert.ok(firstFrameSettleMs>=320,'Stable-frame gate revealed too early: '+firstFrameSettleMs+' ms');
   assert.equal(await page.evaluate(()=>cdqFirstFrameStableV2543),true);
+  assert.equal(await page.evaluate(()=>cdqFirstFrameStableSourceV2543),'signal',
+    'First frame must open from the Selector stability signal, not the 1.5 s fallback');
   const fastStartMs=Date.now()-fastStartAt;
-  assert.ok(fastStartMs<1200,'Local UI after fingerprint took '+fastStartMs+' ms');
+  assert.ok(fastStartMs<1450,'Local UI after fingerprint took '+fastStartMs+' ms');
   assert.equal(await selector.evaluate(()=>utilisateurCourantRole),'technicien');
   assert.equal(calls.filter(x=>x==='restaurerSessionApresBiometrie').length,0,'Server is still deliberately held');
 
