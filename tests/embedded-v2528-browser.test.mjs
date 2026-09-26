@@ -192,7 +192,7 @@ try{
     return {before,after:String(row.dataset.companyId||''),name:String(row.textContent||'').trim()};
   });
   assert.ok(touchWarm);
-  assert.equal(touchWarm.before,'');
+  assert.equal(touchWarm.before,'client_fixture_12345');
   assert.equal(touchWarm.after,'client_fixture_12345');
 
   // V25.45: mobile rendering creates only the visible level. Opening a folder
