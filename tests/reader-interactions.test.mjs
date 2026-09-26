@@ -232,15 +232,19 @@ test('V25.46 : nouvelle interface mobile, marge Android et couleurs de conformit
   assert.match(html,/backface-visibility:visible!important/);
 });
 
-test('V25.48 : la saisie mobile agrandit la fenêtre du PDF sans changer le mode normal', () => {
+test('V25.49 : la saisie mobile agrandit fortement la fenêtre du PDF pendant le clavier Android', () => {
   const html=readFileSync(new URL('../reader-v2525.html',import.meta.url),'utf8');
   const js=readFileSync(new URL('../reader-v2525.mjs',import.meta.url),'utf8');
-  assert.match(html,/body\.cdq-keyboard-field #zoomControls\{display:none!important\}/);
+  assert.match(html,/body\.cdq-keyboard-field #zoomControls,/);
+  assert.match(html,/body\.cdq-keyboard-field #save,/);
+  assert.match(html,/body\.cdq-keyboard-field #menu,/);
   assert.match(html,/body\.cdq-keyboard-field #status\{display:none!important\}/);
-  assert.match(html,/height:calc\(58px \+ var\(--reader-safe-top\)\)!important/);
-  assert.match(html,/body\.cdq-keyboard-field #container\{[\s\S]*?bottom:48px!important/);
-  assert.match(html,/body\.cdq-keyboard-field #formNav\{[\s\S]*?bottom:0!important/);
-  assert.match(js,/function cdqTextEntryFieldV2548/);
-  assert.match(js,/function cdqKeyboardFieldV2548/);
+  assert.match(html,/height:calc\(46px \+ var\(--reader-safe-top\)\)!important/);
+  assert.match(html,/body\.cdq-keyboard-field #container\{[\s\S]*?bottom:44px!important/);
+  assert.match(html,/body\.cdq-keyboard-field #formNav\{[\s\S]*?height:44px!important/);
+  assert.match(js,/function cdqTextEntryFieldV2549/);
+  assert.match(js,/function cdqKeyboardFieldV2549/);
+  assert.match(js,/visualViewport\?\.addEventListener\('resize'/);
+  assert.match(js,/\[80,180,320,520\]/);
   assert.match(js,/scrollIntoView\(\{block:'center',inline:'nearest',behavior:'instant'\}\)/);
 });
