@@ -11,6 +11,8 @@
   const READY='CDQ_FIRST_FRAME_STABLE_V2543';
   const labels=['Hors ligne','Note','Photos','Réglages'];
   let serial=0;
+  let armedGeneration=null;
+  let completedGeneration=null;
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const paints=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
@@ -98,6 +100,9 @@
   }
 
   async function settle(generation){
+    const normalized=Number(generation)||0;
+    if(armedGeneration===normalized || completedGeneration===normalized)return;
+    armedGeneration=normalized;
     const run=++serial;
     try{window.cdqIconThemesV2514?.synchronize?.();}catch(_){}
     await resources();
@@ -115,7 +120,9 @@
     }
     if(run!==serial)return;
     await paints();
-    parent.postMessage({type:READY,generation:Number(generation)||0},location.origin);
+    completedGeneration=normalized;
+    armedGeneration=null;
+    parent.postMessage({type:READY,generation:normalized},location.origin);
   }
 
   addEventListener('message',event=>{
