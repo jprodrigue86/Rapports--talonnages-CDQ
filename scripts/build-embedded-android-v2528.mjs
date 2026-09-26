@@ -139,6 +139,10 @@ selector=applyPersonalSizing2533(selector);
 selector=applyWholeWords2534(selector);
 selector=applyFullNames2536(selector);
 selector=replace(selector,
+  '      item.textContent =\n        compagnie.nom;\n\n\n      item.onclick =',
+  '      item.textContent =\n        compagnie.nom;\n      item.dataset.companyId=String(compagnie.id||"");\n\n\n      item.onclick ='
+);
+selector=replace(selector,
   '      afficherDossierRecursif(sousDossier, contenu);',
   '      if(!document.documentElement.classList.contains("mobile-device"))afficherDossierRecursif(sousDossier, contenu);'
 );
