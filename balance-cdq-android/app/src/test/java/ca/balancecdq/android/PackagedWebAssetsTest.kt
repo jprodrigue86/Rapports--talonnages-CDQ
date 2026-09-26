@@ -15,15 +15,15 @@ class PackagedWebAssetsTest {
 
     @Test fun `startup and images are supplied from installed assets`() {
         val loader = loader()
-        assertEquals("/Rapports--talonnages-CDQ/native/v25.46/", loader.prefix)
+        assertEquals("/Rapports--talonnages-CDQ/native/v25.47/", loader.prefix)
         assertEquals(
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.46/index.html",
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.47/index.html",
             loader.startUrl
         )
         val response = loader.intercept(Uri.parse(loader.startUrl))!!
         assertEquals(200, response.statusCode)
         val shell = response.data.bufferedReader().readText()
-        assertTrue(shell.contains("25.46-pdf-viewer-polish"))
+        assertTrue(shell.contains("25.47-native-update-center"))
         assertTrue(shell.contains("CDQ_FIRST_FRAME_STABLE_V2543"))
         assertTrue(shell.contains("2500"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}Selector.html"))!!
@@ -33,6 +33,9 @@ class PackagedWebAssetsTest {
         assertTrue(html.contains("./client-speed-v2544.js"))
         assertTrue(html.contains("./icon-artwork-baseline-v2540.css"))
         assertTrue(html.contains("./safe-viewport-v2532.js"))
+        assertTrue(html.contains("cdqNativeUpdateIdentityV2547"))
+        assertTrue(html.contains("android-release-update.json"))
+        assertTrue(html.contains("Vérifier avec Android"))
         assertTrue(html.contains("id=\"cdqPersonalSizingV2533\""))
         assertTrue(html.contains("id=\"cdqWholeWordsV2534\""))
         assertTrue(html.contains("id=\"cdqFullNamesV2536\""))
@@ -87,7 +90,7 @@ class PackagedWebAssetsTest {
 
     @Test fun `live data and updates never use a packaged response`() {
         val loader = loader()
-        for (url in listOf("https://script.google.com/macros/s/test/exec", "https://drive.google.com/file/d/test", "https://${PackagedWebAssets.HOST}${PackagedWebAssets.ROOT}version.json", "https://${PackagedWebAssets.HOST}${PackagedWebAssets.ROOT}bundles/balance-cdq/latest/manifest.json"))
+        for (url in listOf("https://script.google.com/macros/s/test/exec", "https://drive.google.com/file/d/test", "https://${PackagedWebAssets.HOST}${PackagedWebAssets.ROOT}version.json", "https://${PackagedWebAssets.HOST}${PackagedWebAssets.ROOT}bundles/balance-cdq/latest/manifest.json", "https://${PackagedWebAssets.HOST}${PackagedWebAssets.ROOT}downloads/android-release-update.json"))
             assertNull(url, loader.intercept(Uri.parse(url)))
         assertNull(loader.intercept(Uri.parse(loader.startUrl), "POST"))
     }
