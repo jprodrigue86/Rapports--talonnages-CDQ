@@ -22,10 +22,29 @@
     return s.display!=='none'&&s.visibility!=='hidden'&&Number(s.opacity||1)>0&&r.width>4&&r.height>4;
   }
 
+  const actionCache=new Map();
   function control(label){
+    const cached=actionCache.get(label);
+    if(cached?.isConnected&&visible(cached))return cached;
+
     const wanted=norm(label);
-    return [...document.querySelectorAll('button,[role="button"],a')]
+    let found=[...document.querySelectorAll('button,[role="button"],a')]
       .find(el=>visible(el)&&norm(el.textContent).includes(wanted))||null;
+
+    if(!found){
+      const leaf=[...document.querySelectorAll('small,span,div')]
+        .find(el=>visible(el)&&norm(el.textContent)===wanted);
+      if(leaf){
+        found=leaf;
+        for(let i=0;i<4&&found.parentElement;i++){
+          const parent=found.parentElement;
+          if(!visible(parent)||norm(parent.textContent)!==wanted)break;
+          found=parent;
+        }
+      }
+    }
+    if(found)actionCache.set(label,found);
+    return found;
   }
 
   function styleSignature(el){
@@ -49,7 +68,15 @@
     const nav=[...document.querySelectorAll('.bottom-nav > .bottom-nav-item')].filter(visible);
     const navReady=nav.length>=5&&nav.every(button=>{
       const host=button.querySelector(':scope > span');
-      return host&&visible(host);
+      if(!host)return false;
+      const h=getComputedStyle(host),before=getComputedStyle(host,'::before'),after=getComputedStyle(host,'::after');
+      const r=host.getBoundingClientRect(),box=r.width>8&&r.height>8&&h.display!=='none';
+      const original=box&&h.visibility!=='hidden'&&Number(h.opacity||1)>0;
+      const pseudo=box&&(
+        (before.display!=='none'&&before.visibility!=='hidden'&&(before.backgroundImage!=='none'||before.maskImage!=='none'||(before.content&&before.content!=='none'&&before.content!=='normal'))) ||
+        (after.display!=='none'&&after.visibility!=='hidden'&&(after.backgroundImage!=='none'||after.maskImage!=='none'||(after.content&&after.content!=='none'&&after.content!=='normal')))
+      );
+      return original||pseudo;
     });
     return {
       ready:actions.every(Boolean)&&navReady,
