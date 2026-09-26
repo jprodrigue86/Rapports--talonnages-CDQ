@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {installTouchNavigation, installFormNavigation, fieldRank, orderFields} from '../reader-interactions-v2520.mjs';
-import {installTouchNavigation as installTouchNavigation2525, installFormNavigation as installFormNavigation2525} from '../reader-interactions-v2525.mjs';
+import {installTouchNavigation as installTouchNavigation2525, installFormNavigation as installFormNavigation2525, isAutomaticFieldName as isAutomaticFieldName2525} from '../reader-interactions-v2525.mjs';
 
 function harness() {
   const listeners = {}, calls = [], surface = {style:{}, getBoundingClientRect:() => ({left:-100,top:-200})};
@@ -93,8 +93,9 @@ test('Le cache hors ligne contient exactement les nouveaux modules du lecteur', 
 function formHarness(names, installer=installFormNavigation) {
   const classes = new Set(), allFields = [], blurEvents = [];
   function node(props = {}) {
-    return Object.assign({listeners:{}, children:[], hidden:false, disabled:false,
+    return Object.assign({listeners:{}, children:[], hidden:false, disabled:false, dataset:{}, attributes:{},
       addEventListener(type,fn,options={}) {(this.listeners[type] ||= []).push({fn,capture:options.capture});},
+      setAttribute(name,value){this.attributes[name]=String(value);},removeAttribute(name){delete this.attributes[name];},
       contains(item) {return this === item || this.children.some(c => c.contains(item));},
       querySelector() {return this.children.find(c => c.name) || null;},
       appendChild(item) {const i=this.children.indexOf(item);if(i>=0)this.children.splice(i,1);this.children.push(item);},
@@ -128,12 +129,16 @@ function formHarness(names, installer=installFormNavigation) {
   return {surface,layer,toolbar,previous,next,owner,navigation,allFields,classes,blurEvents,fire,
     field:name=>allFields.find(f=>f.name===name),cleanup(){globalThis.getComputedStyle=getStyle;}};
 }
-test('Ordre DOM natif corrigé et réappliqué après reconstruction PDF.js', () => {
+test('V25.50 : l’ordre logique ne déplace plus physiquement les widgets PDF.js', () => {
   const h=formHarness(['charge_point_1_charge_utilisee','charge_point_1_avant_correction','charge_point_2_charge_utilisee']);
   try {
-    h.navigation.refresh();const expected=['charge_point_1_charge_utilisee','charge_point_2_charge_utilisee','charge_point_1_avant_correction'];
-    assert.deepEqual(h.surface.querySelectorAll('').map(f=>f.name),expected);
-    h.layer.children.reverse();h.navigation.refresh();assert.deepEqual(h.surface.querySelectorAll('').map(f=>f.name),expected);
+    h.navigation.refresh();
+    assert.deepEqual(h.surface.querySelectorAll('').map(f=>f.name),[
+      'charge_point_1_charge_utilisee','charge_point_1_avant_correction','charge_point_2_charge_utilisee'
+    ]);
+    h.field('charge_point_1_charge_utilisee').focus();
+    h.fire(h.next,'click');
+    assert.equal(h.owner.activeElement.name,'charge_point_2_charge_utilisee');
     assert(h.allFields.every(f=>f.enterKeyHint==='next'&&f.tabIndex===0));
   } finally {h.cleanup();}
 });
@@ -164,6 +169,24 @@ test('Calculs, champs masqués et lecture seule sautés sans altérer leur état
     h.navigation.refresh();h.allFields[0].focus();h.fire(h.next,'click');
     assert.equal(h.owner.activeElement.name,'charge_point_2_charge_utilisee');assert.equal(h.allFields[1].tabIndex,-1);assert(h.allFields[1].disabled);
   } finally {h.cleanup();}
+});
+test('V25.50 : type de balance, échelon et résultats calculés sont exclus de la navigation', () => {
+  for(const name of ['type_balance','type_de_balance','echelon','charge_point_1_tolerance','charge_point_1_erreur_avant','charge_point_1_conforme_rouge','Statut_conformite'])
+    assert.equal(isAutomaticFieldName2525(name),true,name);
+  const h=formHarness(['client_nom','type_balance','echelon','charge_point_1_charge_utilisee','charge_point_1_tolerance','resume_commentaires'],installFormNavigation2525);
+  try{
+    h.navigation.refresh();
+    for(const name of ['type_balance','echelon','charge_point_1_tolerance']){
+      const field=h.field(name);
+      assert.equal(field.tabIndex,-1,name);
+      assert.equal(field.dataset.cdqAutoField,'true',name);
+    }
+    h.field('client_nom').focus();
+    h.fire(h.next,'click');
+    assert.equal(h.owner.activeElement.name,'charge_point_1_charge_utilisee');
+    h.fire(h.next,'click');
+    assert.equal(h.owner.activeElement.name,'resume_commentaires');
+  }finally{h.cleanup();}
 });
 test('Excentricité dans les contrôles : charge puis avant complet puis après complet', () => {
   const expected=['charge_excentricite',...['avant','apres'].flatMap(g=>['arriere_gauche','avant_gauche','arriere_droit','avant_droit'].map(p=>`excentricite_${g}_${p}`))];
@@ -232,19 +255,18 @@ test('V25.46 : nouvelle interface mobile, marge Android et couleurs de conformit
   assert.match(html,/backface-visibility:visible!important/);
 });
 
-test('V25.49 : la saisie mobile agrandit fortement la fenêtre du PDF pendant le clavier Android', () => {
+test('V25.50 : le clavier garde la grande zone PDF sans recentrages répétés', () => {
   const html=readFileSync(new URL('../reader-v2525.html',import.meta.url),'utf8');
   const js=readFileSync(new URL('../reader-v2525.mjs',import.meta.url),'utf8');
   assert.match(html,/body\.cdq-keyboard-field #zoomControls,/);
-  assert.match(html,/body\.cdq-keyboard-field #save,/);
-  assert.match(html,/body\.cdq-keyboard-field #menu,/);
   assert.match(html,/body\.cdq-keyboard-field #status\{display:none!important\}/);
-  assert.match(html,/height:calc\(46px \+ var\(--reader-safe-top\)\)!important/);
-  assert.match(html,/body\.cdq-keyboard-field #container\{[\s\S]*?bottom:44px!important/);
-  assert.match(html,/body\.cdq-keyboard-field #formNav\{[\s\S]*?height:44px!important/);
-  assert.match(js,/function cdqTextEntryFieldV2549/);
-  assert.match(js,/function cdqKeyboardFieldV2549/);
-  assert.match(js,/visualViewport\?\.addEventListener\('resize'/);
-  assert.match(js,/\[80,180,320,520\]/);
-  assert.match(js,/scrollIntoView\(\{block:'center',inline:'nearest',behavior:'instant'\}\)/);
+  assert.match(html,/data-cdq-auto-field="true"/);
+  assert.match(js,/function cdqTextEntryFieldV2550/);
+  assert.match(js,/function cdqKeyboardFieldV2550/);
+  assert.match(js,/function cdqRevealFieldV2550/);
+  assert.match(js,/visualViewport\?\.addEventListener\('resize',cdqScheduleViewportFieldV2550\)/);
+  assert.match(js,/cdqViewportFieldTimerV2550=setTimeout/);
+  assert.match(js,/container\.scrollTop\+=centerY-targetY/);
+  assert.doesNotMatch(js,/\[80,180,320,520\]/);
+  assert.doesNotMatch(js,/scrollIntoView\(\{block:'center'/);
 });
