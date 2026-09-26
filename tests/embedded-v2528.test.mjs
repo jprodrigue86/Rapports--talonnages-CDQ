@@ -27,7 +27,7 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/if \(false && 'serviceWorker' in navigator\)/);
   assert.doesNotMatch(html,/<script src="https:\/\/accounts.google.com/);
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
-  assert.match(selector,/native\/v25.40\/vendor\/pdf-lib/);
+  assert.match(selector,/native\/v25.41\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);
   assert.match(selector,/id="cdqFullNamesV2536"/);
   assert.match(selector,/icon-artwork-baseline-v2540\.css/);
@@ -97,6 +97,46 @@ test('clean startup holds every remote call locally until authoritative confirma
   assert.equal(a.sent.length,1);
   a.message({type:'CDQ_EMBEDDED_RESULT',id:'1',ok:true,value:['client']});
   assert.deepEqual(received,[['client']]);
+  assert.deepEqual(errors,[]);
+});
+
+test('early Selector background method waits, then uses confirmed cdqRpc session',async()=>{
+  const provisional={value:true},a=client({provisional}),received=[],errors=[];
+  a.message({type:'CDQ_EMBEDDED_READY'});
+
+  a.c.google.script.run
+    .withSuccessHandler(value=>received.push(value))
+    .withFailureHandler(error=>errors.push(error.message))
+    .obtenirListeTechniciensRapports();
+
+  assert.equal(a.sent.length,0,'Background method must stay on-device while startup is provisional');
+
+  const session=a.c.cdqEmbeddedRpcV2529.prepareSession('device-token');
+  assert.equal(a.sent.length,1);
+  assert.equal(a.sent[0].data.name,'restaurerSessionApresBiometrie');
+  const restoreId=a.sent[0].data.id;
+
+  const state={
+    autorise:true,
+    email:'person@example.invalid',
+    role:'technicien',
+    jetonSession:'server-session-2541'
+  };
+  a.message({type:'CDQ_EMBEDDED_RESULT',id:restoreId,ok:true,value:state});
+  assert.deepEqual(await session,state);
+
+  provisional.value=false;
+  a.listeners['cdq:startup-confirmed-v2539']();
+
+  assert.equal(a.sent.length,2);
+  const routed=a.sent[1].data;
+  assert.equal(routed.name,'cdqRpc');
+  assert.equal(routed.args[0],'obtenirListeTechniciensRapports');
+  assert.equal(Array.from(routed.args[1]).length,0);
+  assert.equal(routed.args[2],'server-session-2541');
+
+  a.message({type:'CDQ_EMBEDDED_RESULT',id:routed.id,ok:true,value:['Technicien A']});
+  assert.deepEqual(received,[['Technicien A']]);
   assert.deepEqual(errors,[]);
 });
 

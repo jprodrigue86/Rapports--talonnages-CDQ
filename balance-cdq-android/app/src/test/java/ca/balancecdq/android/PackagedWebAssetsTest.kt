@@ -15,14 +15,14 @@ class PackagedWebAssetsTest {
 
     @Test fun `startup and images are supplied from installed assets`() {
         val loader = loader()
-        assertEquals("/Rapports--talonnages-CDQ/native/v25.40/", loader.prefix)
+        assertEquals("/Rapports--talonnages-CDQ/native/v25.41/", loader.prefix)
         assertEquals(
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.40/index.html",
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.41/index.html",
             loader.startUrl
         )
         val response = loader.intercept(Uri.parse(loader.startUrl))!!
         assertEquals(200, response.statusCode)
-        assertTrue(response.data.bufferedReader().readText().contains("25.40-icons-repeat-fast"))
+        assertTrue(response.data.bufferedReader().readText().contains("25.41-server-call-fix"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}Selector.html"))!!
         val html = selector.data.bufferedReader().readText()
         assertTrue(html.contains("./embedded-rpc.js"))

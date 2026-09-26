@@ -7,8 +7,8 @@ export function adaptIphoneRpc(source){
     assert.equal(source.split(from).length,2,'iPhone RPC anchor changed: '+from.slice(0,100));
     source=source.replace(from,to);
   }
-  once("  let frame, peer, peerOrigin='', serial=0, failed='';",
-       "  let frame, peer, peerRelay=null, peerOrigin='', serial=0, failed='';");
+  once("  let frame, peer, peerOrigin='', serial=0, failed='', sessionToken='';",
+       "  let frame, peer, peerRelay=null, peerOrigin='', serial=0, failed='', sessionToken='';");
   once("      peer=event.source;peerOrigin=event.origin;failed='';clearTimeout(bootTimer);",
 `      // WebKit reports the HtmlService relay as the source of asynchronous
       // replies; READY still comes from its inner user-code frame. Pin only
