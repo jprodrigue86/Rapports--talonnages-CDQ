@@ -9,29 +9,32 @@ let lastAttempt=null,fieldDefinitions=null,nativeInput;
 function commitActive(){if($('viewer').contains(document.activeElement)){const sink=$('status');sink.tabIndex=-1;sink.focus({preventScroll:true});}}
 function cdqTextEntryFieldV2550(el){return !!el&&el.matches?.('.textWidgetAnnotation input,.textWidgetAnnotation textarea')&&!el.disabled&&!el.readOnly&&el.dataset.cdqAutoField!=='true';}
 let cdqViewportFieldTimerV2550=0;
-function cdqRevealFieldV2550(field){
+function cdqRevealFieldV2552(field,center=false){
   if(!field||!field.isConnected)return;
   const container=$('container'),rect=field.getBoundingClientRect(),host=container.getBoundingClientRect();
-  if(!rect.width||!rect.height||!host.height)return;
-  const safeTop=host.top+10,safeBottom=host.bottom-10;
-  if(rect.top>=safeTop&&rect.bottom<=safeBottom)return;
-  const targetY=safeTop+(safeBottom-safeTop)*.42;
-  const centerY=rect.top+rect.height/2;
-  container.scrollTop+=centerY-targetY;
+  if(!rect.width||!rect.height||!host.width||!host.height)return;
+  const safeLeft=host.left+12,safeRight=host.right-12,safeTop=host.top+12,safeBottom=host.bottom-12;
+  const visible=rect.left>=safeLeft&&rect.right<=safeRight&&rect.top>=safeTop&&rect.bottom<=safeBottom;
+  if(!center&&visible)return;
+  const targetX=host.left+host.width*.5,targetY=safeTop+(safeBottom-safeTop)*.42;
+  const centerX=rect.left+rect.width/2,centerY=rect.top+rect.height/2;
+  const dx=centerX-targetX,dy=centerY-targetY;
+  if(Math.abs(dx)>1)container.scrollLeft+=dx;
+  if(Math.abs(dy)>1)container.scrollTop+=dy;
 }
 function cdqKeyboardFieldV2550(active,field){
   document.body.classList.toggle('cdq-keyboard-field',!!active);
   clearTimeout(cdqViewportFieldTimerV2550);
   if(!active||!field)return;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    if(document.activeElement===field)cdqRevealFieldV2550(field);
+    if(document.activeElement===field)cdqRevealFieldV2552(field);
   }));
 }
 function cdqScheduleViewportFieldV2550(){
   clearTimeout(cdqViewportFieldTimerV2550);
   cdqViewportFieldTimerV2550=setTimeout(()=>{
     const active=document.activeElement;
-    if(cdqTextEntryFieldV2550(active))cdqRevealFieldV2550(active);
+    if(cdqTextEntryFieldV2550(active))cdqRevealFieldV2552(active);
   },140);
 }
 let name='Rapport.pdf',fileId='',pending=null,opening=false,closeAfterSave=false,closed=false;
@@ -137,7 +140,7 @@ try{
   linkService.setViewer(viewer);scripting.setViewer(viewer);
   touch=installTouchNavigation({container:$('container'),surface:$('viewer'),getViewer:()=>viewer});
   nativeInput=installNativeTextInput($('viewer'));
-  form=installFormNavigation({surface:$('viewer'),toolbar:$('formNav'),previous:$('previousField'),next:$('nextField'),done:$('doneFields'),reveal:field=>{if(!cdqTextEntryFieldV2550(field))cdqRevealFieldV2550(field);}});
+  form=installFormNavigation({surface:$('viewer'),toolbar:$('formNav'),previous:$('previousField'),next:$('nextField'),done:$('doneFields'),reveal:field=>cdqRevealFieldV2552(field,true)});
   eventBus.on('pagesinit',()=>{viewer.currentScaleValue='page-width';});
   eventBus.on('scalechanging',e=>{$('zoom').textContent=Math.round(e.scale*100)+' %';});
   eventBus.on('pagerendered',e=>{if(e.error)fail(e.error);});
