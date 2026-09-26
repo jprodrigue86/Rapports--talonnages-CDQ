@@ -57,7 +57,7 @@ shell=replace(shell,'const remaining = Math.max(0, MIN_LOADING_MS - elapsed);',`
     cdqFirstFrameStableV2543=true;
     cdqFirstFrameStableSourceV2543='fallback';
     masquerMurApresDelaiMinimum();
-  },1500);
+  },2500);
   return;
 }
 const remaining = Math.max(0, MIN_LOADING_MS - elapsed);`);
