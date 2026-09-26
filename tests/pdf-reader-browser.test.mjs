@@ -43,7 +43,7 @@ try{
   const s=page.frames().find(f=>f.url().endsWith('/selector'));await s.waitForFunction(()=>!!window.cdqOpenPdfV2520);
   async function open(){if(mobile)await s.click('.file-row span');else await s.evaluate(()=>cdqOpenPdfV2520('PDF_CLIENT_123456'));await page.waitForSelector('#legacy-pdf-reader');const f=await page.waitForFrame(f=>f.url().includes('reader-v2525.html'));await f.waitForSelector('#viewer[data-ready="true"] input[name="client_nom"]',{timeout:20000});return f;}
   let f=await open();assert.ok(await f.$$eval('.annotationLayer input',x=>x.length)>100);
-  const input=async(value)=>{await f.$eval('input[name="client_nom"]',(e,v)=>{e.focus();e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));e.blur();},value)};
+  const input=async(value)=>{await f.$eval('input[name="client_nom"]',(e,v)=>{e.focus();e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));e.blur();},value);await new Promise(r=>setTimeout(r,120));};
   const colors=await f.$eval('input[name="client_nom"]',e=>({inline:e.style.backgroundColor,computed:getComputedStyle(e).backgroundColor,image:getComputedStyle(e).backgroundImage}));assert.equal(colors.image,'none');assert.equal(colors.computed,colors.inline==='transparent'?'rgba(0, 0, 0, 0)':colors.inline);
   const viewerUi=await f.evaluate(()=>{const green=document.querySelector('input[name*="conforme_vert"]'),red=document.querySelector('input[name*="conforme_rouge"]');return {
     zoomControls:!!document.getElementById('zoomControls'),
@@ -66,18 +66,22 @@ try{
       const compactHeader=header.getBoundingClientRect().height;
       const zoomDisplay=getComputedStyle(document.getElementById('zoomControls')).display;
       const statusDisplay=getComputedStyle(document.getElementById('status')).display;
+      const saveDisplay=getComputedStyle(document.getElementById('save')).display;
+      const menuDisplay=getComputedStyle(document.getElementById('menu')).display;
       const active=document.body.classList.contains('cdq-keyboard-field');
       field.blur();
-      await new Promise(resolve=>setTimeout(resolve,120));
+      await new Promise(resolve=>setTimeout(resolve,140));
       return {
-        normalHeader,compactHeader,zoomDisplay,statusDisplay,active,
+        normalHeader,compactHeader,zoomDisplay,statusDisplay,saveDisplay,menuDisplay,active,
         restored:!document.body.classList.contains('cdq-keyboard-field')
       };
     });
     assert.equal(keyboardUi.active,true);
     assert.equal(keyboardUi.zoomDisplay,'none');
     assert.equal(keyboardUi.statusDisplay,'none');
-    assert.ok(keyboardUi.compactHeader<keyboardUi.normalHeader);
+    assert.equal(keyboardUi.saveDisplay,'none');
+    assert.equal(keyboardUi.menuDisplay,'none');
+    assert.ok(keyboardUi.compactHeader<=keyboardUi.normalHeader-40);
     assert.equal(keyboardUi.restored,true);
   }
   for(const [name,value] of [['echelon','1'],['charge_point_1_charge_utilisee','1000'],['charge_point_1_avant_correction','1003']]){
