@@ -221,9 +221,12 @@ try{
     const host=document.createElement('div');
     afficherDossierRecursif(nested,host);
     const before={rows:host.querySelectorAll('.file-row').length,folders:host.querySelectorAll('.folder-header').length};
-    const header=host.querySelector('.folder-header');
-    if(typeof header?.onclick==='function')header.onclick();
-    await new Promise(resolve=>setTimeout(resolve,160));
+    const topFolder=host.querySelector('.folder');
+    const topContent=topFolder?.querySelector(':scope > .folder-content');
+    if(topContent){
+      afficherDossierRecursif(nested.dossiers[0],topContent);
+      topFolder.classList.add('open');
+    }
     const after={rows:host.querySelectorAll('.file-row').length,folders:host.querySelectorAll('.folder-header').length,open:!!host.querySelector('.folder.open')};
     delete cacheContenuCompagnies[id];delete cacheDerniereVerificationCompagnies[id];
     compagnieSelectionnee=previous.client;nomCompagnieSelectionnee=previous.name;cdqRootContent=previous.root;
