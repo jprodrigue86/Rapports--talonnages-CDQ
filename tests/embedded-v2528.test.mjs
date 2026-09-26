@@ -27,7 +27,7 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/if \(false && 'serviceWorker' in navigator\)/);
   assert.doesNotMatch(html,/<script src="https:\/\/accounts.google.com/);
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
-  assert.match(selector,/native\/v25.44\/vendor\/pdf-lib/);
+  assert.match(selector,/native\/v25.45\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);
   assert.match(selector,/id="cdqFullNamesV2536"/);
   assert.match(selector,/icon-artwork-baseline-v2540\.css/);
@@ -39,6 +39,9 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(selector,/client-speed-v2544\.js/);
   assert.match(read(source+'client-speed-v2544.js'),/SERVER_GRACE_MS=110/);
   assert.match(read(source+'client-speed-v2544.js'),/cdqIntegratedV2544/);
+  assert.match(read(source+'client-speed-v2544.js'),/prewarmBatch/);
+  assert.match(read(source+'client-speed-v2544.js'),/company-reset-item/);
+  assert.match(selector,/if\(!document\.documentElement\.classList\.contains\("mobile-device"\)\)afficherDossierRecursif\(sousDossier, contenu\)/);
   assert.match(read(source+'first-frame-stable-v2543.js'),/now-started>=450/);
   assert.match(read(source+'first-frame-stable-v2543.js'),/now-stableSince>=220/);
   assert.match(html,/warm-unlock-v2540\.js/);

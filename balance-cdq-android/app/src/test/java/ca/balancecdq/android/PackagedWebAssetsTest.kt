@@ -15,15 +15,15 @@ class PackagedWebAssetsTest {
 
     @Test fun `startup and images are supplied from installed assets`() {
         val loader = loader()
-        assertEquals("/Rapports--talonnages-CDQ/native/v25.44/", loader.prefix)
+        assertEquals("/Rapports--talonnages-CDQ/native/v25.45/", loader.prefix)
         assertEquals(
-            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.44/index.html",
+            "https://jprodrigue86.github.io/Rapports--talonnages-CDQ/native/v25.45/index.html",
             loader.startUrl
         )
         val response = loader.intercept(Uri.parse(loader.startUrl))!!
         assertEquals(200, response.statusCode)
         val shell = response.data.bufferedReader().readText()
-        assertTrue(shell.contains("25.44-fast-client-files"))
+        assertTrue(shell.contains("25.45-fast-client-render"))
         assertTrue(shell.contains("CDQ_FIRST_FRAME_STABLE_V2543"))
         assertTrue(shell.contains("2500"))
         val selector = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}Selector.html"))!!
@@ -51,6 +51,8 @@ class PackagedWebAssetsTest {
         assertEquals(200, clientSpeed.statusCode)
         val clientSpeedText = clientSpeed.data.bufferedReader().readText()
         assertTrue(clientSpeedText.contains("SERVER_GRACE_MS=110"))
+        assertTrue(clientSpeedText.contains("prewarmBatch"))
+        assertTrue(clientSpeedText.contains("company-reset-item"))
         assertTrue(clientSpeedText.contains("cdqIntegratedV2544"))
         val artwork = loader.intercept(Uri.parse("https://${PackagedWebAssets.HOST}${loader.prefix}icon-artwork-baseline-v2540.css"))!!
         assertEquals(200, artwork.statusCode)

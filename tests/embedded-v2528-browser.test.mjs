@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const prefix=base+'native/v25.44/';
+const prefix=base+'native/v25.45/';
 const generated='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web/';
 const files=JSON.parse(fs.readFileSync(generated+'asset-manifest.json')).files;
 const bridge=fs.readFileSync('balance-cdq-android/web-source/server-bridge.js','utf8');
@@ -15,7 +15,7 @@ try{
   const bridgeStart=new Promise(resolve=>{bridgeStarted=resolve;});
   page.on('pageerror',error=>errors.push(error.message));
   await page.setViewport({width:393,height:850,isMobile:true,hasTouch:true});
-  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.44 CDQSafeArea/1');
+  await page.setUserAgent('Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0 Mobile Safari/537.36 BalanceCDQAndroid/25.45 CDQSafeArea/1');
   await page.exposeFunction('recordRpc',name=>calls.push(name));
   await page.evaluateOnNewDocument(()=>{
     window.testTicketConfirmCount=0;
@@ -86,7 +86,7 @@ try{
       return request.respond({status:200,contentType:'text/html; charset=utf-8',body:`<script>const CDQ_EMBEDDED_CHANNEL=${JSON.stringify(channel)};${fixture}\n${bridge}</script>`});
     }
     // The explicitly live version check is allowed; public/static UI downloads are not.
-    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.26-v25.44-fast-client-files'})});
+    if(url.includes('/bundles/balance-cdq/latest/manifest.json')||url.includes('/version.json'))return request.respond({status:200,contentType:'application/json',body:JSON.stringify({version:'V25.31',build:'2026.09.26-v25.45-fast-client-render'})});
     unexpected.push(url);return request.abort();
   });
   // Puppeteer's navigation lifecycle also waits on child frames. Here the
@@ -109,7 +109,7 @@ try{
   assert.deepEqual(errors,[]);
   assert.deepEqual(unexpected,[]);
   assert.ok(calls.includes('obtenirEtatAcces'));
-  // V25.44 returning startup: Android already owns the biometric prompt and
+  // V25.45 returning startup: Android already owns the biometric prompt and
   // the untouched Selector is allowed to parse while the server is held.
   await page.evaluate(()=>{
     localStorage.setItem('cdq_auth_device_token_v2','fixture-device');
@@ -181,6 +181,62 @@ try{
   assert.notEqual(integratedProgress.position,'fixed');
   assert.notEqual(integratedProgress.display,'none');
 
+  // V25.45: a normal unfiltered company row gets its id on first touch, so
+  // cache warming starts before the click handler opens the client.
+  const touchWarm=await selector.evaluate(()=>{
+    const previous=toutesLesCompagnies;
+    toutesLesCompagnies=[{id:'client_touch_fixture_2545',nom:'Client toucher V25.45'}];
+    remplirListeCompagnies();
+    const row=document.querySelector('#companyList .company-item:not(.company-reset-item)');
+    if(!row){toutesLesCompagnies=previous;return null;}
+    const before=String(row.dataset.companyId||'');
+    row.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
+    const after=String(row.dataset.companyId||'');
+    toutesLesCompagnies=previous;remplirListeCompagnies();
+    return {before,after};
+  });
+  assert.ok(touchWarm);
+  assert.equal(touchWarm.before,'client_touch_fixture_2545');
+  assert.equal(touchWarm.after,'client_touch_fixture_2545');
+
+  // V25.45: mobile rendering creates only the visible level. Opening a folder
+  // whose data is already cached renders that level instantly without Drive.
+  const lazyClientRender=await selector.evaluate(async()=>{
+    const previous={
+      client:compagnieSelectionnee,
+      name:nomCompagnieSelectionnee,
+      root:typeof cdqRootContent!=='undefined'?cdqRootContent:null
+    };
+    const id='client_render_fixture_2545';
+    const nested={
+      id,nom:'Client rendu',charge:true,fichiers:[{id:'root-file',nom:'Racine.pdf',type:'PDF',dateModification:'2026-09-25T12:00:00Z'}],
+      dossiers:[{
+        id:'level-1',nom:'Rapports',charge:true,
+        fichiers:Array.from({length:40},(_,i)=>({id:'file-'+i,nom:'Rapport '+i+'.pdf',type:'PDF',dateModification:'2026-09-25T12:00:00Z'})),
+        dossiers:[{id:'level-2',nom:'Archive',charge:true,fichiers:[{id:'deep-file',nom:'Ancien.pdf',type:'PDF'}],dossiers:[]}]
+      }]
+    };
+    compagnieSelectionnee=id;nomCompagnieSelectionnee='Client rendu';
+    cacheContenuCompagnies[id]=nested;cacheDerniereVerificationCompagnies[id]=Date.now();cdqRootContent=nested;
+    const host=document.createElement('div');
+    afficherDossierRecursif(nested,host);
+    const before={rows:host.querySelectorAll('.file-row').length,folders:host.querySelectorAll('.folder-header').length};
+    const topFolder=host.querySelector('.folder');
+    const topContent=topFolder?.querySelector(':scope > .folder-content');
+    if(topContent){
+      afficherDossierRecursif(nested.dossiers[0],topContent);
+      topFolder.classList.add('open');
+    }
+    const after={rows:host.querySelectorAll('.file-row').length,folders:host.querySelectorAll('.folder-header').length,open:!!host.querySelector('.folder.open')};
+    delete cacheContenuCompagnies[id];delete cacheDerniereVerificationCompagnies[id];
+    compagnieSelectionnee=previous.client;nomCompagnieSelectionnee=previous.name;cdqRootContent=previous.root;
+    return {before,after};
+  });
+  assert.deepEqual(lazyClientRender.before,{rows:1,folders:1});
+  assert.equal(lazyClientRender.after.rows,41);
+  assert.equal(lazyClientRender.after.folders,2);
+  assert.equal(lazyClientRender.after.open,true);
+
   // Exercise the real pre-V25.37 icon theme code. No V25.37/V25.38 icon patch exists.
   await selector.evaluate(()=>{
     const user=String(utilisateurCourantEmail||'').trim().toLowerCase();
@@ -249,7 +305,7 @@ try{
   assert.equal(navIcons.artworkCss,true);
   assert.equal(navIcons.sprite.ok,true);
   assert.ok(navIcons.sprite.bytes>500000);
-  assert.match(navIcons.sprite.url,/native\/v25\.44\/bundles\/balance-cdq\/v25\.15\/icons-transparent\.webp/);
+  assert.match(navIcons.sprite.url,/native\/v25\.45\/bundles\/balance-cdq\/v25\.15\/icons-transparent\.webp/);
   assert.equal(await selector.evaluate(()=>typeof window.cdqIconFallbackV2538),'undefined');
 
   // The server now confirms; held RPC may leave the device only after this point.

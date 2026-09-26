@@ -11,8 +11,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.44/';
-const build='2026.09.26-v25.44-fast-client-files';
+const local=base+'native/v25.45/';
+const build='2026.09.26-v25.45-fast-client-render';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -138,6 +138,18 @@ selector=applySafeSelector2532(selector);
 selector=applyPersonalSizing2533(selector);
 selector=applyWholeWords2534(selector);
 selector=applyFullNames2536(selector);
+selector=replace(selector,
+  '      item.textContent =\n        compagnie.nom;\n\n\n      item.onclick =',
+  '      item.textContent =\n        compagnie.nom;\n      item.dataset.companyId=String(compagnie.id||"");\n\n\n      item.onclick ='
+);
+selector=replace(selector,
+  '      const row=document.createElement("div"); row.className="company-item cdq-company-row";',
+  '      const row=document.createElement("div"); row.className="company-item cdq-company-row"; row.dataset.companyId=String(comp.id||"");'
+);
+selector=replace(selector,
+  '      afficherDossierRecursif(sousDossier, contenu);',
+  '      if(!document.documentElement.classList.contains("mobile-device"))afficherDossierRecursif(sousDossier, contenu);'
+);
 files.set('Selector.html',Buffer.from(selector));
 files.set('safe-viewport-v2532.js',fs.readFileSync('safe-viewport-v2532.js'));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
@@ -147,7 +159,7 @@ files.set('first-frame-stable-v2543.js',fs.readFileSync(source+'first-frame-stab
 files.set('client-speed-v2544.js',fs.readFileSync(source+'client-speed-v2544.js'));
 files.set('icon-artwork-baseline-v2540.css',fs.readFileSync('icon-artwork-baseline-v2540.css'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.44',build,files:{}};
+const manifest={version:'25.45',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);
