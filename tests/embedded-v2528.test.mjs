@@ -27,11 +27,13 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/if \(false && 'serviceWorker' in navigator\)/);
   assert.doesNotMatch(html,/<script src="https:\/\/accounts.google.com/);
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
-  assert.match(selector,/native\/v25.41\/vendor\/pdf-lib/);
+  assert.match(selector,/native\/v25.42\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);
   assert.match(selector,/id="cdqFullNamesV2536"/);
   assert.match(selector,/icon-artwork-baseline-v2540\.css/);
   assert.doesNotMatch(selector,/cdqLocalProvisionalV2537|icon-fallback-v2538|cdq-icon-art-ready-v2538/);
+  assert.match(html,/CDQ_NATIVE_FIRST_FRAME_SETTLE_MS = 100/);
+  assert.match(html,/Math\.max\(window\.BalanceCDQNative \? CDQ_NATIVE_FIRST_FRAME_SETTLE_MS : 0, MIN_LOADING_MS - elapsed\)/);
   assert.match(html,/warm-unlock-v2540\.js/);
   assert.match(html,/cdqNativeBiometricResultV2507=function\(requestId,success,message,grant\)/);
   assert.match(html,/cdqWarmUnlockV2540\?\.observe/);
