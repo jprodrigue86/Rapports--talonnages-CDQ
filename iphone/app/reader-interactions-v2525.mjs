@@ -38,7 +38,7 @@ export function installTouchNavigation({container, surface, getViewer, now = Dat
       scaleFactor:previous.targetScale / previous.scale,
       origin:[previous.start.x, previous.start.y],
       pan:[previous.mid.x - previous.start.x, previous.mid.y - previous.start.y],
-      drawingDelay:0,
+      drawingDelay:250,
     });
   }
   function startPan(t) {
