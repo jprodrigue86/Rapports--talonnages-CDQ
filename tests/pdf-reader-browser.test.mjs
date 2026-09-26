@@ -58,7 +58,7 @@ try{
 
   const navigationAudit=await f.evaluate(()=>{
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-    const all=[...document.querySelectorAll('.annotationLayer input,.annotationLayer textarea,.annotationLayer select')];
+    const all=[...document.querySelectorAll('.textWidgetAnnotation input,.textWidgetAnnotation textarea,.choiceWidgetAnnotation select')];
     const auto=all.filter(el=>el.dataset.cdqAutoField==='true').map(el=>({name:el.name,tabIndex:el.tabIndex}));
     const echelon=all.find(el=>normalize(el.name)==='echelon');
     const typeBalance=all.find(el=>{const n=normalize(el.name);return n.includes('type')&&n.includes('balance')});
