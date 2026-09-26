@@ -53,9 +53,14 @@ try{
     headerPaddingTop:parseFloat(getComputedStyle(document.getElementById('readerTop')).paddingTop)||0
   }});
   assert.equal(viewerUi.zoomControls,true);
-  assert.match(viewerUi.green,/37, 230, 122|rgb\(37, 230, 122\)|#25e67a/i);
-  assert.match(viewerUi.red,/255, 75, 93|rgb\(255, 75, 93\)|#ff4b5d/i);
-  if(mobile){assert.equal(viewerUi.headerDisplay,'grid');assert.ok(viewerUi.headerPaddingTop>=15);}
+  assert.match(viewerUi.green,/99, 255, 154|rgb\(99, 255, 154\)|#63ff9a/i);
+  assert.match(viewerUi.red,/255, 111, 120|rgb\(255, 111, 120\)|#ff6f78/i);
+  if(mobile){assert.equal(viewerUi.headerDisplay,'grid');assert.ok(viewerUi.headerPaddingTop>=39);}
+  if(await f.$('select[name="frequence_etalonnage"]')){
+    await f.$eval('select[name="frequence_etalonnage"]',e=>{e.focus();if(e.options.length>1)e.selectedIndex=1;e.dispatchEvent(new Event('change',{bubbles:true}));});
+    await new Promise(r=>setTimeout(r,130));
+    assert.notEqual(await f.evaluate(()=>document.activeElement?.name||''),'frequence_etalonnage');
+  }
   for(const [name,value] of [['echelon','1'],['charge_point_1_charge_utilisee','1000'],['charge_point_1_avant_correction','1003']]){
     await f.click('input[name="'+name+'"]');await new Promise(r=>setTimeout(r,120));await page.keyboard.type(value,{delay:65});await page.keyboard.press('Tab');await new Promise(r=>setTimeout(r,150));
   }
