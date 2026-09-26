@@ -18,7 +18,7 @@ test('every packaged asset matches its manifest and includes interface, artwork 
     assert.doesNotMatch(name,/\.p12$|\.keystore$|mot-de-passe|\.gs$|^downloads\//);
   }
   assert.equal(assets.files['version.json'],undefined);
-  assert.equal(assets.files['bundles/balance-cdq/latest/manifest.json'],undefined);
+  assert.equal(assets.files['bundles/balance-cdq/latest/manifest.json'],undefined);\n  assert.equal(assets.files['downloads/android-release-update.json'],undefined);
 });
 
 test('installed shell selects the local interface and does not load Google Identity or install a web worker at boot',()=>{
@@ -27,7 +27,7 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/if \(false && 'serviceWorker' in navigator\)/);
   assert.doesNotMatch(html,/<script src="https:\/\/accounts.google.com/);
   assert.doesNotMatch(selector,/cdn.jsdelivr.net\/npm\/pdf-lib/);
-  assert.match(selector,/native\/v25.46\/vendor\/pdf-lib/);
+  assert.match(selector,/native\/v25.47\/vendor\/pdf-lib/);
   assert.match(selector,/cdqFoldersV2527/);
   assert.match(selector,/id="cdqFullNamesV2536"/);
   assert.match(selector,/icon-artwork-baseline-v2540\.css/);
@@ -36,7 +36,7 @@ test('installed shell selects the local interface and does not load Google Ident
   assert.match(html,/CDQ_FIRST_FRAME_ARM_V2543/);
   assert.match(html,/2500/);
   assert.match(selector,/first-frame-stable-v2543\.js/);
-  assert.match(selector,/client-speed-v2544\.js/);
+  assert.match(selector,/client-speed-v2544\.js/);\n  assert.match(selector,/cdqNativeUpdateIdentityV2547/);\n  assert.match(selector,/android-release-update\.json/);\n  assert.match(selector,/Vérifier avec Android/);
   assert.match(read(source+'client-speed-v2544.js'),/SERVER_GRACE_MS=110/);
   assert.match(read(source+'client-speed-v2544.js'),/cdqIntegratedV2544/);
   assert.match(read(source+'client-speed-v2544.js'),/prewarmBatch/);
