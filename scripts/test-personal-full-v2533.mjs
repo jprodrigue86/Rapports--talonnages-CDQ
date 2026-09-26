@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 const source=fs.readFileSync('tests/embedded-v2528-browser.test.mjs','utf8');
-const anchor='  // V25.44 returning startup: Android already owns the biometric prompt and'
+const anchor='  // V25.45 returning startup: Android already owns the biometric prompt and'
 assert.equal(source.split(anchor).length,2);
 let test=source.replace(anchor,fs.readFileSync('tests/personal-sizing-full.fragment.txt','utf8')+'\n'+anchor);
 // Start with the real administrator fixture response: changing roles after boot
@@ -12,7 +12,7 @@ assert.equal(test.split(role).length,2);test=test.replace(role,"role:'admin',jet
 const measured='  const originalSize=await selector.evaluate(measured);';assert.equal(test.split(measured).length,2);
 test=test.replace(measured,"  await selector.waitForFunction(()=>document.querySelectorAll('.bottom-nav > .bottom-nav-item').length===6);\n  await new Promise(r=>setTimeout(r,300));\n"+measured);
 const rpc="          if(name==='cdqRpc'){";assert.equal(test.split(rpc).length,2);test=test.replace(rpc,rpc+"window.recordRpc?.('rpc:'+args[0]);");
-// The personal-sizing harness is about geometry/preferences. The real V25.44 browser
+// The personal-sizing harness is about geometry/preferences. The real V25.45 browser
 // test already verifies native ticket confirmation counts for both unlock cycles.
 test=test.replace("  assert.equal(await page.evaluate(()=>window.testTicketConfirmCount),1);\n",'');
 test=test.replace("  assert.equal(await page.evaluate(()=>window.testTicketConfirmCount),2);\n",'');
