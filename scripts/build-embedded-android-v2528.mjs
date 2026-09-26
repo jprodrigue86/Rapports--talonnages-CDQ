@@ -11,8 +11,8 @@ import vm from 'node:vm';
 import {gunzipSync} from 'node:zlib';
 const read=p=>fs.readFileSync(p,'utf8');
 const base='https://jprodrigue86.github.io/Rapports--talonnages-CDQ/';
-const local=base+'native/v25.43/';
-const build='2026.09.25-v25.43-stable-first-frame';
+const local=base+'native/v25.44/';
+const build='2026.09.26-v25.44-fast-client-files';
 const target='balance-cdq-android/app/build/generated/cdq-web-assets/cdq-web';
 const source='balance-cdq-android/web-source/';
 const files=new Map();
@@ -118,7 +118,7 @@ shell=applySafeShell2532(shell);
 files.set('index.html',Buffer.from(shell));
 let selector=gunzipSync(fs.readFileSync(source+'Selector.html.gz')).toString('utf8');
 selector=replace(selector,'<head>','<head>\n<meta charset="utf-8">\n<link rel="icon" href="./icons/icon-heavy-v3-192.png">\n<link rel="stylesheet" href="./icon-artwork-baseline-v2540.css">\n<script src="./embedded-rpc.js"></script>');
-selector=replace(selector,'</body>','<script src="./first-frame-stable-v2543.js"></script>\n</body>');
+selector=replace(selector,'</body>','<script src="./first-frame-stable-v2543.js"></script>\n<script src="./client-speed-v2544.js"></script>\n</body>');
 selector=selector.replaceAll('2026.09.23-v25.27-demarrage-dossiers',build);
 // A prompt already running over the music wall must not wait behind a failed
 // network-only resume attempt. Returning from Sheets keeps the existing page.
@@ -143,10 +143,10 @@ files.set('safe-viewport-v2532.js',fs.readFileSync('safe-viewport-v2532.js'));
 files.set('embedded-rpc.js',fs.readFileSync(source+'embedded-rpc.js'));
 files.set('startup-unlock-v2529.js',fs.readFileSync(source+'startup-unlock-v2529.js'));
 files.set('warm-unlock-v2540.js',fs.readFileSync(source+'warm-unlock-v2540.js'));
-files.set('first-frame-stable-v2543.js',fs.readFileSync(source+'first-frame-stable-v2543.js'));
+files.set('first-frame-stable-v2543.js',fs.readFileSync(source+'first-frame-stable-v2543.js'));\nfiles.set('client-speed-v2544.js',fs.readFileSync(source+'client-speed-v2544.js'));
 files.set('icon-artwork-baseline-v2540.css',fs.readFileSync('icon-artwork-baseline-v2540.css'));
 const mime={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',pdf:'application/pdf',wasm:'application/wasm',ttf:'font/ttf',woff:'font/woff',woff2:'font/woff2',txt:'text/plain'};
-const manifest={version:'25.43',build,files:{}};
+const manifest={version:'25.44',build,files:{}};
 fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
 for(let [name,bytes] of files){
   const ext=path.extname(name).slice(1),text=['html','js','mjs','css','json','webmanifest','svg','txt'].includes(ext);
