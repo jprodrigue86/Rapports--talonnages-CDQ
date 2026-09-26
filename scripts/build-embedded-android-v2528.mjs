@@ -147,7 +147,7 @@ function cdqNativeUpdateIdentityV2547(){
       if(name&&code>0)return {version:'V'+name,code};
     }
   }catch(_){}
-  const m=String(navigator.userAgent||'').match(/BalanceCDQAndroid\/(\d+(?:\.\d+)?)/i);
+  const m=String(navigator.userAgent||'').match(/BalanceCDQAndroid\\/(\\d+(?:\\.\\d+)?)/i);
   if(!m)return null;
   const p=m[1].split('.');
   return {version:'V'+m[1],code:(Number(p[0]||0)*100)+Number(p[1]||0)};
